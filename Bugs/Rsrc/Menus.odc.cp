@@ -13,7 +13,6 @@ MENU "Info"
 	SEPARATOR
 	"Show Distribution"	""	"BugsCmds.ShowDistribution"	"BugsCmds.NotCompiledGuardWin"
 	"Show Deviance Dist"	""	"BugsCmds.ShowDistributionDeviance"	"BugsCmds.NotCompiledGuardWin"
-	"Parallel updaters"	""	"StdCmds.OpenToolDialog('Parallel/Rsrc/Dialog', 'Parallel Debug Tool')"	"BugsCmds.NotCompiledGuardWin"
 	SEPARATOR
 	"Node info..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/InfoDialog', 'Node Tool')"		""
 	"Metrics"	""	"BugsCmds.Metrics"	"BugsCmds.NotCompiledGuardWin"
@@ -42,7 +41,7 @@ MENU "Model"
 END
 
 MENU "Inference"
-	"Samples..."	""	"StdCmds.OpenAuxDialog('Samples/Rsrc/Dialog', 'Sample Monitor Tool')"	"BugsCmds.UpdateGuardWin"
+	"Samples..."	""	"StdCmds.OpenToolDialog('Samples/Rsrc/Dialog', 'Sample Monitor Tool')"	"BugsCmds.UpdateGuardWin"
 	"Compare..."	""	"StdCmds.OpenToolDialog('Compare/Rsrc/Dialog', 'Comparison Tool')"	"BugsCmds.UpdateGuardWin"
 	"Correlations..."	""	"StdCmds.OpenToolDialog('Correl/Rsrc/Dialog', 'Correlation Tool')"	"BugsCmds.UpdateGuardWin"
 	SEPARATOR
