@@ -27,13 +27,13 @@ MODULE ParallelWorker;
 		terminate = 1;
 		sendMonitors = 2;
 		sendSamples = 3;
-		setWAIC = 4;
+		toggleWAIC = 4;
 
 	VAR
 		restartLoc: Files.Locator;
-		numMonitored: INTEGER;
+		numMonitored, sampleSize: INTEGER;
 		devianceMonitored, waicSet: BOOLEAN;
-		waic: ARRAY 2 OF REAL;
+		informationCriteria: ARRAY 2 OF REAL;
 		deviance: REAL;
 
 		version-: INTEGER; 	(*	version number	*)
@@ -79,20 +79,14 @@ MODULE ParallelWorker;
 	PROCEDURE Update (thin, iteration, endOfAdapting: INTEGER);
 	BEGIN
 		Sample(thin, iteration, endOfAdapting);
-		IF devianceMonitored THEN
+		IF devianceMonitored OR waicSet THEN
 			deviance := ParallelActions.Deviance();
-			MPIworker.SumReal(deviance);
+			MPIworker.SumReal(deviance)
 		END;
 		MPIworker.SendInteger(endOfAdapting);
 		IF (MPIworker.rank = 0) & (numMonitored > 0) THEN
 			MonitorMonitors.SendMonitored(MPIworker.samples, MPIworker.monitors, numMonitored);
 			MPIworker.SendSamples(numMonitored);
-		END;
-		IF (MPIworker.rank = 0) & devianceMonitored THEN
-			MPIworker.SendReal(deviance)
-		END;
-		IF waicSet THEN
-			ParallelActions.UpdateWAIC
 		END
 	END Update;
 
@@ -127,6 +121,8 @@ MODULE ParallelWorker;
 			action, endOfAdapting, memory, numChains, setUpTime, thin, iteration: INTEGER;
 			resultParams: ARRAY 3 OF INTEGER;
 			command: ARRAY 4 OF INTEGER;
+			buffer: ARRAY 4 OF REAL;
+			meanDeviance, meanDeviance2: REAL;
 			endTime, startTime: LONGINT;
 			timeStamp, worldRank: ARRAY 64 OF CHAR;
 			f: Files.File;
@@ -179,23 +175,36 @@ MODULE ParallelWorker;
 				END;
 				MPIworker.ReceiveCommand(command);
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
-				Update(thin, iteration, endOfAdapting)
+				Update(thin, iteration, endOfAdapting);
+				IF (MPIworker.rank = 0) & devianceMonitored THEN
+					MPIworker.SendReal(deviance)
+				END;
+				IF waicSet THEN
+					ParallelActions.UpdateWAIC;
+					INC(sampleSize);
+					meanDeviance := meanDeviance + (deviance - meanDeviance) / sampleSize;
+					meanDeviance2 := meanDeviance2 + (deviance * deviance - meanDeviance2) / sampleSize
+				END
 			|sendSamples:
-				IF ~devianceMonitored THEN
+				IF ~devianceMonitored & ~waicSet THEN
 					(*	deviance not calculated in Update so calculate it	*)
 					deviance := ParallelActions.Deviance();
 					MPIworker.SumReal(deviance);
 				END;
 				IF waicSet THEN
-					ParallelActions.CalculateWAIC(waic[0], waic[1]);
-					MPIworker.SumReals(waic)
+					ParallelActions.CalculateWAIC(informationCriteria[0], informationCriteria[1]);
+					MPIworker.SumReals(informationCriteria)
 				END;
 				IF MPIworker.rank = 0 THEN
 					GraphStochastic.WriteSample(MPIworker.samples);
 					MPIworker.SendSamples(GraphStochastic.numStochastics);
 					MPIworker.SendReal(deviance);
 					IF waicSet THEN
-						MPIworker.SendReal(waic[0]); MPIworker.SendReal(waic[1])
+						buffer[0] := informationCriteria[0];
+						buffer[1] := informationCriteria[1];
+						buffer[2] := meanDeviance;
+						buffer[3] := meanDeviance2;
+						MPIworker.SendReals(buffer)
 					END
 				END
 			|terminate:
@@ -203,9 +212,26 @@ MODULE ParallelWorker;
 				EXIT
 			|update:
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
-				Update(thin, iteration, endOfAdapting)
-			|setWAIC:
-				waicSet := TRUE
+				Update(thin, iteration, endOfAdapting);
+				IF (MPIworker.rank = 0) & devianceMonitored THEN
+					MPIworker.SendReal(deviance)
+				END;
+				IF waicSet THEN
+					ParallelActions.UpdateWAIC;
+					INC(sampleSize);
+					meanDeviance := meanDeviance + (deviance - meanDeviance) / sampleSize;
+					meanDeviance2 := meanDeviance2 + (deviance * deviance - meanDeviance2) / sampleSize
+				END
+			|toggleWAIC:
+				waicSet := ~waicSet;
+				IF waicSet THEN
+					ParallelActions.SetWAIC;
+					sampleSize := 0;
+					meanDeviance := 0.0;
+					meanDeviance2 := 0.0
+				ELSE
+					ParallelActions.ClearWAIC;
+				END
 			END
 		END;
 		MPIworker.Close
