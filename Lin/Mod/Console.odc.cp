@@ -19,10 +19,6 @@ MODULE LinConsole;
 	TYPE
 		LinCons = POINTER TO RECORD (Console.Console) END;
 
-		LinProcess = POINTER TO RECORD (Console.Process) 
-			res: INTEGER
-		END;
-
 	CONST
 		strLen = 1024;
 
@@ -88,23 +84,6 @@ MODULE LinConsole;
 	PROCEDURE (cons: LinCons) Close;
 	BEGIN
 	END Close;
-
-	PROCEDURE (cons: LinCons) CreateProcess (cmdLine: ARRAY OF CHAR): Console.Process;
-		VAR
-			proc: LinProcess;
-			res: INTEGER;
-			n: ARRAY 256 OF SHORTCHAR;
-	BEGIN
-		NEW(proc);
-		n := SHORT(cmdLine$);
-		proc.res := LinLibc.system(n);
-		RETURN proc
-	END CreateProcess;
-
-	PROCEDURE (p: LinProcess) Terminate;
-	BEGIN
-
-	END Terminate;
 
 	PROCEDURE Maintainer;
 	BEGIN
