@@ -284,10 +284,11 @@ MODULE UpdaterParallel;
 		END
 	END DistByDepth1;
 
-	PROCEDURE AddDummyUpdaters (lists: ARRAY OF List);
+	PROCEDURE CompleteRows (lists: ARRAY OF List);
 		VAR
 			i, num, size: INTEGER;
 			updater: UpdaterUpdaters.Updater;
+			prior: GraphStochastic.Node;
 	BEGIN
 		num := LEN(lists);
 		WHILE lists[0] # NIL DO
@@ -307,7 +308,7 @@ MODULE UpdaterParallel;
 				INC(i)
 			END
 		END
-	END AddDummyUpdaters;
+	END CompleteRows;
 
 	PROCEDURE DistributeObservations* (updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
 	id: POINTER TO ARRAY OF INTEGER;
@@ -409,6 +410,7 @@ MODULE UpdaterParallel;
 			cursor, element, list: List;
 			lists: POINTER TO ARRAY OF List;
 			rowId: RowId;
+			prior: GraphStochastic.Node;
 	BEGIN
 		rowId := NIL;
 		NEW(lists, commSize);
@@ -440,7 +442,7 @@ MODULE UpdaterParallel;
 			lists[i] := list;
 			INC(i)
 		END;
-		AddDummyUpdaters(lists);
+		CompleteRows(lists);
 		rowId.id :=  - ABS(rowId.id);
 		cursor := lists[0];
 		numUpdaters := 0;
@@ -470,6 +472,26 @@ MODULE UpdaterParallel;
 			INC(j);
 			id[numUpdaters - j] := rowId.id;
 			rowId := rowId.next
+		END;
+		(*	if only one updater in parallel block distribute updater	*)
+		IF commSize > 1 THEN
+			j := 0;
+			WHILE j < numUpdaters DO
+				IF id[j] =  - 1 THEN
+					id[j] := 0;
+					prior := updaters[1, j].Prior(0);
+					IF prior = NIL THEN
+						prior := updaters[0, j].Prior(0);
+						prior.SetProps(prior.props + {GraphStochastic.distributed});
+						i := 1;
+						WHILE i < commSize DO
+							updaters[i, j] := updaters[0, j];
+							INC(i)
+						END
+					END
+				END;
+				INC(j)
+			END
 		END
 	END DistributeUpdaters;
 

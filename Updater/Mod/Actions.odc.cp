@@ -16,6 +16,7 @@ MODULE UpdaterActions;
 	IMPORT
 		Stores,
 		GraphNodes, GraphStochastic,
+		MathSort,
 		UpdaterUpdaters;
 
 	TYPE
@@ -50,7 +51,7 @@ MODULE UpdaterActions;
 		RETURN numUpdater
 	END NumberUpdaters;
 
-	PROCEDURE AverageNumChildren* (): INTEGER;
+	PROCEDURE MeanNumChildren* (): INTEGER;
 		VAR
 			updater: UpdaterUpdaters.Updater;
 			children: GraphStochastic.Vector;
@@ -71,7 +72,36 @@ MODULE UpdaterActions;
 			INC(i)
 		END;
 		RETURN totalChildren DIV numUpdaters
-	END AverageNumChildren;
+	END MeanNumChildren;
+
+	PROCEDURE MedianNumChildren* (): INTEGER;
+		VAR
+			updater: UpdaterUpdaters.Updater;
+			children: GraphStochastic.Vector;
+			i, numUpdaters, numChildren: INTEGER;
+			x: POINTER TO ARRAY OF REAL;
+		CONST
+			eps = 0.1;
+	BEGIN
+		numUpdaters := NumberUpdaters();
+		NEW(x, numUpdaters);
+		i := 0;
+		WHILE i < numUpdaters DO
+			updater := updaters[0, i];
+			IF updater # NIL THEN
+				children := updater.Children();
+				IF children # NIL THEN 
+					numChildren := LEN(children);
+				ELSE
+					numChildren := 0
+				END;
+				x[i] := numChildren
+			END;
+			INC(i)
+		END;
+		MathSort.HeapSort(x, numUpdaters);
+		RETURN SHORT(ENTIER(x[numUpdaters DIV 2] + eps))
+	END MedianNumChildren;
 
 	PROCEDURE CanDistribute (updater: UpdaterUpdaters.Updater; avNum: INTEGER): BOOLEAN;
 		VAR
@@ -82,9 +112,26 @@ MODULE UpdaterActions;
 		children := updater.Children();
 		IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
 		depth := updater.Depth();
-		canDistribute := ((numChild > 2 * avNum) & (depth > 1)) OR ((numChild > 2) & (depth = 1));
+		canDistribute := numChild > 2 * avNum;
 		RETURN canDistribute
 	END CanDistribute;
+
+	(*	externalize data of nodes associated with updaters	*)
+	PROCEDURE AllocateLikelihoods*;
+		VAR
+			updater: UpdaterUpdaters.Updater;
+			p: GraphStochastic.Node;
+			i, numUpdaters: INTEGER;
+	BEGIN
+		numUpdaters := NumberUpdaters();
+		i := 0;
+		WHILE i < numUpdaters DO
+			updater := updaters[0, i];
+			p := updater.Prior(0);
+			p.AllocateLikelihood;
+			INC(i)
+		END
+	END AllocateLikelihoods;
 
 	(*	Clears the updater list etc	*)
 	PROCEDURE Clear*;
@@ -475,7 +522,7 @@ MODULE UpdaterActions;
 			updater: UpdaterUpdaters.Updater;
 			prior: GraphStochastic.Node;
 	BEGIN
-		avNumChild := AverageNumChildren();
+		avNumChild := MeanNumChildren();
 		numUpdaters := NumberUpdaters();
 		i := 0;
 		WHILE i < numUpdaters DO
