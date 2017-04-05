@@ -124,6 +124,8 @@ BugsClassic
 
 WinConsole BugsDialog
 
+DevDebug
+
 UpdaterSettings
 
 BugsCmds BugsBatch BugsConfig
