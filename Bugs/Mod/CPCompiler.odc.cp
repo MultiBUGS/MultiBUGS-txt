@@ -16,11 +16,11 @@ MODULE BugsCPCompiler;
 	
 
 	IMPORT
-		Files, Kernel, Services, Stores, Strings,
-		Views, TextModels, TextViews,
+		Files, Kernel, Services, Stores, Strings, Views, 
 		BugsCPWrite, BugsMappers, BugsTexts, 
-		GraphLogical, GraphNodes, GraphStochastic,
-		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486;
+		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486,
+		GraphLogical, GraphNodes, GraphStochastic, 
+		TextModels, TextViews;
 
 	TYPE
 		FactoryList = POINTER TO RECORD
@@ -33,6 +33,7 @@ MODULE BugsCPCompiler;
 	VAR
 		numDynamic: INTEGER;
 		factoryList: FactoryList;
+		debug*: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -86,7 +87,7 @@ MODULE BugsCPCompiler;
 		text := TextModels.dir.New();
 		BugsTexts.ConnectFormatter(f, text);
 		BugsCPWrite.WriteModule(args, numDynamic, f);
-		(*Views.OpenAux(TextViews.dir.New(text), modName$);*)
+		IF debug THEN Views.OpenAux(TextViews.dir.New(text), modName$) END;
 		rd := text.NewReader(NIL);
 		rd.SetPos(0);
 		Compile(rd, ok);
@@ -183,8 +184,8 @@ MODULE BugsCPCompiler;
 		fileInfo := Files.dir.FileList(locSub);
 		WHILE fileInfo # NIL DO
 			Strings.Find(fileInfo.name, "_" + timeStamp, 0, pos);
-			IF pos #  - 1 THEN 
-				Files.dir.Delete(locSub, fileInfo.name) 
+			IF pos #  - 1 THEN
+				Files.dir.Delete(locSub, fileInfo.name)
 			END;
 			fileInfo := fileInfo.next
 		END;
@@ -277,7 +278,7 @@ MODULE BugsCPCompiler;
 		f.WriteString("MODULE DynamicTime_" + timeStamp + ";");
 		f.WriteString("IMPORT GraphNodes;");
 		f.WriteString("BEGIN ");
-		f.WriteString("GraphNodes.SetTimeStamp(" + timeStamp +") ");
+		f.WriteString("GraphNodes.SetTimeStamp(" + timeStamp + ") ");
 		f.WriteString("END DynamicTime_" + timeStamp + ".");
 		rd := text.NewReader(NIL);
 		rd.SetPos(0);
@@ -307,6 +308,7 @@ MODULE BugsCPCompiler;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
+		debug := FALSE;
 		numDynamic := 0;
 		factoryList := NIL
 	END Init;

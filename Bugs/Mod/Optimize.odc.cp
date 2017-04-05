@@ -22,30 +22,26 @@ MODULE BugsOptimize;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE ^FoldConstants* (tree: BugsParser.Node; OUT ok: BOOLEAN);
+	PROCEDURE ^FoldConstants* (tree: BugsParser.Node);
 
-	PROCEDURE Add (tree: BugsParser.Binary; OUT ok: BOOLEAN);
+	PROCEDURE Add (tree: BugsParser.Binary);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.left, ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.right, ok);
-		IF ~ok THEN RETURN END;
-		tree.evaluated := tree.left.evaluated & tree.right.evaluated;
-		IF tree.evaluated THEN
-			tree.value := tree.left.value + tree.right.value
-		END
+		FoldConstants(tree.left);
+		IF ~tree.left.evaluated THEN RETURN END;
+		FoldConstants(tree.right);
+		IF ~tree.right.evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := tree.left.value + tree.right.value
 	END Add;
 
-	PROCEDURE Sub (tree: BugsParser.Binary; OUT ok: BOOLEAN);
+	PROCEDURE Sub (tree: BugsParser.Binary);
 		VAR
 			refLeft, refRight: GraphNodes.Node;
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.left, ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.right, ok);
-		IF ~ok THEN RETURN END;
+		FoldConstants(tree.left);
+		IF ~tree.left.evaluated THEN RETURN END;
+		FoldConstants(tree.right);
+		IF ~tree.right.evaluated THEN RETURN END;
 		tree.evaluated := tree.left.evaluated & tree.right.evaluated;
 		IF tree.evaluated THEN
 			tree.value := tree.left.value - tree.right.value
@@ -63,15 +59,14 @@ MODULE BugsOptimize;
 		END
 	END Sub;
 
-	PROCEDURE Mult (tree: BugsParser.Binary; OUT ok: BOOLEAN);
+	PROCEDURE Mult (tree: BugsParser.Binary);
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.left, ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.right, ok);
-		IF ~ok THEN RETURN END;
+		FoldConstants(tree.left);
+		IF ~tree.left.evaluated THEN RETURN END;
+		FoldConstants(tree.right);
+		IF ~tree.right.evaluated THEN RETURN END;
 		IF tree.left.evaluated & (ABS(tree.left.value) < eps) THEN
 			tree.evaluated := TRUE;
 			tree.value := 0.0
@@ -86,15 +81,14 @@ MODULE BugsOptimize;
 		END
 	END Mult;
 
-	PROCEDURE Div (tree: BugsParser.Binary; OUT ok: BOOLEAN);
+	PROCEDURE Div (tree: BugsParser.Binary);
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.left, ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.right, ok);
-		IF ~ok THEN RETURN END;
+		FoldConstants(tree.left);
+		IF ~tree.left.evaluated THEN RETURN END;
+		FoldConstants(tree.right);
+		IF ~tree.right.evaluated THEN RETURN END;
 		IF tree.left.evaluated & (ABS(tree.left.value) < eps) THEN
 			tree.evaluated := TRUE;
 			tree.value := 0.0
@@ -106,357 +100,226 @@ MODULE BugsOptimize;
 		END
 	END Div;
 
-	PROCEDURE UMinus (tree: BugsParser.Binary; OUT ok: BOOLEAN);
+	PROCEDURE UMinus (tree: BugsParser.Binary);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.left, ok);
-		IF ~ok THEN RETURN END;
-		IF tree.left.evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value :=  - tree.left.value
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.left);
+		IF ~tree.left.evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value :=  - tree.left.value
 	END UMinus;
 
-	PROCEDURE Power (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Power (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.parents[1], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated & tree.parents[1].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.Power(tree.parents[0].value, tree.parents[1].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[1].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Power(tree.parents[0].value, tree.parents[1].value)
 	END Power;
 
-	PROCEDURE Equals (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Equals (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.parents[1], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated & tree.parents[1].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.Equals(tree.parents[0].value, tree.parents[1].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[1].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Equals(tree.parents[0].value, tree.parents[1].value)
 	END Equals;
 
-	PROCEDURE Max (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Max (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.parents[1], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated & tree.parents[1].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MAX(tree.parents[0].value, tree.parents[1].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[1].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MAX(tree.parents[0].value, tree.parents[1].value)
 	END Max;
 
-	PROCEDURE Min (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Min (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		FoldConstants(tree.parents[1], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated & tree.parents[1].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MIN(tree.parents[0].value, tree.parents[1].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[1].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MIN(tree.parents[0].value, tree.parents[1].value)
 	END Min;
 
-	PROCEDURE Abs (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Abs (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := ABS(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := ABS(tree.parents[0].value)
 	END Abs;
 
-	PROCEDURE Round (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Round (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Round(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Round(tree.parents[0].value)
 	END Round;
 
-	PROCEDURE Trunc (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Trunc (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Trunc(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Trunc(tree.parents[0].value)
 	END Trunc;
 
-	PROCEDURE Tan (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Tan (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Tan(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Tan(tree.parents[0].value)
 	END Tan;
 
-	PROCEDURE ArcSin (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ArcSin (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.ArcSin(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.ArcSin(tree.parents[0].value)
 	END ArcSin;
 
-	PROCEDURE ArcCos (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ArcCos (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.ArcCos(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.ArcCos(tree.parents[0].value)
 	END ArcCos;
 
-	PROCEDURE ArcTan (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ArcTan (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.ArcTan(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.ArcTan(tree.parents[0].value)
 	END ArcTan;
 
-	PROCEDURE Sinh (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Sinh (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Sinh(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Sinh(tree.parents[0].value)
 	END Sinh;
 
-	PROCEDURE Cosh (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Cosh (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Cosh(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Cosh(tree.parents[0].value)
 	END Cosh;
 
-	PROCEDURE Tanh (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Tanh (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Tanh(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Tanh(tree.parents[0].value)
 	END Tanh;
 
-	PROCEDURE ArcSinh (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ArcSinh (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.ArcSinh(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.ArcSinh(tree.parents[0].value)
 	END ArcSinh;
 
-	PROCEDURE ArcCosh (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ArcCosh (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.ArcCosh(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.ArcCosh(tree.parents[0].value)
 	END ArcCosh;
 
-	PROCEDURE ArcTanh (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ArcTanh (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.ArcTanh(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.ArcTanh(tree.parents[0].value)
 	END ArcTanh;
 
-	PROCEDURE CLogLog (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE CLogLog (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.Cloglog(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Cloglog(tree.parents[0].value)
 	END CLogLog;
 
-	PROCEDURE ICloglog (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ICloglog (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.ICloglog(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.ICloglog(tree.parents[0].value)
 	END ICloglog;
 
-	PROCEDURE Exp (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Exp (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Exp(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Exp(tree.parents[0].value)
 	END Exp;
 
-	PROCEDURE Cos (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Cos (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Cos(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Cos(tree.parents[0].value)
 	END Cos;
 
-	PROCEDURE Sin (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Sin (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Sin(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Sin(tree.parents[0].value)
 	END Sin;
 
-	PROCEDURE Phi (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Phi (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.Phi(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Phi(tree.parents[0].value)
 	END Phi;
 
-	PROCEDURE Log (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Log (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Ln(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Ln(tree.parents[0].value)
 	END Log;
 
-	PROCEDURE Logit (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Logit (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.Logit(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Logit(tree.parents[0].value)
 	END Logit;
 
-	PROCEDURE ILogit (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE ILogit (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
 		IF tree.parents[0].evaluated THEN
 			tree.evaluated := TRUE;
 			tree.value := MathFunc.ILogit(tree.parents[0].value)
@@ -465,61 +328,41 @@ MODULE BugsOptimize;
 		END
 	END ILogit;
 
-	PROCEDURE Sqrt (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Sqrt (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := Math.Sqrt(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := Math.Sqrt(tree.parents[0].value)
 	END Sqrt;
 
-	PROCEDURE LogFact (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE LogFact (tree: BugsParser.Internal);
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.LogFactorial(SHORT(ENTIER(tree.parents[0].value + eps)))
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.LogFactorial(SHORT(ENTIER(tree.parents[0].value + eps)))
 	END LogFact;
 
-	PROCEDURE LogGamma (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE LogGamma (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.LogGammaFunc(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.LogGammaFunc(tree.parents[0].value)
 	END LogGamma;
 
-	PROCEDURE Step (tree: BugsParser.Internal; OUT ok: BOOLEAN);
+	PROCEDURE Step (tree: BugsParser.Internal);
 	BEGIN
-		ok := TRUE;
-		FoldConstants(tree.parents[0], ok);
-		IF ~ok THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.Step(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Step(tree.parents[0].value)
 	END Step;
 
-	PROCEDURE FoldConstants* (tree: BugsParser.Node; OUT ok: BOOLEAN);
+	PROCEDURE FoldConstants* (tree: BugsParser.Node);
 
 		PROCEDURE Evaluate (t: BugsParser.Node);
 			VAR
@@ -535,46 +378,46 @@ MODULE BugsOptimize;
 			WITH t: BugsParser.Binary DO
 				op := t.op;
 				CASE op OF
-				|GraphGrammar.add: Add(t, ok)
-				|GraphGrammar.sub: Sub(t, ok)
-				|GraphGrammar.mult: Mult(t, ok)
-				|GraphGrammar.div: Div(t, ok)
-				|GraphGrammar.uminus: UMinus(t, ok)
+				|GraphGrammar.add: Add(t)
+				|GraphGrammar.sub: Sub(t)
+				|GraphGrammar.mult: Mult(t)
+				|GraphGrammar.div: Div(t)
+				|GraphGrammar.uminus: UMinus(t)
 				END
 			|t: BugsParser.Internal DO
 				opDescriptor := t.descriptor;
 				op := opDescriptor.key;
 				CASE op OF
-				|GraphGrammar.abs: Abs(t, ok)
-				|GraphGrammar.exp: Exp(t, ok)
-				|GraphGrammar.log: Log(t, ok)
-				|GraphGrammar.sqrt: Sqrt(t, ok)
-				|GraphGrammar.max: Max(t, ok)
-				|GraphGrammar.min: Min(t, ok)
-				|GraphGrammar.cloglog: CLogLog(t, ok)
-				|GraphGrammar.cos: Cos(t, ok)
-				|GraphGrammar.equals: Equals(t, ok)
-				|GraphGrammar.icloglog: ICloglog(t, ok);
-				|GraphGrammar.ilogit: ILogit(t, ok);
-				|GraphGrammar.logfact: LogFact(t, ok)
-				|GraphGrammar.loggam: LogGamma(t, ok)
-				|GraphGrammar.logit: Logit(t, ok)
-				|GraphGrammar.phi: Phi(t, ok)
-				|GraphGrammar.pow: Power(t, ok)
-				|GraphGrammar.round: Round(t, ok)
-				|GraphGrammar.sin: Sin(t, ok)
-				|GraphGrammar.step: Step(t, ok)
-				|GraphGrammar.trunc: Trunc(t, ok)
-				|GraphGrammar.tan: Tan(t, ok)
-				|GraphGrammar.arcsin: ArcSin(t, ok)
-				|GraphGrammar.arccos: ArcCos(t, ok)
-				|GraphGrammar.arctan: ArcTan(t, ok)
-				|GraphGrammar.sinh: Sinh(t, ok)
-				|GraphGrammar.cosh: Cosh(t, ok)
-				|GraphGrammar.tanh: Tanh(t, ok)
-				|GraphGrammar.arcsinh: ArcSinh(t, ok)
-				|GraphGrammar.arccosh: ArcCosh(t, ok)
-				|GraphGrammar.arctanh: ArcTanh(t, ok)
+				|GraphGrammar.abs: Abs(t)
+				|GraphGrammar.exp: Exp(t)
+				|GraphGrammar.log: Log(t)
+				|GraphGrammar.sqrt: Sqrt(t)
+				|GraphGrammar.max: Max(t)
+				|GraphGrammar.min: Min(t)
+				|GraphGrammar.cloglog: CLogLog(t)
+				|GraphGrammar.cos: Cos(t)
+				|GraphGrammar.equals: Equals(t)
+				|GraphGrammar.icloglog: ICloglog(t);
+				|GraphGrammar.ilogit: ILogit(t);
+				|GraphGrammar.logfact: LogFact(t)
+				|GraphGrammar.loggam: LogGamma(t)
+				|GraphGrammar.logit: Logit(t)
+				|GraphGrammar.phi: Phi(t)
+				|GraphGrammar.pow: Power(t)
+				|GraphGrammar.round: Round(t)
+				|GraphGrammar.sin: Sin(t)
+				|GraphGrammar.step: Step(t)
+				|GraphGrammar.trunc: Trunc(t)
+				|GraphGrammar.tan: Tan(t)
+				|GraphGrammar.arcsin: ArcSin(t)
+				|GraphGrammar.arccos: ArcCos(t)
+				|GraphGrammar.arctan: ArcTan(t)
+				|GraphGrammar.sinh: Sinh(t)
+				|GraphGrammar.cosh: Cosh(t)
+				|GraphGrammar.tanh: Tanh(t)
+				|GraphGrammar.arcsinh: ArcSinh(t)
+				|GraphGrammar.arccosh: ArcCosh(t)
+				|GraphGrammar.arctanh: ArcTanh(t)
 
 				END
 			|t: BugsParser.Function DO
@@ -584,31 +427,33 @@ MODULE BugsOptimize;
 				fact.Signature(sig);
 				num := fact.NumParam();
 				i := 0;
-				ok := TRUE;
-				WHILE ok & (i < num) DO FoldConstants(t.parents[i], ok); INC(i) END;
-				IF ok THEN
+				t.evaluated := TRUE;
+				WHILE i < num DO
+					IF (sig[i] = "e") OR (sig[i] = "s") THEN
+						FoldConstants(t.parents[i]);
+						t.evaluated := t.evaluated & t.parents[i].evaluated
+					END;
+					INC(i)
+				END;
+				IF t.evaluated THEN (*	try and evaluate node	*)
 					IF sig = "eL" THEN (*	link function	*)
-						IF t.parents[0].evaluated THEN
-							args.Init;
-							args.numScalars := 1;
-							args.scalars[0] := GraphConstant.New(t.parents[0].value);
-							ref := fact.New();
-							ref.Set(args, res);
-							t.evaluated := TRUE;
-							t.value := ref.Value()
-						END
+						args.Init;
+						args.numScalars := 1;
+						args.scalars[0] := GraphConstant.New(t.parents[0].value);
+						ref := fact.New();
+						ref.Set(args, res);
+						t.value := ref.Value()
 					ELSE
 						args.Init;
 						BugsCodegen.WriteFunctionArgs(t, args);
-						ok := args.valid;
-						IF ok THEN
+						t.evaluated := args.valid;
+						IF t.evaluated THEN
 							ref := fact.New();
-							ok := ref # NIL;
-							IF ok THEN
+							t.evaluated := ref # NIL;
+							IF t.evaluated THEN
 								ref.Set(args, res);
-								ok := res = {};
-								IF ok & (GraphNodes.data IN ref.props) THEN
-									t.evaluated := TRUE;
+								t.evaluated := (res = {}) & (GraphNodes.data IN ref.props);
+								IF t.evaluated THEN
 									t.value := ref.Value()
 								END
 							END
@@ -618,7 +463,7 @@ MODULE BugsOptimize;
 			|t: BugsParser.Variable DO
 				ref := BugsEvaluate.RHScalar(t);
 				IF ref = NIL THEN
-					ok := FALSE; t.evaluated := FALSE; RETURN
+					RETURN
 				END;
 				t.evaluated := GraphNodes.data IN ref.props;
 				IF t.evaluated THEN t.value := ref.Value() END
@@ -634,7 +479,6 @@ MODULE BugsOptimize;
 			END
 		END Evaluate;
 	BEGIN
-		ok := TRUE;
 		Evaluate(tree)
 	END FoldConstants;
 
@@ -699,24 +543,16 @@ MODULE BugsOptimize;
 
 	PROCEDURE UnMark* (tree: BugsParser.Node);
 		VAR
-			binary: BugsParser.Binary;
-			func: BugsParser.Function;
-			op: BugsParser.Internal;
-			var: BugsParser.Variable;
 	BEGIN
 		tree.evaluated := FALSE;
 		WITH tree: BugsParser.Binary DO
-			binary := tree(BugsParser.Binary);
-			UnMarkBinary(binary)
+			UnMarkBinary(tree)
 		|tree: BugsParser.Variable DO
-			var := tree(BugsParser.Variable);
-			UnMarkVariable(var)
+			UnMarkVariable(tree)
 		|tree: BugsParser.Internal DO
-			op := tree(BugsParser.Internal);
-			UnMarkInternal(op)
+			UnMarkInternal(tree)
 		|tree: BugsParser.Function DO
-			func := tree(BugsParser.Function);
-			UnMarkFunction(func)
+			UnMarkFunction(tree)
 		|tree: BugsParser.Index DO
 		|tree: BugsParser.Integer DO
 		|tree: BugsParser.Real DO

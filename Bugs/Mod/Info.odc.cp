@@ -21,7 +21,7 @@ MODULE BugsInfo;
 		CountData = POINTER TO RECORD(BugsNames.Visitor)
 			count: INTEGER
 		END;
-		
+
 		CountLogical = POINTER TO RECORD(BugsNames.Visitor)
 			count: INTEGER
 		END;
@@ -181,6 +181,34 @@ MODULE BugsInfo;
 		END
 	END Methods;
 
+	PROCEDURE IsConstant* (IN variable: ARRAY OF CHAR): BOOLEAN; 
+		VAR
+		i, index, size: INTEGER;
+		offsets: POINTER TO ARRAY OF INTEGER;
+		components: GraphNodes.Vector;
+		var: BugsParser.Variable;
+		name: BugsNames.Name;
+		node: GraphNodes.Node;
+		isConstant: BOOLEAN;
+	BEGIN
+		var := BugsParser.StringToVariable(variable);
+		IF var = NIL THEN RETURN TRUE END;
+		name := var.name;
+		components := name.components;
+		offsets := BugsEvaluate.Offsets(var);
+		IF offsets = NIL THEN RETURN TRUE END;
+		size := LEN(offsets);
+		i := 0;
+		isConstant := TRUE;
+		WHILE isConstant & (i < size) DO
+			index := offsets[i];
+			node := components[index];
+			isConstant := (node # NIL) & (GraphNodes.data IN node.props);
+			INC(i)
+		END;
+		RETURN isConstant
+	END IsConstant;
+
 	PROCEDURE Values* (IN variable: ARRAY OF CHAR; numChains: INTEGER;
 	VAR f: BugsMappers.Formatter);
 		CONST
@@ -196,7 +224,7 @@ MODULE BugsInfo;
 			var: BugsParser.Variable;
 			node: GraphNodes.Node;
 			parents: GraphStochastic.List;
-			init: BOOLEAN;
+			init, isConstant: BOOLEAN;
 	BEGIN
 		var := BugsParser.StringToVariable(variable);
 		IF var = NIL THEN RETURN END;
@@ -205,12 +233,16 @@ MODULE BugsInfo;
 		offsets := BugsEvaluate.Offsets(var);
 		IF offsets = NIL THEN RETURN END;
 		size := LEN(offsets);
+		isConstant := IsConstant(variable);
+		IF isConstant THEN numChains := 1 END;
 		NEW(values, size, numChains);
 		NEW(initialized, size, numChains);
 		j := 0;
 		WHILE j < numChains DO
-			UpdaterActions.LoadSamples(j);
-			BugsInterface.LoadDeviance(j);
+			IF j > 0 THEN
+				UpdaterActions.LoadSamples(j);
+				BugsInterface.LoadDeviance(j)
+			END;
 			i := 0;
 			WHILE i < size DO
 				index := offsets[i];
@@ -235,19 +267,21 @@ MODULE BugsInfo;
 			END;
 			INC(j)
 		END;
-		UpdaterActions.LoadSamples(0);
-		BugsInterface.LoadDeviance(0);
-		max := 2 + MIN(numChains, 10);
-		f.WriteTab;
-		i := 0;
-		WHILE i < max - 2 DO
+		IF~ isConstant THEN
+			UpdaterActions.LoadSamples(0);
+			BugsInterface.LoadDeviance(0);
+			max := 2 + MIN(numChains, 10);
 			f.WriteTab;
-			f.WriteString("chain[");
-			f.WriteInt(i + 1);
-			f.WriteChar("]");
-			INC(i)
+			i := 0;
+			WHILE i < max - 2 DO
+				f.WriteTab;
+				f.WriteString("chain[");
+				f.WriteInt(i + 1);
+				f.WriteChar("]");
+				INC(i)
+			END;
+			f.WriteLn;
 		END;
-		f.WriteLn;
 		i := 0;
 		WHILE i < size DO
 			index := offsets[i];
@@ -624,14 +658,16 @@ MODULE BugsInfo;
 
 	PROCEDURE ModelMetrics* (VAR f: BugsMappers.Formatter);
 		VAR
-			numUpdater, numData, numObs, numChild, numLogical, numParam: INTEGER;
+			numUpdater, numData, numObs, meanNumChild, 
+			medianNumChild, numLogical, numParam: INTEGER;
 	BEGIN
 		numObs := CountObservations();
 		numData := CountDatum();
 		numLogical := CountLogicals();
 		numParam := UpdaterActions.NumParameters();
 		numUpdater := UpdaterActions.NumberUpdaters();
-		numChild := UpdaterActions.AverageNumChildren();
+		meanNumChild := UpdaterActions.MeanNumChildren();
+		medianNumChild := UpdaterActions.MedianNumChildren();
 		f.WriteTab;
 		f.WriteString("Number of constants: ");
 		f.WriteInt(numData);
@@ -653,9 +689,13 @@ MODULE BugsInfo;
 		f.WriteInt(numUpdater);
 		f.WriteLn;
 		f.WriteTab;
-		f.WriteString("Average number of children per updater: ");
-		f.WriteInt(numChild);
+		f.WriteString("Mean number of children per updater: ");
+		f.WriteInt(meanNumChild);
 		f.WriteLn;
+		f.WriteTab;
+		f.WriteString("Median number of children per updater: ");
+		f.WriteInt(medianNumChild);
+		f.WriteLn
 	END ModelMetrics;
 
 	PROCEDURE UpdaterType (updater: UpdaterUpdaters.Updater; OUT type: ARRAY OF CHAR);
@@ -862,7 +902,7 @@ MODULE BugsInfo;
 			chain = 0;
 	BEGIN
 		UpdaterParallel.DistributeUpdaters(numProc, chain, updaters, id);
-		UpdaterParallel.DistributeObservations(updaters, id, observations); 
+		UpdaterParallel.DistributeObservations(updaters, id, observations);
 		f.WriteTab;
 		f.WriteString("Number of processor: ");
 		f.WriteInt(numProc);
@@ -985,7 +1025,7 @@ MODULE BugsInfo;
 					Strings.Find(string, "Dynamic", 0, pos);
 					IF pos = 0 THEN
 						Strings.Find(string, "_", 0, pos);
-						IF pos # - 1 THEN string[pos] := 0X END
+						IF pos #  - 1 THEN string[pos] := 0X END
 					END;
 					IF i MOD 4 = 0 THEN f.WriteTab END;
 					f.WriteTab; f.WriteString(string);

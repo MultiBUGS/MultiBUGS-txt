@@ -469,7 +469,7 @@ MODULE BugsCPWrite;
 			|GraphGrammar.sub: String("("); Write(t.left); String(" - "); Write(t.right); String(")")
 			|GraphGrammar.mult: String("("); Write(t.left); String(" * "); Write(t.right); String(")")
 			|GraphGrammar.div: String("("); Write(t.left); String(" / "); Write(t.right); String(")")
-			|GraphGrammar.uminus: String("-("); Write(t.left); String(")")
+			|GraphGrammar.uminus: String("(-("); Write(t.left); String("))")
 			|GraphGrammar.cloglog: String("Math.Ln(-Math.Ln(1.0 - "); Write(t.left); String("));")
 			|GraphGrammar.icloglog: String("(1.0 - Math.Exp( - Math.Exp(value[top])))");
 			|GraphGrammar.cos: String("Math.Cos("); Write(t.left); String(")")

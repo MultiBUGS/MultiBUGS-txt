@@ -206,7 +206,7 @@ MODULE BugsCodegen;
 				WriteScalarToFunc(parents[j], args);
 				IF ~args.valid THEN RETURN END
 			ELSE (*	unknown type of arguement	*)
-				HALT(20)
+				HALT(77)
 			END;
 			INC(i);
 			INC(j)

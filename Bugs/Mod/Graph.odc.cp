@@ -558,7 +558,7 @@ MODULE BugsGraph;
 		BugsNodes.Allocate(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.CreateSentinels(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.CreateConstants(model, ok);
-		BugsNodes.CreateStochastics(model, ok); IF ~ok THEN RETURN END;
+		BugsNodes.CreateStochastics(model, ok); IF ~ok THEN RETURN END; 
 		BugsNodes.CreateLogicals(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.WriteLogicals(model, ok); IF~ok THEN RETURN END;
 		BugsNodes.WriteStochastics(model, ok); IF ~ok THEN RETURN END;
@@ -665,6 +665,7 @@ MODULE BugsGraph;
 		END;
 		MissingUpdaters(ok); IF ~ok THEN UpdaterActions.Clear; RETURN END;
 		UpdaterActions.CreateUpdaters(numChains);
+		UpdaterActions.AllocateLikelihoods;
 		IF IsAdapting(numChains) THEN
 			UpdaterActions.SetAdaption(0, MAX(INTEGER))
 		ELSE

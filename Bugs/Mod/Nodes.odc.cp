@@ -189,7 +189,7 @@ MODULE BugsNodes;
 			node := function.descriptor.fact.New()
 		ELSE
 			args.Init;
-			BugsOptimize.FoldConstants(expression, ok);
+			BugsOptimize.FoldConstants(expression);
 			BugsCodegen.WriteTreeArgs(expression, args);
 			BugsOptimize.UnMark(expression);
 			node := BugsCPCompiler.CreateLogical(args);
@@ -389,8 +389,8 @@ MODULE BugsNodes;
 			IF (vector.components[i] # NIL) & (GraphNodes.data IN vector.components[i].props) THEN 
 				RETURN 
 			END;
-			BugsOptimize.FoldConstants(expression, ok1);  
-			IF ok1 & expression.evaluated THEN
+			BugsOptimize.FoldConstants(expression);  
+			IF expression.evaluated THEN
 				node := GraphConstant.New(expression.value);
 				node.SetProps(node.props + {GraphLogical.logical});
 				vector.components[i] := node;
@@ -439,7 +439,7 @@ MODULE BugsNodes;
 		varName := variable.name.string + varName;
 		args.Init;
 		BugsOptimize.UnMark(expression);
-		BugsOptimize.FoldConstants(expression, ok);
+		BugsOptimize.FoldConstants(expression);
 		IF expression IS BugsParser.Function THEN	(*	external function	*)
 			function := expression(BugsParser.Function);
 			descriptor := function.descriptor;
@@ -486,6 +486,7 @@ MODULE BugsNodes;
 		VAR
 			visitor: WriteLogical;
 	BEGIN
+		ok := TRUE;
 		NEW(visitor);
 		source.Accept(visitor, ok)
 	END WriteLogicals;

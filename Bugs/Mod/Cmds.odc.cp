@@ -493,7 +493,7 @@ MODULE BugsCmds;
 			f: BugsMappers.Formatter;
 			text: TextModels.Model;
 		CONST
-			space = 30 * Ports.mm;
+			space = 30* Ports.mm;
 	BEGIN
 		text := TextModels.dir.New();
 		BugsTexts.ConnectFormatter(f, text);
@@ -879,7 +879,11 @@ MODULE BugsCmds;
 			f: BugsMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
-		numChains := specificationDialog.numChains;
+		IF BugsInfo.IsConstant(infoDialog.node.item) THEN
+			numChains := 1
+		ELSE
+			numChains := specificationDialog.numChains
+		END;
 		text := TextModels.dir.New();
 		BugsTexts.ConnectFormatter(f, text);
 		f.SetPos(0);
@@ -920,7 +924,7 @@ MODULE BugsCmds;
 
 	PROCEDURE WriteData*;
 		CONST
-			numTabs = 13;
+			numTabs = 6;
 		VAR
 			msg: ARRAY 1024 OF CHAR;
 			f: BugsMappers.Formatter;

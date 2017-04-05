@@ -11,14 +11,13 @@ MODULE BugsMaster;
 
 	
 
-	IMPORT
-		MPI, SYSTEM, Console, Files, Kernel, Meta, Services, Stores, Strings, 
-		BugsCPCompiler,
-		BugsComponents, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
+	IMPORT 
+		MPI, SYSTEM, Console, Dialog, Files, Kernel, Meta, Services, Stores, Strings,
+		BugsCPCompiler, BugsComponents, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
 		DevCommanders, DevLinker, 
-		DevianceInterface, 
+		DevianceInterface,
 		GraphNodes, GraphStochastic, 
-		HostFiles,
+		HostDialog, HostFiles,
 		MonitorMonitors,
 		TextModels,
 		UpdaterActions, UpdaterParallel, UpdaterUpdaters;
@@ -26,20 +25,20 @@ MODULE BugsMaster;
 	TYPE
 		Hook = POINTER TO RECORD(BugsInterface.DistributeHook)
 			monitorChanged: BOOLEAN;
+			numMonitored: INTEGER
 		END;
 
 		Command = ARRAY 4 OF INTEGER;
 
 	VAR
 		mpiInit: BOOLEAN;
-		devianceValues, waic, pW: POINTER TO ARRAY OF REAL;
+		devianceValues: POINTER TO ARRAY OF REAL;
 		exeFileName, timeStamp: ARRAY 64 OF CHAR;
 		values: POINTER TO ARRAY OF REAL;
 		monitored, leader: POINTER TO ARRAY OF INTEGER;
 		monitoredA, portA, valuesA: INTEGER;
 		port: ARRAY MPI.MAX_PORT_NAME OF SHORTCHAR;
 		intercomm: MPI.Comm;
-		process: Console.Process;
 		restartLoc-: Files.Locator;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -129,16 +128,6 @@ MODULE BugsMaster;
 		f.Close;
 	END InternalizeMutable;
 
-	PROCEDURE IsLinux (): BOOLEAN;
-		VAR
-			i: Meta.Item;
-			mod, type: Meta.Name;
-	BEGIN
-		Meta.GetItem(Console.cons, i);
-		i.GetTypeName(mod, type);
-		RETURN mod = "LinConsole"
-	END IsLinux;
-
 	PROCEDURE LinuxModules (VAR modules: ARRAY OF Files.Name);
 		VAR
 			i, len: INTEGER;
@@ -164,16 +153,14 @@ MODULE BugsMaster;
 
 	PROCEDURE LinkModules (exeFile, mpiImplementation: ARRAY OF CHAR): POINTER TO ARRAY OF Files.Name;
 		VAR
-			isLinux: BOOLEAN;
 			wr: TextModels.Writer;
 			text: TextModels.Model;
 			i, len: INTEGER;
 			modules: POINTER TO ARRAY OF Files.Name;
 	BEGIN
 		BugsCPCompiler.CreateTimeStamp;
-		isLinux := IsLinux();
 		modules := BugsComponents.Modules(mpiImplementation);
-		IF isLinux THEN
+		IF Dialog.IsLinux() THEN
 			LinuxModules(modules);
 		END;
 		text := TextModels.dir.New();
@@ -258,10 +245,6 @@ MODULE BugsMaster;
 		valuesA := 0;
 		monitoredA := 0;
 		TerminateWorkers;
-		IF process # NIL THEN
-			Console.TerminateProcess(process);
-			process := NIL
-		END;
 		DeleteFiles
 	END Clear;
 
@@ -283,18 +266,12 @@ MODULE BugsMaster;
 		numChains := h.numChains;
 		numWorker := h.numWorker;
 		NEW(devianceValues, numChains);
-		NEW(waic, numChains);
-		NEW(pW, numChains);
 		NEW(h.rank, numWorker);
 		NEW(h.setupTime, numWorker);
 		NEW(h.memory, numWorker);
 		valuesA := SYSTEM.ADR(values[0]);
 		monitoredA := SYSTEM.ADR(monitored[0]);
 		NEW(leader, numChains);
-		IF process # NIL THEN
-			Console.TerminateProcess(process);
-			process := NIL
-		END;
 		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
 		executable := fileStemName + "Worker_" + timeStamp;
 		bugFile := fileStemName + "_" + timeStamp;
@@ -326,13 +303,9 @@ MODULE BugsMaster;
 		(*	need quotes round command line for case of space in file path	*)
 		executable := executable + '"';
 		path := '"' + path;
-		IF IsLinux() THEN
-			(*	LinStub loads shared object library executable	*)
-			cmd := cmd + " LinStub " + path + "\" + executable
-		ELSE
-			cmd := cmd + " " + path + "\" + executable
-		END;
-		process := Console.CreateProcess(cmd);
+		cmd := cmd + " " + path + "\" + executable;
+		HostDialog.hideExtRunWindow := TRUE;
+		Dialog.RunExternal(cmd);
 		MPI.Comm_accept(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
 		MPI.Comm_remote_size(intercomm, size);
 		ASSERT(size = numWorker, 66);
@@ -350,16 +323,20 @@ MODULE BugsMaster;
 			h.rank[worker] := resultParams[2];
 			INC(worker)
 		END;
-		(*	need to tell workers to calculate deviance and send value to master	*)
 		Services.Collect;
 		h.masterMemory := Kernel.Allocated();
-		h.monitorChanged := TRUE
+		h.monitorChanged := TRUE;
+		IF DevianceInterface.state = DevianceInterface.set THEN
+			DevianceInterface.Clear;
+			DevianceInterface.Set
+		END
 	END Distribute;
 
 	PROCEDURE (h: Hook) RecvSamples;
 		VAR
 			chain, len, numChains: INTEGER;
 			command: Command;
+			buffer: ARRAY 4 OF REAL;
 	BEGIN
 		command[0] := getSamples;
 		command[1] := 0;
@@ -375,13 +352,11 @@ MODULE BugsMaster;
 			UpdaterActions.StoreSamples(chain);
 			MPI.Recv(SYSTEM.ADR(devianceValues[chain]), 1, MPI.DOUBLE, leader[chain],
 			2, intercomm, MPI.STATUS_IGNORE);
-			(*IF WAIC monitored THEN THIS stuff*)
-			(*MPI.Recv(SYSTEM.ADR(waic[chain]), 1, MPI.DOUBLE, leader[chain],
-			2, intercomm, MPI.STATUS_IGNORE);
-			MPI.Recv(SYSTEM.ADR(pW[chain]), 1, MPI.DOUBLE, leader[chain],
-			2, intercomm, MPI.STATUS_IGNORE);
-			DevianceInterface.StoreWAIC(waic[chain], pW[chain], chain);*)
-			
+			IF DevianceInterface.state = DevianceInterface.setDistributed THEN
+				MPI.Recv(SYSTEM.ADR(buffer), 4, MPI.DOUBLE, leader[chain],
+				2, intercomm, MPI.STATUS_IGNORE);
+				DevianceInterface.StoreStatistics(buffer[0], buffer[1], buffer[2], buffer[3], chain)
+			END;
 			INC(chain)
 		END
 	END RecvSamples;
@@ -389,7 +364,7 @@ MODULE BugsMaster;
 	PROCEDURE (h: Hook) Update (thin, iteration: INTEGER; VAR endOfAdapting: INTEGER);
 		VAR
 			command: Command;
-			end, i, numChains, numMonitored, numWorker, worker: INTEGER;
+			end, i, numChains, numWorker, worker: INTEGER;
 	BEGIN
 		numWorker := h.numWorker;
 		numChains := h.numChains;
@@ -397,9 +372,9 @@ MODULE BugsMaster;
 			h.monitorChanged := FALSE;
 			(*	recalculate which stochastic nodes are monitored	*)
 			BugsInterface.MarkMonitored;
-			MonitorMonitors.MonitoredNodes(monitored, numMonitored);
+			MonitorMonitors.MonitoredNodes(monitored, h.numMonitored);
 			command[0] := getMonitors;
-			command[1] := numMonitored;
+			command[1] := h.numMonitored;
 			IF MonitorMonitors.devianceMonitored THEN
 				command[2] := 1
 			ELSE
@@ -408,10 +383,10 @@ MODULE BugsMaster;
 			command[3] := 0;
 			BugsInterface.SendCommand(command);
 			(*	send changed monitors to lead workers	*)
-			IF numMonitored > 0 THEN
+			IF h.numMonitored > 0 THEN
 				i := 0;
 				WHILE i < numChains DO
-					MPI.Send(monitoredA, numMonitored, MPI.INT, leader[i], 1, intercomm);
+					MPI.Send(monitoredA, h.numMonitored, MPI.INT, leader[i], 1, intercomm);
 					INC(i)
 				END
 			END
@@ -429,19 +404,8 @@ MODULE BugsMaster;
 			endOfAdapting := MAX(endOfAdapting, end);
 			INC(worker)
 		END;
-		RecvMonitoredValues(h.numChains, numMonitored)
+		RecvMonitoredValues(h.numChains, h.numMonitored)
 	END Update;
-
-	PROCEDURE Close*;
-		VAR
-			timeStamp: LONGINT;
-	BEGIN
-		timeStamp := GraphNodes.timeStamp;
-		DeleteFiles;
-		BugsInterface.Clear;
-		GraphNodes.SetTimeStamp(timeStamp);
-		DeleteFiles
-	END Close;
 
 	PROCEDURE Install* (mpiImplementation: ARRAY OF CHAR);
 		VAR
@@ -460,6 +424,7 @@ MODULE BugsMaster;
 		END;
 		NEW(h);
 		h.monitorChanged := FALSE;
+		h.numMonitored := 0;
 		BugsInterface.SetDistributeHook(h)
 	END Install;
 
@@ -474,7 +439,6 @@ MODULE BugsMaster;
 		Maintainer;
 		values := NIL;
 		restartLoc := Files.dir.This("Restart");
-		process := NIL;
 		mpiInit := FALSE;
 		exeFileName := ""
 	END Init;
@@ -483,6 +447,7 @@ MODULE BugsMaster;
 		VAR
 			loc: Files.Locator;
 	BEGIN
+		BugsInterface.Clear;
 		IF mpiInit THEN
 			MPI.Close_port(portA);
 			MPI.Finalize
