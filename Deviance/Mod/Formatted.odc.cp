@@ -94,24 +94,34 @@ MODULE DevianceFormatted;
 	PROCEDURE DistributedWAIC* (VAR f: BugsMappers.Formatter);
 		VAR
 			i, numChains: INTEGER;
-			lpd, pW, waic : REAL;
+			lpd, pW, waic, dic, pD, meanDeviance, meanDeviance2 : REAL;
 	BEGIN
 		ASSERT(BugsInterface.IsDistributed(), 21);
 		f.Bold;
 		f.WriteTab;
 		f.WriteString("Chain"); f.WriteTab;
+		f.WriteString("Dbar"); f.WriteTab;
+		f.WriteString("DIC"); f.WriteTab;
 		f.WriteString("WAIC"); f.WriteTab;
+		f.WriteString("pD"); f.WriteTab;
 		f.WriteString("pW"); f.WriteTab;
 		f.WriteLn;
 		f.Bold;
 		numChains := BugsInterface.NumberChains();
 		i := 0;
 		WHILE i < numChains DO
-			DevianceInterface.GetWAIC(lpd, pW, i);
-			f.WriteInt(i);
+			DevianceInterface.GetStatistics(lpd, pW, meanDeviance, meanDeviance2, i);
+			pD := 0.25 * (meanDeviance2 - meanDeviance * meanDeviance);
+			dic := meanDeviance + pD;
 			waic := -2 * lpd + 2 * pW;
-			f.WriteReal(waic);
-			f.WriteReal(pW);
+			f.WriteTab; f.WriteInt(i + 1);
+			f.WriteTab; f.WriteReal(meanDeviance); 
+			f.WriteTab; f.WriteReal(dic); 
+			f.WriteTab; f.WriteReal(waic); 
+			f.WriteTab; f.WriteReal(pD);
+			f.WriteTab; f.WriteReal(pW);
+			f.WriteTab;
+			f.WriteLn;
 			INC(i)
 		END
 	END DistributedWAIC;

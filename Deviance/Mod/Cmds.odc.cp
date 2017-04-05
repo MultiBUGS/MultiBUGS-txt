@@ -19,7 +19,6 @@ MODULE DevianceCmds;
 		DeviancePluginD, DeviancePluginS,
 		TextModels;
 
-
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
 			parents*: INTEGER
@@ -52,11 +51,15 @@ MODULE DevianceCmds;
 		VAR
 			plugin: DeviancePlugin.Plugin;
 	BEGIN
-		plugin := DevianceIndex.Plugin();
-		IF plugin = NIL THEN
-			dialog.parents := direct;
+		IF ~BugsInterface.IsDistributed() THEN
+			plugin := DevianceIndex.Plugin();
+			IF plugin = NIL THEN
+				dialog.parents := direct;
+			ELSE
+				dialog.parents := plugin.Type();
+			END
 		ELSE
-			dialog.parents := plugin.Type();
+			dialog.parents := non
 		END;
 		Notifier
 	END SetFactory;
@@ -64,8 +67,12 @@ MODULE DevianceCmds;
 	PROCEDURE Clear*;
 	BEGIN
 		DevianceInterface.Clear;
-		dialog.parents := direct;
-		DeviancePluginD.Install;
+		IF ~BugsInterface.IsDistributed() THEN
+			dialog.parents := direct;
+			DeviancePluginD.Install
+		ELSE
+			dialog.parents := non
+		END;
 	END Clear;
 
 	PROCEDURE Set*;
@@ -94,13 +101,15 @@ MODULE DevianceCmds;
 			f.WriteRuler(tabs);
 			DevianceFormatted.Stats(f)
 		ELSE
-			numTabs := 3;
+			numTabs := 7;
 			NEW(tabs, numTabs);
-			i := 0;
+			tabs[0] := Ports.mm;
+			i := 1;
 			WHILE i < numTabs DO
-				tabs[i] := 20 * Ports.mm * (i + 1);
+				tabs[i] := tabs[i - 1] + 20 * Ports.mm;
 				INC(i)
 			END;
+			f.WriteRuler(tabs);
 			DevianceFormatted.DistributedWAIC(f)
 		END;
 		f.Register("Information Criterion")
@@ -138,7 +147,7 @@ MODULE DevianceCmds;
 			BugsTexts.ShowMsg(msg);
 			RETURN
 		END;
-		ok := DevianceIndex.Plugin() = NIL;
+		ok := DevianceInterface.state = DevianceInterface.notSet;
 		IF ~ok THEN
 			BugsMsg.MapMsg("DevianceEmbed:AlreadyMonitored", msg);
 			BugsTexts.ShowMsg(msg);
@@ -174,7 +183,8 @@ MODULE DevianceCmds;
 		IF BugsInterface.IsAdapting() THEN
 			par.disabled := TRUE;
 			RETURN
-		END
+		END;
+		par.disabled := DevianceInterface.state # DevianceInterface.notSet
 	END SetGuardWin;
 
 	PROCEDURE StatsGuardWin* (VAR par: Dialog.Par);
@@ -190,7 +200,10 @@ MODULE DevianceCmds;
 
 	PROCEDURE ParentsGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.readOnly := DevianceIndex.Plugin() # NIL
+		par.readOnly := DevianceIndex.Plugin() # NIL;
+		IF ~par.readOnly THEN
+			par.readOnly := BugsInterface.IsDistributed()
+		END
 	END ParentsGuard;
 
 	PROCEDURE ParentsNotifier* (op, from, to: INTEGER);

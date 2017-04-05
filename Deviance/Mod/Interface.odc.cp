@@ -13,7 +13,7 @@ MODULE DevianceInterface;
 	
 
 	IMPORT
-		Math, BugsIndex, BugsInterface,
+		Math, BugsIndex, BugsInterface, 
 		BugsNames, DevianceIndex, DevianceMonitors, DevianceParents,
 		DeviancePlugin,
 		GraphStochastic;
@@ -23,19 +23,35 @@ MODULE DevianceInterface;
 			termOffset: INTEGER
 		END;
 
+	CONST
+		notSet* = 0;
+		set* = 1;
+		setDistributed* = 2;
+
 	VAR
-		lpdGlobal, pWGlobal: POINTER TO ARRAY OF REAL;
+		lpdGlobal, pWGlobal, meanDevianceGlobal, meanDeviance2Global: POINTER TO ARRAY OF REAL;
+		state-: INTEGER;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
 	PROCEDURE Clear*;
+	VAR
+			command: ARRAY 4 OF INTEGER;
+		CONST
+			toggleWAIC = 4;
 	BEGIN
 		IF ~BugsInterface.IsDistributed() THEN
 			DevianceIndex.Clear
-		ELSE
+		ELSIF state = setDistributed THEN
 			lpdGlobal := NIL;
-			pWGlobal := NIL
-		END
+			pWGlobal := NIL;
+			command[0] := toggleWAIC;
+			command[1] := -1;
+			command[2] := -1;
+			command[3] := -1;
+			BugsInterface.SendCommand(command)
+		END;
+		state := notSet;
 	END Clear;
 
 	PROCEDURE NumComponents* (IN name: ARRAY OF CHAR): INTEGER;
@@ -219,6 +235,9 @@ MODULE DevianceInterface;
 			name: BugsNames.Name;
 			ok: BOOLEAN;
 			i, numChains: INTEGER;
+			command: ARRAY 4 OF INTEGER;
+		CONST
+			toggleWAIC = 4;
 	BEGIN
 		IF ~BugsInterface.IsDistributed() THEN
 			name := BugsIndex.Find("deviance");
@@ -226,31 +245,44 @@ MODULE DevianceInterface;
 			NEW(v);
 			v.termOffset := 0;
 			BugsIndex.Accept(v);
-			DevianceIndex.InitMonitor
+			DevianceIndex.InitMonitor;
+			state := set
 		ELSE
 			numChains := BugsInterface.NumberChains();
 			NEW(lpdGlobal, numChains);
 			NEW(pWGlobal, numChains);
+			NEW(meanDevianceGlobal, numChains);
+			NEW(meanDeviance2Global, numChains);
 			i := 0;
 			WHILE i < numChains DO
 				lpdGlobal[i] :=  - 1.0;
 				pWGlobal[i] :=  - 1.0;
 				INC(i)
-			END
+			END;
+			command[0] := toggleWAIC;
+			command[1] := -1;
+			command[2] := -1;
+			command[3] := -1;
+			BugsInterface.SendCommand(command);
+			state := setDistributed;
 		END
 	END Set;
 
-	PROCEDURE GetWAIC* (OUT lpd, pW: REAL; chain: INTEGER);
+	PROCEDURE GetStatistics* (OUT lpd, pW, meanDeviance, meanDeviance2: REAL; chain: INTEGER);
 	BEGIN
 		lpd := lpdGlobal[chain];
-		pW := pWGlobal[chain]
-	END GetWAIC;
+		pW := pWGlobal[chain];
+		meanDeviance := meanDevianceGlobal[chain];
+		meanDeviance2 := meanDeviance2Global[chain]
+	END GetStatistics;
 
-	PROCEDURE StoreWAIC* (lpd, pW: REAL; chain: INTEGER);
+	PROCEDURE StoreStatistics* (lpd, pW, meanDeviance, meanDeviance2: REAL; chain: INTEGER);
 	BEGIN
 		lpdGlobal[chain] := lpd;
-		pWGlobal[chain] := pW
-	END StoreWAIC;
+		pWGlobal[chain] := pW;
+		meanDevianceGlobal[chain] := meanDeviance;
+		meanDeviance2Global[chain] := meanDeviance2
+	END StoreStatistics;
 
 	PROCEDURE IsUpdated* (): BOOLEAN;
 		VAR
