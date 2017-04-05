@@ -31,7 +31,7 @@ MODULE BugsCLI;
 		Console.Open;
 		IF first THEN
 			first := FALSE;
-			Console.WriteStr("OpenBUGS version 4.0.0 rev 000");
+			Console.WriteStr("OpenBUGS version 5.0.0 rev 000");
 			Console.WriteLn;
 			Console.WriteStr("type 'modelQuit()' to quit"); Console.WriteLn;
 		END;
