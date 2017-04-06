@@ -217,9 +217,17 @@ MODULE BugsComponents;
 							UpdaterActions.SetUpdater(j, i, updater);
 							INC(j)
 						END
+					ELSE
+						(*	the old updater is good so put update mark back on prior	*)
+						j := 0;
+						WHILE j < size DO
+							node := updater.Prior(j);
+							node.SetProps(node.props + {GraphStochastic.update});
+							INC(j)
+						END
 					END
 				END
-			END;
+			END; 
 			INC(i)
 		END
 	END ModifyUpdaterMethods;
