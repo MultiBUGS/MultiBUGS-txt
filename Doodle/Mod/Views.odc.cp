@@ -23,7 +23,6 @@ MODULE DoodleViews;
 		maxVersion = 1;
 
 		thin = Ports.mm DIV 4;
-		thick = Ports.mm DIV 2;
 
 		solid = 0;
 		dotted = 1;
@@ -150,7 +149,7 @@ MODULE DoodleViews;
 		v.showCaret := FALSE
 	END RemoveSelection;
 
-	PROCEDURE ArrowPoints (x0, y0, x1, y1, d, style: INTEGER; OUT points: ARRAY OF Ports.Point);
+	PROCEDURE ArrowPoints (x0, y0, x1, y1, d, type: INTEGER; OUT points: ARRAY OF Ports.Point);
 		VAR
 			dX, dY: INTEGER;
 			cos, h, sin, m, x, y: REAL;
@@ -160,65 +159,18 @@ MODULE DoodleViews;
 			h := Math.Sqrt(1.0 * dX * dX + 1.0 * dY * dY);
 			cos := dX / h;
 			sin := dY / h;
-			IF style = 2 THEN
-				IF dX > 0 THEN
-					IF dY > 0 THEN
-						x := 2 * d;
-						y := x * dY / dX;
-						IF y > d THEN
-							y := d;
-							x := y * dX / dY
-						END
-					ELSIF dY = 0 THEN
-						y := 0;
-						x := 2 * d
-					ELSE
-						x := 2 * d;
-						y := x * dY / dX;
-						IF y < - d THEN
-							y := - d;
-							x := y * dX / dY
-						END
-					END
-				ELSIF dX = 0 THEN
-					x := 0;
-					IF dY > 0 THEN
-						y := d
-					ELSE
-						y := - d
-					END
-				ELSE
-					IF dY > 0 THEN
-						x := - 2 * d;
-						y := x * dY / dX;
-						IF y > d THEN
-							y := d;
-							x := y * dX / dY
-						END
-					ELSIF dY = 0 THEN
-						y := 0;
-						x := - 2 * d
-					ELSE
-						x := - 2 * d;
-						y := x * dY / dX;
-						IF y < - d THEN
-							y := - d;
-							x := y * dX / dY
-						END
-					END
-				END
+			IF dX # 0 THEN
+				m := dY / dX;
+				x := Math.Sign(dX) * d * Math.Sqrt(4.0 / (1.0 + 4.0 * m * m));
+				y := m * x
 			ELSE
-				IF dX # 0 THEN
-					m := dY / dX;
-					x := Math.Sign(dX) * d * Math.Sqrt(4.0 / (1.0 + 4.0 * m * m));
-					y := m * x
-				ELSE
-					x := 0.0;
-					y := Math.Sign(dY) * d
-				END
+				x := 0.0;
+				y := Math.Sign(dY) * d
 			END;
-			x0 := (x0 + x1) DIV 2;
-			y0 := (y0 + y1) DIV 2;
+			IF type # DoodleNodes.logical THEN
+				x0 := x0 + SHORT(ENTIER(x + 0.5));
+				y0 := y0 + SHORT(ENTIER(y + 0.5));
+			END;
 			points[0].x := x0;
 			points[0].y := y0;
 			x0 := points[0].x + SHORT(ENTIER(3 * Ports.mm * cos));
@@ -262,15 +214,16 @@ MODULE DoodleViews;
 
 	PROCEDURE DrawEdge* (f: Views.Frame; node, parent: DoodleNodes.Node; scale: INTEGER);
 		VAR
-			i, numPar, style, x, y, x1, y1: INTEGER;
+			i, numPar, style, type, x, y, x1, y1: INTEGER;
 			densityName: Dialog.String;
 			density: GraphGrammar.External;
 			points: ARRAY 4 OF Ports.Point;
 			fact: GraphNodes.Factory;
 	BEGIN
 		IF (parent # NIL) & ((parent.x # node.x) OR (parent.y # node.y)) THEN
+			type := node.type;
 			IF node.type = DoodleNodes.logical THEN
-				style := solid
+				style := solid;
 			ELSIF node.type = DoodleNodes.stochastic THEN
 				DoodleMenus.Density(node.density, densityName);
 				density := GraphGrammar.FindDensity(densityName);
@@ -302,7 +255,7 @@ MODULE DoodleViews;
 			END;
 			DrawLine(f, x, y, x1, y1, style);
 			IF style # dotted THEN
-				ArrowPoints(x, y, x1, y1, scale, style, points);
+				ArrowPoints(x, y, x1, y1, scale, type, points);
 				f.DrawPath(points, 3, Ports.fill, Ports.black, Ports.closedPoly)
 			END
 		END
