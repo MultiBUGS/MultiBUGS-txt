@@ -94,37 +94,43 @@ MODULE ParallelActions;
 		res := {};
 		numUpdaters := LEN(distributedUpdaters);
 		i := 0;
-		WHILE (i < numUpdaters) & (res = {}) DO
-			IF distributedId[i] = 0 THEN ParallelRandnum.UseSameStream END;
-			distributedUpdaters[i].Sample(overRelax, res);
-			IF res # {} THEN
-				(*	handle error	*)
-			END;
-			block := distributedBlocks[i];
-			IF block # NIL THEN
-				rank := MPIworker.rank;
-				values := MPIworker.values;
-				globalValues := MPIworker.globalValues;
-				len := LEN(block);
-				dataSize := len DIV MPIworker.commSize;
-				offset := rank * dataSize;
-				j := 0;
-				WHILE j < dataSize DO
-					values[j] := block[offset + j].value;
-					INC(j)
+		IF distributedId # NIL THEN (*	chain is distributed	*)
+			WHILE (i < numUpdaters) & (res = {}) DO
+				IF distributedId[i] = 0 THEN ParallelRandnum.UseSameStream END;
+				distributedUpdaters[i].Sample(overRelax, res);
+				IF res # {} THEN
+					(*	handle error	*)
 				END;
-				MPIworker.GatherValues(dataSize);
-				j := 0;
-				WHILE j < len DO
-					block[j].SetValue(globalValues[j]);
-					INC(j)
+				block := distributedBlocks[i];
+				IF block # NIL THEN
+					rank := MPIworker.rank;
+					values := MPIworker.values;
+					globalValues := MPIworker.globalValues;
+					len := LEN(block);
+					dataSize := len DIV MPIworker.commSize;
+					offset := rank * dataSize;
+					j := 0;
+					WHILE j < dataSize DO
+						values[j] := block[offset + j].value;
+						INC(j)
+					END;
+					MPIworker.GatherValues(dataSize);
+					j := 0;
+					WHILE j < len DO
+						block[j].SetValue(globalValues[j]);
+						INC(j)
+					END
+				ELSIF distributedId[i] = 0 THEN
+					ParallelRandnum.UsePrivateStream;
 				END;
-				MPIworker.Barrier
-			ELSIF distributedId[i] = 0 THEN
-				ParallelRandnum.UsePrivateStream;
-				MPIworker.Barrier
-			END;
-			INC(i)
+				MPIworker.Barrier;
+				INC(i)
+			END
+		ELSE
+			WHILE (i < numUpdaters) & (res = {}) DO
+				distributedUpdaters[i].Sample(overRelax, res);
+				INC(i)
+			END
 		END;
 		MPIworker.Barrier
 	END Sample;
@@ -139,23 +145,27 @@ MODULE ParallelActions;
 	BEGIN
 		commSize := LEN(updaters);
 		numUpdaters := LEN(updaters[0]);
-		NEW(distributedBlocks, numUpdaters);
 		distributedUpdaters := updaters[rank];
 		distributedObservations := observations[rank];
 		distributedId := id;
-		i := 0;
-		numBlocks := 0;
-		WHILE i < numUpdaters DO
-			IF ABS(id[i]) = 1 THEN
-				INC(numBlocks);
-				block := UpdaterParallel.ParallelBlock(updaters, id, numBlocks);
-			END;
-			IF id[i] < 0 THEN
-				distributedBlocks[i] := block
-			ELSE
-				distributedBlocks[i] := NIL
-			END;
-			INC(i)
+		IF id # NIL THEN (*	chain is distributed	*)
+			NEW(distributedBlocks, numUpdaters);
+			i := 0;
+			numBlocks := 0;
+			WHILE i < numUpdaters DO
+				 IF ABS(distributedId[i]) = 1 THEN
+					INC(numBlocks);
+					block := UpdaterParallel.ParallelBlock(updaters, id, numBlocks);
+				END;
+				IF distributedId[i] < 0 THEN
+					distributedBlocks[i] := block
+				ELSE
+					distributedBlocks[i] := NIL
+				END;
+				INC(i)
+			END
+		ELSE
+			distributedBlocks := NIL
 		END
 	END ConfigureModel;
 
@@ -197,7 +207,7 @@ MODULE ParallelActions;
 			WHILE j < size DO
 				p := u.Prior(j);
 				IF (p # NIL) & (p = p.Representative()) THEN
-					IF (distributedId[i] # 0) OR (MPIworker.rank = 0) THEN
+					IF (MPIworker.rank = 0) OR (distributedId[i] # 0) THEN
 						jointPDF := jointPDF + p.LogLikelihood()
 					END
 				END;

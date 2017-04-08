@@ -47,9 +47,7 @@ MODULE ParallelRandnum;
 		(*	set up the random number streams for each chain and each process	*)
 		MathTT800.Install;
 		privateStream := MathRandnum.NewGenerator(numChains + worldRank);
-		sameStream := MathRandnum.NewGenerator(chain);
-		(*	by default use the private stream of random numbers	*)
-		MathRandnum.SetGenerator(privateStream)
+		sameStream := MathRandnum.NewGenerator(chain)
 	END SetUp;
 
 	PROCEDURE Maintainer;

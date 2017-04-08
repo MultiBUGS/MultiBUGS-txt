@@ -50,7 +50,19 @@ MODULE ParallelWorker;
 	BEGIN
 		commSize := MPIworker.commSize;
 		rank := MPIworker.rank;
-		UpdaterParallel.ModifyUpdaters(commSize, rank, chain, updaters, id, deviances);
+		IF commSize > 1 THEN
+			UpdaterParallel.ModifyUpdaters(commSize, rank, chain, updaters, id, deviances);
+			(*	by default use the private stream of random numbers	*)
+			ParallelRandnum.UsePrivateStream
+		ELSE
+			updaters := UpdaterActions.updaters;
+			id := NIL;
+			(*	by default use the common stream of random numbers	*)
+			ParallelRandnum.UseSameStream
+		END;
+		(*	no need of updaters stored in UpdaterActions	*)
+		UpdaterActions.Clear;
+		Services.Collect;
 		ParallelActions.ConfigureModel(updaters, id, deviances, rank);
 		blockSize := UpdaterParallel.MaxBlockSize(updaters[0], id);
 		maxSizeParams := UpdaterParallel.MaxSizeParams(updaters[0]);
