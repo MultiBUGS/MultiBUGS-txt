@@ -11,11 +11,11 @@ copyright:	"Rsrc/About"
 
 MODULE UpdaterParallel;
 
-	IMPORT
-		Services, Stores,
+	IMPORT 
+		Stores,
 		GraphFlat, GraphMultivariate, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterConjugateMV, UpdaterEmpty,
-		UpdaterMultivariate, UpdaterUnivariate, UpdaterUpdaters;
+		UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
 		List = POINTER TO RECORD
@@ -288,7 +288,6 @@ MODULE UpdaterParallel;
 		VAR
 			i, num, size: INTEGER;
 			updater: UpdaterUpdaters.Updater;
-			prior: GraphStochastic.Node;
 	BEGIN
 		num := LEN(lists);
 		WHILE lists[0] # NIL DO
@@ -513,7 +512,6 @@ MODULE UpdaterParallel;
 		VAR
 			block: GraphStochastic.Vector;
 			numRow, row, size, i, j, k, numProc, offset, start: INTEGER;
-			cursor: List;
 			u: UpdaterUpdaters.Updater;
 	BEGIN
 		numProc := LEN(updaters);
@@ -681,10 +679,7 @@ MODULE UpdaterParallel;
 			END;
 			INC(i)
 		END;
-		UnMarkPriors(updaters[rank], {GraphNodes.mark});
-		(*	no need of updaters stored in UpdaterActions	*)
-		UpdaterActions.Clear;
-		Services.Collect
+		UnMarkPriors(updaters[rank], {GraphNodes.mark})
 	END ModifyUpdaters;
 
 	PROCEDURE Maintainer;
