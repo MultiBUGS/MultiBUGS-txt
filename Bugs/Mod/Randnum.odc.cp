@@ -109,7 +109,7 @@ MODULE BugsRandnum;
 	BEGIN
 		Maintainer;
 		generators := NIL;
-		seperateGenerators := FALSE;
+		seperateGenerators := TRUE;
 		numberChains := 1
 	END Init;
 
