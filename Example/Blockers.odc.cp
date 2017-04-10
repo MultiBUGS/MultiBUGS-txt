@@ -63,9 +63,9 @@ Inits for chain 1   Inits for chain 2  ( click to open )
 Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	d	-0.249	-0.25	0.06116	0.001762	-0.3643	-0.1267	1001	20000	1204
-	delta.new	-0.2497	-0.2522	0.1404	0.001879	-0.5328	0.04827	1001	20000	5584
-	sigma	0.1107	0.09748	0.06563	0.002512	0.02556	0.2686	1001	20000	682
+	d	-0.2502	-0.2514	0.06137	0.001762	-0.3692	-0.1276	1001	20000	1213
+	delta.new	-0.2501	-0.2524	0.1443	0.002002	-0.5473	0.05888	1001	20000	5201
+	sigma	0.1134	0.1008	0.06737	0.002498	0.02589	0.2709	1001	20000	727
 
 Our estimates are lower and with tighter precision - in fact similar to the values obtained by Carlin for the empirical Bayes estimator. The discrepancy appears to be due to Carlin's use of a uniform prior for s2 in his analysis, which will lead to increased posterior mean and standard deviation for d, as compared to our (approximate) use of   p(s2)  ~ 1 / s2 (see   his Figure 1).
 

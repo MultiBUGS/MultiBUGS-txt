@@ -66,6 +66,7 @@ BUGS language for LSAT model
 
 Note that the data are read into BUGS in the original multinomial format to economize on space and effort. The 5 times 1000 individual binary responses for each item and student are then created within BUGS using the index variable culm (read in from the data file), where culm[i] = cumulative number of students recording response patterns 1, 2, ..., i; i <= R.
 
+NB when generating initial values do not check the fix founder box in the Specification Tool. If you do all the theta will be set to zero and beta will go to la-la land.
 
 Data	( click to open )
 
@@ -74,10 +75,10 @@ Inits for chain 1  Inits for chain 2	 ( click to open )
 Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	a[1]	-1.259	-1.257	0.1053	9.837E-4	-1.471	-1.06	1001	20000	11455
-	a[2]	0.4782	0.4785	0.06976	6.286E-4	0.3413	0.6149	1001	20000	12314
-	a[3]	1.239	1.238	0.06947	6.152E-4	1.106	1.377	1001	20000	12749
-	a[4]	0.1685	0.1679	0.07263	5.945E-4	0.0258	0.3119	1001	20000	14926
-	a[5]	-0.6264	-0.6257	0.08671	6.951E-4	-0.7994	-0.4585	1001	20000	15563
-	beta	0.7598	0.7593	0.07002	0.001172	0.6237	0.8982	1001	20000	3570
+	a[1]	-1.26	-1.259	0.1046	8.884E-4	-1.469	-1.059	1001	20000	13874
+	a[2]	0.4785	0.4781	0.07034	5.852E-4	0.3408	0.6158	1001	20000	14450
+	a[3]	1.239	1.239	0.06872	6.93E-4	1.103	1.374	1001	20000	9833
+	a[4]	0.1693	0.1692	0.07191	5.824E-4	0.0265	0.3091	1001	20000	15245
+	a[5]	-0.6265	-0.6259	0.08605	7.331E-4	-0.7995	-0.4611	1001	20000	13775
+	beta	0.759	0.7597	0.0704	0.001216	0.6217	0.897	1001	20000	3352
 

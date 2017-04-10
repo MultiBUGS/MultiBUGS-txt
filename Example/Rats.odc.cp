@@ -65,9 +65,9 @@ Inits for chain 1 		Inits for chain 2	( click to open )
 Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha0	106.6	106.6	3.639	0.02987	99.33	113.7	1001	20000	14840
-	beta.c	6.186	6.186	0.1081	9.707E-4	5.975	6.399	1001	20000	12389
-	sigma	6.099	6.065	0.4681	0.005405	5.265	7.111	1001	20000	7500
+	alpha0	106.6	106.6	3.66	0.0304	99.36	113.7	1001	20000	14490
+	beta.c	6.186	6.186	0.1089	9.952E-4	5.972	6.401	1001	20000	11976
+	sigma	6.093	6.064	0.4643	0.005058	5.269	7.088	1001	20000	8425
 
 These results may be compared with Figure 5 of Gelfand et al 1990 --- we note that the mean gradient of independent fitted straight lines is 6.19.
 
@@ -78,10 +78,10 @@ Data ( click to open )
 Gelfand et al 1990 focus on the parameter estimates and the predictions for the final 4 observations on rat 26. These predictions are obtained automatically in BUGS by monitoring the relevant Y[] nodes. The following estimates were obtained:
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	Y[26,2]	204.7	204.6	8.764	0.08534	187.6	221.9	1001	20000	10547
-	Y[26,3]	250.0	250.1	10.24	0.1229	229.9	270.2	1001	20000	6936
-	Y[26,4]	295.5	295.5	12.65	0.1803	270.5	320.1	1001	20000	4923
-	Y[26,5]	341.0	341.0	15.47	0.2252	310.9	371.3	1001	20000	4715
-	beta.c	6.576	6.574	0.148	0.002555	6.291	6.874	1001	20000	3356
+	Y[26,2]	204.7	204.6	8.698	0.07901	187.7	221.8	1001	20000	12120
+	Y[26,3]	250.1	250.2	10.27	0.1201	230.0	270.4	1001	20000	7312
+	Y[26,4]	295.7	295.6	12.6	0.1632	270.9	320.6	1001	20000	5960
+	Y[26,5]	341.1	341.1	15.41	0.2119	310.6	371.8	1001	20000	5289
+	beta.c	6.576	6.575	0.1479	0.002422	6.289	6.874	1001	20000	3726
 
 We note that our estimate 6.58 of bc is substantially greater than that shown in Figure 6 of  Gelfand et al 1990.  However, plotting the growth curves indicates some curvature with steeper gradients at the beginning: the mean of the estimated gradients of the reduced data is 6.66, compared to 6.19 for the full data.  Hence we are inclined to believe our analysis.  The observed weights for rat 26 were 207, 257, 303 and 345, compared to our predictions of 204, 250, 295 and 341.

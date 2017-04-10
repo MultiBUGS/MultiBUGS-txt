@@ -49,9 +49,9 @@ Inits for chain 1 		Inits for chain 2	( click to open )
 Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	sigma2.btw	2242.0	1329.0	4033.0	29.76	0.007842	10260.0	10001	200000	18360
-	sigma2.with	3023.0	2789.0	1108.0	14.95	1550.0	5788.0	10001	200000	5498
-	theta	1527.0	1527.0	21.7	0.1434	1484.0	1571.0	10001	200000	22915
+	sigma2.btw	2314.0	1375.0	6182.0	32.59	0.01288	10320.0	10001	200000	35975
+	sigma2.with	2994.0	2766.0	1083.0	14.05	1550.0	5679.0	10001	200000	5942
+	theta	1527.0	1527.0	22.05	0.1253	1483.0	1571.0	10001	200000	30985
 
 Note that a relatively long run was required because of the high autocorrelation between successively sampled values of some parameters. Such correlations reduce the 'effective' size of the posterior sample, and hence a longer run is needed to ensure sufficient precision of the posterior estimates. Note that the posterior distribution for s2between has a very long upper tail: hence the posterior mean is considerably larger than the median. Box and Tiao estimate s2within = 2451 and s2between = 1764 by classical analysis of variance. Here, s2between is estimated by the difference of the between- and within-batch mean squares divided by the number of batches - 1. In cases where the between-batch mean square within-batch mean square, this leads to the unsatisfactory situation of a negative variance estimate. Computing a confidence interval for s2between is also difficult using the classical approach due to its complicated sampling distribution
 
