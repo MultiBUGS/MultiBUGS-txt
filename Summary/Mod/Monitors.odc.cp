@@ -109,11 +109,13 @@ MODULE SummaryMonitors;
 	PROCEDURE (monitor: StdMonitor) MarkMonitored;
 		VAR
 			i, size: INTEGER;
+			summaries: MonitorSummary.Monitor;
 	BEGIN
 		i := 0;
 		size := LEN(monitor.summaries);
 		WHILE i < size DO
-			monitor.summaries[i].MarkMonitored;
+			summaries := monitor.summaries[i];
+			IF summaries # NIL THEN summaries.MarkMonitored END;
 			INC(i)
 		END
 	END MarkMonitored;
