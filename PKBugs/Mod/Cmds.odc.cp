@@ -361,8 +361,6 @@ MODULE PKBugsCmds;
 	END ReadData;
 
 	PROCEDURE Compile*;
-		CONST
-			sepGens = FALSE;
 		VAR
 			chain, ind, numChains, par, res: INTEGER;
 			mes, s: Dialog.String;
@@ -387,7 +385,7 @@ MODULE PKBugsCmds;
 		PKBugsNodes.StoreNodes(specificationDialog.nComp);
 		PKBugsNodes.SetGraph;
 		PKBugsTree.Build(specificationDialog.nComp, log);
-		BugsGraph.Compile(numChains, sepGens, updaterByMethod);
+		BugsGraph.Compile(numChains, updaterByMethod);
 		(*ASSERT(BugsGraph.status # {}, 77);*)
 		chain := 0;
 		WHILE chain < numChains DO
