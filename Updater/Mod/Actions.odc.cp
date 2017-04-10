@@ -13,7 +13,7 @@ MODULE UpdaterActions;
 
 	
 
-	IMPORT
+	IMPORT 
 		Stores,
 		GraphNodes, GraphStochastic,
 		MathSort,
@@ -217,7 +217,7 @@ MODULE UpdaterActions;
 			j := 0;
 			WHILE j < size DO
 				p := updater.Prior(j);
-				p.Externalize(wr);
+				p.Externalize(wr); 
 				INC(j)
 			END;
 			INC(i)
@@ -420,7 +420,7 @@ MODULE UpdaterActions;
 			rd.ReadInt(pos);
 			INC(i)
 		END;
- ;		rd.SetPos(pos);
+		rd.SetPos(pos);
 		chain := chain MOD numChains;
 		i := 0;
 		WHILE i < numUpdaters DO
