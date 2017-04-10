@@ -26,7 +26,7 @@ MODULE BugsEmbed;
 		Params = POINTER TO RECORD(Globals) END;
 
 	VAR
-		compileCP*, sepGens*, updaterByMethod*, overRelax*, isScript*, fixFounder*: BOOLEAN;
+		compileCP*, updaterByMethod*, overRelax*, isScript*, fixFounder*: BOOLEAN;
 		chain*, index*, numChains*, numProc*, preSet*,
 		thin*, updates*: INTEGER;
 		startTime: LONGINT;
@@ -49,7 +49,6 @@ MODULE BugsEmbed;
 		preSet := 1;
 		thin := 1;
 		overRelax := FALSE;
-		sepGens := FALSE;
 		compileCP := FALSE;
 		fixFounder := TRUE;
 		updates := 1000
@@ -198,7 +197,7 @@ MODULE BugsEmbed;
 			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		IF ~BugsInterface.IsParsed() THEN RETURN END;
-		BugsGraph.Compile(numChains, sepGens, updaterByMethod);
+		BugsGraph.Compile(numChains, updaterByMethod);
 		IF BugsInterface.IsCompiled() THEN
 			UpdateGlobals;
 			BugsMsg.MapMsg("BugsEmbed:OkCompile", msg);
@@ -422,7 +421,6 @@ MODULE BugsEmbed;
 		f.Close;
 		BugsSerialize.Internalize(name);
 		numChains := BugsRandnum.numberChains;
-		sepGens := BugsRandnum.seperateGenerators;
 		UpdateGlobals;
 		BugsFiles.ShowMsg("model internalized from file ok");
 		BugsSerialize.SetRestartLoc(locOld)
@@ -616,7 +614,6 @@ MODULE BugsEmbed;
 		params.Init;
 		AddGlobals(params);
 		compileCP := TRUE;
-		sepGens := FALSE;
 		updaterByMethod := TRUE;
 		isScript := FALSE;
 		fixFounder := TRUE;

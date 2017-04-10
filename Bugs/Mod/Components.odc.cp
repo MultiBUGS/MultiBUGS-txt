@@ -13,7 +13,7 @@ MODULE BugsComponents;
 
 	IMPORT
 		Files, Kernel, Meta, Services, Stores, Strings,
-		BugsIndex, BugsMsg, BugsSerialize,
+		BugsIndex, BugsMsg, BugsRandnum, BugsSerialize,
 		GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
 
@@ -146,6 +146,7 @@ MODULE BugsComponents;
 		AddModule("GraphCenTrunc", modList);
 		AddModule("ParallelTraphandler", modList);
 		AddModule("MonitorMonitors", modList);
+		AddModule("Services", modList);
 		AddModule("ParallelWorker", modList);
 
 		modules := ListToVector(modList); 
@@ -247,6 +248,7 @@ MODULE BugsComponents;
 		WHILE i < len DO
 			wr.WriteSChar(portName[i]); INC(i)
 		END;
+		BugsRandnum.ExternalizeRNGenerators(wr);
 		wr.WriteInt(numChains);
 		UpdaterActions.MarkDistributed;
 		ModifyUpdaterMethods(ok);

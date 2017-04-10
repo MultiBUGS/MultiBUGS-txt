@@ -156,7 +156,8 @@ MODULE BugsInterface;
 					EXIT
 				END
 			END
-		END
+		END;
+		MathRandnum.SetGenerator(BugsRandnum.generators[0])
 	END GenerateInitsForChain;
 
 	PROCEDURE GenerateInits* (numChains: INTEGER; fixFounders: BOOLEAN; OUT ok: BOOLEAN);
@@ -402,6 +403,7 @@ MODULE BugsInterface;
 					BugsMsg.StoreError(msg);
 				END
 			END;
+			MathRandnum.SetGenerator(BugsRandnum.generators[0]);
 			IF ok THEN
 				IF (UpdaterActions.endOfAdapting > UpdaterActions.iteration) & 
 					~BugsGraph.IsAdapting(numChains) THEN

@@ -18,7 +18,6 @@ MODULE BugsRandnum;
 	VAR
 
 		numberChains-: INTEGER;
-		seperateGenerators-: BOOLEAN;
 		generators-: POINTER TO ARRAY OF MathRandnum.Generator;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -29,22 +28,15 @@ MODULE BugsRandnum;
 		generators := NIL
 	END Clear;
 
-	PROCEDURE CreateGenerators* (numChains: INTEGER; sepGens: BOOLEAN);
+	PROCEDURE CreateGenerators* (numChains: INTEGER);
 		VAR
 			i: INTEGER;
 	BEGIN
 		numberChains := numChains;
-		seperateGenerators := sepGens;
 		NEW(generators, numChains);
-		generators[0] := MathRandnum.NewGenerator(0);
-		MathRandnum.SetGenerator(generators[0]);
 		i := 0;
 		WHILE i < numChains DO
-			IF sepGens THEN
-				generators[i] := MathRandnum.NewGenerator(i);
-			ELSE
-				generators[i] := generators[0];
-			END;
+			generators[i] := MathRandnum.NewGenerator(i);
 			INC(i)
 		END;
 	END CreateGenerators;
@@ -54,46 +46,31 @@ MODULE BugsRandnum;
 			i: INTEGER;
 			present: BOOLEAN;
 	BEGIN
-		wr.WriteBool(seperateGenerators);
 		present := generators # NIL;
 		wr.WriteBool(present);
 		IF present THEN
 			wr.WriteInt(numberChains);
-			IF seperateGenerators THEN
-				i := 0;
-				WHILE i < numberChains DO
-					MathRandnum.Externalize(generators[i], wr);
-					INC(i)
-				END
-			ELSE
-				MathRandnum.Externalize(generators[0], wr)
+			i := 0;
+			WHILE i < numberChains DO
+				MathRandnum.Externalize(generators[i], wr);
+				INC(i)
 			END
-		END;
+		END
 	END ExternalizeRNGenerators;
 
 	PROCEDURE InternalizeRNGenerators* (VAR rd: Stores.Reader);
 		VAR
-			i, numberChains: INTEGER;
-			present, seperateGenerators: BOOLEAN;
+			i: INTEGER;
+			present: BOOLEAN;
 	BEGIN
-		rd.ReadBool(seperateGenerators);
 		rd.ReadBool(present);
 		IF present THEN
 			rd.ReadInt(numberChains);
-			CreateGenerators(numberChains, seperateGenerators);
-			IF seperateGenerators THEN
-				i := 0;
-				WHILE i < numberChains DO
-					generators[i] := MathRandnum.Internalize(rd);
-					INC(i)
-				END
-			ELSE
-				generators[0] := MathRandnum.Internalize(rd);
-				i := 0;
-				WHILE i < numberChains DO
-					generators[i] := generators[0];
-					INC(i)
-				END
+			NEW(generators, numberChains);
+			i := 0;
+			WHILE i < numberChains DO
+				generators[i] := MathRandnum.Internalize(rd);
+				INC(i)
 			END;
 			MathRandnum.SetGenerator(generators[0])
 		END
@@ -109,7 +86,6 @@ MODULE BugsRandnum;
 	BEGIN
 		Maintainer;
 		generators := NIL;
-		seperateGenerators := TRUE;
 		numberChains := 1
 	END Init;
 

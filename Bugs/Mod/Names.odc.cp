@@ -13,7 +13,7 @@ MODULE BugsNames;
 
 (*	data structure to represent names in BUGS model	*)
 
-	IMPORT
+	IMPORT 
 		Stores, Strings, 
 		GraphNodes, GraphStochastic;
 
@@ -124,7 +124,7 @@ MODULE BugsNames;
 		i := 0;
 		WHILE i < len DO
 			p := name.components[i];
-			IF (p # NIL) & ~(GraphStochastic.update IN p.props) THEN p.Externalize(wr) END;
+			IF (p # NIL) & ~(GraphStochastic.update IN p.props) THEN p.Externalize(wr) END; 
 			INC(i)
 		END
 	END ExternalizeData;

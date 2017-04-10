@@ -12,14 +12,14 @@ MODULE BugsMaster;
 	
 
 	IMPORT 
-		MPI, SYSTEM, Console, Dialog, Files, Kernel, Meta, Services, Stores, Strings,
+		MPI, SYSTEM, Dialog, Files, Kernel, Meta, Services, Stores, Strings,
 		BugsCPCompiler, BugsComponents, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
 		DevCommanders, DevLinker, 
 		DevianceInterface,
 		GraphNodes, GraphStochastic, 
 		HostDialog, HostFiles,
 		MonitorMonitors,
-		TextModels,
+		TextModels, 
 		UpdaterActions, UpdaterParallel, UpdaterUpdaters;
 
 	TYPE
@@ -304,7 +304,7 @@ MODULE BugsMaster;
 		executable := executable + '"';
 		path := '"' + path;
 		cmd := cmd + " " + path + "\" + executable;
-		HostDialog.hideExtRunWindow := TRUE;
+		HostDialog.hideExtRunWindow := TRUE; 
 		Dialog.RunExternal(cmd);
 		MPI.Comm_accept(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
 		MPI.Comm_remote_size(intercomm, size);

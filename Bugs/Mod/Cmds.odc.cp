@@ -36,7 +36,7 @@ MODULE BugsCmds;
 		END;
 
 		CompileDialog* = POINTER TO RECORD(BugsDialog.DialogBox)
-			updaterByMethod*, sepGens*: BOOLEAN;
+			updaterByMethod*: BOOLEAN;
 		END;
 
 		DisplayDialog* = POINTER TO RECORD(BugsDialog.DialogBox)
@@ -129,6 +129,7 @@ MODULE BugsCmds;
 		rnDialog.preSet := preSet;
 		Dialog.Update(rnDialog)
 	END SetRNState;
+	
 	PROCEDURE SetDefaultRefresh* (refresh: INTEGER);
 	BEGIN
 		defaultRefresh := refresh
@@ -361,7 +362,7 @@ MODULE BugsCmds;
 
 	PROCEDURE Compile*;
 		VAR
-			sepGens, updaterByMethod: BOOLEAN;
+			updaterByMethod: BOOLEAN;
 			numChains: INTEGER;
 			msg: ARRAY 1024 OF CHAR;
 			startTime, elapsedTime: LONGINT;
@@ -372,9 +373,8 @@ MODULE BugsCmds;
 		IF ~BugsInterface.IsParsed() THEN RETURN END;
 		numChains := specificationDialog.numChains;
 		updaterByMethod := compileDialog.updaterByMethod;
-		sepGens := compileDialog.sepGens;
 		startTime := Services.Ticks();
-		BugsGraph.Compile(numChains, sepGens, updaterByMethod);
+		BugsGraph.Compile(numChains, updaterByMethod);
 		IF BugsInterface.IsCompiled() THEN
 			SetAdaptingStatus;
 			UpdaterSettings.MarkCompiled;
@@ -1200,7 +1200,6 @@ MODULE BugsCmds;
 		BugsSerialize.Internalize(name);
 		BugsSerialize.SetRestartLoc(locOld);
 		specificationDialog.numChains := BugsRandnum.numberChains;
-		compileDialog.sepGens := BugsRandnum.seperateGenerators;
 		SetIteration(UpdaterActions.iteration);
 		updateDialog.isAdapting := UpdaterActions.endOfAdapting = MAX(INTEGER);
 		UpdaterSettings.MarkCompiled;
@@ -1231,7 +1230,6 @@ MODULE BugsCmds;
 		inBugDialog.name.GetItem(index, name);
 		BugsSerialize.Internalize(name);
 		specificationDialog.numChains := BugsRandnum.numberChains;
-		compileDialog.sepGens := BugsRandnum.seperateGenerators;
 		SetIteration(UpdaterActions.iteration);
 		updateDialog.isAdapting := UpdaterActions.endOfAdapting = MAX(INTEGER);
 		UpdaterSettings.MarkCompiled;
@@ -1697,7 +1695,6 @@ MODULE BugsCmds;
 		NEW(scriptAction);
 		NEW(compileDialog);
 		BugsDialog.AddDialog(compileDialog);
-		compileDialog.sepGens := FALSE;
 		compileDialog.updaterByMethod := TRUE;
 		NEW(displayDialog);
 		BugsDialog.AddDialog(displayDialog);

@@ -648,12 +648,12 @@ MODULE BugsGraph;
 		BugsIndex.Accept(v)
 	END BuildDependantLists;
 
-	PROCEDURE Compile* (numChains: INTEGER; sepGens, updaterByMethod: BOOLEAN);
+	PROCEDURE Compile* (numChains: INTEGER; updaterByMethod: BOOLEAN);
 		VAR
 			inits, ok: BOOLEAN;
 			chain: INTEGER;
 	BEGIN
-		BugsRandnum.CreateGenerators(numChains, sepGens);
+		BugsRandnum.CreateGenerators(numChains);
 		WriteGraph(ok); IF ~ok THEN UpdaterActions.Clear; RETURN END;
 		BuildFullConditionals;
 		AllocateLikelihoods;
