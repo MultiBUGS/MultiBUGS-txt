@@ -157,11 +157,13 @@ MODULE SamplesMonitors;
 	PROCEDURE (monitor: StdMonitor) MarkMonitored;
 		VAR
 			i, size: INTEGER;
+			samples: MonitorSamples.Monitor;
 	BEGIN
 		i := 0;
 		size := LEN(monitor.samples);
 		WHILE i < size DO
-			monitor.samples[i, 0].MarkMonitored;
+			samples := monitor.samples[i, 0];
+			IF samples # NIL THEN samples.MarkMonitored END;
 			INC(i)
 		END
 	END MarkMonitored;
