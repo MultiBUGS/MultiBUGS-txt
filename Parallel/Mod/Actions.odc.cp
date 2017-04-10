@@ -143,7 +143,9 @@ MODULE ParallelActions;
 			i, numBlocks, numUpdaters: INTEGER;
 			block: GraphStochastic.Vector;
 	BEGIN
+		ASSERT(updaters # NIL, 20);
 		commSize := LEN(updaters);
+		ASSERT(updaters[0] # NIL, 22);
 		numUpdaters := LEN(updaters[0]);
 		distributedUpdaters := updaters[rank];
 		distributedObservations := observations[rank];

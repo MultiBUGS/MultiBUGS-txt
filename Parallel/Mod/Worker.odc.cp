@@ -16,6 +16,7 @@ MODULE ParallelWorker;
 
 	IMPORT
 		Files, Kernel, MPIworker, Services, Stores, Strings,
+		BugsRandnum,
 		GraphCenTrunc, GraphNodes, GraphStochastic,
 		MonitorMonitors,
 		ParallelActions, ParallelRandnum, ParallelTraphandler,
@@ -42,7 +43,7 @@ MODULE ParallelWorker;
 	PROCEDURE ModifyModel;
 		VAR
 			updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
-			deviances: POINTER TO ARRAY OF GraphStochastic.Vector;
+			observations: POINTER TO ARRAY OF GraphStochastic.Vector;
 			id: POINTER TO ARRAY OF INTEGER;
 			blockSize, maxSizeParams, commSize, rank, numStochastics: INTEGER;
 		CONST
@@ -50,24 +51,26 @@ MODULE ParallelWorker;
 	BEGIN
 		commSize := MPIworker.commSize;
 		rank := MPIworker.rank;
+		UpdaterParallel.ModifyUpdaters(commSize, rank, chain, updaters, id, observations);
+		ParallelActions.ConfigureModel(updaters, id, observations, rank);
+		blockSize := UpdaterParallel.MaxBlockSize(updaters[0], id);
+		maxSizeParams := UpdaterParallel.MaxSizeParams(updaters[0]);
+		numStochastics := GraphStochastic.numStochastics;
+		MPIworker.AllocateStorage(maxSizeParams, blockSize, numStochastics);
 		IF commSize > 1 THEN
-			UpdaterParallel.ModifyUpdaters(commSize, rank, chain, updaters, id, deviances);
 			(*	by default use the private stream of random numbers	*)
-			ParallelRandnum.UsePrivateStream
-		ELSE
+			ParallelRandnum.UsePrivateStream;
+		ELSE (*	only one core per chain	*)
 			updaters := UpdaterActions.updaters;
+			UpdaterActions.UnMarkDistributed;
 			id := NIL;
+			ParallelActions.ConfigureModel(updaters, id, observations, rank);
 			(*	by default use the common stream of random numbers	*)
 			ParallelRandnum.UseSameStream
 		END;
 		(*	no need of updaters stored in UpdaterActions	*)
 		UpdaterActions.Clear;
-		Services.Collect;
-		ParallelActions.ConfigureModel(updaters, id, deviances, rank);
-		blockSize := UpdaterParallel.MaxBlockSize(updaters[0], id);
-		maxSizeParams := UpdaterParallel.MaxSizeParams(updaters[0]);
-		numStochastics := GraphStochastic.numStochastics;
-		MPIworker.AllocateStorage(maxSizeParams, blockSize, numStochastics)
+		Services.Collect
 	END ModifyModel;
 
 	PROCEDURE Sample (thin, iteration: INTEGER; VAR endOfAdapting: INTEGER);
@@ -156,6 +159,7 @@ MODULE ParallelWorker;
 		rd.ConnectTo(f);
 		rd.SetPos(0);
 		MPIworker.ReadPort(rd);
+		BugsRandnum.InternalizeRNGenerators(rd);
 		rd.ReadInt(numChains);
 		MPIworker.SetUpMPI(numChains);
 		ParallelRandnum.SetUp(MPIworker.chain, numChains, MPIworker.worldRank);

@@ -12,6 +12,7 @@ MODULE ParallelRandnum;
 
 	IMPORT
 		Stores,
+		BugsRandnum,
 		MathRandnum, MathTT800;
 
 	VAR
@@ -47,7 +48,7 @@ MODULE ParallelRandnum;
 		(*	set up the random number streams for each chain and each process	*)
 		MathTT800.Install;
 		privateStream := MathRandnum.NewGenerator(numChains + worldRank);
-		sameStream := MathRandnum.NewGenerator(chain)
+		sameStream := BugsRandnum.generators[chain]
 	END SetUp;
 
 	PROCEDURE Maintainer;
