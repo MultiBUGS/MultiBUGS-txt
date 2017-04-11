@@ -1,0 +1,3 @@
+	Examples Menu
+
+This menu gives access to the various volumes of examples illustrating the use of the BUGS software. The first group of options opens the contents pages of the example volumes as hyper-text documents. Clicking on the blue links will open further windows displaying the individual examples. The second group of options prints a copy of the examples. If a physical printer is the default printer the result is a paper. If the default printer is set to a file you will get a Postscript or a PDF file. When printing the volume of examples please make sure you do not have that volume open.
