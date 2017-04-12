@@ -284,6 +284,7 @@ MODULE GraphDensity;
 			prior := node.prior;
 			prior.Install(install);
 			fact := GraphNodes.InstallFactory(install);
+			prior.SetComponent(components, 0);
 			prior.Set(argsS, res);
 			components[0] := prior;
 			prior.SetComponent(components, 0);
@@ -292,8 +293,8 @@ MODULE GraphDensity;
 				p := fact.New();
 				prior := p(GraphMultivariate.Node);
 				prior.Init;
-				prior.Set(argsS, res);
 				prior.SetComponent(components, i);
+				prior.Set(argsS, res);
 				components[i] := prior;
 				INC(i)
 			END
