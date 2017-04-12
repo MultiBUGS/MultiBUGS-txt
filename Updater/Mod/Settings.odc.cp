@@ -308,11 +308,13 @@ MODULE UpdaterSettings;
 		dialog.allMethods.index := 0;
 		dialog.activeMethods.index := 0;
 		index := FindAllFactory();
-		fact := UpdaterMethods.factories[index];
-		IF UpdaterUpdaters.enabled IN fact.props THEN
-			dialog.use := yes
-		ELSE
-			dialog.use := no
+		IF index # -1 THEN
+			fact := UpdaterMethods.factories[index];
+			IF UpdaterUpdaters.enabled IN fact.props THEN
+				dialog.use := yes
+			ELSE
+				dialog.use := no
+			END
 		END;
 		index := FindActiveFactory();
 		IF index # -1 THEN
