@@ -93,10 +93,19 @@ MODULE BugsCodegen;
 		VAR
 			var: BugsParser.Variable;
 			vector: GraphNodes.SubVector;
+			i, nElem, start, step: INTEGER;
 	BEGIN
 		var := t(BugsParser.Variable);
 		vector := BugsEvaluate.RHVector(var);
 		IF vector = NIL THEN args.valid := FALSE; RETURN END;
+		i := 0;
+		start := vector.start;
+		step := vector.step;
+		nElem := vector.nElem;
+		WHILE i < nElem DO
+			IF vector.components[start + i * step] = NIL THEN args.valid := FALSE; RETURN END;
+			INC(i)
+		END;
 		args.vectors[args.numVectors] := vector;
 		INC(args.numVectors)
 	END WriteVectorToFunc;
