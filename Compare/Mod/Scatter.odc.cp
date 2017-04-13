@@ -603,7 +603,13 @@ MODULE CompareScatter;
 	END RedrawLine;
 
 	PROCEDURE (s: SpecialDialog) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogView = NIL THEN
+			loc := Files.dir.This("Compare/Rsrc");
+			dialogView := Views.OldView(loc, "ScatterDialog")
+		END;
 		RETURN dialogView
 	END Dialog;
 
@@ -636,7 +642,6 @@ MODULE CompareScatter;
 		VAR
 			f: Factory;
 			fractions: POINTER TO ARRAY OF REAL;
-			loc: Files.Locator;
 	BEGIN
 		Maintainer;
 		NEW(scatterDialog);
@@ -662,8 +667,6 @@ MODULE CompareScatter;
 		f.SetFractions(fractions);
 		f.SetArguments({CompareViews.node, CompareViews.axis});
 		fact := f;
-		loc := Files.dir.This("Compare/Rsrc");
-		dialogView := Views.OldView(loc, "ScatterDialog");
 		NEW(special)
 	END Init;
 

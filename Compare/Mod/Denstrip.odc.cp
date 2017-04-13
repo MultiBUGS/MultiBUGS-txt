@@ -820,7 +820,13 @@ MODULE CompareDenstrip;
 	END NotifierGamma;
 
 	PROCEDURE (s: SpecialDialog) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogView = NIL THEN
+			loc := Files.dir.This("Compare/Rsrc");
+			dialogView := Views.OldView(loc, "DensDialog");
+		END;
 		RETURN dialogView
 	END Dialog;
 
@@ -884,7 +890,6 @@ MODULE CompareDenstrip;
 		VAR
 			f: Factory;
 			fractions: POINTER TO ARRAY OF REAL;
-			loc: Files.Locator;
 	BEGIN
 		Maintainer;
 		NEW(densDialog);
@@ -908,8 +913,7 @@ MODULE CompareDenstrip;
 		fractions[0] := 2.5; fractions[1] := 25; fractions[2] := 50; fractions[3] := 75; fractions[4] := 97.5;
 		f.SetFractions(fractions); f.SetArguments({CompareViews.node});
 		fact := f;
-		loc := Files.dir.This("Compare/Rsrc");
-		dialogView := Views.OldView(loc, "DensDialog");
+		dialogView := NIL;
 		NEW(special);
 		NEW(specialApply)
 	END Init;

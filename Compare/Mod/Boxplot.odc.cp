@@ -677,7 +677,13 @@ MODULE CompareBoxplot;
 	END Notifier;
 
 	PROCEDURE (s: SpecialDialog) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogView = NIL THEN
+			loc := Files.dir.This("Compare/Rsrc");
+			dialogView := Views.OldView(loc, "BoxDialog");
+		END;
 		RETURN dialogView
 	END Dialog;
 
@@ -710,7 +716,6 @@ MODULE CompareBoxplot;
 		VAR
 			f: Factory;
 			fractions: POINTER TO ARRAY OF REAL;
-			loc: Files.Locator;
 	BEGIN
 		Maintainer;
 		NEW(boxDialog);
@@ -732,8 +737,7 @@ MODULE CompareBoxplot;
 		f.SetFractions(fractions);
 		f.SetArguments({CompareViews.node});
 		fact := f;
-		loc := Files.dir.This("Compare/Rsrc");
-		dialogView := Views.OldView(loc, "BoxDialog");
+		dialogView := NIL;
 		NEW(special)
 	END Init;
 

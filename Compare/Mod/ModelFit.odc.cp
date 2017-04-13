@@ -336,7 +336,13 @@ MODULE CompareModelFit;
 	END Notifier;
 
 	PROCEDURE (s: SpecialDialog) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogView = NIL THEN
+			loc := Files.dir.This("Compare/Rsrc");
+			dialogView := Views.OldView(loc, "FitDialog")
+		END;
 		RETURN dialogView
 	END Dialog;
 
@@ -369,7 +375,6 @@ MODULE CompareModelFit;
 		VAR
 			f: Factory;
 			fractions: POINTER TO ARRAY OF REAL;
-			loc: Files.Locator;
 	BEGIN
 		Maintainer;
 		NEW(fitDialog);
@@ -384,8 +389,6 @@ MODULE CompareModelFit;
 		f.SetFractions(fractions);
 		f.SetArguments({CompareViews.node, CompareViews.other, CompareViews.axis});
 		fact := f;
-		loc := Files.dir.This("Compare/Rsrc");
-		dialogView := Views.OldView(loc, "FitDialog");
 		NEW(special)
 	END Init;
 

@@ -574,7 +574,13 @@ MODULE CompareCaterpillar;
 	END Notifier;
 
 	PROCEDURE (s: SpecialDialog) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogView = NIL THEN
+			loc := Files.dir.This("Compare/Rsrc");
+			dialogView := Views.OldView(loc, "CatDialog");
+		END;
 		RETURN dialogView
 	END Dialog;
 
@@ -606,7 +612,6 @@ MODULE CompareCaterpillar;
 	PROCEDURE Init;
 		VAR
 			f: Factory; fractions: POINTER TO ARRAY OF REAL;
-			loc: Files.Locator;
 	BEGIN
 		Maintainer;
 		NEW(catDialog);
@@ -625,8 +630,7 @@ MODULE CompareCaterpillar;
 		f.SetFractions(fractions); f
 		.SetArguments({CompareViews.node});
 		fact := f;
-		loc := Files.dir.This("Compare/Rsrc");
-		dialogView := Views.OldView(loc, "CatDialog");
+		dialogView := NIL;
 		NEW(special)
 	END Init;
 
