@@ -177,14 +177,14 @@ MODULE UpdaterParallel;
 	PROCEDURE DistByDepth0 (depth, chain: INTEGER; VAR lists: ARRAY OF List; VAR rowId: RowId);
 		VAR
 			new: BOOLEAN;
-			finish, i, j, numProcs, numRows, start: INTEGER;
+			finish, i, j, commSize, numRows, start: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 			prior: GraphStochastic.Node;
 			element: RowId;
 			link: List;
 	BEGIN
 		UpdaterActions.StartFinish(depth, start, finish);
-		numProcs := LEN(lists);
+		commSize := LEN(lists);
 		REPEAT	(*	repeat until all updaters at depth have been distributed	*)
 			new := FALSE;
 			i := start;
@@ -195,7 +195,7 @@ MODULE UpdaterParallel;
 					IF ~(GraphNodes.mark IN prior.props) THEN	(*	not distributed this updater yet	*)
 						prior.SetProps(prior.props + {GraphNodes.mark});
 						j := 0;
-						WHILE j < numProcs DO
+						WHILE j < commSize DO
 							NEW(link); link.next := lists[j]; lists[j] := link; INC(j)
 						END;
 						new := TRUE;
@@ -203,7 +203,7 @@ MODULE UpdaterParallel;
 						NEW(element); element.id := numRows; element.next := rowId; rowId := element;
 						(*	add new row of updaters	*)
 						j := 0;
-						WHILE j < numProcs DO
+						WHILE j < commSize DO
 							lists[j].updater := updater;
 							INC(j)
 						END
@@ -225,14 +225,14 @@ MODULE UpdaterParallel;
 	PROCEDURE DistByDepth1 (depth, chain: INTEGER; VAR lists: ARRAY OF List; VAR rowId: RowId);
 		VAR
 			new: BOOLEAN;
-			i, j, finish, rank, numProcs, numRows, size, start: INTEGER;
+			i, j, finish, rank, commSize, numRows, size, start: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 			prior: GraphStochastic.Node;
 			link: List;
 			element: RowId;
 	BEGIN
 		UpdaterActions.StartFinish(depth, start, finish);
-		numProcs := LEN(lists);
+		commSize := LEN(lists);
 		REPEAT	(*	repeat until all updaters at depth have been distributed	*)
 			new := FALSE;
 			rank := 0;
@@ -247,7 +247,7 @@ MODULE UpdaterParallel;
 						IF ~IsMarkedLike(updater) THEN	(*	likelihoods disjoint	*)
 							IF rank = 0 THEN	(*	add new row of updaters	*)
 								j := 0;
-								WHILE j < numProcs DO
+								WHILE j < commSize DO
 									NEW(link); link.next := lists[j]; lists[j] := link; INC(j)
 								END;
 								new := TRUE;
@@ -260,7 +260,7 @@ MODULE UpdaterParallel;
 								MarkLike(updater);
 								lists[rank].updater := updater;
 								INC(rank);
-								rank := rank MOD numProcs
+								rank := rank MOD commSize
 							END
 						END
 					END;
