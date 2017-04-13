@@ -239,10 +239,8 @@ MODULE BugsInfo;
 		NEW(initialized, size, numChains);
 		j := 0;
 		WHILE j < numChains DO
-			IF j > 0 THEN
-				UpdaterActions.LoadSamples(j);
-				BugsInterface.LoadDeviance(j)
-			END;
+			UpdaterActions.LoadSamples(j);
+			BugsInterface.LoadDeviance(j);
 			i := 0;
 			WHILE i < size DO
 				index := offsets[i];
@@ -267,9 +265,9 @@ MODULE BugsInfo;
 			END;
 			INC(j)
 		END;
-		IF~ isConstant THEN
-			UpdaterActions.LoadSamples(0);
-			BugsInterface.LoadDeviance(0);
+		UpdaterActions.LoadSamples(0);
+		BugsInterface.LoadDeviance(0);
+		IF~ isConstant  & (numChains > 1)THEN
 			max := 2 + MIN(numChains, 10);
 			f.WriteTab;
 			i := 0;
