@@ -1294,6 +1294,8 @@ MODULE BugsCmds;
 
 	PROCEDURE (dialogBox: DisplayDialog) Init-;
 	BEGIN
+		displayDialog.whereOut := BugsMappers.window;
+		BugsMappers.SetDest(BugsMappers.window)
 	END Init;
 
 	PROCEDURE (dialogBox: DisplayDialog) Update-;

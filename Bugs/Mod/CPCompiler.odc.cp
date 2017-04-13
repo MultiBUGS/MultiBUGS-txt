@@ -18,7 +18,7 @@ MODULE BugsCPCompiler;
 	IMPORT
 		Files, Kernel, Services, Stores, Strings, Views, 
 		BugsCPWrite, BugsMappers, BugsTexts, 
-		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486,
+		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486, 
 		GraphLogical, GraphNodes, GraphStochastic, 
 		TextModels, TextViews;
 
@@ -53,6 +53,11 @@ MODULE BugsCPCompiler;
 		DevCPB.typSize := DevCPV486.TypeSize;
 		DevCPT.processor := DevCPV486.processor;
 		DevCPP.Module(p);
+		IF ~DevCPM.noerr THEN
+			DevCPM.InsertMarks(source.Base());
+			Views.OpenAux(TextViews.dir.New(source.Base()), "Error in compiling");
+			HALT(0)
+		END;		
 		IF DevCPM.noerr THEN
 			IF DevCPT.libName # "" THEN EXCL(opts, obj) END;
 			DevCPV486.Init(opts); DevCPV486.Allocate; DevCPT.Export(ext, new);

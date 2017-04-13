@@ -14,7 +14,7 @@ MODULE Config;
 
 	IMPORT
 		Converters, Dialog, Files, Meta,
-		WinConsole,
+		(*WinConsole,*)
 		OleData;
 
 	VAR

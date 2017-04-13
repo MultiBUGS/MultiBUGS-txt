@@ -117,7 +117,7 @@ MODULE BugsExternal;
 		Function("pdf.ggamma", "GraphDensity.DensityUVInstall(dggamma)");
 		Function("pdf.geom0", "GraphDensity.DensityUVInstall(dgeom0)");
 		Function("pdf.geom1", "GraphDensity.DensityUVInstall(dgeom1)");
-		(*	no cumulative for generic dloglik	*)
+		(*	no pdf for generic dloglik	*)
 		Function("pdf.hyper", "GraphDensity.DensityUVInstall(dhyper)");
 		Function("pdf.lnorm", "GraphDensity.DensityUVInstall(dlnorm)");
 		Function("pdf.logis", "GraphDensity.DensityUVInstall(dlogis)");
@@ -137,6 +137,40 @@ MODULE BugsExternal;
 		Function("pdf.gpar", "GraphDensity.DensityUVInstall(dgpar)");
 		Function("pdf.zipf", "GraphDensity.DensityUVInstall(dzipf)");
 
+		(*	corresponding deviance functions where available	*)
+		Function("deviance.bern", "GraphDensity.DevianceUVInstall(dbern)");
+		Function("deviance.beta", "GraphDensity.DevianceUVInstall(dbeta)");
+		Function("deviance.bin", "GraphDensity.DevianceUVInstall(dbin)");
+		Function("deviance.cat", "GraphDensity.DevianceUVInstall(dcat)");
+		Function("deviance.chisqr", "GraphDensity.DevianceUVInstall(dchisqr)");
+		Function("deviance.dexp", "GraphDensity.DevianceUVInstall(ddexp)");
+		Function("deviance.exp", "GraphDensity.DevianceUVInstall(dexp)");
+		Function("deviance.f", "GraphDensity.DevianceUVInstall(df)");
+		Function("deviance.flat", "GraphDensity.DevianceUVInstall(dflat)");
+		Function("deviance.gamma", "GraphDensity.DevianceUVInstall(dgamma)");
+		Function("deviance.ggamma", "GraphDensity.DevianceUVInstall(dggamma)");
+		Function("deviance.geom0", "GraphDensity.DevianceUVInstall(dgeom0)");
+		Function("deviance.geom1", "GraphDensity.DevianceUVInstall(dgeom1)");
+		(*	no deviance. for generic dloglik	*)
+		Function("deviance.hyper", "GraphDensity.DevianceUVInstall(dhyper)");
+		Function("deviance.lnorm", "GraphDensity.DevianceUVInstall(dlnorm)");
+		Function("deviance.logis", "GraphDensity.DevianceUVInstall(dlogis)");
+		Function("deviance.negbin", "GraphDensity.DevianceUVInstall(dnegbin)");
+		Function("deviance.norm", "GraphDensity.DevianceUVInstall(dnorm)");
+		Function("deviance.par", "GraphDensity.DevianceUVInstall(dpar)");
+		Function("deviance.pois", "GraphDensity.DevianceUVInstall(dpois)");
+		Function("deviance.polygene", "GraphDensity.DevianceUVInstall(dpolygene)");
+		(*	no stable deviance.	*)
+		Function("deviance.t", "GraphDensity.DevianceUVInstall(dt)");
+		Function("deviance.trap", "GraphDensity.DevianceUVInstall(dtrap)");
+		Function("deviance.triang", "GraphDensity.DevianceUVInstall(dtriang)");
+		Function("deviance.unif", "GraphDensity.DevianceUVInstall(dunif)");
+		Function("deviance.weib", "GraphWeibull.DevianceUVInstall(dweib)");
+		Function("deviance.weib3", "GraphDensity.DevianceUVInstall(dweib3)");
+		Function("deviance.gev", "GraphDensity.DevianceUVInstall(dgev)");
+		Function("deviance.gpar", "GraphDensity.DevianceUVInstall(dgpar)");
+		Function("deviance.zipf", "GraphDensity.DevianceUVInstall(dzipf)");
+
 		(*	Multivariate distributions	*)
 		Density("ddirich", "GraphDirichlet.Install");
 		Density("dmulti", "GraphMultinom.Install");
@@ -151,6 +185,13 @@ MODULE BugsExternal;
 		Function("pdf.mnorm", "GraphDensity.DensityMVInstall(dmnorm)");
 		Function("pdf.mt", "GraphDensity.DensityMVInstall(dmt)");
 		Function("pdf.wish", "GraphDensity.DensityMVInstall(dwish)");
+
+		(*	Multivariate deviance	*)
+		Function("deviance.dirich", "GraphDensity.DevianceMVInstall(ddirich)");
+		Function("deviance.multi", "GraphDensity.DevianceMVInstall(dmulti)");
+		Function("deviance.mnorm", "GraphDensity.DevianceMVInstall(dmnorm)");
+		Function("deviance.mt", "GraphDensity.DevianceMVInstall(dmt)");
+		Function("deviance.wish", "GraphDensity.DevianceMVInstall(dwish)");
 
 
 		(*	multistage stuff	*)
