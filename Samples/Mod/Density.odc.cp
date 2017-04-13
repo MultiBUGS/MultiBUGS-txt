@@ -664,7 +664,13 @@ MODULE SamplesDensity;
 	END GuardApplyToHist;
 
 	PROCEDURE (s: SpecialDen) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogDen = NIL THEN
+			loc := Files.dir.This("Samples/Rsrc");
+			dialogDen := Views.OldView(loc, "DensityDialog")
+		END;
 		RETURN dialogDen
 	END Dialog;
 
@@ -678,7 +684,13 @@ MODULE SamplesDensity;
 	END Set;
 
 	PROCEDURE (s: SpecialHist) Dialog (): Views.View;
+		VAR
+			loc: Files.Locator;
 	BEGIN
+		IF dialogHist = NIL THEN
+			loc := Files.dir.This("Samples/Rsrc");
+			dialogHist := Views.OldView(loc, "HistogramDialog")
+		END;
 		RETURN dialogHist
 	END Dialog;
 
@@ -710,7 +722,6 @@ MODULE SamplesDensity;
 	PROCEDURE Init;
 		VAR
 			f: Factory;
-			loc: Files.Locator;
 	BEGIN
 		Maintainer;
 		NEW(denDialog);
@@ -721,9 +732,8 @@ MODULE SamplesDensity;
 		histDialog.binSize := 1;
 		NEW(f);
 		fact := f;
-		loc := Files.dir.This("Samples/Rsrc");
-		dialogDen := Views.OldView(loc, "DensityDialog");
-		dialogHist := Views.OldView(loc, "HistogramDialog");
+		dialogDen := NIL;
+		dialogHist := NIL;
 		NEW(specialDen);
 		NEW(specialHist)
 	END Init;
