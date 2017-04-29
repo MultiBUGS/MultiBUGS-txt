@@ -58,7 +58,13 @@ MODULE UpdaterStage1;
 	END InternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
+		VAR
+			children: GraphStochastic.Vector;
+			prior: GraphStochastic.Node;
 	BEGIN
+		prior := updater.prior;
+		children := prior.Children();
+		updater.stage1 := children[0](GraphMultivariate.Node)
 	END InitializeUnivariate;
 
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);

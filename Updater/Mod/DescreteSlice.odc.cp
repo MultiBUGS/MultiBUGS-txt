@@ -50,6 +50,7 @@ MODULE UpdaterDescreteSlice;
 			eps = 1.0E-10;
 	BEGIN
 		prior := updater.prior;
+		IF GraphStochastic.initialized IN prior.props THEN RETURN END;
 		prior.Bounds(leftR, rightR);
 		left := SHORT(ENTIER(leftR + eps));
 		right := SHORT(ENTIER(rightR + eps));

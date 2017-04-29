@@ -560,7 +560,7 @@ MODULE UpdaterGLM;
 
 	PROCEDURE (updater: UpdaterNormal) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterGLM.NormalInstall"
+		install := "UpdaterGLM.InstallNormal"
 	END Install;
 
 	PROCEDURE (updater: UpdaterNormal) InternalizeMetropolisMV (VAR rd: Stores.Reader);
@@ -713,7 +713,7 @@ MODULE UpdaterGLM;
 
 	PROCEDURE (f: FactoryNormal) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterGLM.NormalInstall"
+		install := "UpdaterGLM.InstallNormal"
 	END Install;
 
 	PROCEDURE (f: FactoryNormal) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;

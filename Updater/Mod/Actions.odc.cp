@@ -108,11 +108,14 @@ MODULE UpdaterActions;
 			canDistribute: BOOLEAN;
 			depth, numChild: INTEGER;
 			children: GraphStochastic.Vector;
+			prior: GraphStochastic.Node;
 	BEGIN
 		children := updater.Children();
+		prior := updater.Prior(0);
 		IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
 		depth := updater.Depth();
-		canDistribute := numChild > 2 * avNum;
+		canDistribute := (numChild > 2 * avNum) OR (GraphNodes.maxStochDepth = 1);
+		canDistribute := canDistribute & (prior.dependents = NIL);
 		RETURN canDistribute
 	END CanDistribute;
 
@@ -368,7 +371,7 @@ MODULE UpdaterActions;
 			INC(i)
 		END;
 		IF found THEN
-			chain := i; index := j
+			chain := i - 1; index := j - 1
 		ELSE
 			chain :=  - 1; index :=  - 1
 		END

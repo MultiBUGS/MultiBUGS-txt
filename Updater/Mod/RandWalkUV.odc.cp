@@ -20,7 +20,7 @@ MODULE UpdaterRandWalkUV;
 
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMetropolisUV.Updater)
-			delayedRejection*: BOOLEAN
+			delayedRejection-: BOOLEAN
 		END;
 
 	VAR
@@ -39,6 +39,11 @@ MODULE UpdaterRandWalkUV;
 		updater.delayedRejection := s.delayedRejection;
 		updater.CopyFromRandWalkUV(source)
 	END CopyFromMetropolisUV;
+	
+	PROCEDURE (updater: Updater) DelayedRejection*(delayed: BOOLEAN), NEW;
+	BEGIN
+		updater.delayedRejection := delayed
+	END DelayedRejection;
 
 	PROCEDURE (updater: Updater) ExternalizeRandWalkUV- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
@@ -55,7 +60,14 @@ MODULE UpdaterRandWalkUV;
 		rd.ReadBool(updater.delayedRejection);
 		updater.InternalizeRandWalkUV(rd)
 	END InternalizeMetropolis;
-
+	
+	PROCEDURE (updater: Updater) InitializeRandWalkUV-, NEW, ABSTRACT;
+	
+	PROCEDURE (updater: Updater) InitializeMetropolis-;
+	BEGIN
+		updater.InitializeRandWalkUV
+	END InitializeMetropolis;
+	
 	PROCEDURE (updater: Updater) SampleProposal- (): REAL, NEW, ABSTRACT;
 
 		(*	Antithetic delayed rejection metropolis	*)

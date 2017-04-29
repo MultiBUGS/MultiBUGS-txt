@@ -392,7 +392,7 @@ MODULE UpdaterParallel;
 		Deviance(FALSE);
 		j := 0;
 		WHILE j < commSize DO
-			NEW(observations[j], numData[j]);
+			IF numData[j] > 0 THEN NEW(observations[j], numData[j]) END;
 			numData[j] := 0;
 			INC(j)
 		END;

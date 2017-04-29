@@ -190,8 +190,12 @@ MODULE UpdaterMultivariate;
 		END;
 		updater.prior := s.prior;
 		updater.children := s.children;
-		size := LEN(s.params);
-		NEW(updater.params, size);
+		IF s.params # NIL THEN
+			size := LEN(s.params);
+			NEW(updater.params, size)
+		ELSE
+			updater.params := NIL
+		END;
 		updater.CopyFromMultivariate(source)
 	END CopyFrom;
 

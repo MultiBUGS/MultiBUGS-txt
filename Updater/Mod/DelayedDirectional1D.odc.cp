@@ -4,9 +4,9 @@ MODULE UpdaterDelayedDirectional1D;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		MPIworker, Math, Stores, 
 		BugsRegistry,
-		GraphMultivariate, GraphRules, GraphStochastic,
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -30,6 +30,42 @@ MODULE UpdaterDelayedDirectional1D;
 		fact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+
+	PROCEDURE FindNLBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+		VAR
+			i, size: INTEGER;
+			class: SET;
+			components, block: GraphStochastic.Vector;
+	BEGIN
+		IF prior.ClassifyPrior() = GraphRules.mVN THEN
+			components := prior(GraphMultivariate.Node).components;
+			i := 0;
+			size := prior.Size();
+			WHILE (i < size) & ~(GraphNodes.data IN components[i].props) DO INC(i) END;
+			IF i # size THEN
+				block := NIL
+			ELSE
+				block := components
+			END
+		ELSE
+			class := {prior.classConditional};
+			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+			IF block = NIL THEN (*	try less restrictive block membership	*)
+				INCL(class, GraphRules.normal);
+				block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+				IF block = NIL THEN
+					block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, FALSE);
+					IF block = NIL THEN
+						block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE);
+					END
+				END
+			END
+		END;
+		IF ~UpdaterMultivariate.IsNLBlock(block) THEN 
+			block := NIL 
+		END;
+		RETURN block
+	END FindNLBlock;
 
 	PROCEDURE LogConditional (updater: Updater): REAL;
 		VAR
@@ -508,7 +544,7 @@ MODULE UpdaterDelayedDirectional1D;
 
 	PROCEDURE (updater: Updater) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
 	BEGIN
-		RETURN prior(GraphMultivariate.Node).components
+		RETURN FindNLBlock(prior)
 	END FindBlock;
 
 	PROCEDURE (updater: Updater) InitializeMultivariate;
@@ -549,7 +585,7 @@ MODULE UpdaterDelayedDirectional1D;
 
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterDelayedDirectional1D.InstallGLM"
+		install := "UpdaterDelayedDirectional1D.Install"
 	END Install;
 
 	PROCEDURE (updater: Updater) IsAdapting (): BOOLEAN;
@@ -609,7 +645,7 @@ MODULE UpdaterDelayedDirectional1D;
 			i, var, iteration, size, adaptivePhase, learingCorr, learningSVD: INTEGER;
 	BEGIN
 		iteration := updater.iterations;
-		adaptivePhase := fact.adaptivePhase;
+		adaptivePhase := (*fact.adaptivePhase*)5000;
 		learingCorr := adaptivePhase DIV 4;
 		learningSVD := adaptivePhase DIV 2;
 		size := updater.Size();
@@ -696,10 +732,12 @@ MODULE UpdaterDelayedDirectional1D;
 			block: GraphStochastic.Vector;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF ~(prior IS GraphMultivariate.Node) THEN RETURN FALSE END;
-		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
-		block := prior(GraphMultivariate.Node).components;
-		RETURN TRUE
+		IF ~(prior.classConditional IN {GraphRules.general, GraphRules.genDiff}) THEN RETURN FALSE END;
+		block := FindNLBlock(prior);
+		IF block = NIL THEN RETURN FALSE END;
+		IF GraphStochastic.IsBounded(block) THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.IsNLBlock(block) THEN RETURN FALSE END;
+		RETURN TRUE		
 	END CanUpdate;
 
 	PROCEDURE (f: Factory) Create (): UpdaterUpdaters.Updater;
@@ -715,20 +753,20 @@ MODULE UpdaterDelayedDirectional1D;
 			adaptivePhase, res: INTEGER;
 			name: ARRAY 256 OF CHAR;
 	BEGIN
-		f.Install(name);
+	(*	f.Install(name);
 		BugsRegistry.ReadInt(name + ".adaptivePhase", adaptivePhase, res); ASSERT(res = 0, 55);
-		f.SetParameter(adaptivePhase, UpdaterUpdaters.adaptivePhase)
+		f.SetParameter(adaptivePhase, UpdaterUpdaters.adaptivePhase)*)
 	END GetDefaults;
 
 	PROCEDURE (f: Factory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterDelayedDirectional1D.InstallGLM"
+		install := "UpdaterDelayedDirectional1D.Install"
 	END Install;
 
 	PROCEDURE Install*;
 	BEGIN
 		UpdaterUpdaters.SetFactory(fact);
-		fact.GetDefaults
+		(*fact.GetDefaults*)
 	END Install;
 
 	PROCEDURE Maintainer;
@@ -751,19 +789,18 @@ MODULE UpdaterDelayedDirectional1D;
 		NEW(f);
 		fact := f;
 		f.Install(name);
-		f.SetProps({UpdaterUpdaters.adaptivePhase});
-		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
+		f.SetProps({UpdaterUpdaters.adaptivePhase, UpdaterUpdaters.enabled});
+	(*	BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN
 			ASSERT(isRegistered, 55)
 		ELSE
 			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteInt(name + ".adaptivePhase", 10000)
+			BugsRegistry.WriteInt(name + ".adaptivePhase", 5000)
 		END;
-		f.GetDefaults;
+		f.GetDefaults;*)
 		NEW(oldX, size);
 		NEW(newX, size)
 	END Init;
-
 
 BEGIN
 	Init

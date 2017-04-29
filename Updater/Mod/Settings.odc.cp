@@ -13,9 +13,9 @@ MODULE UpdaterSettings;
 	
 
 	IMPORT
-		Dialog, 
+		Dialog, Strings,
 		StdTabViews,
-		BugsDialog, BugsInterface, BugsMsg, BugsRegistry, BugsTexts,
+		BugsDialog, BugsInterface, BugsMsg, BugsRegistry, 
 		UpdaterMethods, UpdaterUpdaters;
 
 
@@ -114,34 +114,16 @@ MODULE UpdaterSettings;
 		BugsRegistry.WriteInt(key, value)
 	END WriteRegistry;
 
-	PROCEDURE FindFactory (): INTEGER;
-		VAR
-			name, name1: Dialog.String;
-			i, index, len: INTEGER;
-	BEGIN
-		dialog.methods.GetItem(dialog.methods.index, name);
-		i := 0;
-		index := -1;
-		IF UpdaterMethods.factories # NIL THEN
-			len := LEN(UpdaterMethods.factories)
-		ELSE
-			len := 0
-		END;
-		WHILE (i < len) & (index = -1) DO
-			UpdaterMethods.factories[i].Install(name1);
-			BugsMsg.MapMsg(name1, name1);
-			IF name = name1 THEN index := i END;
-			INC(i)
-		END;
-		RETURN index
-	END FindFactory;
-
 	PROCEDURE FindAllFactory (): INTEGER;
 		VAR
 			name, name1: Dialog.String;
-			i, index, len: INTEGER;
+			i, index, len, res: INTEGER;
 	BEGIN
 		dialog.allMethods.GetItem(dialog.allMethods.index, name);
+		IF name[0] = "(" THEN
+			len := LEN(name$);
+			Strings.Extract(name, 1, len - 2, name)
+		END;
 		i := 0;
 		index := -1;
 		IF UpdaterMethods.factories # NIL THEN
@@ -151,7 +133,7 @@ MODULE UpdaterSettings;
 		END;
 		WHILE (i < len) & (index = -1) DO
 			UpdaterMethods.factories[i].Install(name1);
-			BugsMsg.MapMsg(name1, name1);
+			BugsMsg.Lookup(name1, name1);
 			IF name = name1 THEN index := i END;
 			INC(i)
 		END;
@@ -173,7 +155,7 @@ MODULE UpdaterSettings;
 		END;
 		WHILE (i < len) & (index = -1) DO
 			UpdaterMethods.factories[i].Install(name1);
-			BugsMsg.MapMsg(name1, name1);
+			BugsMsg.Lookup(name1, name1);
 			IF name = name1 THEN index := i END;
 			INC(i)
 		END;
@@ -288,13 +270,16 @@ MODULE UpdaterSettings;
 		k := 0;
 		WHILE i < len DO
 			UpdaterMethods.factories[i].Install(name);
-			BugsMsg.MapMsg(name, name);
+			BugsMsg.Lookup(name, name);
 			IF UpdaterUpdaters.active IN UpdaterMethods.factories[i].props THEN
 				dialog.activeMethods.SetItem(j, name); INC(j)
 			END;
 			IF (UpdaterUpdaters.enabled IN UpdaterMethods.factories[i].props) & 
 				~(UpdaterUpdaters.hidden IN UpdaterMethods.factories[i].props) THEN
 				dialog.methods.SetItem(k, name); INC(k)
+			END;
+			IF ~(UpdaterUpdaters.enabled IN UpdaterMethods.factories[i].props) THEN
+				name := "(" + name + ")"
 			END;
 			dialog.allMethods.SetItem(i, name);
 			INC(i)
@@ -334,8 +319,7 @@ MODULE UpdaterSettings;
 		BugsInterface.ChangeSampler(dialog.node, dialog.methods.index, ok);
 		IF ~ok THEN
 			p[0] := dialog.node$;
-			BugsMsg.MapParamMsg("BugsEmbed:couldNotChangeUpdater", p, s);
-			BugsTexts.ShowMsg(s)
+			BugsMsg.ShowParam("BugsEmbed:couldNotChangeUpdater", p);
 		END;
 		FillDialog;
 		Dialog.Update(dialog);
@@ -355,27 +339,55 @@ MODULE UpdaterSettings;
 		fact.SetProps(fact.props + {UpdaterUpdaters.active})
 	END MarkActive;
 
+	PROCEDURE FillAllList;
+		VAR
+			i, len: INTEGER;
+			name: Dialog.String;
+	BEGIN
+		IF UpdaterMethods.factories # NIL THEN
+			len := LEN(UpdaterMethods.factories)
+		ELSE
+			len := 0
+		END;
+		i := 0;
+		WHILE i < len DO
+			UpdaterMethods.factories[i].Install(name);
+			BugsMsg.Lookup(name, name);
+			IF ~(UpdaterUpdaters.enabled IN UpdaterMethods.factories[i].props) THEN
+				name := "(" + name + ")"
+			END;
+			dialog.allMethods.SetItem(i, name);
+			INC(i)
+		END
+	END FillAllList;
+	
 	PROCEDURE Disable*;
 		VAR
 			index: INTEGER;
 			fact: UpdaterUpdaters.Factory;
+			name: Dialog.String;
 	BEGIN
 		index := FindAllFactory();
 		fact := UpdaterMethods.factories[index];
 		IF ~(UpdaterUpdaters.hidden IN fact.props) THEN
-			fact.SetProps(fact.props - {UpdaterUpdaters.enabled})
+			fact.SetProps(fact.props - {UpdaterUpdaters.enabled});
+			FillAllList;
+			Dialog.UpdateList(dialog.allMethods)
 		END
 	END Disable;
 
 	PROCEDURE Enable*;
 		VAR
-			index: INTEGER;
+			index, len: INTEGER;
 			fact: UpdaterUpdaters.Factory;
+			name: Dialog.String;
 	BEGIN
 		index := FindAllFactory();
 		fact := UpdaterMethods.factories[index];
 		IF ~(UpdaterUpdaters.hidden IN fact.props) THEN
-			fact.SetProps(fact.props + {UpdaterUpdaters.enabled})
+			fact.SetProps(fact.props + {UpdaterUpdaters.enabled});
+			FillAllList;
+			Dialog.UpdateList(dialog.allMethods)
 		END
 	END Enable;
 

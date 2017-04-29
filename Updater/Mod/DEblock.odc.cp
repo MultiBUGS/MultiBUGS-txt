@@ -100,7 +100,6 @@ MODULE UpdaterDEblock;
 		class := {prior.classConditional, GraphRules.normal};
 		block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE);
 		IF block = NIL THEN RETURN FALSE END;
-		(*		IF numChains < 2 * LEN(block) THEN RETURN FALSE END;*)
 		RETURN TRUE
 	END CanUpdate;
 
@@ -139,7 +138,6 @@ MODULE UpdaterDEblock;
 		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsGLMBlock(block) THEN RETURN FALSE END;
-		(*		IF numChains < 2 * LEN(block) THEN RETURN FALSE END;*)
 		RETURN TRUE
 	END CanUpdate;
 
@@ -177,7 +175,7 @@ MODULE UpdaterDEblock;
 	BEGIN
 		Maintainer;
 		NEW(fHetro);
-		fHetro.SetProps({UpdaterUpdaters.enabled});
+		fHetro.SetProps({});
 		fHetro.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)
@@ -188,7 +186,7 @@ MODULE UpdaterDEblock;
 		fHetro.GetDefaults;
 		factHetro := fHetro;
 		NEW(fGLM);
-		fGLM.SetProps({UpdaterUpdaters.enabled});
+		fGLM.SetProps({});
 		fGLM.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)

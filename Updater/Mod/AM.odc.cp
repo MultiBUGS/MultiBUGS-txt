@@ -26,7 +26,7 @@ MODULE UpdaterAM;
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMetropolisMV.Updater)
 			means: POINTER TO Vector;
 			means2: POINTER TO Matrix;
-			delayedRejection*: BOOLEAN
+			delayedRejection-: BOOLEAN
 		END;
 
 	VAR
@@ -158,6 +158,11 @@ MODULE UpdaterAM;
 		updater.delayedRejection := s.delayedRejection;
 		updater.CopyFromAM(source)
 	END CopyFromMetropolisMV;
+	
+	PROCEDURE (updater: Updater) DelayedRejection* (delayed: BOOLEAN), NEW;
+	BEGIN
+		updater.delayedRejection := delayed
+	END DelayedRejection;
 
 	PROCEDURE (updater: Updater) ExternalizeAM- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
@@ -185,31 +190,6 @@ MODULE UpdaterAM;
 	END ExternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) FastLogLikelihood- (): REAL, NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) InternalizeAM- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) InternalizeMetropolisMV- (VAR rd: Stores.Reader);
-		VAR
-			i, j, size: INTEGER;
-	BEGIN
-		size := updater.Size();
-		i := 0;
-		WHILE i < size DO
-			rd.ReadReal(updater.means[i]);
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < size DO
-			j := 0;
-			WHILE j < size DO
-				rd.ReadReal(updater.means2[i, j]);
-				INC(j)
-			END;
-			INC(i)
-		END;
-		rd.ReadBool(updater.delayedRejection);
-		updater.InternalizeAM(rd)
-	END InternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) InitializeAM-, NEW, ABSTRACT;
 
@@ -248,9 +228,33 @@ MODULE UpdaterAM;
 			NEW(means2, size, size);
 			NEW(precision, size, size);
 		END;
-		updater.delayedRejection := FALSE;
 		updater.InitializeAM
 	END InitializeMetropolisMV;
+	
+	PROCEDURE (updater: Updater) InternalizeAM-(VAR rd: Stores.Reader), NEW, ABSTRACT;
+
+	PROCEDURE (updater: Updater) InternalizeMetropolisMV- (VAR rd: Stores.Reader);
+		VAR
+			i, j, size: INTEGER;
+	BEGIN
+		size := updater.Size();
+		i := 0;
+		WHILE i < size DO
+			rd.ReadReal(updater.means[i]);
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < size DO
+			j := 0;
+			WHILE j < size DO
+				rd.ReadReal(updater.means2[i, j]);
+				INC(j)
+			END;
+			INC(i)
+		END;
+		rd.ReadBool(updater.delayedRejection);
+		updater.InternalizeAM(rd)
+	END InternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) IsAdapting* (): BOOLEAN;
 	BEGIN

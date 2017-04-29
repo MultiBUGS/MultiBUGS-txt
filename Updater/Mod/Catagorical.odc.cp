@@ -94,6 +94,7 @@ MODULE UpdaterCatagorical;
 	BEGIN
 		res := {};
 		prior := updater.prior;
+		IF GraphStochastic.initialized IN prior.props THEN RETURN END;
 		IF ~prior.CanEvaluate() THEN res := {GraphNodes.lhs}; RETURN END;
 		list := BuildLikelihood(prior);
 		prior.Bounds(lower, upper);

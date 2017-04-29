@@ -22,7 +22,8 @@ MODULE UpdaterDE;
 
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMetropolisMV.Updater)
-			chain, index: INTEGER
+			chain: INTEGER;
+			updaters: UpdaterUpdaters.Vector
 		END;
 
 	VAR
@@ -49,9 +50,23 @@ MODULE UpdaterDE;
 		RETURN checkBounds
 	END CheckBounds;
 
+	PROCEDURE BuildProposal (updater: Updater);
+		VAR
+			i, numChains, index: INTEGER;
+	BEGIN
+		numChains := UpdaterActions.NumberChains();
+		NEW(updater.updaters, numChains);
+		UpdaterActions.FindUpdater(updater, updater.chain, index);
+		i := 0;
+		WHILE i < numChains DO
+			updater.updaters[i] := UpdaterActions.GetUpdater(i, index);
+			INC(i)
+		END
+	END BuildProposal;
+
 	PROCEDURE SampleProposal (updater: Updater; OUT x: ARRAY OF REAL);
 		VAR
-			chain, i, index, r1, r2, numChains, size: INTEGER;
+			chain, i, r1, r2, numChains, size: INTEGER;
 			gamma: REAL;
 			u1, u2: UpdaterUpdaters.Updater;
 		CONST
@@ -60,16 +75,15 @@ MODULE UpdaterDE;
 		size := updater.Size();
 		numChains := UpdaterActions.NumberChains();
 		chain := updater.chain;
-		index := updater.index;
 		ASSERT(numChains >= 3, 21);
 		gamma := 2.38 / Math.Sqrt(2 * size);
 		IF updater.iteration MOD 10 = 0 THEN gamma := gamma / 10 END;
 		REPEAT r1 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL r1 # chain;
 		REPEAT r2 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL (r2 # chain) & (r2 # r1);
-		u1 := UpdaterActions.GetUpdater(r1, index);
+		u1 := updater.updaters[r1];
 		u1.LoadSample;
 		u1(UpdaterMetropolisMV.Updater).GetValue(xR1);
-		u2 := UpdaterActions.GetUpdater(r2, index);
+		u2 := updater.updaters[r2];
 		u2.LoadSample;
 		u2(UpdaterMetropolisMV.Updater).GetValue(xR2);
 		i := 0;
@@ -85,13 +99,11 @@ MODULE UpdaterDE;
 	BEGIN
 		s := source(Updater);
 		updater.chain := s.chain;
-		updater.index := s.index
 	END CopyFromMetropolisMV;
 
 	PROCEDURE (updater: Updater) ExternalizeMetropolisMV- (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteInt(updater.chain);
-		wr.WriteInt(updater.index)
 	END ExternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) InternalizeMetropolisMV- (VAR rd: Stores.Reader);
@@ -99,13 +111,13 @@ MODULE UpdaterDE;
 			len, size: INTEGER;
 	BEGIN
 		rd.ReadInt(updater.chain);
-		rd.ReadInt(updater.index);
 		size := updater.Size();
 		IF size > LEN(xNew) THEN
 			NEW(xNew, size);
 			NEW(xR1, size);
 			NEW(xR2, size)
-		END
+		END;
+		updater.updaters := NIL
 	END InternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) InitializeMetropolisMV-;
@@ -113,7 +125,6 @@ MODULE UpdaterDE;
 			size: INTEGER;
 	BEGIN
 		updater.chain :=  - 1;
-		updater.index :=  - 1;
 		size := updater.Size();
 		IF size > LEN(xNew) THEN
 			NEW(xNew, size);
@@ -137,8 +148,8 @@ MODULE UpdaterDE;
 			logAlpha, newLogDen, oldLogDen: REAL;
 			accept: BOOLEAN;
 	BEGIN
-		IF updater.index =  - 1 THEN
-			UpdaterActions.FindUpdater(updater, updater.chain, updater.index)
+		IF updater.updaters = NIL THEN
+			BuildProposal(updater)
 		END;
 		updater.StoreOldValue;
 		SampleProposal(updater, xNew);

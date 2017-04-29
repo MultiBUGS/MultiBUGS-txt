@@ -12,7 +12,7 @@ MODULE UpdaterSlice;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		MPIworker, Math, Stores, 
 		BugsRegistry,
 		GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
@@ -22,7 +22,7 @@ MODULE UpdaterSlice;
 		batch = 25;
 
 		(*	internal states of sampling algorithm	*)
-		init = 0; firstLeft = 1; left = 2; firstRight = 3; right = 4; sample = 5;
+		left = 0; right = 1; sample = 2; 
 
 		leftBounds = {GraphStochastic.leftNatural, GraphStochastic.leftImposed};
 		rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
@@ -30,8 +30,8 @@ MODULE UpdaterSlice;
 	TYPE
 		Updater = POINTER TO RECORD(UpdaterContinuous.Updater)
 			unimodal: BOOLEAN;
-			attempts, state, rightIts, iteration: INTEGER;
-			meanStep, step, left, leftBound, proportion, right, rightBound, oldX, h: REAL
+			iteration: INTEGER;
+			meanStep, step, left, leftBound, right, rightBound, oldX, h: REAL;
 		END;
 
 		Factory = POINTER TO RECORD(UpdaterUpdaters.Factory) END;
@@ -56,15 +56,11 @@ MODULE UpdaterSlice;
 	BEGIN
 		s := source(Updater);
 		updater.unimodal := s.unimodal;
-		updater.attempts := s.attempts;
-		updater.state := s.state;
-		updater.rightIts := s.rightIts;
 		updater.iteration := s.iteration;
 		updater.meanStep := s.meanStep;
 		updater.step := s.step;
 		updater.left := s.left;
 		updater.leftBound := s.leftBound;
-		updater.proportion := s.proportion;
 		updater.right := s.right;
 		updater.rightBound := s.rightBound;
 		updater.oldX := s.oldX;
@@ -85,7 +81,6 @@ MODULE UpdaterSlice;
 		updater.iteration := 0;
 		updater.step := 0.1;
 		updater.meanStep := 0.0;
-		updater.state := init;
 		prior := updater.prior;
 		CASE prior.classConditional OF
 		|GraphRules.logCon, GraphRules.logReg, GraphRules.cloglogReg,
@@ -104,70 +99,84 @@ MODULE UpdaterSlice;
 	END InternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) IsAdapting (): BOOLEAN;
-	BEGIN
-		RETURN ~updater.unimodal & (updater.iteration < fact.adaptivePhase + 1)
-	END IsAdapting;
-
-	PROCEDURE LogLikelihood (updater: Updater; distributed: BOOLEAN): REAL;
 		VAR
-			logLike: REAL;
-	BEGIN
-		logLike := updater.LogLikelihood();
-		IF distributed THEN MPIworker.SumReal(logLike) END;
-		RETURN logLike
-	END LogLikelihood;
-
-	(*	changes internal state of sample usually depending on the value of logLikelihood	*)
-	PROCEDURE (updater: Updater) State (logLikelihood: REAL): INTEGER, NEW;
-		VAR
-			state: INTEGER;
-			rand, logCond: REAL;
 			prior: GraphStochastic.Node;
 	BEGIN
 		prior := updater.prior;
-		state := updater.state;
-		logCond := prior.LogPrior() + logLikelihood;
-		CASE state OF
-		|init:
-			updater.oldX := prior.value;
-			prior.Bounds(updater.leftBound, updater.rightBound);
-			rand := MathRandnum.Rand();
-			updater.h := logCond + Math.Ln(rand);
-			updater.proportion := MathRandnum.Rand();
-			updater.rightIts := MathRandnum.DiscreteUniform(0, fact.iterations);
-			updater.state := firstLeft;
-			updater.attempts := 0
-		|firstLeft:
-			IF logCond < updater.h THEN
-				updater.state := firstRight;
-				updater.left := prior.value;
-				updater.attempts := 0
+		IF (leftBounds * prior.props # {}) & (rightBounds * prior.props # {}) THEN
+			RETURN FALSE
+		END;
+		RETURN ~updater.unimodal & (updater.iteration < fact.adaptivePhase + 1)
+	END IsAdapting;
+
+	PROCEDURE (updater: Updater) LogCond (): REAL, NEW;
+		VAR
+			logCond, logLike: REAL;
+			prior: GraphStochastic.Node;
+	BEGIN
+		prior := updater.prior;
+		logLike := updater.LogLikelihood();
+		IF GraphStochastic.distributed IN prior.props THEN MPIworker.SumReal(logLike) END;
+		logCond := prior.LogPrior() + logLike;
+		RETURN logCond
+	END LogCond;
+
+	(*	Pegasus solver for algebraic equations	*)
+	PROCEDURE (updater: Updater) Solve (x0, x1, tol: REAL): REAL, NEW;
+		VAR
+			count: INTEGER;
+			x, y, y0, y1: REAL;
+			prior: GraphStochastic.Node;
+	BEGIN
+		prior := updater.prior;
+		prior.SetValue(x0);
+		y0 := updater.LogCond() - updater.h;
+		prior.SetValue(x1);
+		y1 := updater.LogCond() - updater.h;
+		count := 0;
+		LOOP
+			x := x1 - y1 * (x1 - x0) / (y1 - y0);
+			prior.SetValue(x);
+			y := updater.LogCond() - updater.h;
+			IF y * y1 > 0 THEN
+				y0 := y0 * y1 / (y1 + y)
 			ELSE
-				updater.state := left
-			END
+				x0 := x1;
+				y0 := y1
+			END;
+			x1 := x;
+			y1 := y;
+			IF ABS(x1 - x0) < tol THEN
+				EXIT
+			END;
+			INC(count);
+			ASSERT(count < 2000, 70)
+		END;
+		RETURN x
+	END Solve;
+
+	(*	changes internal state of sample usually depending on the value of logCond	*)
+	PROCEDURE (updater: Updater) State (logCond: REAL; VAR state, attempts: INTEGER), NEW;
+		VAR
+			prior: GraphStochastic.Node;
+	BEGIN
+		prior := updater.prior;
+		CASE state OF
 		|left:
 			IF logCond < updater.h THEN
-				updater.state := firstRight;
+				state := right;
 				updater.left := prior.value;
-				updater.attempts := 0
-			END
-		|firstRight:
-			IF logCond < updater.h THEN
-				updater.state := sample;
-				updater.right := prior.value;
-				updater.attempts := 0
-			ELSE
-				updater.state := right
+				attempts := 0
 			END
 		|right:
 			IF logCond < updater.h THEN
-				updater.state := sample;
+				state := sample;
 				updater.right := prior.value;
-				updater.attempts := 0
+				attempts := 0
 			END
 		|sample:
-			IF logCond > updater.h THEN (*	have sample so set state to init ready for next update	*)
-				updater.state := init;
+			IF logCond > updater.h THEN (*	have new MCMC sample	*)
+				state := -state;
 				INC(updater.iteration);
 				IF updater.unimodal OR (updater.iteration < fact. adaptivePhase) THEN
 					updater.meanStep := updater.meanStep + ABS(prior.value - updater.oldX);
@@ -181,118 +190,100 @@ MODULE UpdaterSlice;
 			ELSE
 				updater.right := prior.value
 			END
-		END;
-		RETURN updater.state
+		END
 	END State;
 
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			state: INTEGER;
+			attempts, rightIts, state: INTEGER;
 			prior: GraphStochastic.Node;
-			logLikelihood, x: REAL;
-			distributed: BOOLEAN;
+			logCond, p, rand, x, lower, upper: REAL;
+		CONST
+			tol = 1.0E-6;
 	BEGIN
 		res := {};
 		prior := updater.prior;
-		distributed := GraphStochastic.distributed IN prior.props;
-		state := updater.state;
+		p := MathRandnum.Rand();
+		rand := MathRandnum.Rand();
+		rightIts := MathRandnum.DiscreteUniform(0, fact.iterations);
+		updater.oldX := prior.value;
+		prior.Bounds(updater.leftBound, updater.rightBound);
+		attempts := 0;
+		logCond := updater.LogCond();
+		updater.h := logCond + Math.Ln(rand);
+		IF(leftBounds * prior.props # {}) & (rightBounds * prior.props # {}) THEN
+			state := sample;
+			updater.left := updater.leftBound;
+			updater.right := updater.rightBound
+		ELSE
+			state := left
+		END;
 		LOOP
 			CASE state OF
-			|init:
-				logLikelihood := LogLikelihood(updater, distributed);
-				state := updater.State(logLikelihood)
-			|firstLeft:
-				updater.attempts := 0;
-				INC(updater.attempts);
-				IF updater.attempts > fact.iterations - updater.rightIts THEN
-					prior.SetValue(updater.oldX);
-					updater.state := init;
-					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
-					EXIT
-				END;
-				x := updater.oldX - updater.proportion * updater.step;
-				IF (leftBounds * prior.props # {}) & (x < updater.leftBound) THEN
-					updater.left := updater.leftBound;
-					state := firstRight;
-					updater.state := firstRight;
-					updater.attempts := 0
-				ELSE
-					prior.SetValue(x);
-					logLikelihood := LogLikelihood(updater, distributed);
-					state := updater.State(logLikelihood)
-				END
 			|left:
-				INC(updater.attempts);
-				IF updater.attempts > fact.iterations - updater.rightIts THEN
+				INC(attempts);
+				IF attempts > fact.iterations - rightIts THEN
 					prior.SetValue(updater.oldX);
-					updater.state := init;
-					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
 				END;
-				x := prior.value - updater.step;
+				IF attempts = 1 THEN
+					x := prior.value - updater.step * (1 - p)
+				ELSE
+					x := prior.value - updater.step
+				END;
 				IF (leftBounds * prior.props # {}) & (x < updater.leftBound) THEN
 					updater.left := updater.leftBound;
-					state := firstRight;
-					updater.state := firstRight;
-					updater.attempts := 0
+					state := right;
+					attempts := 0
 				ELSE
 					prior.SetValue(x);
-					logLikelihood := LogLikelihood(updater, distributed);
-					state := updater.State(logLikelihood)
-				END
-			|firstRight:
-				updater.attempts := 0;
-				INC(updater.attempts);
-				IF updater.attempts > updater.rightIts THEN
-					prior.SetValue(updater.oldX);
-					updater.state := init;
-					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
-					EXIT
-				END;
-				x := updater.oldX + (1.0 - updater.proportion) * updater.step;
-				IF (rightBounds * prior.props # {}) & (x > updater.rightBound) THEN
-					updater.right := updater.rightBound;
-					state := sample;
-					updater.state := sample;
-					updater.attempts := 0
-				ELSE
-					prior.SetValue(x);
-					logLikelihood := LogLikelihood(updater, distributed);
-					state := updater.State(logLikelihood)
+					logCond := updater.LogCond();
+					updater.State(logCond, state, attempts)
 				END
 			|right:
-				INC(updater.attempts);
-				IF updater.attempts > updater.rightIts THEN
+				INC(attempts);
+				IF attempts > rightIts THEN
 					prior.SetValue(updater.oldX);
-					updater.state := init;
-					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
 				END;
-				x := prior.value + updater.step;
+				IF attempts = 1 THEN
+					x := prior.value + updater.step * p
+				ELSE
+					x := prior.value + updater.step
+				END;
 				IF (rightBounds * prior.props # {}) & (x > updater.rightBound) THEN
 					updater.right := updater.rightBound;
 					state := sample;
-					updater.state := sample;
-					updater.attempts := 0
+					attempts := 0
 				ELSE
 					prior.SetValue(x);
-					logLikelihood := LogLikelihood(updater, distributed);
-					state := updater.State(logLikelihood)
+					logCond := updater.LogCond();
+					updater.State(logCond, state, attempts)
 				END
 			|sample:
-				INC(updater.attempts);
-				IF updater.attempts > fact.iterations THEN
+				IF overRelax & (updater.iteration MOD fact.overRelaxation = 0) THEN
+					INC(updater.iteration);
+					lower := updater.Solve(updater.left, updater.oldX, tol);
+					upper := updater.Solve(updater.oldX, updater.right, tol);
+					x :=  upper + lower - updater.oldX; 
+					prior.SetValue(x);
+					IF ~updater.unimodal & (updater.LogCond() < updater.h) THEN
+						prior.SetValue(updater.oldX)
+					END; 
+					EXIT
+				END;
+				INC(attempts);
+				IF attempts > fact.iterations THEN
 					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
 				END;
 				x := MathRandnum.Uniform(updater.left, updater.right);
 				prior.SetValue(x);
-				logLikelihood := LogLikelihood(updater, distributed);
-				state := updater.State(logLikelihood);
-				IF state = init THEN EXIT END
+				logCond := updater.LogCond();
+				updater.State(logCond, state, attempts);
+				IF state = -sample THEN EXIT END
 			END
-		END;
-		IF state # sample THEN res := {} END
+		END
 	END Sample;
 
 	PROCEDURE (updater: Updater) Install* (OUT install: ARRAY OF CHAR);
@@ -308,9 +299,6 @@ MODULE UpdaterSlice;
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		(*		IF prior.classConditional IN {GraphRules.logReg, GraphRules.logitReg} THEN
-		RETURN FALSE
-		END;*)
 		RETURN TRUE
 	END CanUpdate;
 
@@ -372,7 +360,7 @@ MODULE UpdaterSlice;
 			BugsRegistry.WriteSet(name + ".props", f.props)
 		END;
 		f.GetDefaults;
-		fact := f
+		fact := f;
 	END Init;
 
 BEGIN

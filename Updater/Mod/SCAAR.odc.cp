@@ -84,10 +84,11 @@ MODULE UpdaterSCAAR;
 		wr.WriteReal(updater.logSigma);
 	END ExternalizeRandWalkUV;
 
-	PROCEDURE (updater: Updater) InitializeMetropolis;
+	PROCEDURE (updater: Updater) InitializeRandWalkUV;
 	BEGIN
-		updater.logSigma := 1.0;
-	END InitializeMetropolis;
+		updater.logSigma := 1.0;	(*	THIS IS REALY BIG!!!	*)
+		updater.logSigma := Math.Ln(0.01)
+	END InitializeRandWalkUV;
 
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -141,7 +142,7 @@ MODULE UpdaterSCAAR;
 			updater: Updater;
 	BEGIN
 		NEW(updater);
-		updater.delayedRejection := FALSE;
+		updater.DelayedRejection(FALSE);
 		RETURN updater
 	END Create;
 
@@ -155,7 +156,7 @@ MODULE UpdaterSCAAR;
 			updater: Updater;
 	BEGIN
 		NEW(updater);
-		updater.delayedRejection := TRUE;
+		updater.DelayedRejection(TRUE);
 		RETURN updater
 	END Create;
 

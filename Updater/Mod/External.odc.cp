@@ -72,9 +72,6 @@ MODULE UpdaterExternal;
 		(*	updater for logit, loglinear, normal beta, gamma MVN	*)
 		UpdaterMethods.LoadUpdater("UpdaterHamiltonianglm.Install");
 		
-		(*	general updater based on random scan and adaptive normal proposals	*)
-		UpdaterMethods.LoadUpdater("UpdaterRandscan.InstallFilzbach");
-		
 		(*	general updater based on MAP	*)
 		UpdaterMethods.LoadUpdater("UpdaterMAPproposal.Install");
 		
@@ -88,7 +85,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterDirichletprior.Install");
 
 		(*	updater for chain graph prior and logit,  loglinear or normal likelihood	*)
-		UpdaterMethods.LoadUpdater("UpdaterGMRF.NormalInstall");
+		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallNormal");
 		
 		UpdaterMethods.LoadUpdater("UpdaterGMRF.GeneralInstall");
 
@@ -107,10 +104,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallGLM");
 
 		(*	updates block of nodes with normal conditional	*)
-		UpdaterMethods.LoadUpdater("UpdaterGLM.NormalInstall");
-		
-		(*	updater for conditional non linear least squares	*)
-		UpdaterMethods.LoadUpdater("UpdaterAMNLLS.Install");
+		UpdaterMethods.LoadUpdater("UpdaterGLM.InstallNormal");
 
 		(*	updates fixed effect block of nodes at least one of which has a generic conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallNL");
@@ -142,7 +136,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterSCAAR.InstallDRC");
 
 		(*	updater for generic distribution with support on whole of real line	*)
-		UpdaterMethods.LoadUpdater("UpdaterMetnormal.Install");
+		UpdaterMethods.LoadUpdater("UpdaterMetnormal.InstallMH");
 		
 		(*	updater for generic distribution with support on whole of real line	*)
 		UpdaterMethods.LoadUpdater("UpdaterSCAM.InstallDRC");

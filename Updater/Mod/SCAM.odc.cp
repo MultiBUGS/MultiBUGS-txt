@@ -75,11 +75,11 @@ MODULE UpdaterSCAM;
 		wr.WriteReal(updater.mean2);
 	END ExternalizeRandWalkUV;
 
-	PROCEDURE (updater: Updater) InitializeMetropolis;
+	PROCEDURE (updater: Updater) InitializeRandWalkUV;
 	BEGIN
 		updater.mean := 0.0;
 		updater.mean2 := 0.0;
-	END InitializeMetropolis;
+	END InitializeRandWalkUV;
 
 	PROCEDURE (updater: Updater) InternalizeRandWalkUV (VAR rd: Stores.Reader);
 	BEGIN
@@ -138,7 +138,7 @@ MODULE UpdaterSCAM;
 			updater: Updater;
 	BEGIN
 		NEW(updater);
-		updater.delayedRejection := FALSE;
+		updater.DelayedRejection(FALSE);
 		RETURN updater
 	END Create;
 
@@ -152,7 +152,7 @@ MODULE UpdaterSCAM;
 			updater: Updater;
 	BEGIN
 		NEW(updater);
-		updater.delayedRejection := TRUE;
+		updater.DelayedRejection(TRUE);
 		RETURN updater
 	END Create;
 

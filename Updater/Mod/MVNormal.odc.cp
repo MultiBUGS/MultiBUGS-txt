@@ -43,7 +43,12 @@ MODULE UpdaterMVNormal;
 	END Clone;
 
 	PROCEDURE (updater: Updater) CopyFromConjugateMV (source: UpdaterUpdaters.Updater);
+		VAR
+			size: INTEGER;
 	BEGIN
+		size := updater.Size();
+		NEW(updater.mu, size);
+		NEW(updater.tau, size, size) 
 	END CopyFromConjugateMV;
 
 	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL);

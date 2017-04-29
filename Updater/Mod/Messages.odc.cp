@@ -18,117 +18,121 @@ MODULE UpdaterMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		Map: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		Map("UpdaterError11", "can not sample node ");
-		Map("UpdaterError20", "too many iterations ");
-		Map("UpdaterError1", "argument one ");
-		Map("UpdaterError2", "argument two ");
-		Map("UpdaterError26", "has too small a value ");
+		StoreKey("UpdaterError11", "can not sample node ");
+		StoreKey("UpdaterError20", "too many iterations ");
+		StoreKey("UpdaterError1", "argument one ");
+		StoreKey("UpdaterError2", "argument two ");
+		StoreKey("UpdaterError26", "has too small a value ");
 
-		Map("UpdaterMethods:notUpdateMethod", "update method not found");
-		Map("UpdaterMethods:notAdaptive", "can not set updater's adaptive phase"); ;
-		Map("UpdaterMethods.notIterations", "can not set updater's iterative parameter");
-		Map("UpdaterMethods:notOverRelax", "can not set updater's over relax option");
+		StoreKey("UpdaterMethods:notUpdateMethod", "update method not found");
+		StoreKey("UpdaterMethods:notAdaptive", "can not set updater's adaptive phase"); ;
+		StoreKey("UpdaterMethods.notIterations", "can not set updater's iterative parameter");
+		StoreKey("UpdaterMethods:notOverRelax", "can not set updater's over relax option");
 
 		(*	mapping between TYPE names and user friendly names	*)
 
-		Map("UpdaterAMblock.InstallNL", "adaptive metropolis block");
-		Map("UpdaterAMblock.InstallGLM", "adaptive metropolis (glm) block");
+		StoreKey("UpdaterAMblock.InstallNL", "adaptive metropolis block");
+		StoreKey("UpdaterAMblock.InstallGLM", "adaptive metropolis (glm) block");
 
-		Map("UpdaterAMNLLS.Install", "adaptive metropolis NLLS");
+		StoreKey("UpdaterAMNLLS.Install", "adaptive metropolis NLLS");
 
-		Map("UpdaterBeta.Install", "conjugate beta");
+		StoreKey("UpdaterBeta.Install", "conjugate beta");
 
-		Map("UpdaterCatagorical.Install", "categorical");
+		StoreKey("UpdaterCatagorical.Install", "categorical");
 
-		Map("UpdaterChain.Install", "wrapper for chain graph");
+		StoreKey("UpdaterChain.Install", "wrapper for chain graph");
 
-		Map("UpdaterDEblock.InstallHetro", "differential evolution (mixed) block");
-		Map("UpdaterDEblock.InstallGLM", "differential evolution (glm) block");
+		StoreKey("UpdaterDEblock.InstallHetro", "differential evolution (mixed) block");
+		StoreKey("UpdaterDEblock.InstallGLM", "differential evolution (glm) block");
 
-		Map("UpdaterDescreteSlice.Interval", "discrete slice (with upper bound) updater");
-		Map("UpdaterDescreteSlice.Install", "discrete slice");
+		StoreKey("UpdaterDescreteSlice.Interval", "discrete slice (with upper bound) updater");
+		StoreKey("UpdaterDescreteSlice.Install", "discrete slice");
 
-		Map("UpdaterDirichlet.Install", "conjugate dirichlet");
+		StoreKey("UpdaterDirichlet.Install", "conjugate dirichlet");
 
-		Map("UpdaterDirichletprior.Install", "non conjugate dirichlet");
+		StoreKey("UpdaterDirichletprior.Install", "non conjugate dirichlet");
 
-		Map("UpdaterEmpty.Install", "dummy");
+		StoreKey("UpdaterEmpty.Install", "dummy");
 
-		Map("UpdaterForward.InstallUV", "univariate forward");
-		Map("UpdaterForward.InstallMV", "multivariate forward");
+		StoreKey("UpdaterForward.InstallUV", "univariate forward");
+		StoreKey("UpdaterForward.InstallMV", "multivariate forward");
 	
-		Map("UpdaterGLM.InstallLogit", "logit block glm updater");
-		Map("UpdaterGLM.InstallLoglin", "log-linear block glm updater");
-		Map("UpdaterGLM.InstallNormal", "normal block glm updater");
+		StoreKey("UpdaterGLM.InstallLogit", "logit block glm updater");
+		StoreKey("UpdaterGLM.InstallLoglin", "log-linear block glm updater");
+		StoreKey("UpdaterGLM.InstallNormal", "normal block glm updater");
 
-		Map("UpdaterGMRF.InstallGeneral", "general GMRF");
-		Map("UpdaterGMRF.InstallNormal", "normal GMRF");
+		StoreKey("UpdaterGMRF.InstallGeneral", "general GMRF");
+		StoreKey("UpdaterGMRF.InstallNormal", "normal GMRF");
 
-		Map("UpdaterGamma.Install", "conjugate gamma");
+		StoreKey("UpdaterGamma.Install", "conjugate gamma");
 
-		Map("UpdaterGriddy.Install", "griddy gibbs");
+		StoreKey("UpdaterGriddy.Install", "griddy gibbs");
 
-		Map("UpdaterHamiltonianglm.Install", "hamiltonian");
+		StoreKey("UpdaterHamiltonianglm.Install", "hamiltonian");
 		
-		Map("UpdaterICM.Install", "iterative conditional mode");
+		StoreKey("UpdaterICM.Install", "iterative conditional mode");
 
-		Map("UpdaterMetover.Install", "over-relaxed metropolis");
+		StoreKey("UpdaterMetover.Install", "over-relaxed metropolis");
 
-		Map("UpdaterMAPproposal.Install", "random walk MAP");
+		StoreKey("UpdaterMAPproposal.Install", "random walk MAP");
 
-		Map("UpdaterMVNormal.Install", "conjugate mv normal (identity link)");
+		StoreKey("UpdaterMVNormal.Install", "conjugate mv normal (identity link)");
 
-		Map("UpdaterMVNLinear.Install", "conjugate mv normal");
+		StoreKey("UpdaterMVNLinear.Install", "conjugate mv normal");
 
-		Map("UpdaterMetbinomial.Install", "discrete metropolis");
+		StoreKey("UpdaterMetbinomial.Install", "discrete metropolis");
 
-		Map("UpdaterMetnormal.Install", "random walk metropolis");
+		StoreKey("UpdaterMetnormal.InstallMH", "random walk metropolis");
 
-		Map("UpdaterMultinomial.Install", "multinomial prior");
+		StoreKey("UpdaterMultinomial.Install", "multinomial prior");
 
-		Map("UpdaterNaivemet.Install", "naive random walk");
+		StoreKey("UpdaterNaivemet.Install", "naive random walk");
 
-		Map("UpdaterNormal.Install", "conjugate normal");
+		StoreKey("UpdaterNormal.Install", "conjugate normal");
 
-		Map("UpdaterPareto.Install", "conjugate pareto");
+		StoreKey("UpdaterPareto.Install", "conjugate pareto");
 
-		Map("UpdaterPoisson.Install", "conjugate poisson");
+		StoreKey("UpdaterPoisson.Install", "conjugate poisson");
 
-		Map("UpdaterRandscan.Install", "random scan DE");
+		StoreKey("UpdaterRandscan.Install", "random scan DE");
 
-		Map("UpdaterRejection.InstallLogit", "logit rejection");
-		Map("UpdaterRejection.InstallLoglin", "log-linear rejection");
+		StoreKey("UpdaterRejection.InstallLogit", "logit rejection");
+		StoreKey("UpdaterRejection.InstallLoglin", "log-linear rejection");
 
-		Map("UpdaterSCAAR.InstallMH", "adaptive acceptance rate");
+		StoreKey("UpdaterSCAAR.InstallMH", "adaptive acceptance rate");
 
-		Map("UpdaterSCAAR.InstallDRC", "delayed rejection adaptive acceptance rate");
+		StoreKey("UpdaterSCAAR.InstallDRC", "adaptive acceptance rate DR");
 
-		Map("UpdaterSCAM.InstallMH", "adaptive metropolis 1D");
+		StoreKey("UpdaterSCAM.InstallMH", "adaptive metropolis");
 
-		Map("UpdaterSCAM.InstallDRC", "delayed rejection adaptive metropolis 1D");
+		StoreKey("UpdaterSCAM.InstallDRC", "adaptive metropolis DR");
 
-		Map("UpdaterSCDE.InstallMet", "differential evolution 1D");
+		StoreKey("UpdaterMetnormal.InstallDRC", "normal rand walk");
+		
+		StoreKey("UpdaterSCDE.InstallMet", "differential evolution");
 
-		Map("UpdaterSCDE.InstallMAP", "differential evolution 1D MAP");
+		StoreKey("UpdaterSCDE.InstallMAP", "differential evolution MAP");
 
-		Map("UpdaterSDScale.Install", "state dependent scale");
+		StoreKey("UpdaterSDScale.Install", "state dependent scale");
 
-		Map("UpdaterSlice.Install", "slice");
+		StoreKey("UpdaterSlice.Install", "slice");
 
-		Map("UpdaterStage1.Install", "stage one (likelihood)");
-		Map("UpdaterStage1M.Install", "multivariate stage one (likelihood)");
-		Map("UpdaterStage1P.Install", "stage one (prior)");
+		StoreKey("UpdaterStage1.Install", "stage one (likelihood)");
+		StoreKey("UpdaterStage1M.Install", "multivariate stage one (likelihood)");
+		StoreKey("UpdaterStage1P.Install", "stage one (prior)");
 
-		Map("UpdaterVDMVNDescrete.Install", "reversible jump descrete");
-		Map("UpdaterVDMVNContinuous.Install", "reversible jump continuous");
+		StoreKey("UpdaterVDMVNDescrete.Install", "reversible jump descrete");
+		StoreKey("UpdaterVDMVNContinuous.Install", "reversible jump continuous");
 
-		Map("UpdaterWishart.Install", "conjugate wishart");
+		StoreKey("UpdaterWishart.Install", "conjugate wishart");
 
-		Map("GraphT.MixingInstall", "t-mixing");
+		StoreKey("GraphT.MixingInstall", "t-mixing");
+
+		StoreKey("GraphStable.AuxillaryInstall", "stable-mixing");
 		
 	END Load;
 
@@ -141,7 +145,7 @@ MODULE UpdaterMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		Map := BugsMsg.Map
+		StoreKey := BugsMsg.StoreKey
 	END Init;
 
 BEGIN

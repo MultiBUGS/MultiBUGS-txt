@@ -28,6 +28,7 @@ MODULE UpdaterConjugateMV;
 	
 	PROCEDURE (updater: Updater) CopyFromMultivariate- (source: UpdaterUpdaters.Updater);
 	BEGIN
+		updater.CopyFromConjugateMV(source)
 	END CopyFromMultivariate;
 
 	PROCEDURE (updater: Updater) ExternalizeMultivariate- (VAR wr: Stores.Writer);

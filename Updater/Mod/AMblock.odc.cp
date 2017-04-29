@@ -171,7 +171,7 @@ MODULE UpdaterAMblock;
 			updater: UpdaterNL;
 	BEGIN
 		NEW(updater);
-		updater.delayedRejection := TRUE;
+		updater.DelayedRejection(TRUE);
 		RETURN updater
 	END Create;
 
@@ -195,7 +195,8 @@ MODULE UpdaterAMblock;
 		VAR
 			block: GraphStochastic.Vector;
 		CONST
-			glm = {GraphRules.logitReg, GraphRules.logReg};
+			glm = {GraphRules.logitReg, GraphRules.cloglogReg, GraphRules.probitReg, 
+			GraphRules.logReg, GraphRules.logCon};
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF ~(prior.classConditional IN glm) THEN RETURN FALSE END;
@@ -211,6 +212,7 @@ MODULE UpdaterAMblock;
 			updater: UpdaterGLM;
 	BEGIN
 		NEW(updater);
+		updater.DelayedRejection(TRUE);
 		RETURN updater
 	END Create;
 
@@ -240,7 +242,7 @@ MODULE UpdaterAMblock;
 	BEGIN
 		Maintainer;
 		NEW(fNL);
-		fNL.SetProps({UpdaterUpdaters.enabled});
+		fNL.SetProps({(*UpdaterUpdaters.enabled*)});
 		fNL.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)

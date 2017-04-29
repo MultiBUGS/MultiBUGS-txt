@@ -24,7 +24,8 @@ MODULE UpdaterSCDE;
 
 	TYPE
 		Updater = POINTER TO ABSTRACT RECORD (UpdaterMetropolisUV.Updater)
-			chain, index: INTEGER
+			chain: INTEGER;
+			updaters: UpdaterUpdaters.Vector
 		END;
 
 
@@ -42,37 +43,48 @@ MODULE UpdaterSCDE;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE BuildProposal (updater: Updater);
+		VAR
+			i, numChains, index: INTEGER;
+	BEGIN
+		numChains := UpdaterActions.NumberChains();
+		NEW(updater.updaters, numChains);
+		UpdaterActions.FindUpdater(updater, updater.chain, index);
+		i := 0;
+		WHILE i < numChains DO
+			updater.updaters[i] := UpdaterActions.GetUpdater(i, index);
+			INC(i)
+		END
+	END BuildProposal;
+	
 	PROCEDURE SampleProposal (updater: Updater): REAL;
 		VAR
-			chain, index, r1, r2, numChains: INTEGER;
-			gamma, x, xMap, xOld, xR1, xR2: REAL;
+			chain, r1, r2, numChains: INTEGER;
+			gamma, x, xMap, xR1, xR2: REAL;
 			prior: GraphStochastic.Node;
 			u1, u2: UpdaterUpdaters.Updater;
 		CONST
 			b = 1.0E-4;
 	BEGIN
-		xOld := prior.value;
+		prior := updater.prior;
 		numChains := UpdaterActions.NumberChains();
 		chain := updater.chain;
-		index := updater.index;
 		ASSERT(numChains >= 3, 21);
 		gamma := 2.38 / Math.Sqrt(2);
 		IF updater.iteration MOD 10 = 0 THEN gamma := gamma / 10.0 END;
 		prior := updater.prior;
-		prior.SetValue(xOld);
 		xMap := prior.Map();
 		REPEAT r1 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL r1 # chain;
 		REPEAT r2 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL (r2 # chain) & (r2 # r1);
-		u1 := UpdaterActions.GetUpdater(r1, index);
+		u1 := updater.updaters[r1];
 		u1.LoadSample;
 		xR1 := prior.Map();
-		u2 := UpdaterActions.GetUpdater(r2, index);
+		u2 := updater.updaters[r2];
 		u2.LoadSample;
 		xR2 := prior.Map();
 		x := xMap + gamma * (xR1 - xR2) + MathRandnum.Uniform( - b, b);
 		prior.InvMap(x);
 		x := prior.value;
-		prior.SetValue(xOld);
 		RETURN x
 	END SampleProposal;
 
@@ -81,26 +93,24 @@ MODULE UpdaterSCDE;
 			s: Updater;
 	BEGIN
 		s := source(Updater);
-		updater.chain := s.chain;
-		updater.index := s.index
+		updater.chain := s.chain
 	END CopyFromMetropolisUV;
 
 	PROCEDURE (updater: Updater) ExternalizeMetropolis (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteInt(updater.chain);
-		wr.WriteInt(updater.index)
 	END ExternalizeMetropolis;
 
 	PROCEDURE (updater: Updater) InternalizeMetropolis (VAR rd: Stores.Reader);
 	BEGIN
 		rd.ReadInt(updater.chain);
-		rd.ReadInt(updater.index)
+		updater.updaters := NIL
 	END InternalizeMetropolis;
 
 	PROCEDURE (updater: Updater) InitializeMetropolis;
 	BEGIN
 		updater.chain :=  - 1;
-		updater.index :=  - 1
+		updater.updaters := NIL;
 	END InitializeMetropolis;
 
 	PROCEDURE (updater: Updater) IsAdapting (): BOOLEAN;
@@ -110,23 +120,22 @@ MODULE UpdaterSCDE;
 
 	PROCEDURE (updater: Updater) MetTest (): REAL, NEW, ABSTRACT;
 
-	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
+	PROCEDURE (updater: Updater) Sample (overRelax
+	: BOOLEAN; OUT res: SET);
 		VAR
-			logAlpha, newLogDen, newVal, oldVal, oldLogDen: REAL;
+			logAlpha, newLogDen, newVal, oldLogDen: REAL;
 			prior: GraphStochastic.Node;
 	BEGIN
-		IF updater.index =  - 1 THEN
-			UpdaterActions.FindUpdater(updater, updater.chain, updater.index)
-		END;
+		IF updater.updaters =  NIL THEN BuildProposal(updater) END;
 		prior := updater.prior;
-		oldVal := prior.value;
+		updater.StoreOldValue;
 		oldLogDen := prior.LogConditional() + prior.LogJacobian();
 		newVal := SampleProposal(updater);
 		prior.SetValue(newVal);
 		newLogDen := prior.LogConditional() + prior.LogJacobian();
 		logAlpha := newLogDen - oldLogDen;
 		IF logAlpha < updater.MetTest() THEN
-			prior.SetValue(oldVal);
+			prior.SetValue(updater.oldVal);
 			INC(updater.rejectCount);
 		END;
 		INC(updater.iteration);
@@ -176,7 +185,6 @@ MODULE UpdaterSCDE;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF prior.likelihood = NIL THEN RETURN FALSE END;
-		IF UpdaterActions.NumberChains() < 5 THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -208,7 +216,6 @@ MODULE UpdaterSCDE;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF prior.likelihood = NIL THEN RETURN FALSE END;
-		IF UpdaterActions.NumberChains() < 5 THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
