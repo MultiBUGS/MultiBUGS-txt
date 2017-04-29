@@ -26,16 +26,19 @@ MODULE ParallelWorker;
 		fileStemName = "Bugs";
 		update = 0;
 		terminate = 1;
-		sendMonitors = 2;
-		sendSamples = 3;
+		recvMinitorInfo = 2;
+		sendMCMCState = 3;
 		toggleWAIC = 4;
 
+	TYPE
+		Command = ARRAY 5 OF INTEGER;
+		
 	VAR
 		restartLoc: Files.Locator;
 		numMonitored, sampleSize: INTEGER;
 		devianceMonitored, waicSet: BOOLEAN;
 		informationCriteria: ARRAY 2 OF REAL;
-		deviance: REAL;
+		deviance, meanDeviance, meanDeviance2: REAL;
 
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
@@ -73,36 +76,43 @@ MODULE ParallelWorker;
 		Services.Collect
 	END ModifyModel;
 
-	PROCEDURE Sample (thin, iteration: INTEGER; VAR endOfAdapting: INTEGER);
+	PROCEDURE Update (thin, iteration: INTEGER; overRelax: BOOLEAN; endOfAdapting: INTEGER);
 		VAR
 			i: INTEGER;
-			res: SET;
+			res: SET;	
 	BEGIN
 		i := 0;
 		res := {};
 		WHILE (i < thin) & (res = {}) DO
-			ParallelActions.Sample(res);
+			ParallelActions.Sample(overRelax, res);
 			INC(i)
 		END;
+		ASSERT(res = {}, 77);
 		IF endOfAdapting > iteration THEN
 			IF ~ParallelActions.IsAdapting() THEN
 				endOfAdapting := iteration + 1
 			END
-		END
-	END Sample;
-
-	PROCEDURE Update (thin, iteration, endOfAdapting: INTEGER);
-	BEGIN
-		Sample(thin, iteration, endOfAdapting);
+		END;
+		MPIworker.SendInteger(endOfAdapting); 
 		IF devianceMonitored OR waicSet THEN
 			deviance := ParallelActions.Deviance();
 			MPIworker.SumReal(deviance)
 		END;
-		MPIworker.SendInteger(endOfAdapting);
-		IF (MPIworker.rank = 0) & (numMonitored > 0) THEN
-			MonitorMonitors.SendMonitored(MPIworker.samples, MPIworker.monitors, numMonitored);
-			MPIworker.SendSamples(numMonitored);
-		END
+		IF waicSet THEN
+			ParallelActions.UpdateWAIC;
+			INC(sampleSize);
+			meanDeviance := meanDeviance + (deviance - meanDeviance) / sampleSize;
+			meanDeviance2 := meanDeviance2 + (deviance * deviance - meanDeviance2) / sampleSize
+		END;
+		IF MPIworker.rank = 0 THEN
+			IF numMonitored > 0 THEN
+				MonitorMonitors.CollectMonitored(MPIworker.monitors, numMonitored, MPIworker.samples);
+				MPIworker.SendSamples(numMonitored);
+			END;
+			IF devianceMonitored THEN
+				MPIworker.SendReal(deviance)
+			END;
+		END;
 	END Update;
 
 	PROCEDURE WriteMutable (tStamp, wRank: ARRAY OF CHAR);
@@ -135,13 +145,13 @@ MODULE ParallelWorker;
 		VAR
 			action, endOfAdapting, memory, numChains, setUpTime, thin, iteration: INTEGER;
 			resultParams: ARRAY 3 OF INTEGER;
-			command: ARRAY 4 OF INTEGER;
+			command: Command;
 			buffer: ARRAY 4 OF REAL;
-			meanDeviance, meanDeviance2: REAL;
 			endTime, startTime: LONGINT;
 			timeStamp, worldRank: ARRAY 64 OF CHAR;
 			f: Files.File;
 			rd: Stores.Reader;
+			overRelax: BOOLEAN;
 	BEGIN
 		devianceMonitored := FALSE;
 		waicSet := FALSE;
@@ -183,7 +193,7 @@ MODULE ParallelWorker;
 			MPIworker.ReceiveCommand(command);
 			action := command[0];
 			CASE action OF
-			|sendMonitors:
+			|recvMinitorInfo:
 				numMonitored := command[1];
 				devianceMonitored := command[2] > 0;
 				IF (MPIworker.rank = 0) & (numMonitored > 0) THEN
@@ -191,17 +201,9 @@ MODULE ParallelWorker;
 				END;
 				MPIworker.ReceiveCommand(command);
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
-				Update(thin, iteration, endOfAdapting);
-				IF (MPIworker.rank = 0) & devianceMonitored THEN
-					MPIworker.SendReal(deviance)
-				END;
-				IF waicSet THEN
-					ParallelActions.UpdateWAIC;
-					INC(sampleSize);
-					meanDeviance := meanDeviance + (deviance - meanDeviance) / sampleSize;
-					meanDeviance2 := meanDeviance2 + (deviance * deviance - meanDeviance2) / sampleSize
-				END
-			|sendSamples:
+				overRelax := command[4] = 1;
+				Update(thin, iteration, overRelax, endOfAdapting);
+			|sendMCMCState:
 				IF ~devianceMonitored & ~waicSet THEN
 					(*	deviance not calculated in Update so calculate it	*)
 					deviance := ParallelActions.Deviance();
@@ -228,16 +230,8 @@ MODULE ParallelWorker;
 				EXIT
 			|update:
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
-				Update(thin, iteration, endOfAdapting);
-				IF (MPIworker.rank = 0) & devianceMonitored THEN
-					MPIworker.SendReal(deviance)
-				END;
-				IF waicSet THEN
-					ParallelActions.UpdateWAIC;
-					INC(sampleSize);
-					meanDeviance := meanDeviance + (deviance - meanDeviance) / sampleSize;
-					meanDeviance2 := meanDeviance2 + (deviance * deviance - meanDeviance2) / sampleSize
-				END
+				overRelax := command[4] = 1;
+				Update(thin, iteration, overRelax, endOfAdapting);
 			|toggleWAIC:
 				waicSet := ~waicSet;
 				IF waicSet THEN
@@ -247,7 +241,7 @@ MODULE ParallelWorker;
 					meanDeviance2 := 0.0
 				ELSE
 					ParallelActions.ClearWAIC;
-				END
+				END;
 			END
 		END;
 		MPIworker.Close

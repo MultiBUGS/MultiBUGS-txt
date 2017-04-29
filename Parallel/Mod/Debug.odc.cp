@@ -13,10 +13,10 @@ MODULE ParallelDebug;
 	IMPORT
 		SYSTEM, StdLog,
 		Dialog, Files, Meta, Ports, Stores, Views,
-		BugsDialog, BugsIndex, BugsMappers, BugsMsg, BugsSerialize, BugsTexts,
+		BugsDialog, BugsIndex, BugsMappers, BugsMsg, BugsSerialize, 
 		GraphNodes, GraphStochastic,
 		ParallelActions,
-		TextModels,
+		TextMappers, TextModels,
 		UpdaterActions, UpdaterParallel, UpdaterUpdaters;
 
 	TYPE
@@ -85,7 +85,7 @@ MODULE ParallelDebug;
 		ParallelActions.ConfigureModel(updaters, id, deviances, rank)
 	END ModifyModel;
 
-	PROCEDURE MethodsState (numProc, rank: INTEGER; VAR f: BugsMappers.Formatter);
+	PROCEDURE MethodsState (numProc, rank: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			adr, i, j, len, numUpdaters, size: INTEGER;
 			label, string: ARRAY 128 OF CHAR;
@@ -131,17 +131,17 @@ MODULE ParallelDebug;
 			f.WriteTab;
 			updater := ParallelActions.GetUpdater(i);
 			updater.Install(string);
-			BugsMsg.MapMsg(string, string);
+			BugsMsg.Lookup(string, string);
 			f.WriteString(string);
 			adr := SYSTEM.VAL(INTEGER, updater);
 			v := heapRefView.Do(adr, label);
 			f.WriteTab;
-			f.WriteView(v, 0, 0);
+			f.WriteView(v);
 			IF block # NIL THEN
 				adr := SYSTEM.VAL(INTEGER, block);
 				v := heapRefView.Do(adr, label + " block");
 				f.WriteTab;
-				f.WriteView(v, 0, 0);
+				f.WriteView(v);
 			END;
 			f.WriteLn;
 			size := updater.Size();
@@ -165,18 +165,18 @@ MODULE ParallelDebug;
 	PROCEDURE Methods*;
 		VAR
 			tabs: ARRAY 5 OF INTEGER;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		tabs[0] := 5 * Ports.mm;
 		tabs[1] := 35 * Ports.mm;
 		tabs[2] := 85 * Ports.mm;
 		tabs[3] := 95 * Ports.mm;
 		tabs[4] := 100 * Ports.mm;
-		f.WriteRuler(tabs);
+		(*f.WriteRuler(tabs);*)
 		f.WriteTab;
 		f.WriteString("number processors: ");
 		f.WriteInt(dialog.numProc);
@@ -190,9 +190,9 @@ MODULE ParallelDebug;
 		f.WriteString("updater");
 		f.WriteLn;
 		MethodsState(dialog.numProc, dialog.rank, f);
-		IF f.lines > 1 THEN
+		(*IF f.lines > 1 THEN
 			f.Register("Updater types")
-		END
+		END*)
 	END Methods;
 
 	PROCEDURE Maintainer;

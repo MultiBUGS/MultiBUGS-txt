@@ -83,9 +83,7 @@ MODULE ParallelActions;
 		RETURN isAdapting
 	END IsAdapting;
 
-	PROCEDURE Sample* (OUT res: SET);
-		CONST
-			overRelax = FALSE;
+	PROCEDURE Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			dataSize, i, j, len, rank, numUpdaters, offset: INTEGER;
 			values, globalValues: POINTER TO ARRAY OF REAL;
@@ -96,13 +94,13 @@ MODULE ParallelActions;
 		i := 0;
 		IF distributedId # NIL THEN (*	chain is distributed	*)
 			WHILE (i < numUpdaters) & (res = {}) DO
-				IF distributedId[i] = 0 THEN ParallelRandnum.UseSameStream END;
+				IF distributedId[i] = 0 THEN ParallelRandnum.UseSameStream; END;
 				distributedUpdaters[i].Sample(overRelax, res);
 				IF res # {} THEN
-					(*	handle error	*)
+					(*	handle error	*)HALT(0)
 				END;
 				block := distributedBlocks[i];
-				IF block # NIL THEN
+				IF block # NIL THEN 
 					rank := MPIworker.rank;
 					values := MPIworker.values;
 					globalValues := MPIworker.globalValues;
@@ -113,26 +111,26 @@ MODULE ParallelActions;
 					WHILE j < dataSize DO
 						values[j] := block[offset + j].value;
 						INC(j)
-					END;
+					END; 
 					MPIworker.GatherValues(dataSize);
 					j := 0;
 					WHILE j < len DO
 						block[j].SetValue(globalValues[j]);
 						INC(j)
-					END
+					END;
 				ELSIF distributedId[i] = 0 THEN
 					ParallelRandnum.UsePrivateStream;
 				END;
-				MPIworker.Barrier;
-				INC(i)
-			END
+				(*MPIworker.Barrier;*)
+				INC(i);
+			END;
 		ELSE
 			WHILE (i < numUpdaters) & (res = {}) DO
 				distributedUpdaters[i].Sample(overRelax, res);
 				INC(i)
 			END
 		END;
-		MPIworker.Barrier
+		(*MPIworker.Barrier*)
 	END Sample;
 
 	PROCEDURE ConfigureModel* (updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
