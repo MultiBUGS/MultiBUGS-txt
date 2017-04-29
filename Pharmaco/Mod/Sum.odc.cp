@@ -404,7 +404,7 @@ MODULE PharmacoSum;
 			mes := " column " + intString + " row ";
 			Strings.IntToString(row, intString);
 			mes := mes + intString + " ";
-			BugsMsg.StoreError(mes)
+			BugsMsg.Store(mes)
 		END
 	END Set;
 
