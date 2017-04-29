@@ -14,10 +14,10 @@ MODULE DevianceCmds;
 
 	IMPORT
 		Dialog, Ports,
-		BugsDialog, BugsGraph, BugsIndex, BugsInterface, BugsMappers, BugsMsg, BugsTexts,
-		DevianceFormatted, DevianceIndex, DevianceInterface, DevianceMonitors, DeviancePlugin,
+		BugsDialog, BugsIndex, BugsInterface, BugsFiles, BugsMsg, 
+		DevianceFormatted, DevianceIndex, DevianceInterface, DeviancePlugin,
 		DeviancePluginD, DeviancePluginS,
-		TextModels;
+		TextMappers, TextModels;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
@@ -82,13 +82,13 @@ MODULE DevianceCmds;
 
 	PROCEDURE Stats*;
 		VAR
-			i, numTabs: INTEGER;
+			i, numTabs, pos: INTEGER;
 			tabs: POINTER TO ARRAY OF INTEGER;
-			f: BugsMappers.Formatter;
-			t: TextModels.Model;
+			f: TextMappers.Formatter;
+			text: TextModels.Model;
 	BEGIN
-		t := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, t);
+		text := TextModels.dir.New();
+		f.ConnectTo(text);
 		f.SetPos(0);
 		IF ~BugsInterface.IsDistributed() THEN
 			IF DevianceInterface.PluginSet() THEN numTabs := 7 ELSE numTabs := 4 END;
@@ -98,7 +98,8 @@ MODULE DevianceCmds;
 				tabs[i] := 20 * Ports.mm * (i + 1);
 				INC(i)
 			END;
-			f.WriteRuler(tabs);
+			BugsFiles.WriteRuler(tabs, f);
+			pos := f.Pos();
 			DevianceFormatted.Stats(f)
 		ELSE
 			numTabs := 7;
@@ -109,10 +110,11 @@ MODULE DevianceCmds;
 				tabs[i] := tabs[i - 1] + 20 * Ports.mm;
 				INC(i)
 			END;
-			f.WriteRuler(tabs);
+			BugsFiles.WriteRuler(tabs, f);
+			pos := f.Pos();
 			DevianceFormatted.DistributedWAIC(f)
 		END;
-		f.Register("Information Criterion")
+		IF f.Pos() > pos THEN BugsFiles.Open("Information Criterion", text) END
 	END Stats;
 
 	PROCEDURE (dialog: DialogBox) Init-;
@@ -131,26 +133,22 @@ MODULE DevianceCmds;
 	BEGIN
 		ok := BugsIndex.Find("deviance") # NIL;
 		IF ~ok THEN
-			BugsMsg.MapMsg("DevianceEmbed:NoDeviance", msg);
-			BugsTexts.ShowMsg(msg);
+			BugsMsg.Show("DevianceEmbed:NoDeviance");
 			RETURN
 		END;
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("DevianceEmbed:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg);
+			BugsMsg.Show("DevianceEmbed:NotInitialized");
 			RETURN
 		END;
 		ok := ~BugsInterface.IsAdapting();
 		IF ~ok THEN
-			BugsMsg.MapMsg("DevianceEmbed:Adapting", msg);
-			BugsTexts.ShowMsg(msg);
+			BugsMsg.Show("DevianceEmbed:Adapting");
 			RETURN
 		END;
 		ok := DevianceInterface.state = DevianceInterface.notSet;
 		IF ~ok THEN
-			BugsMsg.MapMsg("DevianceEmbed:AlreadyMonitored", msg);
-			BugsTexts.ShowMsg(msg);
+			BugsMsg.Show("DevianceEmbed:AlreadyMonitored");
 			RETURN
 		END
 	END SetGuard;
@@ -163,8 +161,7 @@ MODULE DevianceCmds;
 	BEGIN
 		ok := DevianceInterface.IsUpdated();
 		IF ~ok THEN
-			BugsMsg.MapMsg("DevianceEmbed:NoIterations", msg);
-			BugsTexts.ShowMsg(msg);
+			BugsMsg.Show("DevianceCmds:NoIterations");
 			RETURN
 		END
 	END StatsGuard;

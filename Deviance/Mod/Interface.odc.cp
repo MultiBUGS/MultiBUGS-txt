@@ -36,7 +36,7 @@ MODULE DevianceInterface;
 
 	PROCEDURE Clear*;
 	VAR
-			command: ARRAY 4 OF INTEGER;
+			command: BugsInterface.Command;
 		CONST
 			toggleWAIC = 4;
 	BEGIN
@@ -49,6 +49,7 @@ MODULE DevianceInterface;
 			command[1] := -1;
 			command[2] := -1;
 			command[3] := -1;
+			command[4] := -1;
 			BugsInterface.SendCommand(command)
 		END;
 		state := notSet;
@@ -235,7 +236,7 @@ MODULE DevianceInterface;
 			name: BugsNames.Name;
 			ok: BOOLEAN;
 			i, numChains: INTEGER;
-			command: ARRAY 4 OF INTEGER;
+			command: BugsInterface.Command;
 		CONST
 			toggleWAIC = 4;
 	BEGIN
@@ -263,6 +264,7 @@ MODULE DevianceInterface;
 			command[1] := -1;
 			command[2] := -1;
 			command[3] := -1;
+			command[4] := -1;
 			BugsInterface.SendCommand(command);
 			state := setDistributed;
 		END

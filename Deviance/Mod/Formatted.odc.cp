@@ -13,19 +13,29 @@ MODULE DevianceFormatted;
 	
 
 	IMPORT
-		BugsInterface, BugsMappers,
-		DevianceIndex, DevianceInterface, DevianceMonitors;
+		Fonts,
+		BugsFiles, BugsInterface, 
+		DevianceIndex, DevianceInterface, DevianceMonitors,
+		TextMappers, TextModels;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
-	PROCEDURE Header (VAR f: BugsMappers.Formatter);
+		
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+	
+	PROCEDURE Header (VAR f: TextMappers.Formatter);
 		VAR
 			plugin: BOOLEAN;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		plugin := DevianceInterface.PluginSet();
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteString("Dbar"); f.WriteTab;
 		IF plugin THEN
@@ -36,28 +46,28 @@ MODULE DevianceFormatted;
 		IF plugin THEN f.WriteString("pD"); f.WriteTab END;
 		f.WriteString("pW"); f.WriteTab;
 		f.WriteLn;
-		f.Bold
+		f.rider.SetAttr(oldAttr)
 	END Header;
 
 	PROCEDURE FormatStats (IN name: ARRAY OF CHAR; dBar, dHat, dic, waic, pD, pW: REAL;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			plugin: BOOLEAN;
 	BEGIN
 		plugin := DevianceInterface.PluginSet();
 		f.WriteString(name); f.WriteTab;
-		f.WriteReal(dBar); f.WriteTab;
+		WriteReal(dBar, f); f.WriteTab;
 		IF plugin THEN
-			f.WriteReal(dHat); f.WriteTab;
-			f.WriteReal(dic); f.WriteTab
+			WriteReal(dHat, f); f.WriteTab;
+			WriteReal(dic, f); f.WriteTab
 		END;
-		f.WriteReal(waic); f.WriteTab;
-		IF plugin THEN f.WriteReal(pD); f.WriteTab END;
-		f.WriteReal(pW); f.WriteTab;
+		WriteReal(waic, f); f.WriteTab;
+		IF plugin THEN WriteReal(pD, f); f.WriteTab END;
+		WriteReal(pW, f); f.WriteTab;
 		f.WriteLn
 	END FormatStats;
 
-	PROCEDURE Stats* (VAR f: BugsMappers.Formatter);
+	PROCEDURE Stats* (VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			dBar, dHat, pD, pW, dic, waic, dBarTot, dHatTot, dicTot, waicTot, pDTot, pWTot: REAL;
@@ -91,13 +101,16 @@ MODULE DevianceFormatted;
 		FormatStats("total", dBarTot, dHatTot, dicTot, waicTot, pDTot, pWTot, f)
 	END Stats;
 
-	PROCEDURE DistributedWAIC* (VAR f: BugsMappers.Formatter);
+	PROCEDURE DistributedWAIC* (VAR f: TextMappers.Formatter);
 		VAR
 			i, numChains: INTEGER;
 			lpd, pW, waic, dic, pD, meanDeviance, meanDeviance2 : REAL;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		ASSERT(BugsInterface.IsDistributed(), 21);
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteString("Chain"); f.WriteTab;
 		f.WriteString("Dbar"); f.WriteTab;
@@ -106,7 +119,7 @@ MODULE DevianceFormatted;
 		f.WriteString("pD"); f.WriteTab;
 		f.WriteString("pW"); f.WriteTab;
 		f.WriteLn;
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		numChains := BugsInterface.NumberChains();
 		i := 0;
 		WHILE i < numChains DO
@@ -115,11 +128,11 @@ MODULE DevianceFormatted;
 			dic := meanDeviance + pD;
 			waic := -2 * lpd + 2 * pW;
 			f.WriteTab; f.WriteInt(i + 1);
-			f.WriteTab; f.WriteReal(meanDeviance); 
-			f.WriteTab; f.WriteReal(dic); 
-			f.WriteTab; f.WriteReal(waic); 
-			f.WriteTab; f.WriteReal(pD);
-			f.WriteTab; f.WriteReal(pW);
+			f.WriteTab; WriteReal(meanDeviance, f); 
+			f.WriteTab; WriteReal(dic, f); 
+			f.WriteTab; WriteReal(waic, f); 
+			f.WriteTab; WriteReal(pD, f);
+			f.WriteTab; WriteReal(pW, f);
 			f.WriteTab;
 			f.WriteLn;
 			INC(i)
