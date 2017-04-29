@@ -13,16 +13,24 @@ MODULE SummaryFormatted;
 	
 
 	IMPORT
-		BugsIndex, BugsMappers, BugsNames,
-		SummaryIndex, SummaryInterface, SummaryMonitors;
+		Fonts,
+		BugsFiles, BugsIndex, BugsNames,
+		SummaryIndex, SummaryInterface, SummaryMonitors,
+		TextMappers, TextModels;
+		
 	CONST
 		skewOpt* = 0; exKurtOpt* = 1; medianOpt* = 2; quant0Opt* = 3; quant1Opt* = 4;
-
+		
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
 
-	PROCEDURE FormatMeans (IN name: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE FormatMeans (IN name: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			i, num: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -41,18 +49,18 @@ MODULE SummaryFormatted;
 		WHILE i < num - 1 DO
 			BugsIndex.MakeLabel(name, offsets[i], label);
 			SummaryInterface.Stats(label, mean, sd, skew, exKur, lower, median, upper);
-			f.WriteReal(mean);
+			WriteReal(mean, f);
 			f.WriteString(", ");
 			INC(i);
 			IF i MOD 5 = 0 THEN f.WriteLn END
 		END;
 		BugsIndex.MakeLabel(name, offsets[i], label);
 		SummaryInterface.Stats(label, mean, sd, skew, exKur, lower, median, upper);
-		f.WriteReal(mean);
+		WriteReal(mean, f);
 		f.WriteChar(")")
 	END FormatMeans;
 
-	PROCEDURE Means* (variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE Means* (variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			monitors: POINTER TO ARRAY OF SummaryMonitors.Monitor;
@@ -82,9 +90,13 @@ MODULE SummaryFormatted;
 		f.WriteLn
 	END Means;
 
-	PROCEDURE Header (options: SET; VAR f: BugsMappers.Formatter);
+	PROCEDURE Header (options: SET; VAR f: TextMappers.Formatter);
+		VAR
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteTab;
 		f.WriteString("mean"); f.WriteTab;
@@ -95,11 +107,11 @@ MODULE SummaryFormatted;
 		IF quant0Opt IN options THEN f.WriteString("val2.5pc"); f.WriteTab END;
 		IF quant1Opt IN options THEN f.WriteString("val97.5pc"); f.WriteTab END;
 		f.WriteString("sample"); f.WriteLn;
-		f.Bold
+		f.rider.SetAttr(oldAttr)
 	END Header;
 
 	PROCEDURE FormatStats (IN name: ARRAY OF CHAR; options: SET; VAR writeHeader: BOOLEAN;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i, num, sampleSize: INTEGER;
 			indices: ARRAY 128 OF CHAR;
@@ -126,20 +138,20 @@ MODULE SummaryFormatted;
 			node.Indices(offsets[i], indices);
 			f.WriteString(indices);
 			f.WriteTab;
-			f.WriteReal(mean); f.WriteTab;
-			IF medianOpt IN options THEN f.WriteReal(median); f.WriteTab END;
-			f.WriteReal(sd); f.WriteTab;
-			IF skewOpt IN options THEN f.WriteReal(skew); f.WriteTab END;
-			IF exKurtOpt IN options THEN f.WriteReal(exKur); f.WriteTab END;
-			IF quant0Opt IN options THEN f.WriteReal(lower); f.WriteTab END;
-			IF quant1Opt IN options THEN f.WriteReal(upper); f.WriteTab END;
+			WriteReal(mean, f); f.WriteTab;
+			IF medianOpt IN options THEN WriteReal(median, f); f.WriteTab END;
+			WriteReal(sd, f); f.WriteTab;
+			IF skewOpt IN options THEN WriteReal(skew, f); f.WriteTab END;
+			IF exKurtOpt IN options THEN WriteReal(exKur, f); f.WriteTab END;
+			IF quant0Opt IN options THEN WriteReal(lower, f); f.WriteTab END;
+			IF quant1Opt IN options THEN WriteReal(upper, f); f.WriteTab END;
 			f.WriteInt(sampleSize);
 			f.WriteLn;
 			INC(i)
 		END
 	END FormatStats;
 
-	PROCEDURE Stats* (variable: ARRAY OF CHAR; options: SET; VAR f: BugsMappers.Formatter);
+	PROCEDURE Stats* (variable: ARRAY OF CHAR; options: SET; VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			writeHeader: BOOLEAN;

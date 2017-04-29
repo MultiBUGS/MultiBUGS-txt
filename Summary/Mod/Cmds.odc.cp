@@ -14,8 +14,8 @@ MODULE SummaryCmds;
 
 	IMPORT
 		Dialog, Ports,
-		TextModels,
-		BugsDialog, BugsGraph, BugsIndex, BugsInterface, BugsMappers, BugsMsg, BugsTexts,
+		TextMappers, TextModels,
+		BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg, 
 		SummaryFormatted, SummaryIndex, SummaryInterface, SummaryMonitors;
 
 	TYPE
@@ -71,9 +71,8 @@ MODULE SummaryCmds;
 		SummaryInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -92,9 +91,8 @@ MODULE SummaryCmds;
 		SummaryInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -104,14 +102,14 @@ MODULE SummaryCmds;
 
 	PROCEDURE Means*;
 		VAR
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		SummaryFormatted.Means(dialog.node.item, f);
-		f.Register("Means")
+		IF f.Pos() > 0 THEN BugsFiles.Open("Means", text) END
 	END Means;
 
 	PROCEDURE Set*;
@@ -125,9 +123,8 @@ MODULE SummaryCmds;
 		SummaryInterface.Set(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -168,13 +165,13 @@ MODULE SummaryCmds;
 	PROCEDURE Stats*;
 		VAR
 			tabs: POINTER TO ARRAY OF INTEGER;
-			i, numTabs: INTEGER;
-			f: BugsMappers.Formatter;
+			i, numTabs, pos: INTEGER;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 			options: SET;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		options := Options();
 		numTabs := NumTabs(options);
@@ -186,9 +183,10 @@ MODULE SummaryCmds;
 			tabs[i] := tabs[1] + 16 * (i - 1) * Ports.mm;
 			INC(i)
 		END;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
+		pos := f.Pos();
 		SummaryFormatted.Stats(dialog.node.item, options, f);
-		f.Register("Summary statistics")
+		IF f.Pos() > pos THEN BugsFiles.Open("Summary statistics", text) END
 	END Stats;
 
 	(*	summary statistics with no percentiles	*)
@@ -198,14 +196,13 @@ MODULE SummaryCmds;
 			SummaryFormatted.quant1Opt};
 		VAR
 			tabs: POINTER TO ARRAY OF INTEGER;
-			i, numTabs: INTEGER;
-			f: BugsMappers.Formatter;
+			i, numTabs, pos: INTEGER;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 			options: SET;
 	BEGIN
-		options := options - percentiles;
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		options := Options() - percentiles;
 		numTabs := 5;
@@ -217,39 +214,35 @@ MODULE SummaryCmds;
 			tabs[i] := tabs[1] + 20 * (i - 1) * Ports.mm;
 			INC(i)
 		END;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
+		pos := f.Pos();
 		SummaryFormatted.Stats(dialog.node.item, options, f);
-		f.Register("Summary statistics")
+		IF f.Pos() > pos THEN BugsFiles.Open("Summary statistics", text) END
 	END StatsNoPercentiles;
 
 	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
 		VAR
 			variable: Dialog.String;
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("SummaryCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("SummaryCmds:NotInitialized");
 		ELSE
 			ok := ~BugsInterface.IsAdapting();
 			IF ~ok THEN
-				BugsMsg.MapMsg("SummaryCmds:Adapting", msg);
-				BugsTexts.ShowMsg(msg)
+				BugsMsg.Show("SummaryCmds:Adapting");
 			ELSE
 				variable := dialog.node.item;
 				ok := BugsIndex.Find(variable) # NIL;
 				IF ~ok THEN
 					p[0] := variable$;
-					BugsMsg.MapParamMsg("SummaryCmds:NotVariable", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("SummaryCmds:NotVariable", p);
 				ELSE
 					ok := SummaryIndex.Find(variable) = NIL;
 					IF ~ok THEN
 						p[0] := variable$;
-						BugsMsg.MapParamMsg("SummaryCmds:AlreadySet", p, msg);
-						BugsTexts.ShowMsg(msg)
+						BugsMsg.ShowParam("SummaryCmds:AlreadySet", p);
 					END
 				END
 			END
@@ -260,28 +253,24 @@ MODULE SummaryCmds;
 		VAR
 			numMonitors: INTEGER;
 			variable: Dialog.String;
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("SummaryCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("SummaryCmds:NotInitialized");
 		ELSE
 			variable := dialog.node.item;
 			IF~SummaryInterface.IsStar(variable) THEN
 				ok := SummaryIndex.Find(variable) # NIL;
 				IF ~ok THEN
 					p[0] := variable$;
-					BugsMsg.MapParamMsg("SummaryCmds:NotSet", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("SummaryCmds:NotSet", p);
 				END
 			ELSE
 				numMonitors := SummaryIndex.NumberOfMonitors();
 				ok := numMonitors # 0;
 				IF ~ok THEN
-					BugsMsg.MapMsg("SummaryCmds:NoMonitors", msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.Show("SummaryCmds:NoMonitors");
 				END
 			END
 		END

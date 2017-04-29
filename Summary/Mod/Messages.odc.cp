@@ -18,27 +18,27 @@ MODULE SummaryMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		Map: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		Map("SummaryEmbed:MonitorCleared", "monitored cleared");
-		Map("SummaryEmbed:MonitorSet", "monitor set");
-		Map("SummaryEmbed:NotInitialized", "model must be initialized before monitors used");
-		Map("SummaryEmbed:NotVariable", "^0 is not a variable in the model");
-		Map("SummaryEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
-		Map("SummaryEmbed:NotSet", "no monitor set for variable ^0");
-		Map("SummaryEmbed:NoMonitors", "no monitors set");
-		Map("SummaryEmbed:AlreadySet", "monitor already set");
+		StoreKey("SummaryEmbed:MonitorCleared", "monitored cleared");
+		StoreKey("SummaryEmbed:MonitorSet", "monitor set");
+		StoreKey("SummaryEmbed:NotInitialized", "model must be initialized before monitors used");
+		StoreKey("SummaryEmbed:NotVariable", "^0 is not a variable in the model");
+		StoreKey("SummaryEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
+		StoreKey("SummaryEmbed:NotSet", "no monitor set for variable ^0");
+		StoreKey("SummaryEmbed:NoMonitors", "no monitors set");
+		StoreKey("SummaryEmbed:AlreadySet", "monitor already set");
 
-		Map("SummaryCmds:MonitorCleared", "monitored cleared");
-		Map("SummaryCmds:MonitorSet", "monitor set");
-		Map("SummaryCmds:NotInitialized", "model must be initialized before monitors used");
-		Map("SummaryCmds:NotVariable", "^0 is not a variable in the model");
-		Map("SummaryCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
-		Map("SummaryCmds:NotSet", "no monitor set for variable ^0");
-		Map("SummaryCmds:NoMonitors", "no monitors set");
-		Map("SummaryCmds:AlreadySet", "monitor already set")
+		StoreKey("SummaryCmds:MonitorCleared", "monitored cleared");
+		StoreKey("SummaryCmds:MonitorSet", "monitor set");
+		StoreKey("SummaryCmds:NotInitialized", "model must be initialized before monitors used");
+		StoreKey("SummaryCmds:NotVariable", "^0 is not a variable in the model");
+		StoreKey("SummaryCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
+		StoreKey("SummaryCmds:NotSet", "no monitor set for variable ^0");
+		StoreKey("SummaryCmds:NoMonitors", "no monitors set");
+		StoreKey("SummaryCmds:AlreadySet", "monitor already set")
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -50,7 +50,7 @@ MODULE SummaryMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		Map := BugsMsg.Map
+		StoreKey := BugsMsg.StoreKey
 	END Init;
 
 BEGIN
