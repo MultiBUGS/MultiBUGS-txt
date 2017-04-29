@@ -12,15 +12,21 @@ MODULE BugsMAP;
 	
 
 	IMPORT
-		Math, Strings,
-		BugsIndex, BugsMappers, BugsNames, 
+		Fonts, Math, Strings,
+		BugsFiles, BugsIndex, BugsNames, 
 		GraphMAP, GraphStochastic, 
-		MathMatrix;
+		MathMatrix,
+		TextMappers, TextModels;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
+		
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+		
 	PROCEDURE Differential (prior: GraphStochastic.Node): REAL;
 		VAR
 			diff: REAL;
@@ -48,13 +54,14 @@ MODULE BugsMAP;
 		RETURN deviance
 	END Deviance;
 
-	PROCEDURE Estimates* (priors: GraphStochastic.Vector; VAR f: BugsMappers.Formatter);
+	PROCEDURE Estimates* (priors: GraphStochastic.Vector; VAR f: TextMappers.Formatter);
 		VAR
 			inverse: POINTER TO ARRAY OF ARRAY OF REAL;
 			oldVals: POINTER TO ARRAY OF REAL;
 			i, j, dim, pos, prec: INTEGER;
 			label: ARRAY 128 OF CHAR;
 			deviance, sd: REAL;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		dim := LEN(priors);
 		NEW(oldVals, dim);
@@ -76,15 +83,17 @@ MODULE BugsMAP;
 		END;
 		MathMatrix.Invert(inverse, dim);
 		deviance := Deviance();
-		prec := BugsMappers.prec;
-		BugsMappers.SetPrec(8);
+		prec := BugsFiles.prec;
+		BugsFiles.SetPrec(8);
 		f.WriteString("deviance: ");
-		f.WriteReal(deviance);
+		WriteReal(deviance, f);
 		f.WriteString("   AIC: ");
-		f.WriteReal(deviance + 2 * dim); 
-		BugsMappers.SetPrec(5);
+		WriteReal(deviance + 2 * dim, f); 
+		BugsFiles.SetPrec(5);
 		f.WriteLn; f.WriteLn;
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteString(" name"); f.WriteTab;
 		f.WriteString("MAP"); f.WriteTab;
@@ -92,7 +101,7 @@ MODULE BugsMAP;
 		f.WriteString("derivative"); f.WriteTab;
 		f.WriteString("correlations");
 		f.WriteLn;
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		i := 0;
 		WHILE i < dim DO
 			f.WriteTab;
@@ -101,13 +110,13 @@ MODULE BugsMAP;
 			label[pos] := 0X;
 			label[0] := " ";
 			f.WriteString(label); f.WriteTab;
-			f.WriteReal(priors[i].value); f.WriteTab;
+			WriteReal(priors[i].value, f); f.WriteTab;
 			sd := Math.Sqrt(inverse[i, i]);
-			f.WriteReal(sd); f.WriteTab;
-			f.WriteReal(Differential(priors[i])); f.WriteTab;
+			WriteReal(sd, f); f.WriteTab;
+			WriteReal(Differential(priors[i]), f); f.WriteTab;
 			j := 0;
 			WHILE j <= i DO
-				f.WriteReal(inverse[i, j] / Math.Sqrt(inverse[i, i] * inverse[j, j])); f.WriteTab; INC(j)
+				WriteReal(inverse[i, j] / Math.Sqrt(inverse[i, i] * inverse[j, j]), f); f.WriteTab; INC(j)
 			END;
 			f.WriteLn;
 			INC(i)
@@ -116,7 +125,7 @@ MODULE BugsMAP;
 		WHILE i < dim DO
 			priors[i].SetValue(oldVals[i]); INC(i)
 		END;
-		BugsMappers.SetPrec(prec)
+		BugsFiles.SetPrec(prec)
 	END Estimates;
 
 	PROCEDURE Maintainer;

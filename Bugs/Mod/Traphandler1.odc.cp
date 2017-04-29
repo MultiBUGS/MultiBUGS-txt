@@ -12,8 +12,7 @@ MODULE BugsTraphandler1;
 	
 
 	IMPORT
-		Kernel,
-		BugsFiles, BugsMappers;
+		Kernel;
 
 	VAR
 		version-: INTEGER;
@@ -42,8 +41,8 @@ MODULE BugsTraphandler1;
 			msg: ARRAY 128 OF CHAR;
 	BEGIN
 		GetTrapMsg(msg);
-		BugsMappers.SetDest(BugsMappers.file);
-		BugsFiles.ShowMsg("****** Sorry something went wrong" + msg)
+		(*BugsFiles.SetDest(BugsMappers.file);
+		BugsFiles.ShowMsg("****** Sorry something went wrong" + msg)*)
 	END TrapViewer;
 
 

@@ -12,10 +12,11 @@ MODULE BugsInfo;
 	
 
 	IMPORT
-		Strings,
-		BugsEvaluate, BugsIndex, BugsInterface, BugsMappers, BugsMsg, BugsNames, BugsParser,
+		Fonts, Strings,
+		BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg, BugsNames, BugsParser,
 		GraphLogical, GraphNodes, GraphStochastic,
-		UpdaterActions, UpdaterMultivariate, UpdaterParallel, UpdaterUpdaters;
+		UpdaterActions, UpdaterMultivariate, UpdaterParallel, UpdaterUpdaters,
+		TextMappers, TextModels;
 
 	TYPE
 		CountData = POINTER TO RECORD(BugsNames.Visitor)
@@ -31,24 +32,29 @@ MODULE BugsInfo;
 		END;
 
 		WriterStochastic = POINTER TO RECORD(BugsNames.Visitor)
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			first: BOOLEAN
 		END;
 
 		WriterData = POINTER TO RECORD(BugsNames.Visitor)
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			first: BOOLEAN
 		END;
 
 		WriterUninit = POINTER TO RECORD(BugsNames.Visitor)
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 		END;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
-	PROCEDURE Types* (IN variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+		
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+		
+	PROCEDURE Types* (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			i, index, pos, size: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -113,7 +119,7 @@ MODULE BugsInfo;
 		END
 	END FindGraphNode;
 
-	PROCEDURE WriteUpdaterNames* (updater: UpdaterUpdaters.Updater; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteUpdaterNames* (updater: UpdaterUpdaters.Updater; VAR f: TextMappers.Formatter);
 		VAR
 			k, size: INTEGER;
 			p: GraphStochastic.Node;
@@ -133,7 +139,7 @@ MODULE BugsInfo;
 		END
 	END WriteUpdaterNames;
 
-	PROCEDURE Methods* (IN variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE Methods* (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			depth, i, index, size: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -210,7 +216,7 @@ MODULE BugsInfo;
 	END IsConstant;
 
 	PROCEDURE Values* (IN variable: ARRAY OF CHAR; numChains: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		CONST
 			all = TRUE;
 		VAR
@@ -294,7 +300,7 @@ MODULE BugsInfo;
 					IF components[index] # NIL THEN
 						IF initialized[i, j] THEN
 							IF ~(GraphNodes.data IN components[index].props) OR (j = 0) THEN
-								f.WriteReal(values[i, j])
+								WriteReal(values[i, j], f)
 							END
 						ELSE
 							f.WriteString("NA")
@@ -310,7 +316,7 @@ MODULE BugsInfo;
 		END
 	END Values;
 
-	PROCEDURE WriteRealInt (VAR f: BugsMappers.Formatter; value: REAL);
+	PROCEDURE WriteRealInt (VAR f: TextMappers.Formatter; value: REAL);
 		VAR
 			int: INTEGER;
 			absVal: REAL;
@@ -320,7 +326,7 @@ MODULE BugsInfo;
 		absVal := ABS(value);
 		int := SHORT(ENTIER(value + eps));
 		IF ABS(absVal - int) > eps THEN
-			f.WriteReal(value)
+			WriteReal(value, f)
 		ELSE
 			IF value < 0.0 THEN
 				int :=  - int
@@ -389,13 +395,14 @@ MODULE BugsInfo;
 		RETURN count
 	END CountObservedNode;
 
-	PROCEDURE WriteNode (VAR f: BugsMappers.Formatter; name: BugsNames.Name; data: BOOLEAN);
+	PROCEDURE WriteNode (VAR f: TextMappers.Formatter; name: BugsNames.Name; data: BOOLEAN);
 		CONST
 			maximumCols = 6;
 		VAR
 			counter, i, maxCols, numSlots, size, slot: INTEGER;
 			value: REAL;
 			node: GraphNodes.Node;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		size := name.Size();
 		numSlots := name.numSlots;
@@ -404,9 +411,11 @@ MODULE BugsInfo;
 		ELSE
 			maxCols := maximumCols
 		END;
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteString(name.string);
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		CASE numSlots OF
 		|0:
 			f.WriteString(" = ")
@@ -427,7 +436,7 @@ MODULE BugsInfo;
 				IF (GraphNodes.data IN node.props) & ~(GraphLogical.logical IN node.props) THEN
 					value := node.Value();
 					IF (node IS GraphStochastic.Node) & ~(GraphStochastic.integer IN node.props) THEN
-						f.WriteReal(value)
+						WriteReal(value, f)
 					ELSE
 						WriteRealInt(f, value)
 					END
@@ -437,7 +446,7 @@ MODULE BugsInfo;
 			ELSIF node IS GraphStochastic.Node THEN
 				IF ~(GraphNodes.data IN node.props) & (GraphStochastic.initialized IN node.props) THEN
 					value := node.Value();
-					f.WriteReal(value)
+					WriteReal(value, f)
 				ELSE
 					f.WriteString("NA")
 				END
@@ -530,7 +539,7 @@ MODULE BugsInfo;
 		INC(v.count, count)
 	END Do;
 
-	PROCEDURE WriteChain* (chain: INTEGER; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteChain* (chain: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			visitor: WriterStochastic;
 	BEGIN
@@ -608,7 +617,7 @@ MODULE BugsInfo;
 		RETURN visitor.count
 	END CountObservations;
 
-	PROCEDURE WriteData* (VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteData* (VAR f: TextMappers.Formatter);
 		VAR
 			visitor: WriterData;
 	BEGIN
@@ -642,7 +651,7 @@ MODULE BugsInfo;
 		END
 	END Do;
 
-	PROCEDURE WriteUninitNodes* (chain: INTEGER; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteUninitNodes* (chain: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			visitor: WriterUninit;
 	BEGIN
@@ -654,7 +663,7 @@ MODULE BugsInfo;
 		UpdaterActions.LoadSamples(0)
 	END WriteUninitNodes;
 
-	PROCEDURE ModelMetrics* (VAR f: BugsMappers.Formatter);
+	PROCEDURE ModelMetrics* (VAR f: TextMappers.Formatter);
 		VAR
 			numUpdater, numData, numObs, meanNumChild, 
 			medianNumChild, numLogical, numParam: INTEGER;
@@ -701,14 +710,15 @@ MODULE BugsInfo;
 			pos, len: INTEGER;
 	BEGIN
 		updater.Install(type);
-		BugsMsg.MapMsg(type, type);
+		BugsMsg.Lookup(type, type);
 		Strings.Find(type, "Install", 0, pos);
 		IF pos #  - 1 THEN
-			Strings.Replace(type, pos, LEN("Install"), "Updater")
+			len := LEN("Install");
+			Strings.Replace(type, pos, len, "Updater")
 		END
 	END UpdaterType;
 
-	PROCEDURE UpdatersByName* (VAR f: BugsMappers.Formatter);
+	PROCEDURE UpdatersByName* (VAR f: TextMappers.Formatter);
 		VAR
 			depth, factors, i, j, len, pos, size: INTEGER;
 			name: BugsNames.Name;
@@ -720,7 +730,6 @@ MODULE BugsInfo;
 		CONST
 			chain = 0;
 	BEGIN
-		f.WriteLn;
 		f.WriteTab;
 		f.WriteTab;
 		f.WriteString("Updater type");
@@ -752,7 +761,7 @@ MODULE BugsInfo;
 						f.WriteTab; f.WriteString(string);
 						UpdaterType(updater, string);
 						f.WriteTab;
-						BugsMsg.MapMsg(string, string);
+						BugsMsg.Lookup(string, string);
 						f.WriteString(string);
 						f.WriteTab;
 						f.WriteInt(size);
@@ -770,7 +779,7 @@ MODULE BugsInfo;
 		END
 	END UpdatersByName;
 
-	PROCEDURE UpdatersByDepth* (VAR f: BugsMappers.Formatter);
+	PROCEDURE UpdatersByDepth* (VAR f: TextMappers.Formatter);
 		VAR
 			depth, i, factors, size, numUpdaters: INTEGER;
 			p: GraphStochastic.Node;
@@ -822,7 +831,7 @@ MODULE BugsInfo;
 		END
 	END UpdatersByDepth;
 
-	PROCEDURE Distribute* (numProc: INTEGER; VAR f: BugsMappers.Formatter);
+	PROCEDURE Distribute* (numProc: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			i, j, index, numUpdaters, size, space: INTEGER;
 			updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
@@ -888,7 +897,7 @@ MODULE BugsInfo;
 		UpdaterActions.UnMarkDistributed
 	END Distribute;
 
-	PROCEDURE DistributeDeviance* (numProc: INTEGER; VAR f: BugsMappers.Formatter);
+	PROCEDURE DistributeDeviance* (numProc: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			observations: POINTER TO ARRAY OF GraphStochastic.Vector;
 			updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
@@ -939,7 +948,7 @@ MODULE BugsInfo;
 		UpdaterActions.UnMarkDistributed
 	END DistributeDeviance;
 
-	PROCEDURE DistributeInfo* (VAR f: BugsMappers.Formatter);
+	PROCEDURE DistributeInfo* (VAR f: TextMappers.Formatter);
 		VAR
 			worker, numWorker, memory, size, time, i, num, pos: INTEGER;
 			hook: BugsInterface.DistributeHook;

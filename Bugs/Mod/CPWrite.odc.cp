@@ -20,14 +20,15 @@ MODULE BugsCPWrite;
 
 	IMPORT
 		Strings,
-		BugsMappers, GraphGrammar,
-		GraphNodes, GraphStochastic;
+		GraphGrammar,
+		GraphNodes, GraphStochastic,
+		TextMappers;
 
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
+		
 	PROCEDURE StackSize (args: GraphStochastic.ArgsLogical): INTEGER;
 		VAR
 			i, maxTop, op, top: INTEGER;
@@ -53,7 +54,7 @@ MODULE BugsCPWrite;
 		RETURN maxTop + 1
 	END StackSize;
 
-	PROCEDURE WriteModuleHeader (module: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteModuleHeader (module: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString("MODULE "); f.WriteString(module); f.WriteChar(";"); f.WriteLn;
 		f.WriteString("IMPORT"); f.WriteLn;
@@ -63,7 +64,7 @@ MODULE BugsCPWrite;
 		f.WriteLn
 	END WriteModuleHeader;
 
-	PROCEDURE WriteTypes (IN args: GraphStochastic.ArgsLogical; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteTypes (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
@@ -101,7 +102,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteTypes;
 
-	PROCEDURE WriteCheckMethod (VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteCheckMethod (VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString("PROCEDURE (node: Node) Check (): SET;"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
@@ -111,7 +112,7 @@ MODULE BugsCPWrite;
 	END WriteCheckMethod;
 
 	PROCEDURE WriteClassFunctionMethod (IN args: GraphStochastic.ArgsLogical;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i, op, stackSize, top: INTEGER;
 
@@ -282,7 +283,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteClassFunctionMethod;
 
-	PROCEDURE WriteExternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteExternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
@@ -307,7 +308,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteExternalizeScalarMethod;
 
-	PROCEDURE WriteInitLogicalMethod (VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteInitLogicalMethod (VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString("PROCEDURE (node: Node) InitLogical;"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
@@ -315,7 +316,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteInitLogicalMethod;
 
-	PROCEDURE WriteInstallMethod (module: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteInstallMethod (module: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString("PROCEDURE (node: Node) Install(OUT install: ARRAY OF CHAR);"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
@@ -325,7 +326,7 @@ MODULE BugsCPWrite;
 	END WriteInstallMethod;
 
 	PROCEDURE WriteInternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
@@ -355,7 +356,7 @@ MODULE BugsCPWrite;
 	END WriteInternalizeScalarMethod;
 
 	PROCEDURE WriteParentsMethod (IN args: GraphStochastic.ArgsLogical;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
@@ -386,7 +387,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteParentsMethod;
 
-	PROCEDURE WriteSetMethod (IN args: GraphStochastic.ArgsLogical; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteSetMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
@@ -439,7 +440,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteSetMethod;
 
-	PROCEDURE WriteFormula (IN args: GraphStochastic.ArgsLogical; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteFormula (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 
 		TYPE
 			Tree = POINTER TO RECORD
@@ -532,7 +533,7 @@ MODULE BugsCPWrite;
 		Write(trees[0])
 	END WriteFormula;
 
-	PROCEDURE WriteValueMethod (IN args: GraphStochastic.ArgsLogical; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteValueMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
@@ -583,7 +584,7 @@ MODULE BugsCPWrite;
 	END WriteValueMethod;
 
 	PROCEDURE WriteValDiffMethod (IN args: GraphStochastic.ArgsLogical;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 
 		VAR
 			i, numC, op, stackSize, top: INTEGER;
@@ -1135,7 +1136,7 @@ MODULE BugsCPWrite;
 		f. WriteLn;
 	END WriteValDiffMethod;
 
-	PROCEDURE WriteFactoryMethods (VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteFactoryMethods (VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteLn;
 		f.WriteString(" PROCEDURE (f: Factory) NumParam (): INTEGER;"); f.WriteLn;
@@ -1158,9 +1159,7 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteFactoryMethods;
 
-	PROCEDURE WriteInstallProcedure (VAR f: BugsMappers.Formatter);
-		VAR
-			i: INTEGER;
+	PROCEDURE WriteInstallProcedure (VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString(" PROCEDURE Install*;"); f.WriteLn;
 		f.WriteString(" BEGIN "); f.WriteLn;
@@ -1168,9 +1167,7 @@ MODULE BugsCPWrite;
 		f.WriteString(" END Install;"); f.WriteLn; f.WriteLn
 	END WriteInstallProcedure;
 
-	PROCEDURE WriteInitProcedure (VAR f: BugsMappers.Formatter);
-		VAR
-			i: INTEGER;
+	PROCEDURE WriteInitProcedure (VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString(" PROCEDURE Init;"); f.WriteLn;
 		f.WriteString(" VAR factory: Factory;"); f.WriteLn;
@@ -1183,10 +1180,9 @@ MODULE BugsCPWrite;
 	END WriteInitProcedure;
 
 	PROCEDURE WriteModule* (IN args: GraphStochastic.ArgsLogical; index: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			fileName, timeStamp: ARRAY 128 OF CHAR;
-			ok: BOOLEAN;
 	BEGIN
 		Strings.IntToString(index, fileName);
 		Strings.IntToString(GraphNodes.timeStamp, timeStamp);

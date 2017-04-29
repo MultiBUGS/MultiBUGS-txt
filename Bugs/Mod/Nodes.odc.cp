@@ -59,8 +59,8 @@ MODULE BugsNodes;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.MapParamMsg("BugsNodes" + numToString, p, errorMsg);
-		BugsMsg.StoreError(errorMsg)
+		BugsMsg.LookupParam("BugsNodes" + numToString, p, errorMsg);
+		BugsMsg.Store(errorMsg)
 	END Error;
 
 	PROCEDURE GraphError (node: GraphNodes.Node; error: SET; name: ARRAY OF CHAR);
@@ -72,7 +72,7 @@ MODULE BugsNodes;
 			item: Meta.Item;
 			external: GraphGrammar.External;
 	BEGIN
-		BugsMsg.GetMsg(context);
+		context := BugsMsg.message$;
 		Meta.GetItem(node, item);
 		item.GetTypeName(mod, type);
 		len := LEN(type$);
@@ -93,7 +93,7 @@ MODULE BugsNodes;
 		WHILE i <= MAX(SET) DO
 			IF i IN error THEN
 				Strings.IntToString(i, numToString);
-				BugsMsg.MapMsg("Graph" + numToString, param);
+				BugsMsg.Lookup("Graph" + numToString, param);
 				errorMes := errorMes + " " + param;
 				IF i IN {GraphNodes.arg1 .. GraphNodes.arg10} THEN
 					errorMes := errorMes + context
@@ -101,7 +101,7 @@ MODULE BugsNodes;
 			END;
 			INC(i)
 		END;
-		BugsMsg.StoreError(errorMes)
+		BugsMsg.Store(errorMes)
 	END GraphError;
 
 	PROCEDURE (visitor: Dimensions) Node (statement: BugsParser.Statement; OUT ok: BOOLEAN);
@@ -460,7 +460,7 @@ MODULE BugsNodes;
 				args.scalars[0] := ref;
 				node.Set(args, res); ASSERT(res = {}, 88)
 			ELSE
-				BugsCodegen.WriteFunctionArgs(function, args);
+				BugsCodegen.WriteFunctionArgs(function, args); (*	put in error handling	*)
 				IF ~args.valid THEN ok := FALSE; RETURN END;
 				i := vector.start;
 				end := vector.start + vector.nElem;

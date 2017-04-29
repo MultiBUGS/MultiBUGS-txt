@@ -21,7 +21,7 @@ MODULE BugsC;
 	IMPORT
 		SYSTEM,
 		Meta,
-		BugsCLI, BugsFiles, BugsInterpreter, BugsMappers, BugsScripting;
+		BugsFiles, BugsInterpreter, BugsScripting;
 
 	VAR
 		version-: INTEGER;
@@ -54,40 +54,32 @@ MODULE BugsC;
 	END SetRFpu;
 
 	PROCEDURE[ccall] BugsCmd* (VAR command: POINTER TO ARRAY[untagged] OF SHORTCHAR;
-	VAR len: INTEGER);
+	VAR len, res: INTEGER);
 	VAR
 		i: INTEGER;
-		pascalString: POINTER TO ARRAY OF CHAR;
+		string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(command[i]); INC(i) END; pascalString[len] := 0X;
-		BugsScripting.EmbedCommand(pascalString);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(command[i]); INC(i) END; string[len] := 0X;
+		BugsScripting.Command(string, res);
 		SetRFpu
 	END BugsCmd;
-	
-	PROCEDURE[ccall]  CLI*;
-	BEGIN
-		SetBBFpu;
-		BugsCLI.Loop;
-		SetRFpu;
-	END CLI;
 	
 	PROCEDURE[ccall] CharArray* (VAR procedure: POINTER TO ARRAY[untagged] OF SHORTCHAR;
 	VAR len: INTEGER; VAR x: POINTER TO ARRAY[untagged] OF SHORTCHAR;
 	VAR lenX, res: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
-			array: POINTER TO ARRAY OF CHAR;
+			string, array: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(procedure[i]); INC(i) END; pascalString[len] := 0X;
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(procedure[i]); INC(i) END; string[len] := 0X;
 		NEW(array, lenX + 1);
 		i := 0; WHILE i < lenX DO array[i] := LONG(x[i]); INC(i) END;
 		array[lenX] := 0X;
-		BugsInterpreter.CharArray(pascalString, array, res);
+		BugsInterpreter.CharArray(string, array, res);
 		i := 0; WHILE i < lenX DO x[i] := SHORT(array[i]); INC(i) END;
 		SetRFpu
 	END CharArray;
@@ -96,12 +88,12 @@ MODULE BugsC;
 	VAR len, res: INTEGER);
 	VAR
 		i: INTEGER;
-		pascalString: POINTER TO ARRAY OF CHAR;
+		string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(command[i]); INC(i) END; pascalString[len] := 0X;
-		BugsInterpreter.CmdInterpreter(pascalString, res);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(command[i]); INC(i) END; string[len] := 0X;
+		BugsInterpreter.CmdInterpreter(string, res);
 		SetRFpu
 	END CmdInterpreter;
 
@@ -110,12 +102,12 @@ MODULE BugsC;
 		VAR
 			ok: BOOLEAN;
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(procedure[i]); INC(i) END; pascalString[len] := 0X;
-		BugsInterpreter.Guard(pascalString, ok, res);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(procedure[i]); INC(i) END; string[len] := 0X;
+		BugsInterpreter.Guard(string, ok, res);
 		IF (res = 0) & ok THEN x := 1 ELSE x := 0 END;
 		SetRFpu
 	END Guard;
@@ -124,13 +116,13 @@ MODULE BugsC;
 	VAR len, x, res: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
 		x := MIN(INTEGER);
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(procedure[i]); INC(i) END; pascalString[len] := 0X;
-		BugsInterpreter.Integer(pascalString, x, res);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(procedure[i]); INC(i) END; string[len] := 0X;
+		BugsInterpreter.Integer(string, x, res);
 		SetRFpu
 	END Integer;
 
@@ -140,15 +132,15 @@ MODULE BugsC;
 	VAR lenX, res: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 			array: POINTER TO ARRAY OF INTEGER;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(procedure[i]); INC(i) END; pascalString[len] := 0X;
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(procedure[i]); INC(i) END; string[len] := 0X;
 		NEW(array, lenX);
 		i := 0; WHILE i < lenX DO array[i] := x[i]; INC(i) END;
-		BugsInterpreter.IntegerArray(pascalString, array, res);
+		BugsInterpreter.IntegerArray(string, array, res);
 		i := 0; WHILE i < lenX DO x[i] := array[i]; INC(i) END;
 		SetRFpu
 	END IntegerArray;
@@ -158,12 +150,12 @@ MODULE BugsC;
 	VAR x, y: REAL; VAR res: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(procedure[i]); INC(i) END; pascalString[len] := 0X;
-		BugsInterpreter.Real(pascalString, x, y, res);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(procedure[i]); INC(i) END; string[len] := 0X;
+		BugsInterpreter.Real(string, x, y, res);
 		SetRFpu
 	END Real;
 
@@ -173,15 +165,15 @@ MODULE BugsC;
 	VAR lenX, res: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 			array: POINTER TO ARRAY OF REAL;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(procedure[i]); INC(i) END; pascalString[len] := 0X;
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(procedure[i]); INC(i) END; string[len] := 0X;
 		NEW(array, lenX);
 		i := 0; WHILE i < lenX DO array[i] := x[i]; INC(i) END;
-		BugsInterpreter.RealArray(pascalString, array, res);
+		BugsInterpreter.RealArray(string, array, res);
 		i := 0; WHILE i < lenX DO x[i] := array[i]; INC(i) END;
 		SetRFpu
 	END RealArray;
@@ -190,13 +182,13 @@ MODULE BugsC;
 	VAR len: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(path[i]); INC(i) END; 
-		pascalString[len] := 0X;
-		BugsFiles.SetWorkingDir(pascalString);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(path[i]); INC(i) END; 
+		string[len] := 0X;
+		BugsFiles.SetWorkingDir(string);
 		SetRFpu;
 	END SetWorkingDir;
 
@@ -204,25 +196,25 @@ MODULE BugsC;
 	VAR len: INTEGER);
 		VAR
 			i: INTEGER;
-			pascalString: POINTER TO ARRAY OF CHAR;
+			string: POINTER TO ARRAY OF CHAR;
 	BEGIN
 		(*	set temp directory for buffer file	*)
 		SetBBFpu;
-		NEW(pascalString, len + 1);
-		i := 0; WHILE i < len DO pascalString[i] := LONG(path[i]); INC(i) END; 
-		pascalString[len] := 0X;
-		BugsFiles.SetTempDir(pascalString);
+		NEW(string, len + 1);
+		i := 0; WHILE i < len DO string[i] := LONG(path[i]); INC(i) END; 
+		string[len] := 0X;
+		BugsFiles.SetTempDir(string);
 		SetRFpu;
 	END SetTempDir;
 	
 	PROCEDURE[ccall] UseBufferFile*;
 	BEGIN
-		BugsMappers.SetDest(BugsMappers.file)
+		BugsFiles.SetDest(BugsFiles.file)
 	END UseBufferFile;
 
 	PROCEDURE[ccall] UseConsole*;
 	BEGIN
-		BugsMappers.SetDest(BugsMappers.log)
+		BugsFiles.SetDest(BugsFiles.log)
 	END UseConsole;
 	
 	PROCEDURE Maintainer;
@@ -243,7 +235,7 @@ MODULE BugsC;
 		IF item.obj = Meta.procObj THEN
 			item.Call(ok)
 		END;
-		BugsMappers.SetDest(BugsMappers.file);
+		BugsFiles.SetDest(BugsFiles.file);
 		SetRFpu
 	END Init;
 

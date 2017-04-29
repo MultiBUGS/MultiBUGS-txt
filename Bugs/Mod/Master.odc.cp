@@ -12,7 +12,7 @@ MODULE BugsMaster;
 	
 
 	IMPORT 
-		MPI, SYSTEM, Dialog, Files, Kernel, Meta, Services, Stores, Strings,
+		MPI, SYSTEM, Dialog, Files, Kernel, Meta, Services, Stores, Strings, StdLog,
 		BugsCPCompiler, BugsComponents, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
 		DevCommanders, DevLinker, 
 		DevianceInterface,
@@ -27,8 +27,6 @@ MODULE BugsMaster;
 			monitorChanged: BOOLEAN;
 			numMonitored: INTEGER
 		END;
-
-		Command = ARRAY 4 OF INTEGER;
 
 	VAR
 		mpiInit: BOOLEAN;
@@ -107,7 +105,7 @@ MODULE BugsMaster;
 			rank := 0;
 			UpdaterParallel.DistributeUpdaters(numRanks, chain, updaters, id);
 			WHILE rank < numRanks DO
-				worker := chain * numRanks; (*how to invert RankToChain*)
+				worker := chain * numRanks; (*how to invert RankToChain?*)
 				Strings.IntToString(worker, fileName);
 				fileName := fileStemName + fileName + "_" + timeStamp + ".bug";
 				f := Files.dir.Old(restartLoc, fileName$, Files.shared);
@@ -204,7 +202,7 @@ MODULE BugsMaster;
 		END;
 	END RecvMonitoredValues;
 
-	PROCEDURE (h: Hook) SendCommand (IN ints: ARRAY OF INTEGER);
+	PROCEDURE (h: Hook) SendCommand (IN ints: BugsInterface.Command);
 		VAR
 			numWorker, worker: INTEGER;
 	BEGIN
@@ -218,12 +216,13 @@ MODULE BugsMaster;
 
 	PROCEDURE TerminateWorkers;
 		VAR
-			command: Command;
+			command: BugsInterface.Command;
 	BEGIN
 		command[0] := terminate;
 		command[1] :=  - 1;
 		command[2] :=  - 1;
 		command[3] :=  - 1;
+		command[4] := -1;
 		BugsInterface.SendCommand(command)
 	END TerminateWorkers;
 
@@ -273,20 +272,28 @@ MODULE BugsMaster;
 		monitoredA := SYSTEM.ADR(monitored[0]);
 		NEW(leader, numChains);
 		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
-		executable := fileStemName + "Worker_" + timeStamp;
+		(*executable := fileStemName + "Worker_" + timeStamp;*)
+		executable := fileStemName + "Worker" ;
 		bugFile := fileStemName + "_" + timeStamp;
 		f := Files.dir.New(restartLoc, Files.dontAsk);
 		startTime := Services.Ticks();
 		BugsComponents.WriteModel(f, numChains, port, ok);
+		StdLog.Ln;
+		StdLog.String("port name:");
+		StdLog.Ln;
+		StdLog.String(LONG(port)); 
+		StdLog.Ln;
 		IF ~ok THEN
 			BugsInterface.SetDistributeHook(NIL);
-			BugsMsg.StoreMsg("unable to write graph file for worker");
+			BugsMsg.Store("unable to write graph file for worker");
 			RETURN
 		END;
-		(*	find deviance and mark it as distributed	*)
+		(*	find deviance and mark it as distributed if it exists	*)
 		name := BugsIndex.Find("deviance");
 		deviance := name.components[0];
-		deviance.SetProps(deviance.props + {GraphStochastic.distributed});
+		IF deviance # NIL THEN
+			deviance.SetProps(deviance.props + {GraphStochastic.distributed});
+		END;
 		h.fileSize := f.Length();
 		f.Register(bugFile$, "bug", Files.dontAsk, res);
 		endTime := Services.Ticks();
@@ -305,6 +312,11 @@ MODULE BugsMaster;
 		path := '"' + path;
 		cmd := cmd + " " + path + "\" + executable;
 		HostDialog.hideExtRunWindow := TRUE; 
+		StdLog.Ln;
+		StdLog.String("mpi command:");
+		StdLog.Ln;
+		StdLog.String(cmd);
+		StdLog.Ln;
 		Dialog.RunExternal(cmd);
 		MPI.Comm_accept(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
 		MPI.Comm_remote_size(intercomm, size);
@@ -332,16 +344,17 @@ MODULE BugsMaster;
 		END
 	END Distribute;
 
-	PROCEDURE (h: Hook) RecvSamples;
+	PROCEDURE (h: Hook) RecvMCMCState;
 		VAR
 			chain, len, numChains: INTEGER;
-			command: Command;
+			command: BugsInterface.Command;
 			buffer: ARRAY 4 OF REAL;
 	BEGIN
 		command[0] := getSamples;
 		command[1] := 0;
 		command[2] := 0;
 		command[3] := 0;
+		command[4] := 0;
 		numChains := h.numChains;
 		BugsInterface.SendCommand(command);
 		len := GraphStochastic.numStochastics;
@@ -359,11 +372,11 @@ MODULE BugsMaster;
 			END;
 			INC(chain)
 		END
-	END RecvSamples;
+	END RecvMCMCState;
 
-	PROCEDURE (h: Hook) Update (thin, iteration: INTEGER; VAR endOfAdapting: INTEGER);
+	PROCEDURE (h: Hook) Update (thin, iteration: INTEGER; overRelax: BOOLEAN; VAR endOfAdapting: INTEGER);
 		VAR
-			command: Command;
+			command: BugsInterface.Command;
 			end, i, numChains, numWorker, worker: INTEGER;
 	BEGIN
 		numWorker := h.numWorker;
@@ -381,6 +394,7 @@ MODULE BugsMaster;
 				command[2] := 0
 			END;
 			command[3] := 0;
+			command[4] := 0;
 			BugsInterface.SendCommand(command);
 			(*	send changed monitors to lead workers	*)
 			IF h.numMonitored > 0 THEN
@@ -396,6 +410,7 @@ MODULE BugsMaster;
 		command[1] := thin;
 		command[2] := iteration;
 		command[3] := endOfAdapting;
+		IF overRelax THEN command[4] := 1 ELSE command[4] := 0 END;
 		BugsInterface.SendCommand(command);
 		worker := 0;
 		endOfAdapting := 0;

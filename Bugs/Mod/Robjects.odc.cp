@@ -15,7 +15,7 @@ MODULE BugsRobjects;
 	IMPORT
 		SYSTEM,
 		Math, Strings,
-		BugsFiles, BugsIndex, BugsMsg, BugsNames, BugsRandnum,
+		BugsIndex, BugsMsg, BugsNames, BugsRandnum, BugsVariables,
 		GraphConstant, GraphLogical, GraphNodes, GraphStochastic,
 		UpdaterActions;
 
@@ -24,12 +24,8 @@ MODULE BugsRobjects;
 		maintainer-: ARRAY 20 OF CHAR;
 		errorNum-: INTEGER;
 		errorPos-: INTEGER;
-		variable: ARRAY 1024 OF CHAR;
-
-	PROCEDURE GetStringLength* (): INTEGER;
-	BEGIN
-		RETURN LEN(variable$)
-	END GetStringLength;
+		chain-: INTEGER;
+		node: BugsNames.Name;
 
 	PROCEDURE IsNA* (x: REAL): BOOLEAN;
 		TYPE
@@ -47,171 +43,26 @@ MODULE BugsRobjects;
 		RETURN isNA
 	END IsNA;
 
-	PROCEDURE IsNode* (): BOOLEAN;
+	PROCEDURE AddNode* (name: ARRAY OF CHAR);
 	BEGIN
-		RETURN BugsIndex.Find(variable) # NIL
-	END IsNode;
-
-	PROCEDURE SetVariable* (IN var: ARRAY OF CHAR);
-	BEGIN
-		variable := var$
-	END SetVariable;
-
-	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
-		VAR
-			msg: ARRAY 1024 OF CHAR;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsIndex.Find(variable) # NIL;
-		IF ~ok THEN
-			p[0] := variable$;
-			BugsMsg.MapParamMsg("BugsRobjects:NotVariable", p, msg);
-			BugsFiles.ShowMsg(msg)
-		END
-	END SetGuard;
-
+		BugsVariables.StoreName(name);
+	END AddNode;
+	
 	PROCEDURE Allocate*;
-		VAR
-			node: BugsNames.Name;
 	BEGIN
-		node := BugsIndex.Find(variable);
-		IF node # NIL THEN node.AllocateNodes END
+		IF (node # NIL) & (node.components # NIL) THEN node.AllocateNodes END
 	END Allocate;
-
-	PROCEDURE IsAllocated* (): BOOLEAN;
-		VAR
-			node: BugsNames.Name;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		RETURN (node # NIL) & (node.components # NIL)
-	END IsAllocated;
-
-	PROCEDURE GetSize* (): INTEGER;
-		VAR
-			size: INTEGER;
-			node: BugsNames.Name;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		size := - 1;
-		IF (node # NIL) & (node.components # NIL) THEN
-			size := LEN(node.components)
-		END;
-		RETURN size
-	END GetSize;
-
-	PROCEDURE GetNumDimensions* (): INTEGER;
-		VAR
-			numSlots: INTEGER;
-			node: BugsNames.Name;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		numSlots := - 1;
-		IF node # NIL THEN
-			numSlots := node.numSlots
-		END;
-		RETURN numSlots
-	END GetNumDimensions;
-
-	PROCEDURE GetDimensions* (OUT dim: ARRAY OF INTEGER);
-		VAR
-			i, numSlots: INTEGER;
-			node: BugsNames.Name;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		numSlots := GetNumDimensions();
-		ASSERT(numSlots = LEN(dim), 20);
-		i := 0; WHILE i < numSlots DO dim[i] := node.slotSizes[i]; INC(i) END
-	END GetDimensions;
-
-	PROCEDURE SetDimensions* (IN dim: ARRAY OF INTEGER);
-		VAR
-			i, numSlots: INTEGER;
-			node: BugsNames.Name;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		numSlots := LEN(dim);
-		ASSERT(numSlots = GetNumDimensions(), 20);
-		i := 0; WHILE i < numSlots DO node.slotSizes[i] := dim[i]; INC(i) END
-	END SetDimensions;
-
-	PROCEDURE TransposeDimensions* (VAR dim: ARRAY OF INTEGER);
-		VAR
-			temp: POINTER TO ARRAY OF INTEGER;
-			i, numSlots: INTEGER;
-	BEGIN
-		numSlots := LEN(dim);
-		NEW(temp, numSlots);
-		i := 0; WHILE i < numSlots DO temp[i] := dim[i]; INC(i) END;
-		i := 0; WHILE i < numSlots DO dim[i] := temp[numSlots - 1 - i]; INC(i) END
-	END TransposeDimensions;
-
-	PROCEDURE GetValues* (OUT values: ARRAY OF REAL);
-		VAR
-			i, j, size, numChains: INTEGER;
-			p: GraphNodes.Node;
-			node: BugsNames.Name;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		numChains := BugsRandnum.numberChains;
-		size := LEN(values) DIV numChains;
-		j := 0;
-		WHILE j < numChains DO
-			UpdaterActions.LoadSamples(j);
-			i := 0;
-			WHILE i < size DO
-				p := node.components[i];
-				IF p # NIL THEN
-					values[j * size + i] := p.Value();
-				END;
-				INC(i)
-			END;
-			INC(j)
-		END;
-	END GetValues;
-
-	PROCEDURE SetValues* (IN values: ARRAY OF REAL);
-		VAR
-			i, j, size, numChains: INTEGER;
-			p: GraphNodes.Node;
-			node: BugsNames.Name;
-			x: REAL;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		numChains := BugsRandnum.numberChains;
-		size := LEN(values) DIV numChains;
-		j := 0;
-		WHILE j < numChains DO
-			UpdaterActions.LoadSamples(j);
-			i := 0;
-			WHILE i < size DO
-				x := values[j * size + i];
-				IF ~IsNA(x) THEN
-					p := node.components[i];
-					IF p # NIL THEN
-						WITH p: GraphStochastic.Node DO
-							IF GraphStochastic.update IN p.props THEN p.SetValue(x) END
-						ELSE
-						END
-					END
-				END;
-				INC(i)
-			END;
-			UpdaterActions.StoreSamples(j);
-			INC(j)
-		END;
-	END SetValues;
 
 	PROCEDURE CheckData* (IN values: ARRAY OF REAL);
 		VAR
 			i, size: INTEGER;
 			p: GraphNodes.Node;
-			node: BugsNames.Name;
 			x: REAL;
 	BEGIN
-		node := BugsIndex.Find(variable);
-		IF node.components = NIL THEN RETURN END;
+		errorNum := 0;
 		size := LEN(values);
-		ASSERT(size = GetSize(), 20);
+		IF node.components = NIL THEN RETURN END;
+		ASSERT(size = node.Size(), 20);
 		i := 0;
 		errorNum := 0;
 		WHILE i < size DO
@@ -234,46 +85,17 @@ MODULE BugsRobjects;
 		END
 	END CheckData;
 
-	PROCEDURE LoadData* (IN values: ARRAY OF REAL);
-		VAR
-			i, size: INTEGER;
-			p: GraphNodes.Node;
-			node: BugsNames.Name;
-			x: REAL;
-	BEGIN
-		node := BugsIndex.Find(variable);
-		ASSERT(node.components # NIL, 21);
-		size := LEN(values);
-		ASSERT(size = GetSize(), 20);
-		i := 0;
-		WHILE i < size DO
-			p := node.components[i];
-			x := values[i];
-			IF ~IsNA(x) THEN
-				IF p # NIL THEN
-					IF p IS GraphStochastic.Node THEN
-						p(GraphStochastic.Node).SetValue(values[i]);
-						p.SetProps(p.props + {GraphNodes.data})
-					END
-				ELSE
-					node.components[i] := GraphConstant.New(x)
-				END
-			END;
-			INC(i)
-		END
-	END LoadData;
-
 	PROCEDURE CheckInits* (IN values: ARRAY OF REAL);
 		VAR
 			i, size: INTEGER;
 			p: GraphNodes.Node;
-			node: BugsNames.Name;
 			x: REAL;
 	BEGIN
-		node := BugsIndex.Find(variable);
+		errorNum := 0;
 		size := LEN(values);
-		ASSERT(size = GetSize(), 20);
 		ASSERT(node.components # NIL, 21);
+		ASSERT(size = node.Size(), 20);
+		UpdaterActions.LoadSamples(chain);
 		i := 0;
 		errorNum := 0;
 		WHILE i < size DO
@@ -297,53 +119,36 @@ MODULE BugsRobjects;
 				END
 			END;
 			INC(i)
-		END
+		END;
+		UpdaterActions.LoadSamples(0)
 	END CheckInits;
 
-	PROCEDURE LoadInits* (IN values: ARRAY OF REAL);
+	PROCEDURE GetDimensions* (OUT dim: ARRAY OF INTEGER);
 		VAR
-			i, size: INTEGER;
-			p: GraphNodes.Node;
-			node: BugsNames.Name;
-			x: REAL;
+			i, numSlots: INTEGER;
 	BEGIN
-		node := BugsIndex.Find(variable);
-		size := LEN(values);
-		ASSERT(size = GetSize(), 20);
-		i := 0;
-		WHILE i < size DO
-			x := values[i];
-			IF ~IsNA(x) THEN
-				p := node.components[i];
-				p(GraphStochastic.Node).SetValue(x);
-				p.SetProps(p.props + {GraphStochastic.initialized})
-			END;
-			INC(i)
-		END
-	END LoadInits;
+		numSlots := node.numSlots;
+		ASSERT(numSlots = LEN(dim), 20);
+		i := 0; WHILE i < numSlots DO dim[i] := node.slotSizes[i]; INC(i) END
+	END GetDimensions;
 
-	PROCEDURE SetIndex* (index: INTEGER);
+	PROCEDURE GetNumChains* (): INTEGER;
+	BEGIN
+		RETURN BugsRandnum.numberChains
+	END GetNumChains;
+	
+	PROCEDURE GetNumDimensions* (): INTEGER;
 		VAR
-			name: BugsNames.Name;
-			i, j, pos: INTEGER;
+			numSlots: INTEGER;
 	BEGIN
-		i := 0;
-		j := 0;
-		REPEAT
-			name := BugsIndex.FindByNumber(i);
-			IF name # NIL THEN
-				Strings.Find(name.string, "(", 0, pos);
-				IF pos = - 1 THEN
-					(*	only consider proper node names and not F() or D(,)	*)
-					INC(j);
-				END
-			END;
-			INC(i)
-		UNTIL (name = NIL) OR (j > index);
-		IF name # NIL THEN variable := name.string$ ELSE variable := "" END;
-	END SetIndex;
+		numSlots := - 1;
+		IF node # NIL THEN
+			numSlots := node.numSlots
+		END;
+		RETURN numSlots
+	END GetNumDimensions;
 
-	PROCEDURE GetNumberNames* (): INTEGER;
+	PROCEDURE GetNumNames* (): INTEGER;
 		VAR
 			i, numberNames, pos: INTEGER;
 			name: BugsNames.Name;
@@ -362,12 +167,189 @@ MODULE BugsRobjects;
 			INC(i)
 		UNTIL name = NIL;
 		RETURN numberNames
-	END GetNumberNames;
+	END GetNumNames;
+
+	PROCEDURE GetSize* (): INTEGER;
+		VAR
+			size: INTEGER;
+	BEGIN
+		size := 0;
+		IF (node # NIL) & (node.components # NIL) THEN
+			size := LEN(node.components)
+		END;
+		RETURN size
+	END GetSize;
+
+	PROCEDURE GetStringLength* (): INTEGER;
+	BEGIN
+		RETURN LEN(node.string$)
+	END GetStringLength;
+
+	PROCEDURE GetValues* (OUT values: ARRAY OF REAL);
+		VAR
+			i, j, size, numChains: INTEGER;
+			p: GraphNodes.Node;
+	BEGIN
+		numChains := BugsRandnum.numberChains;
+		size := LEN(values) DIV numChains;
+		j := 0;
+		WHILE j < numChains DO
+			UpdaterActions.LoadSamples(j);
+			i := 0;
+			WHILE i < size DO
+				p := node.components[i];
+				IF p # NIL THEN
+					values[j * size + i] := p.Value();
+				END;
+				INC(i)
+			END;
+			INC(j)
+		END;
+		UpdaterActions.LoadSamples(0)
+	END GetValues;
 
 	PROCEDURE GetVariable* (OUT var: ARRAY OF CHAR);
 	BEGIN
-		var := variable$
+		var := node.string$
 	END GetVariable;
+
+	PROCEDURE IsAllocated* (): BOOLEAN;
+	BEGIN
+		RETURN (node # NIL) & (node.components # NIL)
+	END IsAllocated;
+
+	PROCEDURE IsNode* (): BOOLEAN;
+	BEGIN
+		RETURN node # NIL
+	END IsNode;
+
+	PROCEDURE LoadData* (IN values: ARRAY OF REAL);
+		VAR
+			i, size: INTEGER;
+			p: GraphNodes.Node;
+			x: REAL;
+	BEGIN
+		size := LEN(values);
+		ASSERT(node.components # NIL, 21);
+		ASSERT(size = node.Size(), 20);
+		i := 0;
+		WHILE i < size DO
+			p := node.components[i];
+			x := values[i];
+			IF ~IsNA(x) THEN
+				IF p # NIL THEN
+					IF p IS GraphStochastic.Node THEN
+						p(GraphStochastic.Node).SetValue(values[i]);
+						p.SetProps(p.props + {GraphNodes.data})
+					END
+				ELSE
+					node.components[i] := GraphConstant.New(x)
+				END
+			END;
+			INC(i)
+		END
+	END LoadData;
+
+	PROCEDURE LoadInits* (IN values: ARRAY OF REAL);
+		VAR
+			i, size: INTEGER;
+			p: GraphNodes.Node;
+			x: REAL;
+	BEGIN
+		size := LEN(values);
+		ASSERT(node.components # NIL, 21);
+		ASSERT(size = node.Size(), 20);
+		i := 0;
+		WHILE i < size DO
+			x := values[i];
+			IF ~IsNA(x) THEN
+				p := node.components[i];
+				p(GraphStochastic.Node).SetValue(x);
+				p.SetProps(p.props + {GraphStochastic.initialized})
+			END;
+			INC(i)
+		END
+	END LoadInits;
+
+	PROCEDURE SetChain* (c: INTEGER);
+	BEGIN
+		chain := c
+	END SetChain;
+
+	PROCEDURE SetDimensions* (IN dim: ARRAY OF INTEGER);
+		VAR
+			i, numSlots: INTEGER;
+	BEGIN
+		numSlots := LEN(dim);
+		ASSERT(numSlots = node.numSlots, 20);
+		i := 0; WHILE i < numSlots DO node.slotSizes[i] := dim[i]; INC(i) END
+	END SetDimensions;
+
+	PROCEDURE SetValues* (IN values: ARRAY OF REAL);
+		VAR
+			i, j, size, numChains: INTEGER;
+			p: GraphNodes.Node;
+			x: REAL;
+	BEGIN
+		numChains := BugsRandnum.numberChains;
+		size := LEN(values) DIV numChains;
+		j := 0;
+		WHILE j < numChains DO
+			UpdaterActions.LoadSamples(j);
+			i := 0;
+			WHILE i < size DO
+				x := values[j * size + i];
+				IF ~IsNA(x) THEN
+					p := node.components[i];
+					IF p # NIL THEN
+						WITH p: GraphStochastic.Node DO
+							IF GraphStochastic.update IN p.props THEN p.SetValue(x) END
+						ELSE
+						END
+					END
+				END;
+				INC(i)
+			END;
+			UpdaterActions.StoreSamples(j);
+			INC(j)
+		END;
+		UpdaterActions.LoadSamples(0)
+	END SetValues;
+	
+	PROCEDURE SetVariableByName* (IN var: ARRAY OF CHAR);
+	BEGIN
+		node := BugsIndex.Find(var)
+	END SetVariableByName;
+
+	PROCEDURE SetVariableByIndex* (index: INTEGER);
+		VAR
+			i, j, pos: INTEGER;
+	BEGIN
+		i := 0;
+		j := 0;
+		REPEAT
+			node := BugsIndex.FindByNumber(i);
+			IF node # NIL THEN
+				Strings.Find(node.string, "(", 0, pos);
+				IF pos = - 1 THEN
+					(*	only consider proper node names and not F() or D(,)	*)
+					INC(j);
+				END
+			END;
+			INC(i)
+		UNTIL (node = NIL) OR (j > index);
+	END SetVariableByIndex;
+
+	PROCEDURE TransposeDimensions* (VAR dim: ARRAY OF INTEGER);
+		VAR
+			temp: POINTER TO ARRAY OF INTEGER;
+			i, numSlots: INTEGER;
+	BEGIN
+		numSlots := LEN(dim);
+		NEW(temp, numSlots);
+		i := 0; WHILE i < numSlots DO temp[i] := dim[i]; INC(i) END;
+		i := 0; WHILE i < numSlots DO dim[i] := temp[numSlots - 1 - i]; INC(i) END
+	END TransposeDimensions;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -377,7 +359,8 @@ MODULE BugsRobjects;
 
 	PROCEDURE Init;
 	BEGIN
-		variable := "";
+		node := NIL;
+		chain := 0;
 		Maintainer
 	END Init;
 

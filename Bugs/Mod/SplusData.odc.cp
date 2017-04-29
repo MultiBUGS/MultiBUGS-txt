@@ -17,25 +17,25 @@ MODULE BugsSplusData;
 
 	TYPE
 
-		Stratagey = POINTER TO ABSTRACT RECORD
+		Action = POINTER TO ABSTRACT RECORD
 			name: BugsNames.Name
 		END;
 
 		Loader = POINTER TO RECORD(BugsData.Loader)
-			stratagey: Stratagey
+			action: Action
 		END;
 
+		Allocator = POINTER TO RECORD(Action) END;
+
+		DataChecker = POINTER TO RECORD(Action) END;
+
+		DataLoader = POINTER TO RECORD(Action) END;
+
+		InitsChecker = POINTER TO RECORD(Action) END;
+
+		InitsLoader = POINTER TO RECORD(Action) END;
+
 		Factory = POINTER TO RECORD(BugsData.Factory) END;
-
-		DataChecker = POINTER TO RECORD(Stratagey) END;
-
-		Allocator = POINTER TO RECORD(Stratagey) END;
-
-		DataLoader = POINTER TO RECORD(Stratagey) END;
-
-		InitsChecker = POINTER TO RECORD(Stratagey) END;
-
-		InitsLoader = POINTER TO RECORD(Stratagey) END;
 
 	VAR
 		version-: INTEGER;
@@ -52,11 +52,11 @@ MODULE BugsSplusData;
 		na = 1;
 		error = 2;
 
-	PROCEDURE (stratagey: Stratagey) List (VAR s: BugsMappers.Scanner): INTEGER, NEW, ABSTRACT;
+	PROCEDURE (action: Action) Allocate, NEW, EMPTY;
 
-	PROCEDURE (stratagey: Stratagey) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN), NEW, ABSTRACT;
+	PROCEDURE (action: Action) List (VAR s: BugsMappers.Scanner): INTEGER, NEW, ABSTRACT;
 
-	PROCEDURE (stratagey: Stratagey) Allocate, NEW, EMPTY;
+	PROCEDURE (action: Action) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN), NEW, ABSTRACT;
 
 	PROCEDURE Error (errorNum: INTEGER);
 		VAR
@@ -64,8 +64,8 @@ MODULE BugsSplusData;
 			numToString: ARRAY 8 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsSplusData" + numToString, errorMsg);
-		BugsMsg.StoreError(errorMsg);
+		BugsMsg.Lookup("BugsSplusData" + numToString, errorMsg);
+		BugsMsg.Store(errorMsg);
 	END Error;
 
 	PROCEDURE ErrorNode (errorNum: INTEGER; string: ARRAY OF CHAR);
@@ -74,9 +74,9 @@ MODULE BugsSplusData;
 			numToString: ARRAY 8 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsSplusData" + numToString, errorMsg);
+		BugsMsg.Lookup("BugsSplusData" + numToString, errorMsg);
 		errorMsg := errorMsg + " " + string;
-		BugsMsg.StoreError(errorMsg);
+		BugsMsg.Store(errorMsg);
 	END ErrorNode;
 
 	PROCEDURE CheckItem (VAR s: BugsMappers.Scanner; OUT status: INTEGER);
@@ -156,7 +156,7 @@ MODULE BugsSplusData;
 		node.SetProps(node.props + {GraphStochastic.initialized})
 	END StoreInitValue;
 
-	PROCEDURE (stratagey: DataChecker) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: DataChecker) List (VAR s: BugsMappers.Scanner): INTEGER;
 		CONST
 			undefined = 0;
 		VAR
@@ -165,7 +165,7 @@ MODULE BugsSplusData;
 			i, len: INTEGER;
 	BEGIN
 		i := 0;
-		name := stratagey.name;
+		name := action.name;
 		IF name.components # NIL THEN
 			len := name.Size()
 		ELSE
@@ -201,47 +201,48 @@ MODULE BugsSplusData;
 	BEGIN
 		ok := TRUE;
 		name := sratagey.name;
-		IF (name.slotSizes[slot] # 0) & (name.slotSizes[slot] # slotSize) THEN (*	node dimension mis match	*)
+		IF (name.slotSizes[slot] # 0) & (name.slotSizes[slot] # slotSize) THEN 
+		(*	node dimension mis match	*)
 			ok := FALSE; Error(7);
 		END
 	END Slot;
 
-	PROCEDURE (stratagey: Allocator) List (VAR s: BugsMappers.Scanner): INTEGER;
-		VAR
-			c: DataChecker;
-	BEGIN
-		NEW(c);
-		c.name := stratagey.name;
-		RETURN c.List(s)
-	END List;
-
-	PROCEDURE (stratagey: Allocator) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
+	PROCEDURE (action: Allocator) Allocate;
 		VAR
 			name: BugsNames.Name;
 	BEGIN
-		ok := TRUE;
-		name := stratagey.name;
-		name.SetRange(slot, slotSize)
-	END Slot;
-
-	PROCEDURE (stratagey: Allocator) Allocate;
-		VAR
-			name: BugsNames.Name;
-	BEGIN
-		name := stratagey.name;
+		name := action.name;
 		IF name.components = NIL THEN
 			name.AllocateNodes
 		END
 	END Allocate;
 
-	PROCEDURE (stratagey: InitsChecker) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: Allocator) List (VAR s: BugsMappers.Scanner): INTEGER;
+		VAR
+			c: DataChecker;
+	BEGIN
+		NEW(c);
+		c.name := action.name;
+		RETURN c.List(s)
+	END List;
+
+	PROCEDURE (action: Allocator) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
+		VAR
+			name: BugsNames.Name;
+	BEGIN
+		ok := TRUE;
+		name := action.name;
+		name.SetRange(slot, slotSize)
+	END Slot;
+
+	PROCEDURE (action: InitsChecker) List (VAR s: BugsMappers.Scanner): INTEGER;
 		VAR
 			name: BugsNames.Name;
 			status: INTEGER;
 			i, len: INTEGER;
 			string: ARRAY 128 OF CHAR;
 	BEGIN
-		name := stratagey.name;
+		name := action.name;
 		IF name.components = NIL THEN (*	no prior specified for this node	*)
 			Error(8); RETURN 0
 		END;
@@ -281,11 +282,11 @@ MODULE BugsSplusData;
 		RETURN i
 	END List;
 
-	PROCEDURE (stratagey: InitsChecker) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
+	PROCEDURE (action: InitsChecker) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 		VAR
 			name: BugsNames.Name;
 	BEGIN
-		name := stratagey.name;
+		name := action.name;
 		ok := TRUE;
 		IF name.slotSizes[slot] # slotSize THEN (*	node dimension does not match	*)
 			ok := FALSE; Error(15); RETURN
@@ -337,17 +338,17 @@ MODULE BugsSplusData;
 		RETURN 1;
 	END SkipList;
 
-	PROCEDURE (stratagey: DataLoader) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
+	PROCEDURE (action: DataLoader) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 	BEGIN
 		ok := TRUE
 	END Slot;
 
-	PROCEDURE (stratagey: InitsLoader) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: InitsLoader) List (VAR s: BugsMappers.Scanner): INTEGER;
 		VAR
 			i, len: INTEGER;
 			name: BugsNames.Name;
 	BEGIN
-		name := stratagey .name;
+		name := action .name;
 		ASSERT(name.components # NIL, 21);
 		i := 0;
 		len := name.Size();
@@ -361,7 +362,7 @@ MODULE BugsSplusData;
 		RETURN len
 	END List;
 
-	PROCEDURE (stratagey: InitsLoader) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
+	PROCEDURE (action: InitsLoader) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 	BEGIN
 		ok := TRUE
 	END Slot;
@@ -370,11 +371,11 @@ MODULE BugsSplusData;
 		VAR
 			ok: BOOLEAN;
 			i, numSlots, size, slotSize: INTEGER;
-			stratagey: Stratagey;
+			action: Action;
 			name: BugsNames.Name;
 	BEGIN
-		stratagey := l.stratagey;
-		name := stratagey.name;
+		action := l.action;
+		name := action.name;
 		s.Scan;
 		IF (s.type # BugsMappers.char) OR (s.char # ".") THEN (*	expected a period	*)
 			Error(16); RETURN 0
@@ -404,7 +405,7 @@ MODULE BugsSplusData;
 				Error(21); RETURN 0
 			END;
 			slotSize := s.int;
-			stratagey.Slot(i, slotSize, ok);
+			action.Slot(i, slotSize, ok);
 			IF ~ok THEN RETURN 0 END;
 			size := size * slotSize;
 			s.Scan;
@@ -472,15 +473,15 @@ MODULE BugsSplusData;
 	PROCEDURE (l: Loader) Node (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN), NEW;
 		VAR
 			indices, len, size: INTEGER;
-			stratagey: Stratagey;
+			action: Action;
 			name: BugsNames.Name;
 	BEGIN
-		stratagey := l.stratagey;
-		name := stratagey.name;
+		action := l.action;
+		name := action.name;
 		ok := TRUE;
 		indices := name.numSlots;
 		IF indices = 0 THEN
-			len := stratagey.List(s);
+			len := action.List(s);
 			IF len = 0 THEN
 				ok := FALSE; RETURN
 			ELSIF len # 1 THEN (*	scalar node must have size of one	*)
@@ -495,13 +496,13 @@ MODULE BugsSplusData;
 			IF (s.type # BugsMappers.char) OR (s.char # "(") THEN (*	expected left parenthesis	*)
 				ok := FALSE; Error(27); RETURN
 			END;
-			len := stratagey.List(s);
+			len := action.List(s);
 			IF len = 0 THEN
 				ok := FALSE; RETURN
 			ELSIF (name.components # NIL) & (len # name.Size()) THEN (*	node size # no of components	*)
 				ok := FALSE; Error(28); RETURN
 			END;
-			stratagey.Slot(0, len, ok)
+			action.Slot(0, len, ok)
 		ELSE
 			s.Scan;
 			IF (s.type # BugsMappers.function) OR (s.string # "structure") THEN (*	expected key word structure	*)
@@ -531,7 +532,7 @@ MODULE BugsSplusData;
 			IF (s.type # BugsMappers.char) OR (s.char # "(") THEN (*	expected left parenthesis	*)
 				ok := FALSE; Error(35); RETURN
 			END;
-			len := stratagey.List(s);
+			len := action.List(s);
 			s.Scan;
 			IF len = 0 THEN
 				ok := FALSE; RETURN
@@ -550,7 +551,7 @@ MODULE BugsSplusData;
 				ok := FALSE; Error(38); RETURN
 			END
 		END;
-		stratagey.Allocate
+		action.Allocate
 	END Node;
 
 
@@ -559,7 +560,7 @@ MODULE BugsSplusData;
 	PROCEDURE (l: Loader) SkipNode (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN), NEW;
 		VAR
 			res: INTEGER;
-			stratagey: Stratagey;
+			action: Action;
 	BEGIN
 		s.Scan;
 		IF ((s.type = BugsMappers.char) & (s.char = "-")) THEN
@@ -629,13 +630,13 @@ MODULE BugsSplusData;
 
 	PROCEDURE (l: Loader) Nodes (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN), NEW;
 		VAR
-			stratagey: Stratagey;
+			action: Action;
 			name: BugsNames.Name;
 			varname: ARRAY 64 OF CHAR;
 			inModel: BOOLEAN;
 	BEGIN
 		ok := TRUE;
-		stratagey := l.stratagey;
+		action := l.action;
 		LOOP
 			s.Scan;
 			IF s.type # BugsMappers.string THEN (*	expected variable name	*)
@@ -648,7 +649,7 @@ MODULE BugsSplusData;
 			ELSE inModel := TRUE;
 			END;
 			(*				ok := FALSE; Error(39); RETURN *)
-			stratagey.name := name;
+			action.name := name;
 			s.Scan;
 			IF (s.type # BugsMappers.char) OR (s.char # "=") THEN (*	expected an equals sign	*)
 				ok := FALSE; Error(11); RETURN
@@ -702,7 +703,7 @@ MODULE BugsSplusData;
 			ok := FALSE; Error(41); RETURN
 		END;
 		NEW(checker);
-		l.stratagey := checker;
+		l.action := checker;
 		giveWarning := TRUE;
 		l.Nodes(s, ok);
 		IF ~ok THEN RETURN END;
@@ -711,19 +712,19 @@ MODULE BugsSplusData;
 		s.Scan;
 		s.Scan;
 		NEW(allocator);
-		l.stratagey := allocator;
+		l.action := allocator;
 		l.Nodes(s, ok);
 		s.SetPos(beg);
 		s.Scan;
 		s.Scan;
 		NEW(loader);
-		l.stratagey := loader;
+		l.action := loader;
 		l.Nodes(s, ok);
 		(* "variables not in the model" warning is concatenated with the list of such variable names *)
 		IF (nmissing > 0) THEN
-			BugsMsg.MapMsg("BugsSplusData40", errorMsg);
+			BugsMsg.Lookup("BugsSplusData40", errorMsg);
 			errorMsg := " (" + errorMsg + missingVars + ")";
-			BugsMsg.StoreMsg(errorMsg);
+			BugsMsg.Store(errorMsg);
 			nmissing := 0;
 			missingVars := "";
 		END;
@@ -748,7 +749,7 @@ MODULE BugsSplusData;
 			ok := FALSE; Error(47); RETURN
 		END;
 		NEW(checker);
-		l.stratagey := checker;
+		l.action := checker;
 		giveWarning := TRUE;
 		l.Nodes(s, ok);
 		IF ~ok THEN RETURN END;
@@ -757,13 +758,13 @@ MODULE BugsSplusData;
 		s.Scan;
 		s.Scan;
 		NEW(loader);
-		l.stratagey := loader;
+		l.action := loader;
 		l.Nodes(s, ok);
 		(* "variables not in the model" warning is concatenated with the list of such variable names *)
 		IF (nmissing > 0) THEN
-			BugsMsg.MapMsg("BugsSplusData40", errorMsg);
+			BugsMsg.Lookup("BugsSplusData40", errorMsg);
 			errorMsg := " (" + errorMsg + missingVars + ")";
-			BugsMsg.StoreMsg(errorMsg);
+			BugsMsg.Store(errorMsg);
 			nmissing := 0;
 			missingVars := "";
 		END;

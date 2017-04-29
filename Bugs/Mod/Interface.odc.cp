@@ -29,6 +29,8 @@ MODULE BugsInterface;
 			modules*: POINTER TO ARRAY OF Files.Name
 		END;
 
+		Command* = ARRAY 5 OF INTEGER;
+		
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -40,13 +42,13 @@ MODULE BugsInterface;
 
 	PROCEDURE (h: DistributeHook) Distribute- (mpiImplementation: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	PROCEDURE (h: DistributeHook) RecvSamples-, NEW, ABSTRACT;
+	PROCEDURE (h: DistributeHook) RecvMCMCState-, NEW, ABSTRACT;
 
 	PROCEDURE (h: DistributeHook) MonitorChanged-, NEW, ABSTRACT;
 
-	PROCEDURE (h: DistributeHook) SendCommand- (IN command: ARRAY OF INTEGER), NEW, ABSTRACT;
+	PROCEDURE (h: DistributeHook) SendCommand- (IN command: Command), NEW, ABSTRACT;
 
-		PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER;
+		PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
 	VAR endOfAdating: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE DeleteFiles;
@@ -77,8 +79,8 @@ MODULE BugsInterface;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.MapParamMsg("BugsInterface" + numToString, p, errorMsg);
-		BugsMsg.StoreError(errorMsg)
+		BugsMsg.LookupParam("BugsInterface" + numToString, p, errorMsg);
+		BugsMsg.Store(errorMsg)
 	END Error;
 
 	PROCEDURE Clear*;
@@ -142,7 +144,7 @@ MODULE BugsInterface;
 			ELSE
 				UpdaterActions.LoadSamples(chain);
 				INC(trials);
-				IF trials > maxTrials THEN
+				IF trials > maxTrials THEN 
 					p := updater.Prior(0);
 					Meta.GetItem(updater, item);
 					item.GetTypeName(mod, type);
@@ -150,7 +152,9 @@ MODULE BugsInterface;
 					type[len - 1] := 0X;
 					typeName := mod + "." + type;
 					BugsIndex.FindGraphNode(p, name);
-					msg := name + " of type " + typeName;
+					name[0] := " ";
+					name[LEN(name$) - 2] := 0X;
+					msg := name + "of type " + typeName;
 					Error(1, msg);
 					ok := FALSE;
 					EXIT
@@ -221,12 +225,12 @@ MODULE BugsInterface;
 		loader.Data(s, ok)
 	END LoadData;
 
-	PROCEDURE RecvSamples*;
+	PROCEDURE RecvMCMCState*;
 	BEGIN
 		IF hook # NIL THEN
-			hook.RecvSamples
+			hook.RecvMCMCState
 		END
-	END RecvSamples;
+	END RecvMCMCState;
 
 	PROCEDURE HasInits (numChains: INTEGER): BOOLEAN;
 		VAR
@@ -298,7 +302,7 @@ MODULE BugsInterface;
 		RETURN UpdaterActions.NumberChains()
 	END NumberChains;
 
-	PROCEDURE SendCommand* (IN command: ARRAY OF INTEGER);
+	PROCEDURE SendCommand* (IN command: Command);
 	BEGIN
 		IF hook # NIL THEN
 			hook.SendCommand(command)
@@ -363,7 +367,7 @@ MODULE BugsInterface;
 		IF hook # NIL THEN
 			iteration := UpdaterActions.iteration;
 			endOfAdapting := UpdaterActions.endOfAdapting;
-			hook.Update(thin, iteration, endOfAdapting);
+			hook.Update(thin, iteration, overRelax, endOfAdapting);
 			UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, endOfAdapting);
 		ELSE
 			chain := 0;
@@ -387,7 +391,7 @@ MODULE BugsInterface;
 					len := LEN(type$);
 					type[len - 1] := 0X;
 					typeName := mod + "." + type;
-					BugsMsg.MapMsg(typeName, typeName);
+					BugsMsg.Lookup(typeName, typeName);
 					BugsIndex.FindGraphNode(p, name);
 					msg := "update error for node " + name + " algorithm " + typeName + " error";
 					i := 0;
@@ -395,12 +399,12 @@ MODULE BugsInterface;
 						IF i IN res THEN
 							Strings.IntToString(i, error);
 							error := "UpdaterError" + error;
-							BugsMsg.MapMsg(error, error);
+							BugsMsg.Lookup(error, error);
 							msg := msg + " " + error
 						END;
 						INC(i)
 					END;
-					BugsMsg.StoreError(msg);
+					BugsMsg.Store(msg);
 				END
 			END;
 			MathRandnum.SetGenerator(BugsRandnum.generators[0]);

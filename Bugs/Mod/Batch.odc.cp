@@ -16,7 +16,7 @@ MODULE BugsBatch;
 	IMPORT
 		Dialog,
 		StdLog,
-		BugsCmds, BugsMappers;
+		BugsCmds, BugsFiles;
 
 	VAR
 		version-: INTEGER; (*	version number	*)
@@ -31,7 +31,7 @@ MODULE BugsBatch;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		BugsMappers.SetDest(BugsMappers.log);
+		BugsFiles.SetDest(BugsFiles.log);
 		StdLog.Open;
 		BugsCmds.ScriptFile(Dialog.commandLinePars)
 	END Init;

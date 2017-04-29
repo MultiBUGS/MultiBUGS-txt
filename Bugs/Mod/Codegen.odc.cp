@@ -32,8 +32,8 @@ MODULE BugsCodegen;
 			numToString: ARRAY 8 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsCodegen" + numToString, errorMsg); 
-		BugsMsg.StoreError(errorMsg)
+		BugsMsg.Lookup("BugsCodegen" + numToString, errorMsg); 
+		BugsMsg.Store(errorMsg)
 	END Error;
 
 	PROCEDURE GraphError (node: GraphNodes.Node; error: SET; name: ARRAY OF CHAR);
@@ -45,7 +45,7 @@ MODULE BugsCodegen;
 			item: Meta.Item;
 			external: GraphGrammar.External;
 	BEGIN
-		BugsMsg.GetMsg(context);
+		context := BugsMsg.message$;
 		Meta.GetItem(node, item);
 		item.GetTypeName(mod, type);
 		len := LEN(type$);
@@ -66,7 +66,7 @@ MODULE BugsCodegen;
 		WHILE i <= MAX(SET) DO
 			IF i IN error THEN
 				Strings.IntToString(i, numToString);
-				BugsMsg.MapMsg("Graph" + numToString, param);
+				BugsMsg.Lookup("Graph" + numToString, param);
 				errorMes := errorMes + " " + param;
 				IF i IN {GraphNodes.arg1 .. GraphNodes.arg10} THEN
 					errorMes := errorMes + context
@@ -74,7 +74,7 @@ MODULE BugsCodegen;
 			END;
 			INC(i)
 		END;
-		BugsMsg.StoreError(errorMes)
+		BugsMsg.Store(errorMes)
 	END GraphError;
 
 	PROCEDURE Vector (t: BugsParser.Node): GraphNodes.SubVector;
@@ -173,9 +173,7 @@ MODULE BugsCodegen;
 		END
 	END WriteScalarToStack;
 
-	PROCEDURE ^WriteTreeArgs* (tree: BugsParser.Node; VAR args: GraphStochastic.ArgsLogical);
-
-	PROCEDURE WriteFunctionArgs* (function: BugsParser.Function;
+	PROCEDURE WriteFunctionArgs* (function: BugsParser.Function; 
 	VAR args: GraphStochastic.ArgsLogical);
 		VAR
 			i, j, numPar: INTEGER;

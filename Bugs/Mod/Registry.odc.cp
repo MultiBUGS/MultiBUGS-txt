@@ -13,7 +13,7 @@ MODULE BugsRegistry;
 	
 
 	IMPORT
-		Files, Meta, Stores;
+		Files, Stores;
 
 	TYPE
 		Item = POINTER TO ABSTRACT RECORD
@@ -45,17 +45,8 @@ MODULE BugsRegistry;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		registry: ItemList;
-
-	PROCEDURE IsExtensible* (): BOOLEAN;
-		VAR
-			isExtensible: BOOLEAN;
-			mod: Meta.Item;
-	BEGIN
-		Meta.Lookup("StdLoader", mod);
-		isExtensible := mod.obj = Meta.modObj;
-		RETURN isExtensible
-	END IsExtensible;
-
+		res-: INTEGER;
+		
 	PROCEDURE ReadBool* (IN key: ARRAY OF CHAR; OUT x: BOOLEAN; OUT res: INTEGER);
 		VAR
 			cursor: ItemList;
@@ -234,7 +225,7 @@ MODULE BugsRegistry;
 		WHILE i < len DO str.x[i] := x[i]; INC(i) END
 	END WriteString;
 
-	PROCEDURE Load* (registryFile: ARRAY OF CHAR; OUT res: INTEGER);
+	PROCEDURE Load*;
 		VAR
 			key: ARRAY 80 OF CHAR;
 			loc: Files.Locator;
@@ -246,10 +237,9 @@ MODULE BugsRegistry;
 			int: INTEGER;
 			set: SET;
 	BEGIN
-		IF ~IsExtensible() THEN res := 0; RETURN END;
 		loc := Files.dir.This("Bugs/Rsrc");
-		name := "Registry";
 		IF loc = NIL THEN res := 2; RETURN END;
+		name := "Registry";
 		res := loc.res; IF res # 0 THEN RETURN END;
 		f := Files.dir.Old(loc, name, Files.shared);
 		IF f = NIL THEN res := 2; RETURN END;
@@ -280,7 +270,7 @@ MODULE BugsRegistry;
 		f.Close
 	END Load;
 
-	PROCEDURE Store*;
+	PROCEDURE Store;
 		VAR
 			cursor: ItemList;
 			item: Item;
@@ -289,9 +279,7 @@ MODULE BugsRegistry;
 			f: Files.File;
 			wr: Stores.Writer;
 			res: INTEGER;
-			workingDir: ARRAY 1024 OF CHAR;
 	BEGIN
-		IF ~IsExtensible() THEN RETURN END;
 		loc := Files.dir.This("Bugs/Rsrc");
 		name := "Registry";
 		f := Files.dir.Old(loc, name, Files.shared);
@@ -299,10 +287,11 @@ MODULE BugsRegistry;
 			f.Close;
 			f := NIL;
 			Files.dir.Delete(loc, name);
-			IF loc.res # 0 THEN RETURN END
+			res := loc.res;
+			IF res # 0 THEN RETURN END
 		END;
 		f := Files.dir.New(loc, Files.dontAsk);
-		IF f = NIL THEN RETURN END;
+		IF f = NIL THEN res := 2; RETURN END;
 		wr.ConnectTo(f);
 		wr.SetPos(0);
 		cursor := registry;
@@ -337,7 +326,8 @@ MODULE BugsRegistry;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		registry := NIL
+		registry := NIL;
+		res := 0
 	END Init;
 
 BEGIN

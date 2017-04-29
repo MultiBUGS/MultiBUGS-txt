@@ -37,8 +37,8 @@ MODULE BugsEvaluate;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.MapParamMsg("BugsEvaluate" + numToString, p, errorMsg);
-		BugsMsg.StoreError(errorMsg)
+		BugsMsg.LookupParam("BugsEvaluate" + numToString, p, errorMsg);
+		BugsMsg.Store(errorMsg)
 	END Error;
 
 	PROCEDURE Index* (t: BugsParser.Node): INTEGER;

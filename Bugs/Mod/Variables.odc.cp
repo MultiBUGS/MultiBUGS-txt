@@ -33,28 +33,28 @@ MODULE BugsVariables;
 			errorMes: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsVariables" + numToString, errorMes);
-		BugsMsg.StoreError(errorMes)
+		BugsMsg.Lookup("BugsVariables" + numToString, errorMes);
+		BugsMsg.Store(errorMes)
 	END Error;
 
-	PROCEDURE IsLoopIndex (IN string: ARRAY OF CHAR): BOOLEAN;
+	PROCEDURE IsLoopIndex (IN name: ARRAY OF CHAR): BOOLEAN;
 		VAR
 			cursor: Loop;
 	BEGIN
 		cursor := loops;
-		WHILE (cursor # NIL) & (cursor.name # string) DO
+		WHILE (cursor # NIL) & (cursor.name # name) DO
 			cursor := cursor.next
 		END;
 		RETURN cursor # NIL
 	END IsLoopIndex;
 
-	PROCEDURE StoreLoop* (IN string: ARRAY OF CHAR);
+	PROCEDURE StoreLoop* (IN name: ARRAY OF CHAR);
 		VAR
 			cursor: Loop;
 	BEGIN
-		IF ~IsLoopIndex(string) THEN
+		IF ~IsLoopIndex(name) THEN
 			NEW(cursor);
-			cursor.name := string$;
+			cursor.name := name$;
 			cursor.next := loops;
 			loops := cursor
 		END
@@ -109,7 +109,7 @@ MODULE BugsVariables;
 		END
 	END CountSlots;
 
-	PROCEDURE StoreName (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN);
+	PROCEDURE StoreNode (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN);
 		VAR
 			slots: INTEGER;
 			string: ARRAY 80 OF CHAR;
@@ -130,7 +130,7 @@ MODULE BugsVariables;
 			name := BugsNames.New(string, slots);
 			BugsIndex.Store(name)
 		END
-	END StoreName;
+	END StoreNode;
 
 	PROCEDURE StoreNames* (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN);
 		VAR
@@ -143,7 +143,7 @@ MODULE BugsVariables;
 			IF (s.type = BugsMappers.string) & (s.string # "in") & (s.string # "for") THEN
 				IF ~IsLoopIndex(s.string) THEN
 					pos := s.Pos();
-					StoreName(s, ok);
+					StoreNode(s, ok);
 					IF ~ok THEN RETURN END;
 					s.SetPos(pos)
 				END
@@ -157,6 +157,16 @@ MODULE BugsVariables;
 		END
 	END StoreNames;
 
+	PROCEDURE StoreName* (IN name: ARRAY OF CHAR);
+		VAR
+			s: BugsMappers.Scanner;
+			ok: BOOLEAN;
+	BEGIN
+		s.ConnectToString(name);
+		s.SetPos(0);
+		StoreNames(s, ok)
+	END StoreName;
+	
 	PROCEDURE Clear*;
 	BEGIN
 		loops := NIL;

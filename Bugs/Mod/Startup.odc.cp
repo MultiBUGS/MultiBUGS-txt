@@ -15,7 +15,6 @@ MODULE Startup;
 
 	IMPORT
 		Kernel, Meta, Strings,
-		BugsStdInterpreter, (*	needed for side effect	*)
 		MathTT800;
 
 	VAR
@@ -34,7 +33,7 @@ MODULE Startup;
 	BEGIN
 		IF setup THEN RETURN END;
 		setup := TRUE;
-		MathTT800.Install;
+		MathTT800.Install; 
 		(*	initialize linked subsystem of loaded modules	*)
 		module := Kernel.modList;
 		WHILE module # NIL DO

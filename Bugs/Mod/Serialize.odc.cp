@@ -186,7 +186,7 @@ MODULE BugsSerialize;
 		f.Close;
 		f := NIL;
 		UpdaterActions.StoreStochastics;
-		BugsGraph.CreateDeviance;
+		(*BugsGraph.CreateDeviance;*)
 		Services.Collect
 	END Internalize;
 

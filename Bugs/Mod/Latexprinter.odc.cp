@@ -14,8 +14,9 @@ MODULE BugsLatexprinter;
 
 	IMPORT
 		Strings,
-		BugsMappers, BugsParser,
-		GraphGrammar, GraphNodes;
+		BugsFiles, BugsParser,
+		GraphGrammar, GraphNodes,
+		TextMappers;
 
 	CONST
 		maxLoopDepth = 20;
@@ -26,7 +27,7 @@ MODULE BugsLatexprinter;
 
 	TYPE
 		LatexPrinter = POINTER TO RECORD(BugsParser.Visitor)
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			newLoops, oldLoops: ARRAY maxLoopDepth OF BugsParser.Index;
 			newBlock, openBlock: BOOLEAN
 		END;
@@ -161,14 +162,15 @@ MODULE BugsLatexprinter;
 	(*	find bar or .bar and replace by tex overline	*)
 	PROCEDURE MapBar (VAR string: ARRAY OF CHAR);
 		VAR
-			i, pos, start: INTEGER;
+			i, len, pos, start: INTEGER;
 			ch: CHAR;
 	BEGIN
 		start := 0;
 		WHILE string[start] # 0X DO
 			Strings.Find(string, "bar", start, pos);
 			IF pos > 0 THEN
-				Strings.Replace(string, pos, LEN("bar"), "}");
+				len := LEN("bar");
+				Strings.Replace(string, pos, len, "}");
 				DEC(pos);
 				ch := string[pos];
 				IF ch = dot THEN
@@ -187,7 +189,7 @@ MODULE BugsLatexprinter;
 	(*	find hat or .hat and replace by tex widehat	*)
 	PROCEDURE MapHat (VAR string: ARRAY OF CHAR);
 		VAR
-			i, pos, posDash, start: INTEGER;
+			i, len, pos, posDash, start: INTEGER;
 			ch: CHAR;
 	BEGIN
 		start := 0;
@@ -196,7 +198,8 @@ MODULE BugsLatexprinter;
 			IF pos > 0 THEN
 				Strings.Find(string, "hat" + "{", start, posDash);
 				IF pos # posDash THEN
-					Strings.Replace(string, pos, LEN("hat"), "}");
+					len := LEN("hat");
+					Strings.Replace(string, pos, len, "}");
 					DEC(pos);
 					ch := string[pos];
 					IF ch = dot THEN
@@ -216,7 +219,7 @@ MODULE BugsLatexprinter;
 	(*	find star or .star and replace by tex superscript *	*)
 	PROCEDURE MapStar (VAR string: ARRAY OF CHAR);
 		VAR
-			i, pos, start: INTEGER;
+			i, len, pos, start: INTEGER;
 			ch: CHAR;
 	BEGIN
 		start := 0;
@@ -224,7 +227,8 @@ MODULE BugsLatexprinter;
 			Strings.Find(string, "star", start, pos);
 			IF (pos > 0) & (string[pos - 1] = "\") THEN pos := - 1 END;
 			IF pos > 0 THEN
-				Strings.Replace(string, pos, LEN("star"), "^{\star}");
+				len := LEN("star");
+				Strings.Replace(string, pos, len, "^{\star}");
 				DEC(pos);
 				ch := string[pos];
 				IF (pos > 0) & (ch = dot) THEN
@@ -267,7 +271,7 @@ MODULE BugsLatexprinter;
 		END;
 	END BoxLatin;
 
-	PROCEDURE PrintName (s: ARRAY OF CHAR; f: BugsMappers.Formatter; OUT openSub: BOOLEAN);
+	PROCEDURE PrintName (s: ARRAY OF CHAR; f: TextMappers.Formatter; OUT openSub: BOOLEAN);
 		VAR
 			buffer: ARRAY 1024 OF CHAR;
 			i, end, start, len, numDig, numDot, pos, posDash: INTEGER;
@@ -316,7 +320,7 @@ MODULE BugsLatexprinter;
 		(node IS BugsParser.Integer) OR (node IS BugsParser.Index)
 	END IsLeaf;
 
-	PROCEDURE PrintNode (node: BugsParser.Node; VAR f: BugsMappers.Formatter);
+	PROCEDURE PrintNode (node: BugsParser.Node; VAR f: TextMappers.Formatter);
 		CONST
 			add = GraphGrammar.add; sub = GraphGrammar.sub;
 			mult = GraphGrammar.mult; div = GraphGrammar.div;
@@ -491,7 +495,7 @@ MODULE BugsLatexprinter;
 		END
 	END PrintNode;
 
-	PROCEDURE PrintDensity (density: BugsParser.Density; VAR f: BugsMappers.Formatter);
+	PROCEDURE PrintDensity (density: BugsParser.Density; VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -534,7 +538,7 @@ MODULE BugsLatexprinter;
 		END
 	END PrintDensity;
 
-	PROCEDURE (v: LatexPrinter) LineSeperator (VAR f: BugsMappers.Formatter), NEW;
+	PROCEDURE (v: LatexPrinter) LineSeperator (VAR f: TextMappers.Formatter), NEW;
 	BEGIN
 		v.openBlock := TRUE;
 		IF v.newBlock THEN
@@ -547,7 +551,7 @@ MODULE BugsLatexprinter;
 	END LineSeperator;
 
 	PROCEDURE (v: LatexPrinter) PrintStatement (statement: BugsParser.Statement;
-	VAR f: BugsMappers.Formatter), NEW;
+	VAR f: TextMappers.Formatter), NEW;
 		VAR
 			j, len: INTEGER;
 			function: BugsParser.Function;
@@ -744,7 +748,7 @@ MODULE BugsLatexprinter;
 		END
 	END UpdateLoops;
 
-	PROCEDURE (v: LatexPrinter) CloseLoops (f: BugsMappers.Formatter), NEW;
+	PROCEDURE (v: LatexPrinter) CloseLoops (f: TextMappers.Formatter), NEW;
 		VAR
 			i, numClosedLoops: INTEGER;
 			subscript: BOOLEAN;
@@ -775,7 +779,7 @@ MODULE BugsLatexprinter;
 		END
 	END CloseLoops;
 
-	PROCEDURE (v: LatexPrinter) NewLoops (f: BugsMappers.Formatter), NEW;
+	PROCEDURE (v: LatexPrinter) NewLoops (f: TextMappers.Formatter), NEW;
 		VAR
 			i, numNewLoops: INTEGER;
 	BEGIN
@@ -799,7 +803,7 @@ MODULE BugsLatexprinter;
 		VAR
 			cursor: BugsParser.Statement;
 			plate: BugsParser.Index;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			i, j, numClosedLoops, numNewLoops, numOldLoops: INTEGER;
 			closedLoop: BugsParser.Index;
 			first, subscript: BOOLEAN;
@@ -824,14 +828,14 @@ MODULE BugsLatexprinter;
 		v.f := f
 	END Do;
 
-	PROCEDURE DisplayCode* (model: BugsParser.Statement; VAR f: BugsMappers.Formatter);
+	PROCEDURE DisplayCode* (model: BugsParser.Statement; VAR f: TextMappers.Formatter);
 		VAR
 			ok: BOOLEAN;
 			i, numClosedLoops, oldPrec: INTEGER;
 			visitor: LatexPrinter;
 	BEGIN
-		oldPrec := BugsMappers.prec;
-		BugsMappers.SetPrec(10);
+		oldPrec := BugsFiles.prec;
+		BugsFiles.SetPrec(10);
 		NEW(visitor);
 		visitor.newBlock := TRUE;
 		visitor.openBlock := FALSE;
@@ -857,7 +861,7 @@ MODULE BugsLatexprinter;
 		f.WriteLn; f.WriteString("\end{document}");
 		f.WriteLn;
 		f := visitor.f;
-		BugsMappers.SetPrec(oldPrec)
+		BugsFiles.SetPrec(oldPrec)
 	END DisplayCode;
 
 	PROCEDURE Maintainer;

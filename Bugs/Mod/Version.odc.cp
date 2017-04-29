@@ -13,13 +13,16 @@ MODULE BugsVersion;
 	
 
 	IMPORT
-		Kernel,
-		Meta, BugsMappers;
+		(*Fonts,*) Kernel, Meta, 
+		TextMappers, TextModels;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	CONST
+		bold = 700;
+		
 	PROCEDURE Version (IN module: ARRAY OF CHAR): INTEGER;
 		VAR
 			int: INTEGER;
@@ -36,7 +39,7 @@ MODULE BugsVersion;
 		RETURN int
 	END Version;
 
-	PROCEDURE WriteInt (VAR f: BugsMappers.Formatter; i: INTEGER);
+	PROCEDURE WriteInt (VAR f: TextMappers.Formatter; i: INTEGER);
 	BEGIN
 		IF i < 10 THEN
 			f.WriteChar("0")
@@ -62,7 +65,7 @@ MODULE BugsVersion;
 		END
 	END ModuleMaintainer;
 
-	PROCEDURE Module (VAR f: BugsMappers.Formatter; module: Kernel.Module);
+	PROCEDURE Module (VAR f: TextMappers.Formatter; module: Kernel.Module);
 		VAR
 			version: INTEGER;
 			maintainer: ARRAY 80 OF CHAR;
@@ -101,11 +104,14 @@ MODULE BugsVersion;
 		f.WriteLn
 	END Module;
 
-	PROCEDURE Modules* (VAR f: BugsMappers.Formatter);
+	PROCEDURE Modules* (VAR f: TextMappers.Formatter);
 		VAR
 			module: Kernel.Module;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteTab;
 		f.WriteString("Clients");
@@ -118,7 +124,7 @@ MODULE BugsVersion;
 		f.WriteTab;
 		f.WriteString("Loaded");
 		f.WriteLn;
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		module := Kernel.modList;
 		WHILE module # NIL DO
 			IF module.refcnt >= 0 THEN Module(f, module) END;

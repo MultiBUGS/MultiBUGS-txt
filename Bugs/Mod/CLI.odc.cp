@@ -13,7 +13,7 @@ MODULE BugsCLI;
 
 	IMPORT
 		Console, Strings,
-		BugsMappers, BugsScripting;
+		BugsFiles, BugsScripting;
 
 	VAR
 		version-: INTEGER;
@@ -24,10 +24,10 @@ MODULE BugsCLI;
 		VAR
 			str: ARRAY 1025 OF CHAR;
 			whereOut: INTEGER;
-			i, pos: INTEGER;
+			i, pos, res: INTEGER;
 	BEGIN
-		whereOut := BugsMappers.whereOut;
-		BugsMappers.SetDest(BugsMappers.log);
+		whereOut := BugsFiles.whereOut;
+		BugsFiles.SetDest(BugsFiles.log);
 		Console.Open;
 		IF first THEN
 			first := FALSE;
@@ -55,10 +55,11 @@ MODULE BugsCLI;
 			IF pos # - 1 THEN EXIT END;
 			Strings.Find(str, "modelQuit('YES')", 0, pos);
 			IF pos # - 1 THEN EXIT END;
-			BugsScripting.EmbedCommand(str);
+			BugsScripting.Command(str, res);
+			IF res # 0 THEN EXIT END
 		END;
 		Console.Close;
-		BugsMappers.SetDest(whereOut)
+		BugsFiles.SetDest(whereOut)
 	END Loop;
 
 	PROCEDURE Maintainer;

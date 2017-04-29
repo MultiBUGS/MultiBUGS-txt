@@ -20,8 +20,6 @@ MODULE BugsResources;
 		maintainer-: ARRAY 40 OF CHAR;
 
 	PROCEDURE Load*;
-		VAR
-			res: INTEGER;
 	BEGIN
 		IF ~loadedMessages THEN
 			BugsMessages.Load;
@@ -36,8 +34,8 @@ MODULE BugsResources;
 			loadedScript := TRUE
 		END;
 		IF ~loadedRegistry THEN
-			BugsRegistry.Load("Bugs/Rsrc/Registry.txt", res);
-			loadedRegistry := res = 0;
+			BugsRegistry.Load;
+			loadedRegistry := BugsRegistry.res = 0;
 		END;
 	END Load;
 

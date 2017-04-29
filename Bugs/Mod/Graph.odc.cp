@@ -84,8 +84,8 @@ MODULE BugsGraph;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.MapParamMsg("BugsGraph" + numToString, p, errorMsg);
-		BugsMsg.StoreError(errorMsg)
+		BugsMsg.LookupParam("BugsGraph" + numToString, p, errorMsg);
+		BugsMsg.Store(errorMsg)
 	END Error;
 
 	PROCEDURE (v: BuildConditional) Do (name: BugsNames.Name);
@@ -557,14 +557,14 @@ MODULE BugsGraph;
 		UpdaterActions.Clear;
 		BugsNodes.Allocate(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.CreateSentinels(model, ok); IF ~ok THEN RETURN END;
-		BugsNodes.CreateConstants(model, ok);
+		BugsNodes.CreateConstants(model, ok); 
 		BugsNodes.CreateStochastics(model, ok); IF ~ok THEN RETURN END; 
 		BugsNodes.CreateLogicals(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.WriteLogicals(model, ok); IF~ok THEN RETURN END;
 		BugsNodes.WriteStochastics(model, ok); IF ~ok THEN RETURN END;
 		CalculateLevels;
 		CalculateLevels1;
-		CalculateDepths;
+		CalculateDepths; 
 	END WriteGraph;
 
 	PROCEDURE CreateDeviance*;
@@ -622,7 +622,7 @@ MODULE BugsGraph;
 			all: BOOLEAN;
 	BEGIN
 		node := name.components[v.index];
-		IF node # NIL THEN
+		IF (node # NIL) & (node = node.Representative()) THEN
 			all := TRUE;
 			list := GraphLogical.Ancestors(node, all);
 			WITH node: GraphLogical.Node DO
@@ -648,9 +648,9 @@ MODULE BugsGraph;
 		BugsIndex.Accept(v)
 	END BuildDependantLists;
 
-	PROCEDURE Compile* (numChains: INTEGER; updaterByMethod: BOOLEAN);
+	PROCEDURE Compile* (numChains: INTEGER; updaterByMethod: BOOLEAN; OUT ok: BOOLEAN);
 		VAR
-			inits, ok: BOOLEAN;
+			inits: BOOLEAN;
 			chain: INTEGER;
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
@@ -682,6 +682,7 @@ MODULE BugsGraph;
 			INC(chain)
 		END;
 		UpdaterActions.LoadSamples(0);
+		(*	special case where no stochastic nodes in model	*)
 		inits := UpdaterActions.IsInitialized(0);
 		IF inits THEN
 			BugsNodes.Checks(ok);

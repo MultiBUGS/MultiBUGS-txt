@@ -13,8 +13,9 @@ MODULE BugsPrettyprinter;
 	
 
 	IMPORT
-		BugsMappers, BugsParser, 
-		GraphGrammar, GraphNodes;
+		BugsFiles, BugsParser, 
+		GraphGrammar, GraphNodes,
+		TextMappers;
 
 	CONST
 		maxLoopDepth = 20;
@@ -23,7 +24,7 @@ MODULE BugsPrettyprinter;
 
 	TYPE
 		PrettyPrinter = POINTER TO RECORD(BugsParser.Visitor)
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			newLoops, oldLoops: ARRAY maxLoopDepth OF BugsParser.Index
 		END;
 
@@ -31,7 +32,7 @@ MODULE BugsPrettyprinter;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE PrintNode (node: BugsParser.Node; VAR f: BugsMappers.Formatter);
+	PROCEDURE PrintNode (node: BugsParser.Node; VAR f: TextMappers.Formatter);
 		VAR
 			binary: BugsParser.Binary;
 			index: BugsParser.Index;
@@ -211,7 +212,7 @@ MODULE BugsPrettyprinter;
 	END PrintNode;
 
 	PROCEDURE PrintStatement (statement: BugsParser.Statement; loopDepth: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			j: INTEGER;
 			function: BugsParser.Function;
@@ -392,7 +393,7 @@ MODULE BugsPrettyprinter;
 		VAR
 			cursor: BugsParser.Statement;
 			plate: BugsParser.Index;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			i, j, loopDepth, numClosedLoops, numNewLoops: INTEGER;
 	BEGIN
 		ok := TRUE;
@@ -437,15 +438,15 @@ MODULE BugsPrettyprinter;
 		visitor.f := f
 	END Do;
 
-	PROCEDURE DisplayCode* (model: BugsParser.Statement; VAR f: BugsMappers.Formatter);
+	PROCEDURE DisplayCode* (model: BugsParser.Statement; VAR f: TextMappers.Formatter);
 		VAR
 			ok: BOOLEAN;
 			i, j, loopDepth, numClosedLoops, oldPrec: INTEGER;
 			visitor: PrettyPrinter;
 	BEGIN
 		IF model = NIL THEN RETURN END;
-		oldPrec := BugsMappers.prec;
-		BugsMappers.SetPrec(10);
+		oldPrec := BugsFiles.prec;
+		BugsFiles.SetPrec(10);
 		NEW(visitor);
 		i := 0;
 		WHILE i < maxLoopDepth DO
@@ -470,7 +471,7 @@ MODULE BugsPrettyprinter;
 		visitor.f.WriteChar("}");
 		visitor.f.WriteLn;
 		f := visitor.f;
-		BugsMappers.SetPrec(oldPrec)
+		BugsFiles.SetPrec(oldPrec)
 	END DisplayCode;
 
 	PROCEDURE Maintainer;

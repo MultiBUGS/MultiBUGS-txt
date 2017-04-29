@@ -14,17 +14,17 @@ MODULE BugsInfodebug;
 	IMPORT
 		SYSTEM,
 		Meta, Ports, Strings, Views,
-		BugsCmds, BugsEvaluate, BugsIndex, BugsInfo, BugsMappers, BugsMsg, BugsNames,
-		BugsParser, BugsTexts,
+		BugsCmds, BugsEvaluate, BugsFiles, BugsInfo, BugsMsg, BugsNames,
+		BugsParser, 
 		GraphGrammar, GraphNodes, GraphStochastic,
-		TextModels,
-		UpdaterActions, UpdaterParallel, UpdaterUpdaters;
+		TextMappers, TextModels,
+		UpdaterActions, UpdaterUpdaters;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE MethodsState (IN variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE MethodsState (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			adr, chain, depth, i, index, len, numChains, size: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -85,7 +85,7 @@ MODULE BugsInfodebug;
 					f.WriteString(string);
 					f.WriteTab;
 					updater.Install(string);
-					BugsMsg.MapMsg(string, string);
+					BugsMsg.Lookup(string, string);
 					f.WriteString(string);
 					f.WriteTab;
 					f.WriteInt(size);
@@ -98,7 +98,7 @@ MODULE BugsInfodebug;
 						IF ok THEN
 							v := heapRefView.Do(adr, string);
 							f.WriteTab;
-							f.WriteView(v, 0, 0)
+							f.WriteView(v)
 						END;
 						INC(chain)
 					END;
@@ -110,7 +110,7 @@ MODULE BugsInfodebug;
 		END
 	END MethodsState;
 
-	PROCEDURE NodesState (IN variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE NodesState (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			adr, i, index, size, pos: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -170,7 +170,7 @@ MODULE BugsInfodebug;
 				IF ok THEN
 					v := heapRefView.Do(adr, string);
 					f.WriteTab;
-					f.WriteView(v, 0, 0)
+					f.WriteView(v)
 				END
 			ELSE
 				f.WriteString("undefined")
@@ -183,12 +183,12 @@ MODULE BugsInfodebug;
 	PROCEDURE Methods*;
 		VAR
 			tabs: POINTER TO ARRAY OF INTEGER;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 			chains, numChains: INTEGER;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		numChains := UpdaterActions.NumberChains();
 		NEW(tabs, 5 + numChains);
@@ -202,31 +202,27 @@ MODULE BugsInfodebug;
 			tabs[5 + chains] := tabs[4] + (1 + chains) * 15 * Ports.mm;
 			INC(chains)
 		END;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
 		MethodsState(BugsCmds.infoDialog.node.item, f);
-		IF f.lines > 1 THEN
-			f.Register("Updater types")
-		END
+		BugsFiles.Open("Updater types", text)
 	END Methods;
 
 	PROCEDURE Types*;
 		VAR
 			tabs: ARRAY 4 OF INTEGER;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		tabs[0] := 0;
 		tabs[1] := 25 * Ports.mm;
 		tabs[2] := 75 * Ports.mm;
 		tabs[3] := 80 * Ports.mm;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
 		NodesState(BugsCmds.infoDialog.node.item, f);
-		IF f.lines > 1 THEN
-			f.Register("Node types")
-		END
+		BugsFiles.Open("Node types", text)
 	END Types;
 
 	PROCEDURE Maintainer;

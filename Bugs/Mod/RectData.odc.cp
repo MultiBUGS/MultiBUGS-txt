@@ -55,8 +55,8 @@ MODULE BugsRectData;
 			errorMsg: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsRectData" + numToString, errorMsg);
-		BugsMsg.StoreError(errorMsg);
+		BugsMsg.Lookup("BugsRectData" + numToString, errorMsg);
+		BugsMsg.Store(errorMsg);
 	END Error;
 
 	PROCEDURE ErrorNode (errorNum: INTEGER; string: ARRAY OF CHAR);
@@ -65,9 +65,9 @@ MODULE BugsRectData;
 			numToString: ARRAY 8 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsRectData" + numToString, errorMsg);
+		BugsMsg.Lookup("BugsRectData" + numToString, errorMsg);
 		errorMsg := errorMsg + " " + string;
-		BugsMsg.StoreError(errorMsg);
+		BugsMsg.Store(errorMsg);
 	END ErrorNode;
 
 	PROCEDURE CheckItem (VAR s: BugsMappers.Scanner; OUT status: INTEGER);
@@ -203,7 +203,7 @@ MODULE BugsRectData;
 			variable := BugsParser.ParseVariable(NIL, s);
 			varname := s.string$;
 			IF variable = NIL THEN (* variable is not in model *)
-				res := SkipVariable(s);
+				res := SkipVariable(s); 
 				IF res = 0 THEN
 					RETURN NIL
 				ELSE
@@ -418,7 +418,7 @@ MODULE BugsRectData;
 		giveWarning := TRUE;
 		header := ReadHeader(s);
 		IF header = NIL THEN
-			ok := FALSE;
+			ok := FALSE; 
 			RETURN
 		END;
 		giveWarning := FALSE;
@@ -433,9 +433,9 @@ MODULE BugsRectData;
 		LoadNumericData(s, header);
 		(* "variables not in the model" warning is concatenated with the list of such variable names *)
 		IF (nmissing > 0) THEN
-			BugsMsg.MapMsg("BugsRectData19", errorMsg);
+			BugsMsg.Lookup("BugsRectData19", errorMsg);
 			errorMsg := " (" + errorMsg + missingVars + ")";
-			BugsMsg.StoreMsg(errorMsg);
+			BugsMsg.Store(errorMsg);
 			nmissing := 0;
 			missingVars := "";
 		END;
@@ -548,9 +548,9 @@ MODULE BugsRectData;
 		LoadNumericalInits(s, header);
 		(* "variables not in the model" warning is concatenated with the list of such variable names *)
 		IF (nmissing > 0) THEN
-			BugsMsg.MapMsg("BugsRectData19", errorMsg);
+			BugsMsg.Lookup("BugsRectData19", errorMsg);
 			errorMsg := " (" + errorMsg + missingVars + ")";
-			BugsMsg.StoreMsg(errorMsg);
+			BugsMsg.Store(errorMsg);
 			nmissing := 0;
 			missingVars := "";
 		END;

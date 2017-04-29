@@ -14,7 +14,7 @@ MODULE BugsParser;
 
 	IMPORT
 		Stores, Strings,
-		BugsIndex, BugsMappers, BugsMsg, BugsNames, BugsStrings,
+		BugsIndex, BugsMappers, BugsMsg, BugsNames, 
 		GraphGrammar, GraphLogical, GraphNodes, GraphStochastic;
 
 	CONST
@@ -220,9 +220,9 @@ MODULE BugsParser;
 			errorMes: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("BugsParser" + numToString, errorMes);
-		BugsMsg.StoreError(errorMes);
-		model := NIL
+		BugsMsg.Lookup("BugsParser" + numToString, errorMes);
+		BugsMsg.Store(errorMes);
+		(*model := NIL*)
 	END Error;
 
 	PROCEDURE NewBinary (pos, op: INTEGER): Binary;
@@ -1551,7 +1551,7 @@ MODULE BugsParser;
 			name: BugsNames.Name;
 			variable: Variable;
 	BEGIN
-		BugsStrings.ConnectScanner(s, string);
+		s.ConnectToString(string);
 		s.SetPos(0);
 		s.Scan;
 		IF s.type # BugsMappers.string THEN

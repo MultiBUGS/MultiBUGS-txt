@@ -124,7 +124,9 @@ MODULE BugsNames;
 		i := 0;
 		WHILE i < len DO
 			p := name.components[i];
-			IF (p # NIL) & ~(GraphStochastic.update IN p.props) THEN p.Externalize(wr) END; 
+			IF (p # NIL) & (~(GraphStochastic.update IN p.props) OR (GraphStochastic.nR IN p.props)) THEN 
+				p.Externalize(wr) 
+			END; 
 			INC(i)
 		END
 	END ExternalizeData;

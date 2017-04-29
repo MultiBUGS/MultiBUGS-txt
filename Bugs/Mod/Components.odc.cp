@@ -161,8 +161,8 @@ MODULE BugsComponents;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.MapParamMsg("BugsParallel" + numToString, p, errorMsg);
-		BugsMsg.StoreError(errorMsg)
+		BugsMsg.LookupParam("BugsParallel" + numToString, p, errorMsg);
+		BugsMsg.Store(errorMsg)
 	END Error;
 
 	(*	check that for distributed updaters algorithm can be distributed and if not replace it with one that

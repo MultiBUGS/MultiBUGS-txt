@@ -9,11 +9,12 @@ copyright:	"Rsrc/About"
 
 MODULE BugsMappers;
 
-	(*	formatted input and output	*)
+	(*	formatted input	*)
 	
 
 	IMPORT
-		Strings;
+		Strings,
+		TextModels;
 
 	CONST
 
@@ -24,10 +25,6 @@ MODULE BugsMappers;
 		real* = 4; (*	scanned token was a real	*)
 		inval* = 31; (*	scanned token was invalid	*)
 
-		file* = 2; (*	use file input/output	*)
-		log* = 1; (*	use the log for output	*)
-		window* = 0; (*	use window for output	*)
-
 		tab = 09X;
 		line = 0DX;
 		para = 0EX;
@@ -37,10 +34,19 @@ MODULE BugsMappers;
 
 	TYPE
 		(*	class for reading characters from a stream	*)
-		Reader* = POINTER TO ABSTRACT RECORD
-			eot*: BOOLEAN (*	true if end of input strean reached	*)
+		Reader = POINTER TO ABSTRACT RECORD
+			eot: BOOLEAN (*	true if end of input strean reached	*)
 		END;
-
+	
+		StringReader = POINTER TO RECORD(Reader) 
+			string: POINTER TO ARRAY OF CHAR;
+			len, pos: INTEGER
+		END;
+	
+		TextReader = POINTER TO RECORD(Reader) 
+			textRd: TextModels.Reader
+		END;
+		
 		(*	class for scanning tokens	*)
 		Scanner* = RECORD
 			char*: CHAR; (*	value of character scanned	*)
@@ -55,36 +61,76 @@ MODULE BugsMappers;
 			rd-: Reader
 		END;
 
-		(*	class for writing characters to a stream	*)
-		Writer* = POINTER TO ABSTRACT RECORD END;
-
-		(*	class for writing formatted output	*)
-		Formatter* = RECORD
-			lines-: INTEGER; (*	number of lines written	*)
-			views-: INTEGER; (*	number of views written	*)
-			width-: INTEGER; (*	width of output stream	*)
-			viewW-: INTEGER; (*	width of view written	*)
-			viewH-: INTEGER; (*	height of view written	*)
-			wr: Writer
-		END;
-
 	VAR
 		version-: INTEGER; (*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; (*	person maintaining module	*)
-		prec-: INTEGER; (*	number of sig figures used in output	*)
-		whereOut-: INTEGER; (*	where output is written to	*)
-
+		
 	(*	reads a character from input stream	*)
-	PROCEDURE (rd: Reader) ReadChar- (OUT ch: CHAR), NEW, ABSTRACT;
+	PROCEDURE (rd: Reader) ReadChar (OUT ch: CHAR), NEW, ABSTRACT;
 
 	(*	position in input stream	*)
-	PROCEDURE (rd: Reader) Pos- (): INTEGER, NEW, ABSTRACT;
+	PROCEDURE (rd: Reader) Pos (): INTEGER, NEW, ABSTRACT;
 
 	(*	get position in input stream	*)
-	PROCEDURE (rd: Reader) SetPos- (pos: INTEGER), NEW, ABSTRACT;
+	PROCEDURE (rd: Reader) SetPos (pos: INTEGER), NEW, ABSTRACT;
+
+
+	PROCEDURE (rd: StringReader) ReadChar (OUT ch: CHAR);
+		VAR
+			len: INTEGER;
+	BEGIN
+		IF ~rd.eot THEN
+			len := rd.len;
+			IF rd.pos < len THEN
+				ch := rd.string[rd.pos];
+				INC(rd.pos);
+				IF ch = 0X THEN
+					rd.eot := TRUE
+				ELSE
+					rd.eot := rd.pos = len
+				END
+			ELSE
+				rd.eot := TRUE;
+				ch := 0X
+			END
+		ELSE
+			ch := 0X
+		END
+	END ReadChar;
+
+	PROCEDURE (rd: StringReader) Pos (): INTEGER;
+	BEGIN
+		RETURN rd.pos
+	END Pos;
+
+	PROCEDURE (rd: StringReader) SetPos (pos: INTEGER);
+	BEGIN
+		rd.pos := pos
+	END SetPos;
+
+	PROCEDURE (rd: TextReader) ReadChar (OUT ch: CHAR);
+	BEGIN
+		IF ~rd.eot THEN
+			rd.textRd.ReadChar(ch);
+			rd.eot := rd.textRd.eot
+		ELSE
+			ch := 0X
+		END
+	END ReadChar;
+
+	PROCEDURE (rd: TextReader) Pos (): INTEGER;
+	BEGIN
+		RETURN rd.textRd.Pos()
+	END Pos;
+
+	PROCEDURE (rd: TextReader) SetPos (pos: INTEGER);
+	BEGIN
+		rd.textRd.SetPos(pos);
+		rd.eot := rd.textRd.eot
+	END SetPos;
 
 	(*	sets the input stream used by scanner	*)
-	PROCEDURE (VAR s: Scanner) SetReader* (rd: Reader), NEW;
+	PROCEDURE (VAR s: Scanner) SetReader (rd: Reader), NEW;
 	BEGIN
 		s.rd := rd
 	END SetReader;
@@ -240,182 +286,30 @@ MODULE BugsMappers;
 		s.eot := s.rd.eot
 	END SetPos;
 
-	(*	make subsiquent output be in bold type	*)
-	PROCEDURE (wr: Writer) Bold-, NEW, ABSTRACT;
-
-		(*	height of a line of text	*)
-	PROCEDURE (wr: Writer) LineHeight- (): INTEGER, NEW, ABSTRACT;
-
-		(*	position in the output stream	*)
-	PROCEDURE (wr: Writer) Pos- (): INTEGER, NEW, ABSTRACT;
-
-		(*	registers the output stream	*)
-	PROCEDURE (wr: Writer) Register- (IN name: ARRAY OF CHAR; w, h: INTEGER), NEW, ABSTRACT;
-
-		(*	sets position in output stream	*)
-	PROCEDURE (wr: Writer) SetPos- (pos: INTEGER), NEW, ABSTRACT;
-
-		(*	registers the out put stream in a standard way	*)
-	PROCEDURE (wr: Writer) StdRegister-, NEW, ABSTRACT;
-
-		(*	writes a character to output stream	*)
-	PROCEDURE (wr: Writer) WriteChar- (ch: CHAR), NEW, ABSTRACT;
-
-		(*	writes a new line to output stream	*)
-	PROCEDURE (wr: Writer) WriteLn-, NEW, ABSTRACT;
-
-		(*	writes a ruler (tab spacing control) to output stream	*)
-	PROCEDURE (wr: Writer) WriteRuler- (IN tabs: ARRAY OF INTEGER), NEW, ABSTRACT;
-
-		(*	writes a string to output stream	*)
-	PROCEDURE (wr: Writer) WriteString- (IN string: ARRAY OF CHAR), NEW, ABSTRACT;
-
-		(*	writes a tab to out put stream (depends on ruler)	*)
-	PROCEDURE (wr: Writer) WriteTab-, NEW, ABSTRACT;
-
-		(*	writes a view to output stream	*)
-	PROCEDURE (wr: Writer) WriteView- (v: ANYPTR; w, h: INTEGER), NEW, ABSTRACT;
-
-		(*	make subsiquent output be in bold type	*)
-	PROCEDURE (VAR f: Formatter) Bold*, NEW;
+	PROCEDURE (VAR s: Scanner) ConnectToString* (IN string: ARRAY OF CHAR), NEW;
+	VAR
+		i: INTEGER;
+		rd: StringReader;
 	BEGIN
-		f.wr.Bold
-	END Bold;
+		i := 0;
+		WHILE string[i] # 0X DO INC(i) END;
+		NEW(rd);
+		NEW(rd.string, i + 1);
+		rd.string^ := string$;
+		rd.len := i + 1;
+		rd.pos := 0;
+		rd.eot := FALSE;
+		s.rd := rd
+	END ConnectToString;
 
-	(*	height of a line of text	*)
-	PROCEDURE (VAR f: Formatter) LineHeight* (): INTEGER, NEW;
-	BEGIN
-		RETURN f.wr.LineHeight()
-	END LineHeight;
-
-	(*	position in the output stream	*)
-	PROCEDURE (VAR f: Formatter) Pos* (): INTEGER, NEW;
-	BEGIN
-		RETURN f.wr.Pos()
-	END Pos;
-
-	(*	registers the output stream	*)
-	PROCEDURE (VAR f: Formatter) Register* (IN name: ARRAY OF CHAR), NEW;
+	PROCEDURE (VAR s: Scanner) ConnectToText* (text: TextModels.Model), NEW;
 		VAR
-			w, h: INTEGER;
+			rd: TextReader;
 	BEGIN
-		w := f.width;
-		IF f.lines # 0 THEN
-			h := f.lines;
-			h := MIN(h, 25);
-			h := h * f.LineHeight();
-			f.wr.Register(name, w, h)
-		ELSIF f.views > 0 THEN
-			h := f.views;
-			IF h = 1 THEN
-				h := f.viewH;
-				w := f.viewW
-			ELSE
-				h := (h + 1) DIV 2;
-				h := MIN(4, h);
-				h := h * f.viewH;
-				w := 2 * f.viewW
-			END;
-			f.wr.Register(name, w, h)
-		END
-	END Register;
-
-	(*	sets position in output stream	*)
-	PROCEDURE (VAR f: Formatter) SetPos* (pos: INTEGER), NEW;
-	BEGIN
-		f.wr.SetPos(pos)
-	END SetPos;
-
-	(*	sets output stream for output	*)
-	PROCEDURE (VAR f: Formatter) SetWriter* (wr: Writer), NEW;
-	BEGIN
-		f.lines := 0;
-		f.views := 0;
-		f.width := 0;
-		f.viewW := 0;
-		f.viewH := 0;
-		f.wr := wr
-	END SetWriter;
-
-	(*	registers the out put stream in a standard way	*)
-	PROCEDURE (VAR f: Formatter) StdRegister*, NEW;
-	BEGIN
-		f.wr.StdRegister
-	END StdRegister;
-
-	(*	writes a character to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteChar* (ch: CHAR), NEW;
-	BEGIN
-		f.wr.WriteChar(ch)
-	END WriteChar;
-
-	(*	writes an integer to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteInt* (x: INTEGER), NEW;
-		VAR
-			str: ARRAY 80 OF CHAR;
-	BEGIN
-		Strings.IntToString(x, str);
-		f.wr.WriteString(str)
-	END WriteInt;
-
-	(*	writes a new line to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteLn*, NEW;
-	BEGIN
-		INC(f.lines);
-		f.wr.WriteLn
-	END WriteLn;
-
-	(*	writes a real to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteReal* (x: REAL), NEW;
-		VAR
-			str: ARRAY 80 OF CHAR;
-	BEGIN
-		Strings.RealToStringForm(x, prec, 0, 0, " ", str);
-		f.wr.WriteString(str)
-	END WriteReal;
-
-	(*	writes a string to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteString* (IN str: ARRAY OF CHAR), NEW;
-	BEGIN
-		f.wr.WriteString(str)
-	END WriteString;
-
-	(*	writes a ruler (tab spacing control) to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteRuler* (IN tabs: ARRAY OF INTEGER), NEW;
-		VAR
-			last: INTEGER;
-	BEGIN
-		f.wr.WriteRuler(tabs);
-		last := LEN(tabs) - 1;
-		f.width := MAX(f.width, tabs[last])
-	END WriteRuler;
-
-	(*	writes a tab to out put stream (depends on ruler)	*)
-	PROCEDURE (VAR f: Formatter) WriteTab*, NEW;
-	BEGIN
-		f.wr.WriteTab
-	END WriteTab;
-
-	(*	writes a view to output stream	*)
-	PROCEDURE (VAR f: Formatter) WriteView* (v: ANYPTR; w, h: INTEGER), NEW;
-	BEGIN
-		INC(f.views);
-		f.viewW := MAX(f.viewW, w);
-		f.viewH := MAX(f.viewH, h);
-		f.wr.WriteView(v, w, h)
-	END WriteView;
-
-	(*	sets number of significant figures used for outputting real numbers	*)
-	PROCEDURE SetPrec* (precission: INTEGER);
-	BEGIN
-		prec := precission
-	END SetPrec;
-
-	(*	sets where output will be written to	*)
-	PROCEDURE SetDest* (dest: INTEGER);
-	BEGIN
-		whereOut := dest
-	END SetDest;
+		NEW(rd);
+		rd.textRd := text.NewReader(NIL);
+		s.SetReader(rd)
+	END ConnectToText;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -423,14 +317,7 @@ MODULE BugsMappers;
 		maintainer := "A.Thomas"
 	END Maintainer;
 
-	PROCEDURE Init;
-	BEGIN
-		Maintainer;
-		SetPrec(4);
-		whereOut := window
-	END Init;
-
 BEGIN
-	Init
+	Maintainer
 END BugsMappers.
 

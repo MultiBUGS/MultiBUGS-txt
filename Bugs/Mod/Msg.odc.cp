@@ -13,8 +13,7 @@ MODULE BugsMsg;
 	
 
 	IMPORT
-		Files, Strings,
-		BugsFiles, BugsMappers;
+		Log, Dialog, Files, Strings; 
 
 	TYPE
 		MsgList = POINTER TO RECORD
@@ -23,45 +22,13 @@ MODULE BugsMsg;
 		END;
 
 	VAR
-		message: ARRAY 1024 OF CHAR;
+		message-: ARRAY 1024 OF CHAR;
 		msgList: MsgList;
-		debug*: BOOLEAN;
 
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE GetError* (OUT msg: ARRAY OF CHAR);
-	BEGIN
-		msg := message$
-	END GetError;
-
-	PROCEDURE GetMsg* (OUT msg: ARRAY OF CHAR);
-	BEGIN
-		msg := message$
-	END GetMsg;
-
-	PROCEDURE LenMsg* (): INTEGER;
-	BEGIN
-		RETURN LEN(message)
-	END LenMsg;
-
-	PROCEDURE Map* (IN key, mes: ARRAY OF CHAR);
-		VAR
-			len: INTEGER;
-			element: MsgList;
-	BEGIN
-		NEW(element);
-		element.next := msgList;
-		msgList := element;
-		len := LEN(key);
-		NEW(element.key, len + 1);
-		element.key^ := key$;
-		len := LEN(mes);
-		NEW(element.msg, len + 1);
-		element.msg^ := mes$;
-	END Map;
-
-	PROCEDURE MapMsg* (IN key: ARRAY OF CHAR; OUT mes: ARRAY OF CHAR);
+	PROCEDURE Lookup* (IN key: ARRAY OF CHAR; OUT mes: ARRAY OF CHAR);
 		VAR
 			cursor: MsgList;
 	BEGIN
@@ -73,9 +40,9 @@ MODULE BugsMsg;
 			mes := cursor.msg$
 		ELSE
 			mes := key$
-		END
-	END MapMsg;
-
+		END;
+	END Lookup;
+	
 	PROCEDURE InverseMapMsg* (IN msg: ARRAY OF CHAR; OUT key: ARRAY OF CHAR);
 		VAR
 			cursor: MsgList;
@@ -91,8 +58,8 @@ MODULE BugsMsg;
 		END
 	END InverseMapMsg;
 
-	PROCEDURE MapParamMsg* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR;
-	OUT mes: ARRAY OF CHAR);
+	PROCEDURE LookupParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR; 
+	OUT msg: ARRAY OF CHAR);
 		VAR
 			i, len, pos: INTEGER;
 			pat: ARRAY 128 OF CHAR;
@@ -103,7 +70,7 @@ MODULE BugsMsg;
 			cursor := cursor.next
 		END;
 		IF cursor # NIL THEN
-			mes := cursor.msg$;
+			msg := cursor.msg$;
 			i := 0;
 			len := LEN(p);
 			WHILE i < len DO
@@ -111,51 +78,56 @@ MODULE BugsMsg;
 				pat := "^" + pat;
 				pos := 0;
 				WHILE pos #  - 1 DO
-					Strings.Find(mes, pat, 0, pos);
+					Strings.Find(msg, pat, 0, pos);
 					IF pos #  - 1 THEN
-						Strings.Replace(mes, pos, LEN(pat$), p[i])
+						Strings.Replace(msg, pos, LEN(pat$), p[i])
 					END
 				END;
 				INC(i)
 			END
 		ELSE
-			mes := key$
+			msg := key$
 		END
-	END MapParamMsg;
+	END LookupParam;
 
-	PROCEDURE ParamMsg* (IN in: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR;
-	OUT mes: ARRAY OF CHAR);
+	PROCEDURE Show* (IN key: ARRAY OF CHAR);
 		VAR
-			i, len, pos: INTEGER;
-			pat: ARRAY 128 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
-		mes := in$;
-		i := 0;
-		len := LEN(p);
-		WHILE i < len DO
-			Strings.IntToString(i, pat);
-			pat := "^" + pat;
-			pos := 0;
-			WHILE pos #  - 1 DO
-				Strings.Find(mes, pat, 0, pos);
-				IF pos #  - 1 THEN
-					Strings.Replace(mes, pos, LEN(pat$), p[i])
-				END
-			END;
-			INC(i)
-		END
-	END ParamMsg;
+		Lookup(key, msg);
+		Dialog.ShowStatus(msg);
+		Log.String(msg); Log.Ln
+	END Show;
+	
+	PROCEDURE ShowParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR);
+		VAR
+			msg: ARRAY 1024 OF CHAR;
+	BEGIN
+		LookupParam(key, p, msg);
+		Dialog.ShowStatus(msg);
+		Log.String(msg); Log.Ln
+	END ShowParam;
 
-	PROCEDURE StoreError* (IN msg: ARRAY OF CHAR);
+	PROCEDURE Store* (IN msg: ARRAY OF CHAR);
 	BEGIN
 		message := msg$;
-		IF debug THEN HALT(0) END
-	END StoreError;
+	END Store;
 
-	PROCEDURE StoreMsg* (IN msg: ARRAY OF CHAR);
+	PROCEDURE StoreKey* (IN key, mes: ARRAY OF CHAR);
+		VAR
+			len: INTEGER;
+			element: MsgList;
 	BEGIN
-		message := msg$
-	END StoreMsg;
+		NEW(element);
+		element.next := msgList;
+		msgList := element;
+		len := LEN(key);
+		NEW(element.key, len + 1);
+		element.key^ := key$;
+		len := LEN(mes);
+		NEW(element.msg, len + 1);
+		element.msg^ := mes$;
+	END StoreKey;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -166,7 +138,6 @@ MODULE BugsMsg;
 	PROCEDURE Init;
 	BEGIN
 		msgList := NIL;
-		debug := FALSE;
 		message := "";
 		Maintainer
 	END Init;

@@ -17,10 +17,10 @@ MODULE BugsCPCompiler;
 
 	IMPORT
 		Files, Kernel, Services, Stores, Strings, Views, 
-		BugsCPWrite, BugsMappers, BugsTexts, 
+		BugsCPWrite, 
 		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486, 
 		GraphLogical, GraphNodes, GraphStochastic, 
-		TextModels, TextViews;
+		TextMappers, TextModels, TextViews;
 
 	TYPE
 		FactoryList = POINTER TO RECORD
@@ -80,7 +80,7 @@ MODULE BugsCPCompiler;
 	PROCEDURE CreateFactory (IN args: GraphStochastic.ArgsLogical): GraphNodes.Factory;
 		VAR
 			rd: TextModels.Reader;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			ok: BOOLEAN;
 			modName, timeStamp: ARRAY 128 OF CHAR;
 			factory: GraphNodes.Factory;
@@ -90,7 +90,7 @@ MODULE BugsCPCompiler;
 		Strings.IntToString(numDynamic, modName);
 		modName := "DynamicNode" + modName + "_" + timeStamp;
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		BugsCPWrite.WriteModule(args, numDynamic, f);
 		IF debug THEN Views.OpenAux(TextViews.dir.New(text), modName$) END;
 		rd := text.NewReader(NIL);
@@ -274,12 +274,12 @@ MODULE BugsCPCompiler;
 			text: TextModels.Model;
 			ok: BOOLEAN;
 			rd: TextModels.Reader;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			timeStamp: ARRAY 64 OF CHAR;
 	BEGIN
 		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.WriteString("MODULE DynamicTime_" + timeStamp + ";");
 		f.WriteString("IMPORT GraphNodes;");
 		f.WriteString("BEGIN ");
