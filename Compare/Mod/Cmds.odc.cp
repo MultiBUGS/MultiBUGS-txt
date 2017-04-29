@@ -14,9 +14,9 @@ MODULE CompareCmds;
 
 	IMPORT
 		Dialog,
-		TextModels,
+		TextMappers, TextModels,
 		BugsCmds, BugsDialog, BugsEvaluate, BugsIndex, BugsInterface, 
-		BugsMappers, BugsNames, BugsParser, BugsTexts,
+		BugsFiles, BugsNames, BugsParser, 
 		CompareViews,
 		GraphNodes,
 		PlotsViews,
@@ -133,8 +133,8 @@ MODULE CompareCmds;
 			sample, percentiles: POINTER TO ARRAY OF ARRAY OF REAL;
 			string, title: Dialog.String;
 			v: PlotsViews.View;
-			t: TextModels.Model;
-			f: BugsMappers.Formatter;
+			text: TextModels.Model;
+			f: TextMappers.Formatter;
 			fact: CompareViews.Factory;
 			var: BugsParser.Variable;
 			labels: POINTER TO ARRAY OF ARRAY 128 OF CHAR;
@@ -195,12 +195,12 @@ MODULE CompareCmds;
 		END;
 		v := fact.New(dialog.node, labels, mean, percentiles, start, sampleSize, other, axis);
 		v.MinSize(w, h);
-		t := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, t);
-		f.WriteView(v, w, h);
+		text := TextModels.dir.New();
+		f.ConnectTo(text);
+		f.WriteView(v);
 		CompareViews.fact.Title(title);
 		Dialog.MapString(title, title);
-		f.Register(title)
+		BugsFiles.Open(title, text)
 	END Plot;
 
 	PROCEDURE IsMonitored (IN string: ARRAY OF CHAR): BOOLEAN;

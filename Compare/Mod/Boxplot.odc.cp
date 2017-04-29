@@ -14,8 +14,8 @@ MODULE CompareBoxplot;
 
 	IMPORT
 		Controllers, Dialog, Files, Fonts, Ports, Properties, Stores, Strings, Views,
-		TextModels, TextRulers, TextViews, 
-		BugsMappers, BugsTexts, 
+		TextMappers, TextModels, TextRulers, TextViews, 
+		BugsMappers, 
 		CompareViews,
 		MathSort, 
 		PlotsAxis, PlotsDialog, PlotsViews;
@@ -30,7 +30,8 @@ MODULE CompareBoxplot;
 		propRanked = 4; propLogScale = 5; propOrientation = 6; propBoxColour = 7;
 		propAll = {propMode..propBoxColour};
 		labelLen = 128;
-
+		bold = 700;
+		
 	TYPE
 		View = POINTER TO RECORD (PlotsViews.View)
 			mode, orientation, boxColour: INTEGER;
@@ -468,14 +469,15 @@ MODULE CompareBoxplot;
 			width = first + numTabs * cell;
 		VAR
 			i, len, index: INTEGER;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			t: TextModels.Model;
 			tv: Views.View;
 			p: TextRulers.Prop;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		t := TextModels.dir.New();
 		tv := TextViews.dir.New(t);
-		BugsTexts.ConnectFormatter(f, t);
+		f.ConnectTo(t);
 		NEW(p);
 		p.right := width;
 		p.tabs.len := numTabs;
@@ -486,7 +488,9 @@ MODULE CompareBoxplot;
 			INC(i)
 		END;
 		p.valid := {TextRulers.right, TextRulers.tabs};
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteString("node");
 		f.WriteTab;
 		f.WriteString("mean");
@@ -501,7 +505,7 @@ MODULE CompareBoxplot;
 		f.WriteTab;
 		f.WriteString("97.5%");
 		f.WriteLn;
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		len := LEN(v.label);
 		i := 0;
 		WHILE i < len DO
