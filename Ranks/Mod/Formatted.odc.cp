@@ -12,21 +12,32 @@ MODULE RanksFormatted;
 	
 
 	IMPORT
-		BugsIndex, BugsMappers, BugsNames,
-		RanksIndex, RanksInterface, RanksMonitors;
+		Fonts,
+		BugsFiles, BugsIndex, BugsNames,
+		RanksIndex, RanksInterface, RanksMonitors,
+		TextMappers, TextModels;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE Header (IN fractions: ARRAY OF REAL; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+		
+	PROCEDURE Header (IN fractions: ARRAY OF REAL; VAR f: TextMappers.Formatter);
 		CONST
 			eps = 1.0E-10;
 		VAR
 			i, numFrac: INTEGER;
+			
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		numFrac := LEN(fractions);
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteTab;
 		i := 0;
@@ -35,7 +46,7 @@ MODULE RanksFormatted;
 				f.WriteString("median")
 			ELSE
 				f.WriteString("val");
-				f.WriteReal(fractions[i]);
+				WriteReal(fractions[i], f);
 				f.WriteString("pc")
 			END;
 			f.WriteTab;
@@ -43,11 +54,11 @@ MODULE RanksFormatted;
 		END;
 		f.WriteTab;
 		f.WriteLn;
-		f.Bold
+		f.rider.SetAttr(oldAttr)
 	END Header;
 
 	PROCEDURE FormatStats (IN variable: ARRAY OF CHAR; IN fractions: ARRAY OF REAL;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i, j, len, numFrac, sampleSize: INTEGER;
 			label: ARRAY 120 OF CHAR;
@@ -82,7 +93,7 @@ MODULE RanksFormatted;
 	END FormatStats;
 
 	PROCEDURE Stats* (variable: ARRAY OF CHAR; fractions: ARRAY OF REAL;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			monitors: POINTER TO ARRAY OF RanksMonitors.Monitor;

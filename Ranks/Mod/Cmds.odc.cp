@@ -14,9 +14,10 @@ MODULE RanksCmds;
 	IMPORT
 		Dialog, Ports, Strings,
 		BugsDialog,
-		BugsGraph, BugsIndex, BugsInterface, BugsMappers, BugsMsg, BugsTexts, PlotsViews,
+		BugsFiles, BugsIndex, BugsInterface, BugsMsg, PlotsViews,
 		RanksDensity,
-		RanksFormatted, RanksIndex, RanksInterface, RanksMonitors, TextModels;
+		RanksFormatted, RanksIndex, RanksInterface, RanksMonitors, 
+		TextMappers, TextModels;
 
 	TYPE
 
@@ -120,9 +121,8 @@ MODULE RanksCmds;
 		RanksInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -141,9 +141,8 @@ MODULE RanksCmds;
 		RanksInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -178,7 +177,7 @@ MODULE RanksCmds;
 		RETURN plots
 	END MakePlots;
 
-	PROCEDURE FormatPlots (IN name: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE FormatPlots (IN name: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			h, i, num, w: INTEGER;
 			plots: POINTER TO ARRAY OF PlotsViews.View;
@@ -192,7 +191,7 @@ MODULE RanksCmds;
 		i := 0;
 		WHILE i < num DO
 			plots[i].MinSize(w, h);
-			f.WriteView(plots[i], w, h);
+			f.WriteView(plots[i]);
 			INC(i)
 		END
 	END FormatPlots;
@@ -202,11 +201,11 @@ MODULE RanksCmds;
 			i, len: INTEGER;
 			name: Dialog.String;
 			monitors: POINTER TO ARRAY OF RanksMonitors.Monitor;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		name := dialog.node.item$;
 		IF RanksInterface.IsStar(name) THEN
@@ -224,7 +223,7 @@ MODULE RanksCmds;
 		ELSE
 			FormatPlots(name, f)
 		END;
-		f.Register("Rank histograms")
+		IF f.Pos() > 0 THEN BugsFiles.Open("Rank histograms", text) END
 	END Draw;
 
 	PROCEDURE Set*;
@@ -238,9 +237,8 @@ MODULE RanksCmds;
 		RanksInterface.Set(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -250,14 +248,14 @@ MODULE RanksCmds;
 
 	PROCEDURE Stats*;
 		VAR
-			i, numFrac, numTabs: INTEGER;
+			i, numFrac, numTabs, pos: INTEGER;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			fractions: POINTER TO ARRAY OF REAL;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		numFrac := NumFractions();
 		numTabs := numFrac + 3;
@@ -269,10 +267,11 @@ MODULE RanksCmds;
 			tabs[i] := tabs[1] + 15 * Ports.mm * (i - 1);
 			INC(i)
 		END;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
 		fractions := GetPercentiles();
+		pos := f.Pos();
 		RanksFormatted.Stats(dialog.node.item, fractions, f);
-		f.Register("Rank statistics")
+		IF f.Pos() > pos THEN BugsFiles.Open("Rank statistics", text) END
 	END Stats;
 
 	PROCEDURE SetVariable* (var: ARRAY OF CHAR);
@@ -284,38 +283,32 @@ MODULE RanksCmds;
 
 	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
 		VAR
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 			variable: Dialog.String;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("RanksCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("RanksCmds:NotInitialized");
 		ELSE
 			variable := dialog.node.item;
 			ok := ~BugsInterface.IsAdapting();
 			IF ~ok THEN
-				BugsMsg.MapMsg("RanksCmds:Adapting", msg);
-				BugsTexts.ShowMsg(msg)
+				BugsMsg.Show("RanksCmds:Adapting");
 			ELSE
 				ok := BugsIndex.Find(variable) # NIL;
 				IF ~ok THEN
 					p[0] := variable$;
-					BugsMsg.MapParamMsg("RanksCmds:NotVariable", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("RanksCmds:NotVariable", p);
 				ELSE
 					ok := BugsIndex.Find(variable).numSlots = 1;
 					IF ~ok THEN
 						p[0] := variable$;
-						BugsMsg.MapParamMsg("RanksCmds:NotVector", p, msg);
-						BugsTexts.ShowMsg(msg)
+						BugsMsg.ShowParam("RanksCmds:NotVector", p);
 					ELSE
 						ok := RanksIndex.Find(variable) = NIL;
 						IF ~ok THEN
 							p[0] := variable$;
-							BugsMsg.MapParamMsg("RanksCmds:AlreadySet", p, msg);
-							BugsTexts.ShowMsg(msg)
+							BugsMsg.ShowParam("RanksCmds:AlreadySet", p);
 						END
 					END
 				END
@@ -327,28 +320,24 @@ MODULE RanksCmds;
 		VAR
 			numMonitors: INTEGER;
 			variable: Dialog.String;
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("RanksCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("RanksCmds:NotInitialized");
 		ELSE
 			variable := dialog.node.item;
 			IF~RanksInterface.IsStar(variable) THEN
 				ok := RanksIndex.Find(variable) # NIL;
 				IF ~ok THEN
 					p[0] := variable$;
-					BugsMsg.MapParamMsg("RanksCmds:NotSet", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("RanksCmds:NotSet", p);
 				END
 			ELSE
 				numMonitors := RanksIndex.NumberOfMonitors();
 				ok := numMonitors # 0; ;
 				IF ~ok THEN
-					BugsMsg.MapMsg("RanksCmds:NoMonitors", msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.Show("RanksCmds:NoMonitors");
 				END
 			END
 		END
