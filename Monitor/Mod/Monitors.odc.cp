@@ -294,8 +294,8 @@ MODULE MonitorMonitors;
 		drawerList := element
 	END RegisterDrawer;
 
-	PROCEDURE SendMonitored* (OUT values: ARRAY OF REAL; IN monitored: ARRAY OF INTEGER;
-	numMonitored: INTEGER);
+	PROCEDURE CollectMonitored* (IN monitored: ARRAY OF INTEGER; numMonitored: INTEGER;
+	OUT values: ARRAY OF REAL);
 		VAR
 			i: INTEGER;
 			p: GraphStochastic.Node;
@@ -308,7 +308,7 @@ MODULE MonitorMonitors;
 			values[i] := p.value;
 			INC(i)
 		END
-	END SendMonitored;
+	END CollectMonitored;
 
 	PROCEDURE SetFactory* (f: Factory);
 	BEGIN
