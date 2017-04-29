@@ -21,17 +21,17 @@ MODULE CorrelMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		Map: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		Map("CorrelEmbed:NotInitialized", "model must be initialized");
-		Map("CorrelEmbed:Adapting", "sampler has not yet finished adapting");
-		Map("CorrelEmbed:NotMonitored", "sample monitor not set for ^0");
+		StoreKey("CorrelEmbed:NotInitialized", "model must be initialized");
+		StoreKey("CorrelEmbed:Adapting", "sampler has not yet finished adapting");
+		StoreKey("CorrelEmbed:NotMonitored", "sample monitor not set for ^0");
 
-		Map("CorrelCmds:NotInitialized", "model must be initialized");
-		Map("CorrelCmds:Adapting", "sampler has not yet finished adapting");
-		Map("CorrelCmds:NotMonitored", "sample monitor not set for ^0");
+		StoreKey("CorrelCmds:NotInitialized", "model must be initialized");
+		StoreKey("CorrelCmds:Adapting", "sampler has not yet finished adapting");
+		StoreKey("CorrelCmds:NotMonitored", "sample monitor not set for ^0");
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -43,7 +43,7 @@ MODULE CorrelMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		Map := BugsMsg.Map
+		StoreKey := BugsMsg.StoreKey
 	END Init;
 
 BEGIN

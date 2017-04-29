@@ -268,7 +268,7 @@ MODULE CorrelMatrix;
 		NEW(offsets, yLen);
 		SamplesInterface.Offsets(yName, beg, end, thin, offsets);
 		j := 0;
-		WHILE j < yLen DO BugsIndex.MakeLabel(yName, offsets[j], xLabels[j]); INC(j) END;
+		WHILE j < yLen DO BugsIndex.MakeLabel(yName, offsets[j], yLabels[j]); INC(j) END;
 		i := 0;
 		WHILE (i < xLen) DO
 			j := 0;

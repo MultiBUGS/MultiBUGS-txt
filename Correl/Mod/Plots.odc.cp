@@ -12,10 +12,11 @@ MODULE CorrelPlots;
 	
 
 	IMPORT
-		BugsMappers, BugsNames, BugsParser, 
+		BugsNames, BugsParser, 
 		CorrelBivariate, CorrelInterface, CorrelMatrix,
 		PlotsViews, 
-		SamplesIndex, SamplesInterface, SamplesMonitors;
+		SamplesIndex, SamplesInterface, SamplesMonitors,
+		TextMappers;
 
 	VAR
 		version-: INTEGER;
@@ -49,7 +50,7 @@ MODULE CorrelPlots;
 	END ScatterPlot;
 
 	PROCEDURE MakePlots (string0, string1: ARRAY OF CHAR; beg, end, thin, firstChain, lastChain: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			col, i, h, j, num0, num1, row, w: INTEGER;
 			offsets0, offsets1: POINTER TO ARRAY OF INTEGER;
@@ -82,7 +83,7 @@ MODULE CorrelPlots;
 					v := ScatterPlot(monitor0, monitor1, beg, end, firstChain, lastChain, row, col);
 					IF v # NIL THEN
 						v.MinSize(w, h);
-						f.WriteView(v, w, h)
+						f.WriteView(v)
 					END
 				END;
 				INC(j)
@@ -92,7 +93,7 @@ MODULE CorrelPlots;
 	END MakePlots;
 
 	PROCEDURE ScatterPlots* (string0, string1: ARRAY OF CHAR;
-	beg, end, thin, firstChain, lastChain: INTEGER; VAR f: BugsMappers.Formatter);
+	beg, end, thin, firstChain, lastChain: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			var0, var1: BugsParser.Variable;
 	BEGIN
@@ -111,7 +112,7 @@ MODULE CorrelPlots;
 	END ScatterPlots;
 
 	PROCEDURE MatrixPlot* (xName, yName: ARRAY OF CHAR;
-	beg, end, thin, firstChain, lastChain: INTEGER; VAR f: BugsMappers.Formatter);
+	beg, end, thin, firstChain, lastChain: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			xNum, yNum, w, h: INTEGER;
 			matrix: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -132,7 +133,7 @@ MODULE CorrelPlots;
 		plot := CorrelMatrix.New(matrix, xName, yName, beg, end, thin);
 		IF plot # NIL THEN
 			plot.MinSize(w, h);
-			f.WriteView(plot, w, h)
+			f.WriteView(plot)
 		END
 	END MatrixPlot;
 

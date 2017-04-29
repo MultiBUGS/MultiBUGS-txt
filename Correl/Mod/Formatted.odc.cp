@@ -13,16 +13,22 @@ MODULE CorrelFormatted;
 	
 
 	IMPORT
-		BugsIndex, BugsMappers, BugsParser,
+		BugsFiles, BugsIndex, BugsParser,
 		CorrelInterface,
-		SamplesInterface;
+		SamplesInterface,
+		TextMappers, TextModels;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+
 		PROCEDURE PrintMatrix* (string0, string1: ARRAY OF CHAR;
-	beg, end, thin, firstChain, lastChain: INTEGER; VAR f: BugsMappers.Formatter);
+	beg, end, thin, firstChain, lastChain: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			i, j, num0, num1: INTEGER;
 			offsets0, offsets1: POINTER TO ARRAY OF INTEGER;
@@ -62,7 +68,7 @@ MODULE CorrelFormatted;
 			j := 0;
 			WHILE j < num1 DO
 				f.WriteTab;
-				f.WriteReal(matrix[i, j]);
+				WriteReal(matrix[i, j], f);
 				INC(j)
 			END;
 			f.WriteLn;

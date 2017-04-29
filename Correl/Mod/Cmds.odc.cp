@@ -13,8 +13,8 @@ MODULE CorrelCmds;
 
 	IMPORT
 		Dialog, 
-		TextModels, 
-		BugsCmds, BugsDialog, BugsGraph, BugsInterface, BugsMappers, BugsMsg, BugsTexts,
+		TextMappers, TextModels, 
+		BugsCmds, BugsDialog, BugsFiles, BugsInterface, BugsMsg, 
 		CorrelFormatted, CorrelPlots,
 		SamplesIndex;
 
@@ -64,11 +64,11 @@ MODULE CorrelCmds;
 		VAR
 			beg, end, thin, firstChain, lastChain: INTEGER;
 			string0, string1: Dialog.String;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		beg := dialog.beg;
 		end := dialog.end;
@@ -78,18 +78,18 @@ MODULE CorrelCmds;
 		firstChain := dialog.firstChain;
 		lastChain := MIN(dialog.lastChain, BugsCmds.specificationDialog.numChains);
 		CorrelPlots.MatrixPlot(string0, string1, beg, end, thin, firstChain, lastChain, f);
-		f.Register("Corellation Matrix")
+		BugsFiles.Open("Corellation Matrix", text)
 	END DrawMatrix;
 
 	PROCEDURE PrintMatrix*;
 		VAR
 			beg, end, thin, firstChain, lastChain: INTEGER;
 			string0, string1: Dialog.String;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		beg := dialog.beg;
 		end := dialog.end;
@@ -99,18 +99,18 @@ MODULE CorrelCmds;
 		firstChain := dialog.firstChain;
 		lastChain := MIN(dialog.lastChain, BugsCmds.specificationDialog.numChains);
 		CorrelFormatted.PrintMatrix(string0, string1, beg, end, thin, firstChain, lastChain, f);
-		f.Register("Corellation Matrix")
+		BugsFiles.Open("Corellation Matrix", text)
 	END PrintMatrix;
 
 	PROCEDURE ScatterPlots*;
 		VAR
 			beg, end, thin, firstChain, lastChain: INTEGER;
 			string0, string1: Dialog.String;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		beg := dialog.beg;
 		end := dialog.end;
@@ -120,24 +120,21 @@ MODULE CorrelCmds;
 		firstChain := dialog.firstChain;
 		lastChain := MIN(dialog.lastChain, BugsCmds.specificationDialog.numChains);
 		CorrelPlots.ScatterPlots(string0, string1, beg, end, thin, firstChain, lastChain, f);
-		f.Register("Bivariate Scatter Plot")
+		BugsFiles.Open("Bivariate Scatter Plot", text)
 	END ScatterPlots;
 
 	PROCEDURE Guard* (OUT ok: BOOLEAN);
 		VAR
 			i: INTEGER;
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("CorrelCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("CorrelCmds:NotInitialized");
 		ELSE
 			ok := ~BugsInterface.IsAdapting();
 			IF ~ok THEN
-				BugsMsg.MapMsg("CorrelCmds:Adapting", msg);
-				BugsTexts.ShowMsg(msg)
+				BugsMsg.Show("CorrelCmds:Adapting");
 			ELSE
 				i := 0;
 				WHILE (dialog.string0[i] # 0X) & (dialog.string0[i] # "[") DO
@@ -147,8 +144,7 @@ MODULE CorrelCmds;
 				p[0][i] := 0X;
 				ok := SamplesIndex.Find(p[0]) # NIL;
 				IF ~ok THEN
-					BugsMsg.MapParamMsg("CorrelCmds:NotMonitored", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("CorrelCmds:NotMonitored", p);
 				ELSE
 					IF dialog.string1 # "" THEN
 						i := 0;
@@ -159,8 +155,7 @@ MODULE CorrelCmds;
 						p[0][i] := 0X;
 						ok := SamplesIndex.Find(p[0]) # NIL;
 						IF ~ok THEN
-							BugsMsg.MapParamMsg("CorrelCmds:NotMonitored", p, msg);
-							BugsTexts.ShowMsg(msg)
+							BugsMsg.ShowParam("CorrelCmds:NotMonitored", p);
 						END
 					END
 				END
