@@ -13,7 +13,7 @@ MODULE UpdaterParallel;
 
 	IMPORT 
 		Stores,
-		GraphFlat, GraphMultivariate, GraphNodes, GraphStochastic,
+		GraphFlat, GraphLogical, GraphMultivariate, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterConjugateMV, UpdaterEmpty,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -59,7 +59,7 @@ MODULE UpdaterParallel;
 			INC(i)
 		END
 	END UnMarkChildren;
-
+	
 	PROCEDURE ThinChildren (children: GraphStochastic.Vector): GraphStochastic.Vector;
 		VAR
 			i, num, len, j: INTEGER;
@@ -173,6 +173,72 @@ MODULE UpdaterParallel;
 		END
 	END UnMarkLike;
 
+	PROCEDURE IsMarkedDependent (updater: UpdaterUpdaters.Updater): BOOLEAN;
+		VAR
+			i, size: INTEGER;
+			prior: GraphStochastic.Node;
+			list: GraphLogical.List;
+			logical: GraphLogical.Node;
+			isMarked: BOOLEAN;
+	BEGIN
+		isMarked := FALSE;
+		size := updater.Size();
+		i := 0;
+		WHILE (i < size) & ~isMarked DO
+			prior := updater.Prior(i);
+			list := prior.dependents;
+			WHILE (list # NIL) & ~isMarked DO
+				logical := list.node;
+				isMarked :=  GraphNodes.mark IN logical.props;
+				list := list.next
+			END;
+			INC(i)
+		END;
+		RETURN isMarked
+	END IsMarkedDependent;
+	
+	PROCEDURE MarkDependents (updater: UpdaterUpdaters.Updater);
+		VAR
+			i, size: INTEGER;
+			prior: GraphStochastic.Node;
+			list: GraphLogical.List;
+			logical: GraphLogical.Node;
+	BEGIN
+		size := updater.Size();
+		i := 0;
+		WHILE i < size DO
+			prior := updater.Prior(i);
+			list := prior.dependents;
+			WHILE list # NIL DO
+				logical := list.node;
+				logical.SetProps(logical.props + {GraphStochastic.blockMark});
+				list := list.next
+			END;
+			INC(i)
+		END
+	END MarkDependents;
+
+	PROCEDURE UnMarkDependents (updater: UpdaterUpdaters.Updater);
+		VAR
+			i, size: INTEGER;
+			prior: GraphStochastic.Node;
+			list: GraphLogical.List;
+			logical: GraphLogical.Node;
+	BEGIN
+		size := updater.Size();
+		i := 0;
+		WHILE i < size DO
+			prior := updater.Prior(i);
+			list := prior.dependents;
+			WHILE list # NIL DO
+				logical := list.node;
+				logical.SetProps(logical.props + {GraphStochastic.blockMark});
+				list := list.next
+			END;
+			INC(i)
+		END
+	END UnMarkDependents;
+
 	(*	distribute fixed effects	*)
 	PROCEDURE DistByDepth0 (depth, chain: INTEGER; VAR lists: ARRAY OF List; VAR rowId: RowId);
 		VAR
@@ -244,7 +310,7 @@ MODULE UpdaterParallel;
 				IF ~(GraphStochastic.distributed IN prior.props) THEN	(*	not distributed updater	*)
 					IF ~(GraphNodes.mark IN prior.props) THEN	(*	not distributed this updater yet	*)
 						(*	potential parallel updater	*)
-						IF ~IsMarkedLike(updater) THEN	(*	likelihoods disjoint	*)
+						IF ~IsMarkedLike(updater) & ~IsMarkedDependent(updater) THEN	(*	likelihoods disjoint	*)
 							IF rank = 0 THEN	(*	add new row of updaters	*)
 								j := 0;
 								WHILE j < commSize DO
@@ -258,6 +324,7 @@ MODULE UpdaterParallel;
 							IF size = updater.Size() THEN	(*	check size of potential new updater	*)
 								prior.SetProps(prior.props + {GraphNodes.mark});
 								MarkLike(updater);
+								MarkDependents(updater);
 								lists[rank].updater := updater;
 								INC(rank);
 								rank := rank MOD commSize
@@ -271,6 +338,7 @@ MODULE UpdaterParallel;
 			WHILE i # finish DO
 				updater := UpdaterActions.GetUpdater(chain, i);
 				UnMarkLike(updater);
+				UnMarkDependents(updater);
 				INC(i)
 			END;
 			IF new THEN rowId.id :=  - ABS(rowId.id) END
