@@ -8,22 +8,19 @@ List of OpenBUGS modules:
 
 DevCompiler.CompileThis 
 
-Console MPI MPImslib MPImsimp MPIworker
-
-BugsInterpreter BugsMappers BugsStrings BugsFiles BugsStdInterpreter
-
-BugsMsg BugsRegistry 
-
-BugsScripting
+MPI MPImslib MPImsimp MPIworker
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathLincon MathTT800 MathDiagmatrix MathBGR MathSmooth
+
+BugsMsg BugsRegistry BugsMappers BugsFiles 
+
+BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
 GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphLimits GraphScalar GraphLinkfunc GraphVector GraphParamtrans GraphWeight GraphUnivariate GraphConjugateUV GraphVD GraphCenTrunc GraphMultivariate GraphConjugateMV GraphChain GraphGMRF GraphFunctional GraphMessages GraphResources GraphFlat
 GraphDeviance
-
 
 MonitorMonitors MonitorSamples MonitorSummary MonitorDeviance MonitorPlugin MonitorRanks MonitorModel
 
@@ -34,27 +31,27 @@ GraphConstant GraphSentinel GraphPi  GraphHalf GraphMixture GraphDummy GraphGene
 
 DeviancePlugin
 
-BugsTexts
-BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData  BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects BugsInfo BugsTraphandler1 BugsEmbed BugsExternal BugsMAP BugsMessages BugsScripts BugsResources BugsComponents
-
+BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData  BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects BugsInfo BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources BugsComponents
 
 BugsRectData BugsSplusData
 
 SamplesMonitors SamplesIndex SamplesStatistics SamplesInterface SamplesFormatted 
-SamplesEmbed SamplesMessages SamplesResources
+SamplesMessages SamplesResources
 
-SummaryMonitors SummaryIndex SummaryInterface SummaryFormatted SummaryEmbed SummaryMessages SummaryResources
+SummaryMonitors SummaryIndex SummaryInterface SummaryFormatted SummaryMessages SummaryResources
 
-RanksMonitors RanksIndex RanksInterface RanksFormatted RanksEmbed
+RanksMonitors RanksIndex RanksInterface RanksFormatted
 RanksMessages RanksResources
 
-ModelsMonitors ModelsIndex ModelsInterface ModelsFormatted ModelsEmbed
+ModelsMonitors ModelsIndex ModelsInterface ModelsFormatted 
 ModelsMessages ModelsResources
 
 DevianceMonitors DeviancePluginS DeviancePluginD DevianceParents 
-DevianceIndex DevianceInterface DevianceFormatted DevianceEmbed DevianceMessages DevianceResources
+DevianceIndex DevianceInterface DevianceFormatted DevianceMessages DevianceResources
 
-CorrelInterface CorrelFormatted CorrelEmbed CorrelMessages CorrelResources
+CorrelInterface CorrelFormatted CorrelMessages CorrelResources
+
+BugsMaster
 
 GraphAESolver GraphCloglog GraphCut GraphValDiff GraphDensity GraphEigenvals GraphGammap GraphInprod GraphIntegrate GraphInverse GraphKepler GraphLog GraphLogdet GraphLogit GraphProbit GraphProduct GraphRanks GraphSumation GraphTable GraphODEmath GraphODElang GraphODElangRK45 GraphPValue GraphReplicate GraphItermap GraphPiecewise GraphODEBlockL GraphODEBlockLRK45 GraphODEBlockM
 
@@ -77,17 +74,17 @@ UpdaterAM UpdaterDE UpdaterHamiltonian
 
 UpdaterForward
 
-UpdaterCatagorical UpdaterDescreteSlice
+UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial
 
 UpdaterICM
 
-UpdaterBeta UpdaterGriddy UpdaterGamma UpdaterMetover UpdaterMetbinomial UpdaterMetnormal UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRejection UpdaterSCAAR UpdaterSCAM UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterNaivemet 
-UpdaterAMblock UpdaterAMNLLS UpdaterChain UpdaterDEblock UpdaterDirichlet
+UpdaterBeta UpdaterGriddy UpdaterGamma UpdaterMetover  UpdaterMetnormal UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRejection UpdaterSCAAR UpdaterSCAM UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterNaivemet 
+UpdaterAMblock UpdaterChain UpdaterDEblock UpdaterDirichlet
 UpdaterDirichletprior UpdaterDirichletpriorRW UpdaterGLM UpdaterGMRF 
 UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterWishart UpdaterHamiltonianglm UpdaterMAPproposal UpdaterDelayedDirectional1D
 UpdaterRandscan
 
- UpdaterVD UpdaterVDMVN UpdaterVDMVNDescrete UpdaterVDMVNContinuous
+UpdaterVD UpdaterVDMVN UpdaterVDMVNDescrete UpdaterVDMVNContinuous
 
 UpdaterStage1 UpdaterStage1M UpdaterStage1P
 
@@ -118,15 +115,13 @@ DiffChangePoints DiffHPS_V2_FB
 
 MapsMessages MapsResources
 
-BugsStartup BugsCLI BugsC BugsBRugs
+BugsStartup BugsC BugsBRugs
 
-BugsClassic
-
-WinConsole BugsDialog
-
-DevDebug
+BugsDialog
 
 UpdaterSettings
+
+DevDebug
 
 BugsCmds BugsBatch BugsConfig
 
@@ -163,11 +158,9 @@ BugsDistribute
 
 MathSeeds
 
-LinLibc LinConsole
+BugsClassic 
 
 ParallelTraphandler ParallelRandnum ParallelActions ParallelDebug ParallelWorker 
-
-BugsMaster
 
 
 
