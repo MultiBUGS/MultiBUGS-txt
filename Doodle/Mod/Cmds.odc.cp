@@ -15,7 +15,7 @@ MODULE DoodleCmds;
 	IMPORT
 		Controllers, Dialog, Models, Ports, Views,
 		BugsCmds,
-		BugsDialog, BugsGraph, BugsInterface, BugsMappers, BugsMsg, BugsParser, BugsTexts, DoodleModels,
+		BugsDialog, BugsInterface, BugsMsg, BugsParser, DoodleModels,
 		DoodleNodes, DoodleParser, DoodlePlates, DoodleViews, TextViews;
 
 	TYPE
@@ -118,8 +118,7 @@ MODULE DoodleCmds;
 		IF model = NIL THEN
 			DoodleParser.PrintError(doodle)
 		ELSE
-			BugsMsg.MapMsg("BugsCmds:OkSyntax", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("BugsCmds:OkSyntax");
 		END
 	END Parse;
 
@@ -175,14 +174,12 @@ MODULE DoodleCmds;
 			m := v.ThisModel();
 			scale0 := v.scale;
 			scale1 := scale0 * scale.scaleFactor DIV 100;
-			(*IF scale1 < scale0 THEN*)
 			v.SetScale(scale1);
 			Models.BeginModification(Views.notUndoable, m);
 			m.Scale(scale0, scale1);
 			m.RoundToGrid(v.grid);
 			Models.EndModification(Views.notUndoable, m);
 			Models.Broadcast(m, umsg)
-			(*	END*)
 		ELSE
 		END
 	END ScaleModel;

@@ -14,7 +14,7 @@ MODULE DoodleParser;
 
 	IMPORT
 		Controllers, Dialog, Models, Strings, Views,
-		BugsMappers, BugsMsg, BugsParser, BugsStrings, BugsTexts, BugsVariables, 
+		BugsMappers, BugsMsg, BugsParser, BugsVariables, 
 		DoodleMenus, DoodleModels, DoodleNodes, DoodlePlates, DoodleViews, 
 		GraphGrammar, GraphNodes;
 
@@ -50,8 +50,8 @@ MODULE DoodleParser;
 			errorMes: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("DoodleParser" + numToString, errorMes);
-		BugsMsg.StoreError(errorMes)
+		BugsMsg.Lookup("DoodleParser" + numToString, errorMes);
+		BugsMsg.Store(errorMes)
 	END Error;
 
 	PROCEDURE Nested (m: DoodleModels.Model; inner, outer: DoodlePlates.Plate): BOOLEAN;
@@ -164,7 +164,7 @@ MODULE DoodleParser;
 		plateList := m.plateList;
 		WHILE plateList # NIL DO
 			plate := plateList.plate;
-			BugsStrings.ConnectScanner(s, plate.variable);
+			s.ConnectToString(plate.variable);
 			s.SetPos(0);
 			s.Scan;
 			IF s.type = BugsMappers.string THEN
@@ -193,7 +193,7 @@ MODULE DoodleParser;
 		plateList := m.plateList;
 		WHILE plateList # NIL DO
 			plate := plateList.plate;
-			BugsStrings.ConnectScanner(s, plate.lower);
+			s.ConnectToString(plate.lower);
 			s.SetPos(0);
 			BugsVariables.StoreNames(s, ok);
 			IF ~ok THEN
@@ -207,7 +207,7 @@ MODULE DoodleParser;
 		plateList := m.plateList;
 		WHILE plateList # NIL DO
 			plate := plateList.plate;
-			BugsStrings.ConnectScanner(s, plate.upper);
+			s.ConnectToString(plate.upper);
 			s.SetPos(0);
 			BugsVariables.StoreNames(s, ok);
 			IF ~ok THEN
@@ -221,7 +221,7 @@ MODULE DoodleParser;
 		nodeList := m.nodeList;
 		WHILE nodeList # NIL DO
 			node := nodeList .node;
-			BugsStrings.ConnectScanner(s, node.name);
+			s.ConnectToString(node.name);
 			s.SetPos(0);
 			BugsVariables.StoreNames(s, ok);
 			IF ~ok THEN
@@ -236,7 +236,7 @@ MODULE DoodleParser;
 		WHILE nodeList # NIL DO
 			node := nodeList.node;
 			IF node.type = DoodleNodes.logical THEN
-				BugsStrings.ConnectScanner(s, node.value);
+				s.ConnectToString(node.value);
 				s.SetPos(0);
 				BugsVariables.StoreNames(s, ok);
 				IF ~ok THEN
@@ -339,7 +339,7 @@ MODULE DoodleParser;
 		END;
 		fact := descriptor.fact;
 		numPar := fact.NumParam();
-		BugsStrings.ConnectScanner(s, node.name);
+		s.ConnectToString(node.name);
 		s.SetPos(0);
 		s.Scan;
 		left := BugsParser.ParseVariable(loops, s);
@@ -354,7 +354,7 @@ MODULE DoodleParser;
 			parents[i] := NIL;
 			IF i IN node.mask THEN
 				IF node.parents[i] # NIL THEN
-					BugsStrings.ConnectScanner(s, node.parents[i].name);
+					s.ConnectToString(node.parents[i].name);
 					s.SetPos(0);
 					s.Scan;
 					param := BugsParser.ParseParameter(loops, s);
@@ -366,7 +366,7 @@ MODULE DoodleParser;
 					END;
 					parents[i] := param;
 				ELSIF ~IsEmptyString(node.defaults[i]) THEN
-					BugsStrings.ConnectScanner(s, node.defaults[i]);
+					s.ConnectToString(node.defaults[i]);
 					s.SetPos(0);
 					s.Scan;
 					parents[i] := BugsParser.ParseParameter(loops, s);
@@ -405,7 +405,7 @@ MODULE DoodleParser;
 			len: INTEGER;
 	BEGIN
 		NEW(parents, 1);
-		BugsStrings.ConnectScanner(s, node.name);
+		s.ConnectToString(node.name);
 		s.SetPos(0);
 		s.Scan;
 		variable := BugsParser.ParseVariable(loops, s);
@@ -415,7 +415,7 @@ MODULE DoodleParser;
 			errorIndex := s.Pos();
 			RETURN NIL
 		END;
-		BugsStrings.ConnectScanner(s, node.value);
+		s.ConnectToString(node.value);
 		s.SetPos(0);
 		s.Scan;
 		expression := BugsParser.ParseExpression(loops, s);
@@ -485,7 +485,7 @@ MODULE DoodleParser;
 		loops := NIL;
 		WHILE plates # NIL DO
 			plateDoodle := plates.plate;
-			BugsStrings.ConnectScanner(s, plateDoodle.variable);
+			s.ConnectToString(plateDoodle.variable);
 			s.SetPos(0);
 			s.Scan;
 			index := BugsParser.ParseIndexName(loops, s);
@@ -495,7 +495,7 @@ MODULE DoodleParser;
 				errorIndex := s.Pos();
 				RETURN NIL
 			END;
-			BugsStrings.ConnectScanner(s, plateDoodle.lower);
+			s.ConnectToString(plateDoodle.lower);
 			s.SetPos(0);
 			s.Scan;
 			lower := BugsParser.ParseExpression(loops, s);
@@ -505,7 +505,7 @@ MODULE DoodleParser;
 				errorIndex := s.Pos();
 				RETURN NIL
 			END;
-			BugsStrings.ConnectScanner(s, plateDoodle.upper);
+			s.ConnectToString(plateDoodle.upper);
 			s.SetPos(0);
 			s.Scan;
 			upper := BugsParser.ParseExpression(loops, s);
@@ -620,8 +620,7 @@ MODULE DoodleParser;
 			errorPlate.Select(TRUE);
 			errorPlate.SetCaret(errorCursor, errorIndex)
 		END;
-		BugsMsg.GetError(errorMes);
-		BugsTexts.ShowMsg(errorMes);
+		BugsMsg.Show(BugsMsg.message);
 		Models.EndModification(Views.notUndoable, m);
 		Models.Broadcast(m, umsg)
 	END PrintError;
