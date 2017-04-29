@@ -16,7 +16,7 @@ MODULE PKBugsTree;
 	IMPORT
 		PKBugsCovts,
 		Strings, 
-		BugsIndex, BugsMappers, BugsParser, BugsStrings;
+		BugsIndex, BugsMappers, BugsParser;
 
 	VAR
 		version-: INTEGER;
@@ -26,7 +26,7 @@ MODULE PKBugsTree;
 		VAR
 			s: BugsMappers.Scanner;
 	BEGIN
-		BugsStrings.ConnectScanner(s, string);
+		s.ConnectToString(string);
 		s.SetPos(0);
 		s.Scan;
 		RETURN BugsParser.ParseForLoop(loop, s)
@@ -36,7 +36,7 @@ MODULE PKBugsTree;
 		VAR
 			s: BugsMappers.Scanner;
 	BEGIN
-		BugsStrings.ConnectScanner(s, string);
+		s.ConnectToString(string);
 		s.SetPos(0);
 		s.Scan;
 		RETURN BugsParser.ParseVariable(loop, s)
@@ -46,7 +46,7 @@ MODULE PKBugsTree;
 		VAR
 			s: BugsMappers.Scanner;
 	BEGIN
-		BugsStrings.ConnectScanner(s, string);
+		s.ConnectToString(string);
 		s.SetPos(0);
 		s.Scan;
 		RETURN BugsParser.ParseDensity(loop, s)
@@ -56,7 +56,7 @@ MODULE PKBugsTree;
 		VAR
 			s: BugsMappers.Scanner;
 	BEGIN
-		BugsStrings.ConnectScanner(s, string);
+		s.ConnectToString(string);
 		s.SetPos(0);
 		s.Scan;
 		RETURN BugsParser.ParseExpression(loop, s)

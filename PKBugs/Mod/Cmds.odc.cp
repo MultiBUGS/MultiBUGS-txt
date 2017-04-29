@@ -15,9 +15,9 @@ MODULE PKBugsCmds;
 		Controllers, Dialog, Models, PKBugsCovts,
 		PKBugsData, PKBugsNames,
 		PKBugsNodes, PKBugsParse, PKBugsPriors, PKBugsScanners, PKBugsTree, Strings, TextControllers,
-		TextModels,
-		BugsCmds, BugsDialog, BugsGraph, BugsInterface, BugsMappers, BugsMsg, BugsStrings,
-		BugsTexts, MathRandnum;
+		TextMappers, TextModels,
+		BugsCmds, BugsDialog, BugsGraph, BugsInterface, BugsMappers, BugsMsg, 
+		MathRandnum;
 
 	CONST
 		namesLoaded* = 1; dataLoaded* = 2; modelCompiled* = 3;
@@ -124,8 +124,7 @@ MODULE PKBugsCmds;
 	BEGIN
 		Strings.IntToString(res, error); error := "PKBugs:" + error;
 		p[0] := string$;
-		BugsMsg.MapParamMsg(error, p, mes);
-		BugsTexts.ShowMsg(mes);
+		BugsMsg.ShowParam(error, p);
 		IF m # NIL THEN
 			ConnectScanner(s, m);
 			s.SetPos(pos); ch := s.nextCh; s.FindToken(ch); TextControllers.SetCaret(m, s.Pos())
@@ -296,10 +295,8 @@ MODULE PKBugsCmds;
 				END
 			END
 		END;
-		BugsMsg.MapMsg("PKBugs:namesLoaded", mes);
-		BugsTexts.ShowMsg(mes);
+		BugsMsg.Show("PKBugs:namesLoaded");
 		status := {namesLoaded};
-		(*BugsInterface.SetStatus({dummy})*)
 	END ReadNames;
 
 	PROCEDURE ReadData*;
@@ -333,7 +330,7 @@ MODULE PKBugsCmds;
 						res := - res;
 						Strings.IntToString(res, error); error := "#PKBugs:" + error;
 						Dialog.MapParamString(error, inp, string, "", mes);
-						BugsTexts.ShowMsg(mes);
+						(*BugsTexts.ShowMsg(mes);*)
 						Dialog.Beep
 					ELSE
 						Error(NIL, 0, res, string)
@@ -354,8 +351,7 @@ MODULE PKBugsCmds;
 			END;
 			PKBugsParse.StoreHist;
 		END;
-		BugsMsg.MapMsg("PKBugs:dataLoaded", mes);
-		BugsTexts.ShowMsg(mes);
+		BugsMsg.Show("PKBugs:dataLoaded");
 		status := {dataLoaded};
 		BuildLists;
 	END ReadData;
@@ -364,7 +360,7 @@ MODULE PKBugsCmds;
 		VAR
 			chain, ind, numChains, par, res: INTEGER;
 			mes, s: Dialog.String;
-			log, updaterByMethod: BOOLEAN;
+			log, updaterByMethod, ok: BOOLEAN;
 			u: REAL;
 	BEGIN
 		res := 0;
@@ -385,18 +381,16 @@ MODULE PKBugsCmds;
 		PKBugsNodes.StoreNodes(specificationDialog.nComp);
 		PKBugsNodes.SetGraph;
 		PKBugsTree.Build(specificationDialog.nComp, log);
-		BugsGraph.Compile(numChains, updaterByMethod);
-		(*ASSERT(BugsGraph.status # {}, 77);*)
+		BugsGraph.Compile(numChains, updaterByMethod, ok);
+		ASSERT(ok, 77);
 		chain := 0;
 		WHILE chain < numChains DO
 			IF chain = 0 THEN u := 1.0 ELSE u := MathRandnum.Uniform(0.75, 1.25) END;
 			PKBugsPriors.GenerateInitsForChain(chain, u);
 			INC(chain)
 		END;
-		BugsMsg.MapMsg("PKBugs:modelCompiled", mes);
-		BugsTexts.ShowMsg(mes);
+		BugsMsg.Show("PKBugs:modelCompiled");
 		SetStatus({modelCompiled});
-		(*BugsGraph.SetStatus({BugsGraph.initialized, BugsGraph.checked});*)
 		BugsDialog.UpdateDialogs
 	END Compile;
 
@@ -418,7 +412,7 @@ MODULE PKBugsCmds;
 			i, len: INTEGER;
 	BEGIN
 		IF PKBugsCovts.covariateNames # NIL THEN
-			BugsStrings.ConnectScanner(s, covariates);
+			s.ConnectToString(covariates);
 			len := LEN(PKBugsCovts.covariateNames);
 			s.SetPos(0);
 			WHILE ~s.eot DO
