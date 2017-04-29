@@ -185,7 +185,6 @@ MODULE GraphLogical;
 	PROCEDURE ExternalizeList* (list: List; VAR wr: Stores.Writer);
 	BEGIN
 		WHILE list # NIL DO
-			ASSERT(list.node IS Node, 66);
 			GraphNodes.Externalize(list.node, wr);
 			list := list.next
 		END;

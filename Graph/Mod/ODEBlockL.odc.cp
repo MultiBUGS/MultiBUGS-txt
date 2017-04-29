@@ -16,7 +16,7 @@ MODULE GraphODEBlockL;
 	
 
 	IMPORT
-		Meta, Stores,
+		Meta, Stores, 
 		GraphDummy, GraphLogical, GraphNodes, GraphPiecewise, GraphRules,
 		GraphStochastic, GraphVector,
 		MathODE;
@@ -486,9 +486,9 @@ MODULE GraphODEBlockL;
 				ELSE
 					node.atol := 0.0;
 				END;
-			ELSE
-				Copy(node)
 			END
+		ELSE
+			Copy(node)
 		END
 	END Set;
 

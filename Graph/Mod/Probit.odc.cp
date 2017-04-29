@@ -53,9 +53,9 @@ MODULE GraphProbit;
 	BEGIN
 		predictor := node.predictor;
 		x := predictor.Value();
-		IF ABS(x) > maxRange THEN
+	(*	IF ABS(x) > maxRange THEN
 			HALT(0)
-		END;
+		END;*)
 		value := MathFunc.Phi(x);
 		RETURN value
 	END Value;

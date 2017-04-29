@@ -13,7 +13,7 @@ MODULE GraphNodes;
 
 	
 
-	IMPORT
+	IMPORT 
 		Meta, Stores, Strings;
 
 	CONST
@@ -255,9 +255,9 @@ MODULE GraphNodes;
 			element: List;
 	BEGIN
 		IF node = NIL THEN
-			wr.WriteInt(0);
+			wr.WriteInt(0); 
 		ELSIF node.label > 0 THEN
-			wr.WriteInt(node.label)
+			wr.WriteInt(node.label); 
 		ELSE
 			(*	first time seen node	*)
 			NEW(element);
@@ -308,6 +308,7 @@ MODULE GraphNodes;
 		IF label = 0 THEN
 			node := NIL
 		ELSIF label > 0 THEN
+			ASSERT(label < LEN(nodes), 66);
 			node := nodes[label]
 		ELSE
 			label :=  - label;

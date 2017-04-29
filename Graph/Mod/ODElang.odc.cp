@@ -13,7 +13,7 @@ MODULE GraphODElang;
 	
 
 	IMPORT
-		Stores,
+		Stores, 
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathODE;
 
@@ -110,10 +110,13 @@ MODULE GraphODElang;
 		node.tol := rep.tol;
 		node.x0 := rep.x0;
 		node.x0Start := rep.x0Start;
+		node.x0Step := rep.x0Step;
 		node.x := rep.x;
 		node.xStart := rep.xStart;
+		node.xStep := rep.xStep;
 		node.deriv := rep.deriv;
 		node.derivStart := rep.derivStart;
+		node.derivStep := rep.derivStep;
 		node.tGrid := rep.tGrid;
 		node.t := rep.t
 	END Copy;
@@ -219,7 +222,6 @@ MODULE GraphODElang;
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
-		node.solver := NIL;
 		node.x0 := NIL;
 		node.x0Start :=  - 1;
 		node.x0Step := 0;

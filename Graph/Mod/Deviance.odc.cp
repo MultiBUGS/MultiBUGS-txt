@@ -353,7 +353,7 @@ MODULE GraphDeviance;
 
 			deviance: Node;
 	BEGIN
-		IF node IS Node THEN
+		IF (node # NIL) & (node IS Node) THEN
 			deviance := node(Node);
 			deviance.value := value
 		END

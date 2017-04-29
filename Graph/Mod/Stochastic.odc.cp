@@ -13,8 +13,8 @@ MODULE GraphStochastic;
 	
 
 	IMPORT
-		Stores,
-		GraphLogical, GraphNodes, GraphRules,
+		Stores, 
+		GraphLogical, GraphNodes, GraphRules, 
 		MathFunc;
 
 	CONST
@@ -69,7 +69,7 @@ MODULE GraphStochastic;
 			classConditional-: INTEGER;
 			value-: REAL;
 			likelihood-: Likelihood;
-			dependents: GraphLogical.List;
+			dependents-: GraphLogical.List;
 		END;
 
 		Likelihood* = POINTER TO LIMITED RECORD

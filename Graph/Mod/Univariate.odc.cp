@@ -11,7 +11,7 @@ MODULE GraphUnivariate;
 
 	
 
-	IMPORT
+	IMPORT 
 		Math, Stores,
 		GraphLimits, GraphNodes, GraphRules, GraphStochastic;
 
