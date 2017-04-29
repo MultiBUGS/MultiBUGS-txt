@@ -12,30 +12,37 @@ MODULE ModelsFormatted;
 	
 
 	IMPORT
-		Strings, 
-		BugsIndex, BugsMappers, BugsNames,
+		Fonts, 
 		MathSort,
-		ModelsIndex, ModelsInterface, ModelsMonitors,
-		MonitorModel;
+		BugsFiles,
+		ModelsIndex, ModelsInterface, ModelsMonitors, MonitorModel,
+		TextMappers, TextModels;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE FormatComponentProbs (IN variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+		
+	PROCEDURE FormatComponentProbs (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			i, len, sampleSize: INTEGER;
 			compProbs: POINTER TO ARRAY OF REAL;
-			node: BugsNames.Name;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		sampleSize := ModelsInterface.SampleSize(variable);
 		IF sampleSize = 0 THEN RETURN END;
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr,Fonts. bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab; f.WriteString("variable: "); f.WriteString(variable); 
 		f.WriteTab; f.WriteString("sample size: "); f.WriteInt(sampleSize);f.WriteTab;  f.WriteLn;
 		f.WriteTab; f.WriteString("component");
 		f.WriteTab; f.WriteString("pobability"); f.WriteLn;
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		ModelsInterface.ComponentProbs(variable, compProbs);
 		len := LEN(compProbs);
 		i := 0;
@@ -43,7 +50,7 @@ MODULE ModelsFormatted;
 			f.WriteTab;
 			f.WriteInt(i + 1);
 			f.WriteTab;
-			f.WriteReal(compProbs[i]);
+			WriteReal(compProbs[i], f);
 			f.WriteTab;
 			f.WriteLn;
 			INC(i)
@@ -51,7 +58,7 @@ MODULE ModelsFormatted;
 	END FormatComponentProbs;
 
 	PROCEDURE FormatModelProbs (IN variable: ARRAY OF CHAR; cumulative, minProb: REAL;
-	maxNum: INTEGER; VAR f: BugsMappers.Formatter);
+	maxNum: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			i, j, len, numberComponents, sampleSize: INTEGER;
 			sumProbs: REAL;
@@ -60,11 +67,13 @@ MODULE ModelsFormatted;
 			models: POINTER TO ARRAY OF MonitorModel.Model;
 			model: POINTER TO ARRAY OF BOOLEAN;
 			ranks: POINTER TO ARRAY OF INTEGER;
-			node: BugsNames.Name;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		sampleSize := ModelsInterface.SampleSize(variable);
 		IF sampleSize = 0 THEN RETURN END;
-		f.Bold;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab; f.WriteString("variable: "); f.WriteString(variable); 
 		f.WriteTab; f.WriteString("sample size: "); f.WriteInt(sampleSize); f.WriteLn;
 		f.WriteTab; f.WriteString("rank");
@@ -72,7 +81,7 @@ MODULE ModelsFormatted;
 		f.WriteTab; f.WriteString("cumulative");
 		f.WriteTab; f.WriteString("structure");
 		f.WriteTab; f.WriteLn;
-		f.Bold;
+		f.rider.SetAttr(oldAttr);
 		ModelsInterface.ModelProbs(variable, models, modelProbs);
 		len := LEN(modelProbs);
 		i := 0; WHILE i < len DO modelProbs[i] := -modelProbs[i]; INC(i) END;
@@ -88,9 +97,9 @@ MODULE ModelsFormatted;
 			f.WriteTab;
 			f.WriteInt(i + 1);
 			f.WriteTab;
-			f.WriteReal(modelProbs[ranks[i]]);
+			WriteReal(modelProbs[ranks[i]], f);
 			f.WriteTab;
-			f.WriteReal(sumProbs);
+			WriteReal(sumProbs, f);
 			f.WriteTab;
 			f.WriteString(" {");
 			models[ranks[i]].Display(model);
@@ -110,7 +119,7 @@ MODULE ModelsFormatted;
 		END
 	END FormatModelProbs;
 
-	PROCEDURE ComponentProbs* (variable: ARRAY OF CHAR; VAR f: BugsMappers.Formatter);
+	PROCEDURE ComponentProbs* (variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			monitors: POINTER TO ARRAY OF ModelsMonitors.Monitor;
@@ -133,7 +142,7 @@ MODULE ModelsFormatted;
 	END ComponentProbs;
 
 	PROCEDURE ModelProbs* (variable: ARRAY OF CHAR; cumulative, minProb: REAL;
-	maxNum: INTEGER; VAR f: BugsMappers.Formatter);
+	maxNum: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			monitors: POINTER TO ARRAY OF ModelsMonitors.Monitor;

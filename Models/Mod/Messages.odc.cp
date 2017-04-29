@@ -18,29 +18,29 @@ MODULE ModelsMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		Map: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		Map("ModelsEmbed:MonitorCleared", "monitored cleared");
-		Map("ModelsEmbed:MonitorSet", "monitor set");
-		Map("ModelsEmbed:NotInitialized", "model must be initialized before monitors used");
-		Map("ModelsEmbed:NotVariable", "^0 is not a variable in the model");
-		Map("ModelsEmbed:NotVector", "^0 is not a vector");
-		Map("ModelsEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
-		Map("ModelsEmbed:NotSet", "no monitor set for variable ^0");
-		Map("ModelsEmbed:NoMonitors", "no monitors set");
-		Map("ModelsEmbed:AlreadySet", "monitor already set");
+		StoreKey("ModelsEmbed:MonitorCleared", "monitored cleared");
+		StoreKey("ModelsEmbed:MonitorSet", "monitor set");
+		StoreKey("ModelsEmbed:NotInitialized", "model must be initialized before monitors used");
+		StoreKey("ModelsEmbed:NotVariable", "^0 is not a variable in the model");
+		StoreKey("ModelsEmbed:NotVector", "^0 is not a vector");
+		StoreKey("ModelsEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
+		StoreKey("ModelsEmbed:NotSet", "no monitor set for variable ^0");
+		StoreKey("ModelsEmbed:NoMonitors", "no monitors set");
+		StoreKey("ModelsEmbed:AlreadySet", "monitor already set");
 
-		Map("ModelsCmds:MonitorCleared", "monitored cleared");
-		Map("ModelsCmds:MonitorSet", "monitor set");
-		Map("ModelsCmds:NotInitialized", "model must be initialized before monitors used");
-		Map("ModelsCmds:NotVariable", "^0 is not a variable in the model");
-		Map("ModelsCmds:NotVector", "^0 is not a vector");
-		Map("ModelsCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
-		Map("ModelsCmds:NotSet", "no monitor set for variable ^0");
-		Map("ModelsCmds:NoMonitors", "no monitors set");
-		Map("ModelsCmds:AlreadySet", "monitor already set");
+		StoreKey("ModelsCmds:MonitorCleared", "monitored cleared");
+		StoreKey("ModelsCmds:MonitorSet", "monitor set");
+		StoreKey("ModelsCmds:NotInitialized", "model must be initialized before monitors used");
+		StoreKey("ModelsCmds:NotVariable", "^0 is not a variable in the model");
+		StoreKey("ModelsCmds:NotVector", "^0 is not a vector");
+		StoreKey("ModelsCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
+		StoreKey("ModelsCmds:NotSet", "no monitor set for variable ^0");
+		StoreKey("ModelsCmds:NoMonitors", "no monitors set");
+		StoreKey("ModelsCmds:AlreadySet", "monitor already set");
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -52,7 +52,7 @@ MODULE ModelsMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		Map := BugsMsg.Map
+		StoreKey := BugsMsg.StoreKey
 	END Init;
 
 BEGIN

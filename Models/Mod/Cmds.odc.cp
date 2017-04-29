@@ -12,10 +12,11 @@ MODULE ModelsCmds;
 	
 
 	IMPORT
-		Dialog, Ports, Strings,
+		Dialog, Ports, 
 		BugsDialog,
-		BugsGraph, BugsIndex, BugsInterface, BugsMappers, BugsMsg, BugsTexts, ModelsFormatted,
-		ModelsIndex, ModelsInterface, ModelsMonitors, TextModels;
+		BugsFiles, BugsIndex, BugsInterface, BugsMsg, ModelsFormatted,
+		ModelsIndex, ModelsInterface, ModelsMonitors, 
+		TextMappers, TextModels;
 
 	TYPE
 
@@ -67,9 +68,8 @@ MODULE ModelsCmds;
 		ModelsInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -88,9 +88,8 @@ MODULE ModelsCmds;
 		ModelsInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -109,9 +108,8 @@ MODULE ModelsCmds;
 		ModelsInterface.Set(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
-			BugsMsg.GetError(errorMes);
-			BugsMsg.ParamMsg(errorMes, p, errorMes);
-			BugsTexts.ShowMsg(errorMes);
+			errorMes := BugsMsg.message$;
+			BugsMsg.ShowParam(errorMes, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -121,33 +119,34 @@ MODULE ModelsCmds;
 
 	PROCEDURE ComponentProbs*;
 		VAR
-			numTabs: INTEGER;
+			numTabs, pos: INTEGER;
 			tabs: POINTER TO ARRAY OF INTEGER;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		numTabs := 3;
 		NEW(tabs, numTabs);
 		tabs[0] := 0;
 		tabs[1] := 30 * Ports.mm;
 		tabs[2] := tabs[1] + 35 * Ports.mm;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
+		pos := f.Pos();
 		ModelsFormatted.ComponentProbs(dialog.node.item, f);
-		f.Register("Model component statistics")
+		IF f.Pos() > pos THEN BugsFiles.Open("Model component statistics", text) END
 	END ComponentProbs;
 
 	PROCEDURE ModelProbs*;
 		VAR
-			i, numTabs: INTEGER;
+			numTabs, pos: INTEGER;
 			tabs: POINTER TO ARRAY OF INTEGER;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		numTabs := 5;
 		NEW(tabs, numTabs);
@@ -156,9 +155,10 @@ MODULE ModelsCmds;
 		tabs[2] := tabs[1] + 30 * Ports.mm;
 		tabs[3] := tabs[2] + 30 * Ports.mm;
 		tabs[4] := tabs[3] + 50 * Ports.mm;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
+		pos := f.Pos();
 		ModelsFormatted.ModelProbs(dialog.node.item, dialog.cumulative, dialog.minProb, dialog.maxNum, f);
-		f.Register("Model probabilities statistics")
+		IF f.Pos() > pos THEN BugsFiles.Open("Model probabilities statistics", text) END
 	END ModelProbs;
 
 	PROCEDURE SetVariable* (var: ARRAY OF CHAR);
@@ -170,38 +170,32 @@ MODULE ModelsCmds;
 
 	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
 		VAR
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 			variable: Dialog.String;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("ModelsCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("ModelsCmds:NotInitialized");
 		ELSE
 			variable := dialog.node.item;
 			ok := ~BugsInterface.IsAdapting();
 			IF ~ok THEN
-				BugsMsg.MapMsg("ModelsCmds:Adapting", msg);
-				BugsTexts.ShowMsg(msg)
+				BugsMsg.Show("ModelsCmds:Adapting");
 			ELSE
 				ok := BugsIndex.Find(variable) # NIL;
 				IF ~ok THEN
 					p[0] := variable$;
-					BugsMsg.MapParamMsg("ModelsCmds:NotVariable", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("ModelsCmds:NotVariable", p);
 				ELSE
 					ok := BugsIndex.Find(variable).numSlots = 1;
 					IF ~ok THEN
 						p[0] := variable$;
-						BugsMsg.MapParamMsg("ModelsCmds:NotVector", p, msg);
-						BugsTexts.ShowMsg(msg)
+						BugsMsg.ShowParam("ModelsCmds:NotVector", p);
 					ELSE
 						ok := ModelsIndex.Find(variable) = NIL;
 						IF ~ok THEN
 							p[0] := variable$;
-							BugsMsg.MapParamMsg("ModelsCmds:AlreadySet", p, msg);
-							BugsTexts.ShowMsg(msg)
+							BugsMsg.ShowParam("ModelsCmds:AlreadySet", p);
 						END
 					END
 				END
@@ -213,28 +207,24 @@ MODULE ModelsCmds;
 		VAR
 			numMonitors: INTEGER;
 			variable: Dialog.String;
-			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("ModelsCmds:NotInitialized", msg);
-			BugsTexts.ShowMsg(msg)
+			BugsMsg.Show("ModelsCmds:NotInitialized");
 		ELSE
 			variable := dialog.node.item;
 			IF~ModelsInterface.IsStar(variable) THEN
 				ok := ModelsIndex.Find(variable) # NIL;
 				IF ~ok THEN
 					p[0] := variable$;
-					BugsMsg.MapParamMsg("ModelsCmds:NotSet", p, msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.ShowParam("ModelsCmds:NotSet", p);
 				END
 			ELSE
 				numMonitors := ModelsIndex.NumberOfMonitors();
 				ok := numMonitors # 0; ;
 				IF ~ok THEN
-					BugsMsg.MapMsg("ModelsCmds:NoMonitors", msg);
-					BugsTexts.ShowMsg(msg)
+					BugsMsg.Show("ModelsCmds:NoMonitors");
 				END
 			END
 		END
