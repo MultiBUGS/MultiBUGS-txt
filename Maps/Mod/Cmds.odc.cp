@@ -16,7 +16,7 @@ MODULE MapsCmds;
 		Containers, Dialog, Files, Ports, Strings, Views,
 		StdLog,
 		TextModels, TextViews,
-		BugsCmds, BugsIndex, BugsMappers, BugsMsg, BugsNames, BugsTexts,
+		BugsCmds, BugsIndex, BugsFiles, BugsMsg, BugsNames, TextMappers, 
 		MapsAdjacency, MapsIndex, MapsMap, MapsViews, MapsViews1,
 		MathSort,
 		PlotsAxis, PlotsViews,
@@ -73,13 +73,9 @@ MODULE MapsCmds;
 	PROCEDURE Error (errorNum: INTEGER);
 		VAR
 			numToString: ARRAY 8 OF CHAR;
-			errorMes: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("MapsCmds" + numToString, errorMes);
-		BugsMsg.StoreError(errorMes);
-		BugsMsg.GetError(errorMes);
-		BugsTexts.ShowMsg(errorMes);
+		BugsMsg.Show("MapsCmds" + numToString);
 	END Error;
 
 	PROCEDURE UpdateNames*;
@@ -127,12 +123,12 @@ MODULE MapsCmds;
 			cursor: MapsAdjacency.List;
 			adjacency: MapsAdjacency.Adjacency;
 			t: TextModels.Model;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			v: TextViews.View;
 	BEGIN
 		adjacency := MapsViews1.FocusAdjacency();
 		t := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, t);
+		f.ConnectTo(t);
 		v := TextViews.dir.New(t);
 		i := 0;
 		numRegions := LEN(adjacency.neighbours);
@@ -282,7 +278,7 @@ MODULE MapsCmds;
 		IF LEN(values) = map.numReg THEN
 			view := MapsViews.New(title, map, numCuts, dialog.cutType, cuts,
 			values, mask, dialog.palette);
-			IF BugsMappers.whereOut = BugsMappers.window THEN
+			IF BugsFiles.whereOut = BugsFiles.window THEN
 				OpenAux(view, title)
 			ELSE
 				StdLog.View(view)
@@ -433,7 +429,6 @@ MODULE MapsCmds;
 	OUT ok: BOOLEAN);
 		VAR
 			i, len, step, beg, end, firstChain, lastChain, numChains, sampleSize: INTEGER;
-			sd, skew, exKur, error: REAL;
 			monitor: SamplesMonitors.Monitor;
 			name: BugsNames.Name;
 			sample: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -492,7 +487,7 @@ MODULE MapsCmds;
 	OUT values: POINTER TO ARRAY OF REAL; OUT mask: POINTER TO ARRAY OF BOOLEAN;
 	OUT ok: BOOLEAN);
 		VAR
-			i, j, len, beg, end, firstChain, lastChain, numChains, step, sampleSize: INTEGER;
+			i,len, beg, end, firstChain, lastChain, step: INTEGER;
 			quantile, fraction: REAL;
 			monitor: SamplesMonitors.Monitor;
 			name: BugsNames.Name;
@@ -530,8 +525,6 @@ MODULE MapsCmds;
 			IF monitor.IsMonitored(i) THEN
 				name.Indices(i, scalar);
 				scalar := name.string + scalar;
-				sampleSize := SamplesInterface.SampleSize(scalar, beg, end, step, firstChain, lastChain);
-				numChains := lastChain - firstChain + 1;
 				SamplesInterface.SampleValues(scalar, beg, end, step, firstChain, lastChain, sample);
 				buffer := SamplesStatistics.Sort(sample);
 				quantile := SamplesStatistics.Percentile(buffer, fraction);
@@ -720,7 +713,7 @@ MODULE MapsCmds;
 	PROCEDURE Print*;
 		VAR
 			map: MapsMap.Map;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			t: TextModels.Model;
 			v: TextViews.View;
 	BEGIN
@@ -730,7 +723,7 @@ MODULE MapsCmds;
 		END;
 		IF map # NIL THEN
 			t := TextModels.dir.New();
-			BugsTexts.ConnectFormatter(f, t);
+			f.ConnectTo(t);
 			map.Print(f);
 			v := TextViews.dir.New(t);
 			Views.OpenAux(v, "Splus map")

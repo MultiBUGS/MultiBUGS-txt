@@ -14,7 +14,8 @@ MODULE MapsMap;
 
 	IMPORT
 		Files, Stores, Strings, 
-		BugsMappers, BugsMsg;
+		BugsMsg,
+		TextMappers;
 
 	TYPE
 
@@ -57,8 +58,8 @@ MODULE MapsMap;
 			errorMes: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("MapsMap" + numToString, errorMes);
-		BugsMsg.StoreError(errorMes)
+		BugsMsg.Lookup("MapsMap" + numToString, errorMes);
+		BugsMsg.Store(errorMes)
 	END Error;
 
 	PROCEDURE (polygon: Polygon) Set* (id, len: INTEGER; centreX, centreY: REAL; IN x, y: ARRAY OF REAL), NEW;
@@ -145,7 +146,7 @@ MODULE MapsMap;
 		END
 	END HiddenEdges;
 
-	PROCEDURE (polygon: Polygon) Print (IN name: ARRAY OF CHAR; VAR f: BugsMappers.Formatter), NEW;
+	PROCEDURE (polygon: Polygon) Print (IN name: ARRAY OF CHAR; VAR f: TextMappers.Formatter), NEW;
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -279,7 +280,7 @@ MODULE MapsMap;
 		END
 	END HiddenEdges;
 
-	PROCEDURE (region: Region) Print (VAR f: BugsMappers.Formatter), NEW;
+	PROCEDURE (region: Region) Print (VAR f: TextMappers.Formatter), NEW;
 		VAR
 			cursor: Polygon;
 	BEGIN
@@ -449,7 +450,7 @@ MODULE MapsMap;
 		RETURN inside
 	END IsInsidePolygon;
 
-	PROCEDURE (map: Map) Print* (VAR f: BugsMappers.Formatter), NEW;
+	PROCEDURE (map: Map) Print* (VAR f: TextMappers.Formatter), NEW;
 		VAR
 			i, len: INTEGER;
 	BEGIN

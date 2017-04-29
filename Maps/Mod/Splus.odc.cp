@@ -33,8 +33,8 @@ MODULE MapsSplus;
 			errorMes: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.MapMsg("MapsSplus" + numToString, errorMes);
-		BugsMsg.StoreError(errorMes)
+		BugsMsg.Lookup("MapsSplus" + numToString, errorMes);
+		BugsMsg.Store(errorMes)
 	END Error;
 
 	PROCEDURE (imp: Importer) Load (VAR s: BugsMappers.Scanner): MapsMap.Map;
