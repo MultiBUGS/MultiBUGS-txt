@@ -18,29 +18,29 @@ MODULE SamplesMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		Map: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		Map("SamplesEmbed:MonitorCleared", "monitored cleared");
-		Map("SamplesEmbed:CODAFilesWritten", "CODA files written");
-		Map("SamplesEmbed:MonitorSet", "monitor set");
-		Map("SamplesEmbed:NotInitialized", "model must be initialized before monitors used");
-		Map("SamplesEmbed:NotVariable", "^0 is not a variable in the model");
-		Map("SamplesEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
-		Map("SamplesEmbed:NotSet", "no monitor set for variable ^0");
-		Map("SamplesEmbed:NoMonitors", "no monitors set");
-		Map("SamplesEmbed:OnlyOneChain", "bgr statistic can not be calculated only one chain");
+		StoreKey("SamplesEmbed:MonitorCleared", "monitored cleared");
+		StoreKey("SamplesEmbed:CODAFilesWritten", "CODA files written");
+		StoreKey("SamplesEmbed:MonitorSet", "monitor set");
+		StoreKey("SamplesEmbed:NotInitialized", "model must be initialized before monitors used");
+		StoreKey("SamplesEmbed:NotVariable", "^0 is not a variable in the model");
+		StoreKey("SamplesEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
+		StoreKey("SamplesEmbed:NotSet", "no monitor set for variable ^0");
+		StoreKey("SamplesEmbed:NoMonitors", "no monitors set");
+		StoreKey("SamplesEmbed:OnlyOneChain", "bgr statistic can not be calculated only one chain");
 
-		Map("SamplesCmds:MonitorCleared", "monitored cleared");
-		Map("SamplesCmds:CODAFilesWritten", "CODA files written");
-		Map("SamplesCmds:MonitorSet", "monitor set");
-		Map("SamplesCmds:NotInitialized", "model must be initialized before monitors used");
-		Map("SamplesCmds:NotVariable", "^0 is not a variable in the model");
-		Map("SamplesCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
-		Map("SamplesCmds:NotSet", "no monitor set for variable ^0");
-		Map("SamplesCmds:NoMonitors", "no monitors set");
-		Map("SamplesCmds:OnlyOneChain", "bgr statistic can not be calculated only one chain");
+		StoreKey("SamplesCmds:MonitorCleared", "monitored cleared");
+		StoreKey("SamplesCmds:CODAFilesWritten", "CODA files written");
+		StoreKey("SamplesCmds:MonitorSet", "monitor set");
+		StoreKey("SamplesCmds:NotInitialized", "model must be initialized before monitors used");
+		StoreKey("SamplesCmds:NotVariable", "^0 is not a variable in the model");
+		StoreKey("SamplesCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
+		StoreKey("SamplesCmds:NotSet", "no monitor set for variable ^0");
+		StoreKey("SamplesCmds:NoMonitors", "no monitors set");
+		StoreKey("SamplesCmds:OnlyOneChain", "bgr statistic can not be calculated only one chain");
 	END Load;
 	
 	PROCEDURE Maintainer;
@@ -52,7 +52,7 @@ MODULE SamplesMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		Map := BugsMsg.Map
+		StoreKey := BugsMsg.StoreKey
 	END Init;
 
 BEGIN

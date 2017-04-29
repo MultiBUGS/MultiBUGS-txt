@@ -14,10 +14,11 @@ MODULE SamplesCmds;
 	IMPORT
 		Dialog, Files, Ports, Strings,
 		BugsCmds,
-		BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMappers, BugsMsg,
-		BugsTexts, SamplesFormatted,
+		BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
+		SamplesFormatted,
 		SamplesIndex, SamplesInterface, SamplesMonitors, SamplesPlots, TextModels,
-		UpdaterActions;
+		UpdaterActions,
+		TextMappers;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
@@ -126,9 +127,8 @@ MODULE SamplesCmds;
 		SamplesInterface.Clear(string, ok);
 		IF ~ok THEN
 			p[0] := string$;
-			BugsMsg.GetError(msg);
-			BugsMsg.ParamMsg(msg, p, msg);
-			BugsTexts.ShowMsg(msg);
+			msg := BugsMsg.message$;
+			BugsMsg.ShowParam(msg, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -147,9 +147,8 @@ MODULE SamplesCmds;
 		SamplesInterface.Clear(string, ok);
 		IF ~ok THEN
 			p[0] := string$;
-			BugsMsg.GetError(msg);
-			BugsMsg.ParamMsg(msg, p, msg);
-			BugsTexts.ShowMsg(msg);
+			msg := BugsMsg.message$;
+			BugsMsg.ShowParam(msg, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -159,15 +158,14 @@ MODULE SamplesCmds;
 
 	PROCEDURE CODA*;
 		VAR
-			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin: INTEGER;
+			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
 			numAsString: ARRAY 8 OF CHAR;
 			string: Dialog.String;
-			msg: ARRAY 1024 OF CHAR;
-			f: POINTER TO ARRAY OF BugsMappers.Formatter;
-			text: TextModels.Model;
+			f: POINTER TO ARRAY OF TextMappers.Formatter;
+			text: POINTER TO ARRAY OF TextModels.Model;
 	BEGIN
 		oldWhereOut := BugsCmds.displayDialog.whereOut;
-		BugsMappers.SetDest(BugsMappers.window);
+		BugsFiles.SetDest(BugsFiles.window);
 		string := dialog.node.item;
 		beg := dialog.beg - 1;
 		end := dialog.end;
@@ -176,37 +174,39 @@ MODULE SamplesCmds;
 		lastChain := dialog.lastChain;
 		numChains := lastChain - firstChain + 1;
 		NEW(f, numChains + 1);
+		NEW(text, numChains + 1);
 		i := 0;
 		WHILE i <= numChains DO
-			text := TextModels.dir.New();
-			BugsTexts.ConnectFormatter(f[i], text);
+			text[i] := TextModels.dir.New();
+			f[i].ConnectTo(text[i]);
 			f[i].SetPos(0);
 			INC(i)
 		END;
+		pos := f[0].Pos();
 		SamplesFormatted.CODA(string, beg, end, thin, firstChain, lastChain, f);
-		f[0].Register("CODA index");
-		i := 1;
-		WHILE i <= numChains DO
-			Strings.IntToString(i + firstChain - 1, numAsString);
-			f[i].Register("CODAchain " + numAsString);
-			INC(i)
-		END;
-		BugsCmds.displayDialog.whereOut := oldWhereOut;
-		BugsMsg.MapMsg("SamplesCmds:CODAFilesWritten", msg);
-		BugsTexts.ShowMsg(msg)
+		IF f[0].Pos() > pos THEN
+			BugsFiles.Open("CODA index", text[0]);
+			i := 1;
+			WHILE i <= numChains DO
+				Strings.IntToString(i + firstChain - 1, numAsString);
+				BugsFiles.Open("CODAchain " + numAsString, text[i]);
+				INC(i)
+			END;
+			BugsCmds.displayDialog.whereOut := oldWhereOut;
+			BugsMsg.Show("SamplesCmds:CODAFilesWritten")
+		END
 	END CODA;
 
 	PROCEDURE CODAFiles* (stemName: ARRAY OF CHAR);
 		VAR
-			beg, end, firstChain, i, lastChain, numChains, thin: INTEGER;
+			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
 			numAsString: ARRAY 8 OF CHAR;
-			msg: ARRAY 1024 OF CHAR;
-			name: Files.Name;
 			string: Dialog.String;
-			f: POINTER TO ARRAY OF BugsMappers.Formatter;
-			file: Files.File;
-			loc: Files.Locator;
+			f: POINTER TO ARRAY OF TextMappers.Formatter;
+			text: POINTER TO ARRAY OF TextModels.Model;
 	BEGIN
+		oldWhereOut := BugsCmds.displayDialog.whereOut;
+		BugsFiles.SetDest(BugsFiles.window);
 		string := dialog.node.item;
 		beg := dialog.beg - 1;
 		end := dialog.end;
@@ -215,31 +215,43 @@ MODULE SamplesCmds;
 		lastChain := dialog.lastChain;
 		numChains := lastChain - firstChain + 1;
 		NEW(f, numChains + 1);
-		BugsFiles.PathToFileSpec(stemName, loc, name);
+		NEW(text, numChains + 1);
 		i := 0;
 		WHILE i <= numChains DO
-			file := Files.dir.New(loc, Files.dontAsk);
-			BugsFiles.ConnectFormatter(f[i], file);
+			text[i] := TextModels.dir.New();
+			f[i].ConnectTo(text[i]);
 			f[i].SetPos(0);
 			INC(i)
 		END;
+		pos := f[0].Pos();
 		SamplesFormatted.CODA(string, beg, end, thin, firstChain, lastChain, f);
-		f[0].Register(name + "CODAindex");
-		i := 1;
-		WHILE i <= numChains DO
-			Strings.IntToString(i + firstChain - 1, numAsString);
-			f[i].Register(name + "CODAchain" + numAsString);
-			INC(i)
-		END;
-		BugsMsg.MapMsg("SamplesCmds:CODAFilesWritten", msg);
-		BugsTexts.ShowMsg(msg)
+		IF f[0].Pos() > pos THEN
+			BugsFiles.Save("CODAindex", text[0]);
+			i := 1;
+			WHILE i <= numChains DO
+				Strings.IntToString(i + firstChain - 1, numAsString);
+				BugsFiles.Save("CODAchain " + numAsString, text[i]);
+				INC(i)
+			END;
+			BugsMsg.Show("SamplesCmds:CODAFilesWritten")
+		END
 	END CODAFiles;
 
+	PROCEDURE OptionsExcl* (opt: INTEGER);
+	BEGIN
+		dialog.options.Excl(opt, opt)
+	END OptionsExcl;
+
+	PROCEDURE OptionsIncl* (opt: INTEGER);
+	BEGIN
+		dialog.options.Incl(opt, opt)
+	END OptionsIncl;
+	
 	PROCEDURE PlotMarkov*;
 		VAR
 			beg, end, thin, firstChain, lastChain, numChains: INTEGER;
 			string, title: Dialog.String;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		(*	only include values stored after end of adapting period	*)
@@ -251,20 +263,18 @@ MODULE SamplesCmds;
 		numChains := BugsCmds.specificationDialog.numChains;
 		string := dialog.node.item;
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		SamplesPlots.Draw(string, beg, end, thin, firstChain, lastChain, numChains, f);
-		IF f.views # 0 THEN
-			SamplesPlots.Title(title);
-			f.Register(title)
-		END
+		SamplesPlots.Title(title);
+		IF f.Pos() > 0 THEN BugsFiles.Open(title, text) END
 	END PlotMarkov;
 
 	PROCEDURE Plot*;
 		VAR
 			beg, end, thin, firstChain, lastChain, numChains: INTEGER;
 			string, title: Dialog.String;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 	BEGIN
 		string := dialog.node.item;
@@ -275,13 +285,11 @@ MODULE SamplesCmds;
 		lastChain := dialog.lastChain;
 		numChains := BugsCmds.specificationDialog.numChains;
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		SamplesPlots.Draw(string, beg, end, thin, firstChain, lastChain, numChains, f);
-		IF f.views # 0 THEN
-			SamplesPlots.Title(title);
-			f.Register(title)
-		END
+		SamplesPlots.Title(title);
+		IF f.Pos() > 0 THEN BugsFiles.Open(title, text) END
 	END Plot;
 
 	PROCEDURE Set*;
@@ -298,9 +306,8 @@ MODULE SamplesCmds;
 		SamplesInterface.Set(string, beg, numChains, ok);
 		IF ~ok THEN
 			p[0] := string$;
-			BugsMsg.GetError(msg);
-			BugsMsg.ParamMsg(msg, p, msg);
-			BugsTexts.ShowMsg(msg);
+			msg := BugsMsg.message$;
+			BugsMsg.ShowParam(msg, p);
 			RETURN
 		END;
 		UpdateNames;
@@ -310,16 +317,16 @@ MODULE SamplesCmds;
 
 	PROCEDURE Stats*;
 		VAR
-			beg, end, firstChain, i, lastChain, len, numTabs, thin: INTEGER;
+			beg, end, firstChain, i, lastChain, len, numTabs, thin, pos: INTEGER;
 			string: Dialog.String;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			fractions: ARRAY 10 OF REAL;
-			f: BugsMappers.Formatter;
+			f: TextMappers.Formatter;
 			text: TextModels.Model;
 			options: SET;
 	BEGIN
 		text := TextModels.dir.New();
-		BugsTexts.ConnectFormatter(f, text);
+		f.ConnectTo(text);
 		f.SetPos(0);
 		i := 0;
 		len := dialog.options.len;
@@ -343,7 +350,7 @@ MODULE SamplesCmds;
 			tabs[i] := tabs[1] + 16 * Ports.mm * (i - 1);
 			INC(i)
 		END;
-		f.WriteRuler(tabs);
+		BugsFiles.WriteRuler(tabs, f);
 		string := dialog.node.item;
 		(*	only include values stored after end of adapting period	*)
 		beg := MAX(dialog.beg, UpdaterActions.endOfAdapting) - 1;
@@ -351,10 +358,9 @@ MODULE SamplesCmds;
 		thin := dialog.thin;
 		firstChain := dialog.firstChain;
 		lastChain := dialog.lastChain;
+		pos := f.Pos();
 		SamplesFormatted.StatsSummary(string, beg, end, thin, firstChain, lastChain, options, fractions, f);
-		IF f.lines > 1 THEN
-			f.Register("Node statistics")
-		END
+		IF f.Pos() > pos THEN BugsFiles.Open("Node statistics", text) END
 	END Stats;
 
 	PROCEDURE SetVariable* (var: ARRAY OF CHAR);
@@ -371,8 +377,7 @@ MODULE SamplesCmds;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("SamplesCmds:NotInitialized", msg);
-			BugsFiles.ShowMsg(msg)
+			BugsMsg.Show("SamplesCmds:NotInitialized");
 		ELSE
 			var := dialog.node.item;
 			i := 0;
@@ -383,8 +388,7 @@ MODULE SamplesCmds;
 			ok := BugsIndex.Find(var) # NIL;
 			IF ~ok THEN
 				p[0] := var$;
-				BugsMsg.MapParamMsg("SamplesCmds:NotVariable", p, msg);
-				BugsFiles.ShowMsg(msg)
+				BugsMsg.ShowParam("SamplesCmds:NotVariable", p);
 			END
 		END
 	END SetGuard;
@@ -398,13 +402,11 @@ MODULE SamplesCmds;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("SamplesCmds:NotInitialized", msg);
-			BugsFiles.ShowMsg(msg)
+			BugsMsg.Show("SamplesCmds:NotInitialized");
 		ELSE
 			ok := ~BugsInterface.IsAdapting();
 			IF ~ok THEN
-				BugsMsg.MapMsg("SamplesCmds:Adapting", msg);
-				BugsFiles.ShowMsg(msg)
+				BugsMsg.Show("SamplesCmds:Adapting");
 			ELSE
 				var := dialog.node.item;
 				IF~SamplesInterface.IsStar(var) THEN
@@ -416,15 +418,13 @@ MODULE SamplesCmds;
 					ok := SamplesIndex.Find(var) # NIL;
 					IF ~ok THEN
 						p[0] := var$;
-						BugsMsg.MapParamMsg("SamplesCmds:NotSet", p, msg);
-						BugsFiles.ShowMsg(msg)
+						BugsMsg.ShowParam("SamplesCmds:NotSet", p);
 					END
 				ELSE
 					numMonitors := SamplesIndex.NumberOfMonitors();
 					ok := numMonitors # 0;
 					IF ~ok THEN
-						BugsMsg.MapMsg("SamplesCmds:NoMonitors", msg);
-						BugsFiles.ShowMsg(msg)
+						BugsMsg.Show("SamplesCmds:NoMonitors");
 					END
 				END
 			END
@@ -437,8 +437,7 @@ MODULE SamplesCmds;
 	BEGIN
 		IF BugsCmds.specificationDialog.numChains = 1 THEN
 			ok := FALSE;
-			BugsMsg.MapMsg("SamplesCmds:OnlyOneChain", msg);
-			BugsFiles.ShowMsg(msg)
+			BugsMsg.Show("SamplesCmds:OnlyOneChain");
 		ELSE
 			StatsGuard(ok)
 		END
@@ -453,8 +452,7 @@ MODULE SamplesCmds;
 	BEGIN
 		ok := BugsInterface.IsInitialized();
 		IF ~ok THEN
-			BugsMsg.MapMsg("SamplesCmds:NotInitialized", msg);
-			BugsFiles.ShowMsg(msg)
+			BugsMsg.Show("SamplesCmds:NotInitialized");
 		ELSE
 			var := dialog.node.item;
 			IF~SamplesInterface.IsStar(var) THEN
@@ -466,15 +464,13 @@ MODULE SamplesCmds;
 				ok := SamplesIndex.Find(var) # NIL;
 				IF ~ok THEN
 					p[0] := var$;
-					BugsMsg.MapParamMsg("SamplesCmds:NotSet", p, msg);
-					BugsFiles.ShowMsg(msg)
+					BugsMsg.ShowParam("SamplesCmds:NotSet", p);
 				END
 			ELSE
 				numMonitors := SamplesIndex.NumberOfMonitors();
 				ok := numMonitors # 0;
 				IF ~ok THEN
-					BugsMsg.MapMsg("SamplesCmds:NoMonitors", msg);
-					BugsFiles.ShowMsg(msg)
+					BugsMsg.Show("SamplesCmds:NoMonitors");
 				END
 			END
 		END

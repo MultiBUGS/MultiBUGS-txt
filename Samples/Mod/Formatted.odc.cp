@@ -12,8 +12,10 @@ MODULE SamplesFormatted;
 	
 
 	IMPORT
-		BugsIndex, BugsMappers, BugsNames, BugsParser,
-		SamplesIndex, SamplesInterface, SamplesMonitors;
+		Fonts,
+		BugsFiles, BugsIndex, BugsNames, BugsParser,
+		SamplesIndex, SamplesInterface, SamplesMonitors,
+		TextMappers, TextModels;
 
 	CONST
 		essOpt* = 0;
@@ -22,20 +24,27 @@ MODULE SamplesFormatted;
 		quant0Opt* = 5; quant1Opt* = 6; quant2Opt* = 7; quant3Opt* = 8;
 		quant4Opt* = 9; quant5Opt* = 10; quant6Opt* = 11; quant7Opt* = 12;
 		hpd0Opt* = 13; hpd1Opt* = 14; 
-
+		bold = Fonts.bold;
+		
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 20 OF CHAR;
 
-	PROCEDURE Header (IN fract: ARRAY OF REAL; options: SET; VAR f: BugsMappers.Formatter);
-		CONST
-			eps = 1.0E-10;
+	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
+	BEGIN
+		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
+	END WriteReal;
+	
+	PROCEDURE Header (IN fract: ARRAY OF REAL; options: SET; VAR f: TextMappers.Formatter);
 		VAR
 			i, numFrac, oldPrec: INTEGER;
+			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
-		oldPrec := BugsMappers.prec;
-		BugsMappers.SetPrec(4);
-		f.Bold;
+		oldPrec := BugsFiles.prec;
+		BugsFiles.SetPrec(4);
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, bold);
+		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteTab;
 		f.WriteString("mean"); f.WriteTab;
@@ -50,7 +59,7 @@ MODULE SamplesFormatted;
 		WHILE i < numFrac - 2 DO
 			IF i + quant0Opt IN options THEN
 				f.WriteString("val");
-				f.WriteReal(fract[i]);
+				WriteReal(fract[i], f);
 				f.WriteString("pc");
 				f.WriteTab
 			END;
@@ -59,10 +68,10 @@ MODULE SamplesFormatted;
 		WHILE i < numFrac DO
 			IF i + quant0Opt IN options THEN
 				f.WriteString("HPDL");
-				f.WriteReal(fract[i]);
+				WriteReal(fract[i], f);
 				f.WriteTab;
 				f.WriteString("HPDU");
-				f.WriteReal(fract[i]);
+				WriteReal(fract[i], f);
 				f.WriteTab
 			END;
 			INC(i)
@@ -72,14 +81,14 @@ MODULE SamplesFormatted;
 		f.WriteString("sample");
 		IF essOpt IN options THEN f.WriteTab; f.WriteString("ESS") END;
 		f.WriteLn;
-		f.Bold;
-		BugsMappers.SetPrec(oldPrec)
+		f.rider.SetAttr(oldAttr);
+		BugsFiles.SetPrec(oldPrec)
 	END Header;
 
 	PROCEDURE FormatStats (variable: ARRAY OF CHAR;
 	beg, end, thin, firstChain, lastChain: INTEGER;
 	options: SET; IN fractions: ARRAY OF REAL;
-	VAR writeHeader: BOOLEAN; VAR f: BugsMappers.Formatter);
+	VAR writeHeader: BOOLEAN; VAR f: TextMappers.Formatter);
 		VAR
 			ess, i, j, num, sampleSize, start: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -89,7 +98,6 @@ MODULE SamplesFormatted;
 			lower, upper: ARRAY 2 OF REAL;
 			var: BugsParser.Variable;
 			name: BugsNames.Name;
-			sort: BOOLEAN;
 	BEGIN
 		num := SamplesInterface.NumComponents(variable, beg, end, thin);
 		IF num = 0 THEN RETURN END;
@@ -109,14 +117,14 @@ MODULE SamplesFormatted;
 			mean, median, mode, sd, skew, exKur, error, percentiles, lower, upper, start, sampleSize,ess);
 			f.WriteTab;
 			f.WriteString(scalar); f.WriteTab;
-			f.WriteReal(mean); f.WriteTab;
-			IF medianOpt IN options THEN f.WriteReal(median); f.WriteTab END;
-			IF modeOpt IN options THEN f.WriteReal(mode); f.WriteTab END;
-			f.WriteReal(sd); f.WriteTab;
-			IF skewOpt IN options THEN f.WriteReal(skew); f.WriteTab END;
-			IF exKurtOpt IN options THEN f.WriteReal(exKur); f.WriteTab END;
+			WriteReal(mean, f); f.WriteTab;
+			IF medianOpt IN options THEN WriteReal(median, f); f.WriteTab END;
+			IF modeOpt IN options THEN WriteReal(mode, f); f.WriteTab END;
+			WriteReal(sd, f); f.WriteTab;
+			IF skewOpt IN options THEN WriteReal(skew, f); f.WriteTab END;
+			IF exKurtOpt IN options THEN WriteReal(exKur, f); f.WriteTab END;
 			IF error > 0 THEN
-				f.WriteReal(error)
+				WriteReal(error, f)
 			ELSE
 				f.WriteString("---")
 			END;
@@ -124,15 +132,15 @@ MODULE SamplesFormatted;
 			j := 0;
 			WHILE j < LEN(percentiles) DO
 				IF j + quant0Opt IN options THEN
-					f.WriteReal(percentiles[j]); f.WriteTab
+					WriteReal(percentiles[j], f); f.WriteTab
 				END;
 				INC(j)
 			END;
 			j := 0;
 			WHILE j < LEN(lower) DO
 				IF j + hpd0Opt IN options THEN
-					f.WriteReal(lower[j]); f.WriteTab;
-					f.WriteReal(upper[j]); f.WriteTab
+					WriteReal(lower[j], f); f.WriteTab;
+					WriteReal(upper[j], f); f.WriteTab
 				END;
 				INC(j)
 			END;
@@ -146,7 +154,7 @@ MODULE SamplesFormatted;
 	END FormatStats;
 
 	PROCEDURE StatsSummary* (variable: ARRAY OF CHAR; beg, end, thin, firstChain, lastChain: INTEGER;
-	options: SET; IN fractions: ARRAY OF REAL; VAR f: BugsMappers.Formatter);
+	options: SET; IN fractions: ARRAY OF REAL; VAR f: TextMappers.Formatter);
 		VAR
 			writeHeader: BOOLEAN;
 			i, len: INTEGER;
@@ -169,7 +177,7 @@ MODULE SamplesFormatted;
 	END StatsSummary;
 
 	PROCEDURE FormatCODA (IN variable: ARRAY OF CHAR; beg, end, thin, firstChain, lastChain: INTEGER;
-	VAR f: ARRAY OF BugsMappers.Formatter);
+	VAR f: ARRAY OF TextMappers.Formatter);
 		VAR
 			chain, i, iteration, j, k, num, line,
 			numChains, sampleSize: INTEGER;
@@ -183,7 +191,7 @@ MODULE SamplesFormatted;
 		SamplesInterface.Offsets(variable, beg, end, thin, offsets);
 		numChains := lastChain - firstChain + 1;
 		i := 0;
-		line := f[1].lines;
+(*		line := f[1].lines;*)
 		WHILE i < num DO
 			BugsIndex.MakeLabel(variable, offsets[i], label);
 			sampleSize := SamplesInterface.SampleSize(label, beg, end, thin, firstChain, lastChain);
@@ -205,7 +213,7 @@ MODULE SamplesFormatted;
 				WHILE k < sampleSize DO
 					f[j + 1].WriteInt(iteration);
 					f[j + 1].WriteTab;
-					f[j + 1].WriteReal(sample[0, k]);
+					WriteReal(sample[0, k], f[j + 1]);
 					f[j + 1].WriteLn;
 					INC(iteration, thin);
 					INC(k)
@@ -217,7 +225,7 @@ MODULE SamplesFormatted;
 	END FormatCODA;
 
 	PROCEDURE CODA* (variable: ARRAY OF CHAR; beg, end, thin, firstChain, lastChain: INTEGER;
-	VAR f: ARRAY OF BugsMappers.Formatter);
+	VAR f: ARRAY OF TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			monitors: POINTER TO ARRAY OF SamplesMonitors.Monitor;
@@ -238,7 +246,7 @@ MODULE SamplesFormatted;
 	END CODA;
 
 	PROCEDURE FormatLabels (variable: ARRAY OF CHAR; beg, end, thin: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i, len, num: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -258,7 +266,7 @@ MODULE SamplesFormatted;
 		END
 	END FormatLabels;
 
-	PROCEDURE Labels* (variable: ARRAY OF CHAR; beg, end, thin: INTEGER; VAR f: BugsMappers.Formatter);
+	PROCEDURE Labels* (variable: ARRAY OF CHAR; beg, end, thin: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			monitors: POINTER TO ARRAY OF SamplesMonitors.Monitor;

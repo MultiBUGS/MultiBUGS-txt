@@ -15,8 +15,8 @@ MODULE SamplesCorrelat;
 	IMPORT
 
 		Ports, Stores, Views, 
-		TextModels, TextRulers, TextViews, 
-		BugsMappers, BugsTexts,
+		TextMappers, TextModels, TextRulers, TextViews, 
+		BugsMappers, 
 		MathSort, 
 		PlotsAxis, PlotsViews, 
 		SamplesViews;
@@ -143,15 +143,15 @@ MODULE SamplesCorrelat;
 	PROCEDURE (v: View) ShowData;
 		VAR
 			i, j, len, numChains: INTEGER;
-			formatter: BugsMappers.Formatter;
+			formatter: TextMappers.Formatter;
 			text: TextModels.Model;
 			view: Views.View;
 			area: REAL;
 	BEGIN
 		text := TextModels.dir.New();
 		view := TextViews.dir.New(text);
-		BugsTexts.ConnectFormatter(formatter, text);
-		formatter.WriteView(NewRuler(), 0, 0);
+		formatter.ConnectTo(text);
+		formatter.WriteView(NewRuler());
 		len := LEN(v.autoCorr, 0);
 		numChains := LEN(v.autoCorr, 1);
 		j := 0;

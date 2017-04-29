@@ -165,7 +165,7 @@ MODULE SamplesJumpdist;
 		IF ~(p IS GraphStochastic.Node) OR (GraphNodes.data IN p.props) THEN RETURN NIL END;
 		updater := UpdaterActions.FindMVSampler(p(GraphStochastic.Node));
 		updater.Install(typeName);
-		BugsMsg.MapMsg(typeName, typeName);
+		BugsMsg.Lookup(typeName, typeName);
 		noChains := LEN(sample, 0);
 		lenChain := LEN(sample, 1);
 		IF lenChain = 1 THEN RETURN NIL END;

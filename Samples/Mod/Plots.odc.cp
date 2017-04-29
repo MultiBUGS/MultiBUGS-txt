@@ -15,7 +15,8 @@ MODULE SamplesPlots;
 		Dialog, Views,
 		BugsMappers, BugsNames, BugsParser,
 		PlotsViews,
-		SamplesIndex, SamplesInterface, SamplesMonitors, SamplesViews;
+		SamplesIndex, SamplesInterface, SamplesMonitors, SamplesViews,
+		TextMappers;
 
 	VAR
 		version-: INTEGER;
@@ -77,7 +78,7 @@ MODULE SamplesPlots;
 
 	PROCEDURE FormatPlots (IN string: Dialog.String;
 	beg, end, thin, firstChain, lastChain, numChains: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			h, i, num, w: INTEGER;
 			plots: POINTER TO ARRAY OF Views.View;
@@ -92,14 +93,14 @@ MODULE SamplesPlots;
 		WHILE i < num DO
 			IF plots[i] # NIL THEN
 				plots[i](PlotsViews.View).MinSize(w, h);
-				f.WriteView(plots[i], w, h)
+				f.WriteView(plots[i])
 			END;
 			INC(i)
 		END
 	END FormatPlots;
 
 	PROCEDURE Draw* (IN name: Dialog.String; beg, end, thin, firstChain, lastChain, numChains: INTEGER;
-	VAR f: BugsMappers.Formatter);
+	VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
 			string1: Dialog.String;

@@ -71,8 +71,8 @@ MODULE SamplesInterface;
 			INC(i)
 		END;
 		IF num = 0 THEN
-			BugsMsg.MapMsg("SamplesEmbed:NoMonitors", msg);
-			BugsMsg.StoreMsg(msg);
+			BugsMsg.Lookup("SamplesEmbed:NoMonitors", msg);
+			BugsMsg.Store(msg);
 			ok := FALSE; RETURN
 		END;
 		IF newMonitor THEN

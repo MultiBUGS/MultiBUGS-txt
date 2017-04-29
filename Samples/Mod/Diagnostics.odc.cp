@@ -14,8 +14,8 @@ MODULE SamplesDiagnostics;
 
 	IMPORT
 		Ports, Stores, Strings, Views,
-		TextModels, TextRulers, TextViews,
-		BugsMappers, BugsTexts,
+		TextMappers, TextModels, TextRulers, TextViews,
+		BugsMappers, 
 		MathBGR, MathFunc,
 		PlotsAxis, PlotsViews,
 		SamplesViews;
@@ -93,14 +93,14 @@ MODULE SamplesDiagnostics;
 	PROCEDURE (v: View) ShowData;
 		VAR
 			i, lenSeries, beg, end: INTEGER;
-			formatter: BugsMappers.Formatter;
+			formatter: TextMappers.Formatter;
 			text: TextModels.Model;
 			view: Views.View;
 	BEGIN
 		text := TextModels.dir.New(); view := TextViews.dir.New(text);
-		BugsTexts.ConnectFormatter(formatter, text);
+		formatter.ConnectTo(text);
 		lenSeries := LEN(v.numer);
-		formatter.WriteView(NewRuler(), 0, 0);
+		formatter.WriteView(NewRuler());
 		formatter.WriteTab;
 		formatter.WriteString("----------------------------80% interval----------------------------");
 		formatter.WriteLn;
