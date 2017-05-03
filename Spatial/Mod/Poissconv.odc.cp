@@ -15,8 +15,8 @@ MODULE SpatialPoissconv;
 	IMPORT
 		Math, Stores,
 		GraphNodes, GraphParamtrans, GraphPoisson, GraphRules, GraphStochastic,
-		GraphSumation, GraphUnivariate, MathCumulative,
-		MathFunc, MathRandnum,
+		GraphSumation, GraphUnivariate, 
+		MathCumulative, MathFunc, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
 	TYPE
@@ -59,11 +59,6 @@ MODULE SpatialPoissconv;
 	PROCEDURE (updater: Multinomial) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
 	END ExternalizeAuxillary;
-
-	PROCEDURE (updater: Multinomial) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
-	BEGIN
-		RETURN prior(Node).poissons
-	END FindBlock;
 
 	PROCEDURE (updater: Multinomial) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -108,6 +103,22 @@ MODULE SpatialPoissconv;
 			INC(i)
 		END
 	END Sample;
+	
+	PROCEDURE (multinomial: Multinomial) Size (): INTEGER;
+		VAR
+			node: Node;
+	BEGIN
+		node := multinomial.node(Node);
+		RETURN LEN(node.poissons)
+	END Size;
+	
+	PROCEDURE (multinomial: Multinomial) UpdatedBy (index: INTEGER): GraphStochastic.Node;
+		VAR
+			node: Node;
+	BEGIN
+		node := multinomial.node(Node);
+		RETURN node.poissons[index]
+	END UpdatedBy;
 
 	PROCEDURE (f: MultinomialFactory) GetDefaults;
 	BEGIN
@@ -246,7 +257,7 @@ MODULE SpatialPoissconv;
 			node.poissons[i] := q(GraphStochastic.Node);
 			INC(i)
 		END;
-		node.sumLambda := GraphSumation.sumFact.New((*0*));
+		node.sumLambda := GraphSumation.sumFact.New();
 		argsSum.vectors[0] := v;
 		node.sumLambda.Set(argsSum, res)
 	END InternalizeUnivariate;
@@ -302,13 +313,10 @@ MODULE SpatialPoissconv;
 
 	PROCEDURE (node: Node) ParentsUnivariate (all: BOOLEAN): GraphNodes.List;
 		VAR
-			i, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
-		IF node.poissons # NIL THEN nElem := LEN(node.poissons) ELSE nElem := 0 END;
-		(*	this node does not contibute likelihood	*)
 		IF all THEN
 			p := node.sumLambda;
 			p.AddParent(list)
@@ -335,8 +343,6 @@ MODULE SpatialPoissconv;
 			argsSum: GraphStochastic.ArgsLogical;
 			multinomial: UpdaterUpdaters.Updater;
 			zero: BOOLEAN;
-		CONST
-			numChains = 1;
 	BEGIN
 		res := {};
 		IF ~(GraphNodes.data IN node.props) THEN
@@ -362,7 +368,7 @@ MODULE SpatialPoissconv;
 					p.Set(argsPoiss, res);
 					p.SetProps(p.props + {GraphNodes.data, GraphNodes.hidden});
 					p.BuildLikelihood;
-					p.SetProps(p.props - {GraphNodes.data});
+					IF ~zero THEN p.SetProps(p.props - {GraphNodes.data}) END;
 					p.SetValue(0.0);
 					node.poissons[i] := p;
 					INC(i)
