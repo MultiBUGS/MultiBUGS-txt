@@ -25,13 +25,14 @@ GraphDeviance
 MonitorMonitors MonitorSamples MonitorSummary MonitorDeviance MonitorPlugin MonitorRanks MonitorModel
 
 UpdaterUpdaters UpdaterMethods UpdaterUnivariate UpdaterMultivariate UpdaterContinuous
-UpdaterConjugateUV UpdaterConjugateMV UpdaterMetropolisUV UpdaterMetropolisMV UpdaterRandWalkUV UpdaterActions UpdaterAuxillary UpdaterEmpty  UpdaterParallel UpdaterMessages UpdaterExternal UpdaterResources
+UpdaterConjugateUV UpdaterConjugateMV UpdaterMetropolisUV UpdaterMetropolisMV UpdaterRandWalkUV UpdaterAuxillary UpdaterEmpty UpdaterActions UpdaterParallel UpdaterMessages UpdaterExternal UpdaterResources
 
 GraphConstant GraphSentinel GraphPi  GraphHalf GraphMixture GraphDummy GraphGeneric GraphMAP  
 
 DeviancePlugin
 
-BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData  BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects BugsInfo BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources BugsComponents
+BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData  BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects 
+BugsBlueDiamonds BugsInfo BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources BugsComponents
 
 BugsRectData BugsSplusData
 
@@ -59,7 +60,7 @@ GraphBern GraphBinomial GraphCat GraphCat2 GraphFounder GraphGeometric GraphHype
 
 GraphMultinom
 
-GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphGEV GraphGPD GraphGamma GraphGengamma GraphLogistic GraphLognorm GraphNormal GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
+GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphLogistic GraphLognorm GraphNormal GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
 
 GraphSample GraphPriorNP
 
@@ -115,7 +116,7 @@ DiffChangePoints DiffHPS_V2_FB
 
 MapsMessages MapsResources
 
-BugsStartup BugsC BugsBRugs
+BugsStartup 
 
 BugsDialog
 
@@ -150,15 +151,15 @@ MapsMap MapsImporter MapsIndex MapsAdjacency MapsViews MapsViews1 MapsCmds MapsA
 
 PKBugsCmds
 
+BugsC
+
 StdCmds1
 
 TestScript
 
 BugsDistribute 
 
-MathSeeds
-
-BugsClassic 
+MathSeeds 
 
 ParallelTraphandler ParallelRandnum ParallelActions ParallelDebug ParallelWorker 
 
