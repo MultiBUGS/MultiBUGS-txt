@@ -317,11 +317,10 @@ MODULE BugsCodegen;
 				args.ops[args.numOps] := operator.descriptor.key;
 				INC(args.numOps)
 			ELSIF t IS BugsParser.Function THEN
-			(*	need special case of link function!	*)
 				func := t(BugsParser.Function);
 				funcNode := func.descriptor.fact.New();
 				funcArgs.Init;
-				WriteFunctionArgs(func, funcArgs);
+				WriteFunctionArgs(func, funcArgs); 
 				IF ~funcArgs.valid THEN args.valid := FALSE; RETURN END;
 				funcNode.Set(funcArgs, res);
 				IF res # {} THEN

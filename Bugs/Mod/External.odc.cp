@@ -50,6 +50,7 @@ MODULE BugsExternal;
 		Density("dgeom0", "GraphGeometric.ZeroInstall");
 		Density("dgeom1", "GraphGeometric.OneInstall");
 		Density("dloglik", "GraphGeneric.Install");
+		Density("dHalfT", "GraphHalfT.Install");
 		Density("dhyper", "GraphHypergeometric.Install");
 		Density("dlnorm", "GraphLognorm.Install");
 		Density("dlogis", "GraphLogistic.Install");

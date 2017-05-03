@@ -114,10 +114,10 @@ CONST
 						IF s.type = TextMappers.view THEN INC(num) END
 					END;
 					IF w < 150 * Ports.mm THEN
-						num := (num + 1) DIV 2;
 						IF num > 1 THEN
 							w := 2 * w;
-						END
+						END;
+						num := (num + 1) DIV 2;
 					END;
 					num := MIN(4, num);
 					h := h * num

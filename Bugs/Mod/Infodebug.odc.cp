@@ -19,11 +19,13 @@ MODULE BugsInfodebug;
 		GraphGrammar, GraphNodes, GraphStochastic,
 		TextMappers, TextModels,
 		UpdaterActions, UpdaterUpdaters;
-
+		
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
+		
+	
+	
 	PROCEDURE MethodsState (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
 		VAR
 			adr, chain, depth, i, index, len, numChains, size: INTEGER;

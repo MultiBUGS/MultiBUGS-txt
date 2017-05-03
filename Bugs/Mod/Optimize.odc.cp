@@ -27,8 +27,8 @@ MODULE BugsOptimize;
 	PROCEDURE Add (tree: BugsParser.Binary);
 	BEGIN
 		FoldConstants(tree.left);
-		IF ~tree.left.evaluated THEN RETURN END;
 		FoldConstants(tree.right);
+		IF ~tree.left.evaluated THEN RETURN END;
 		IF ~tree.right.evaluated THEN RETURN END;
 		tree.evaluated := TRUE;
 		tree.value := tree.left.value + tree.right.value
@@ -39,9 +39,7 @@ MODULE BugsOptimize;
 			refLeft, refRight: GraphNodes.Node;
 	BEGIN
 		FoldConstants(tree.left);
-		IF ~tree.left.evaluated THEN RETURN END;
 		FoldConstants(tree.right);
-		IF ~tree.right.evaluated THEN RETURN END;
 		tree.evaluated := tree.left.evaluated & tree.right.evaluated;
 		IF tree.evaluated THEN
 			tree.value := tree.left.value - tree.right.value
@@ -64,9 +62,7 @@ MODULE BugsOptimize;
 			eps = 1.0E-20;
 	BEGIN
 		FoldConstants(tree.left);
-		IF ~tree.left.evaluated THEN RETURN END;
 		FoldConstants(tree.right);
-		IF ~tree.right.evaluated THEN RETURN END;
 		IF tree.left.evaluated & (ABS(tree.left.value) < eps) THEN
 			tree.evaluated := TRUE;
 			tree.value := 0.0
@@ -86,9 +82,7 @@ MODULE BugsOptimize;
 			eps = 1.0E-20;
 	BEGIN
 		FoldConstants(tree.left);
-		IF ~tree.left.evaluated THEN RETURN END;
 		FoldConstants(tree.right);
-		IF ~tree.right.evaluated THEN RETURN END;
 		IF tree.left.evaluated & (ABS(tree.left.value) < eps) THEN
 			tree.evaluated := TRUE;
 			tree.value := 0.0
@@ -103,16 +97,17 @@ MODULE BugsOptimize;
 	PROCEDURE UMinus (tree: BugsParser.Binary);
 	BEGIN
 		FoldConstants(tree.left);
-		IF ~tree.left.evaluated THEN RETURN END;
-		tree.evaluated := TRUE;
-		tree.value :=  - tree.left.value
+		IF tree.left.evaluated THEN 
+			tree.evaluated := TRUE;
+			tree.value :=  - tree.left.value
+		END
 	END UMinus;
 
 	PROCEDURE Power (tree: BugsParser.Internal);
 	BEGIN
 		FoldConstants(tree.parents[0]);
-		IF ~tree.parents[0].evaluated THEN RETURN END;
 		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
 		IF ~tree.parents[1].evaluated THEN RETURN END;
 		tree.evaluated := TRUE;
 		tree.value := MathFunc.Power(tree.parents[0].value, tree.parents[1].value)
@@ -121,8 +116,8 @@ MODULE BugsOptimize;
 	PROCEDURE Equals (tree: BugsParser.Internal);
 	BEGIN
 		FoldConstants(tree.parents[0]);
-		IF ~tree.parents[0].evaluated THEN RETURN END;
 		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
 		IF ~tree.parents[1].evaluated THEN RETURN END;
 		tree.evaluated := TRUE;
 		tree.value := MathFunc.Equals(tree.parents[0].value, tree.parents[1].value)
@@ -131,8 +126,8 @@ MODULE BugsOptimize;
 	PROCEDURE Max (tree: BugsParser.Internal);
 	BEGIN
 		FoldConstants(tree.parents[0]);
-		IF ~tree.parents[0].evaluated THEN RETURN END;
 		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
 		IF ~tree.parents[1].evaluated THEN RETURN END;
 		tree.evaluated := TRUE;
 		tree.value := MAX(tree.parents[0].value, tree.parents[1].value)
@@ -141,8 +136,8 @@ MODULE BugsOptimize;
 	PROCEDURE Min (tree: BugsParser.Internal);
 	BEGIN
 		FoldConstants(tree.parents[0]);
-		IF ~tree.parents[0].evaluated THEN RETURN END;
 		FoldConstants(tree.parents[1]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
 		IF ~tree.parents[1].evaluated THEN RETURN END;
 		tree.evaluated := TRUE;
 		tree.value := MIN(tree.parents[0].value, tree.parents[1].value)
@@ -320,12 +315,8 @@ MODULE BugsOptimize;
 	BEGIN
 		FoldConstants(tree.parents[0]);
 		IF ~tree.parents[0].evaluated THEN RETURN END;
-		IF tree.parents[0].evaluated THEN
-			tree.evaluated := TRUE;
-			tree.value := MathFunc.ILogit(tree.parents[0].value)
-		ELSE
-			tree.evaluated := FALSE
-		END
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.ILogit(tree.parents[0].value)
 	END ILogit;
 
 	PROCEDURE Sqrt (tree: BugsParser.Internal);
@@ -445,7 +436,7 @@ MODULE BugsOptimize;
 						t.value := ref.Value()
 					ELSE
 						args.Init;
-						BugsCodegen.WriteFunctionArgs(t, args);
+						BugsCodegen.WriteFunctionArgs(t, args); 
 						t.evaluated := args.valid;
 						IF t.evaluated THEN
 							ref := fact.New();
