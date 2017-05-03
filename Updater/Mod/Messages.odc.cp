@@ -131,8 +131,12 @@ MODULE UpdaterMessages;
 		StoreKey("UpdaterWishart.Install", "conjugate wishart");
 
 		StoreKey("GraphT.MixingInstall", "t-mixing");
+		
+		StoreKey("GraphHalfT.AuxillaryInstall", "half T mixing");
 
-		StoreKey("GraphStable.AuxillaryInstall", "stable-mixing");
+		StoreKey("GraphStable.AuxillaryInstall", "stable mixing");
+		
+		StoreKey("SpatialPoissconv.MultinomialInstall", "pois conv mixing");
 		
 	END Load;
 

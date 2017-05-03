@@ -292,25 +292,26 @@ MODULE UpdaterParallel;
 		VAR
 			new: BOOLEAN;
 			i, j, finish, rank, commSize, numRows, size, start: INTEGER;
-			updater: UpdaterUpdaters.Updater;
+			u: UpdaterUpdaters.Updater;
 			prior: GraphStochastic.Node;
 			link: List;
 			element: RowId;
 	BEGIN
 		UpdaterActions.StartFinish(depth, start, finish);
 		commSize := LEN(lists);
-		REPEAT	(*	repeat until all updaters at depth have been distributed	*)
+		REPEAT	(*	repeat until all updaters at depth have been distributed between cores	*)
 			new := FALSE;
 			rank := 0;
 			numRows := 1;
 			i := start;
 			WHILE i # finish DO
-				updater := UpdaterActions.GetUpdater(chain, i);
-				prior := updater.Prior(0);
+				u := UpdaterActions.GetUpdater(chain, i);
+				prior := u.UpdatedBy(0);
 				IF ~(GraphStochastic.distributed IN prior.props) THEN	(*	not distributed updater	*)
 					IF ~(GraphNodes.mark IN prior.props) THEN	(*	not distributed this updater yet	*)
 						(*	potential parallel updater	*)
-						IF ~IsMarkedLike(updater) & ~IsMarkedDependent(updater) THEN	(*	likelihoods disjoint	*)
+						IF ~IsMarkedLike(u) & ~IsMarkedDependent(u) THEN	
+						(*	likelihoods disjoint	*)
 							IF rank = 0 THEN	(*	add new row of updaters	*)
 								j := 0;
 								WHILE j < commSize DO
@@ -319,13 +320,13 @@ MODULE UpdaterParallel;
 								new := TRUE;
 								NEW(element); element.id := numRows; element.next := rowId; rowId := element;
 								INC(numRows);
-								size := updater.Size()
+								size := u.Size()
 							END;
-							IF size = updater.Size() THEN	(*	check size of potential new updater	*)
+							IF size = u.Size() THEN	(*	check size of potential new updater	*)
 								prior.SetProps(prior.props + {GraphNodes.mark});
-								MarkLike(updater);
-								MarkDependents(updater);
-								lists[rank].updater := updater;
+								MarkLike(u);
+								MarkDependents(u);
+								lists[rank].updater := u;
 								INC(rank);
 								rank := rank MOD commSize
 							END
@@ -336,17 +337,17 @@ MODULE UpdaterParallel;
 			END;
 			i := start;
 			WHILE i # finish DO
-				updater := UpdaterActions.GetUpdater(chain, i);
-				UnMarkLike(updater);
-				UnMarkDependents(updater);
+				u := UpdaterActions.GetUpdater(chain, i);
+				UnMarkLike(u);
+				UnMarkDependents(u);
 				INC(i)
 			END;
 			IF new THEN rowId.id :=  - ABS(rowId.id) END
 		UNTIL ~new;
 		i := start;
 		WHILE i # finish DO
-			updater := UpdaterActions.GetUpdater(chain, i);
-			prior := updater.Prior(0);
+			u := UpdaterActions.GetUpdater(chain, i);
+			prior := u.Prior(0);
 			prior.SetProps(prior.props - {GraphNodes.mark});
 			INC(i)
 		END
@@ -490,8 +491,8 @@ MODULE UpdaterParallel;
 		UpdaterActions.MarkDistributed;
 		i := maxDepth;
 		WHILE i >= minDepth DO
-			DistByDepth0(i, chain, lists, rowId);
-			DistByDepth1(i, chain, lists, rowId);
+			DistByDepth0(i, chain, lists, rowId); 
+			DistByDepth1(i, chain, lists, rowId); 
 			DEC(i)
 		END;
 		i := 0;
@@ -596,7 +597,7 @@ MODULE UpdaterParallel;
 				u := updaters[i, j];
 				k := 0;
 				WHILE k < size DO
-					block[offset] := u.Prior(k);
+					block[offset] := u.UpdatedBy(k);
 					IF block[offset] = NIL THEN (*	handle dummy updater case	*)
 						block[offset] := GraphFlat.fact.New();
 						block[offset].SetValue(0.0)
@@ -624,7 +625,7 @@ MODULE UpdaterParallel;
 			size := u.Size();
 			i := 0;
 			WHILE i < size DO
-				prior := u.Prior(i);
+				prior := u.UpdatedBy(i);
 				IF prior # NIL THEN
 					prior.SetProps(prior.props + mark)
 				END;
@@ -647,7 +648,7 @@ MODULE UpdaterParallel;
 			size := u.Size();
 			i := 0;
 			WHILE i < size DO
-				prior := u.Prior(i);
+				prior := u.UpdatedBy(i);
 				IF prior # NIL THEN
 					prior.SetProps(prior.props - mark)
 				END;

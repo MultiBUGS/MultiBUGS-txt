@@ -28,7 +28,6 @@ MODULE UpdaterAuxillary;
 		UpdaterMV* = POINTER TO ABSTRACT RECORD(UpdaterUpdaters.Updater)
 			values: POINTER TO ARRAY OF REAL;
 			node-: GraphStochastic.Node;
-			prior-: GraphStochastic.Vector
 		END;
 
 	VAR
@@ -40,12 +39,12 @@ MODULE UpdaterAuxillary;
 	PROCEDURE (updater: UpdaterUV) ExternalizeAuxillary- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterUV) InternalizeAuxillary- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
+	
 	PROCEDURE (updater: UpdaterUV) Children* (): GraphStochastic.Vector;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.Prior(0);
+		prior := updater.UpdatedBy(0);
 		RETURN prior.Children()
 	END Children;
 
@@ -63,20 +62,20 @@ MODULE UpdaterAuxillary;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.Prior(0);
+		prior := updater.UpdatedBy(0);
 		RETURN prior.depth
 	END Depth;
-
-	PROCEDURE (updater: UpdaterUV) ExternalizePrior- (VAR wr: Stores.Writer);
-	BEGIN
-		GraphNodes.Externalize(updater.node, wr)
-	END ExternalizePrior;
 
 	PROCEDURE (updater: UpdaterUV) Externalize- (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteReal(updater.value);
 		updater.ExternalizeAuxillary(wr)
 	END Externalize;
+
+	PROCEDURE (updater: UpdaterUV) ExternalizePrior- (VAR wr: Stores.Writer);
+	BEGIN
+		GraphNodes.Externalize(updater.node, wr)
+	END ExternalizePrior;
 
 	PROCEDURE (updater: UpdaterUV) GenerateInit* (fixFounder: BOOLEAN; OUT res: SET);
 	BEGIN
@@ -87,6 +86,12 @@ MODULE UpdaterAuxillary;
 	BEGIN
 	END Initialize;
 
+	PROCEDURE (updater: UpdaterUV) Internalize- (VAR rd: Stores.Reader);
+	BEGIN
+		rd.ReadReal(updater.value);
+		updater.InternalizeAuxillary(rd)
+	END Internalize;
+
 	PROCEDURE (updater: UpdaterUV) InternalizePrior- (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
@@ -94,12 +99,6 @@ MODULE UpdaterAuxillary;
 		p := GraphNodes.Internalize(rd);
 		updater.node := p(GraphStochastic.Node)
 	END InternalizePrior;
-
-	PROCEDURE (updater: UpdaterUV) Internalize- (VAR rd: Stores.Reader);
-	BEGIN
-		rd.ReadReal(updater.value);
-		updater.InternalizeAuxillary(rd)
-	END Internalize;
 
 	PROCEDURE (updater: UpdaterUV) IsAdapting* (): BOOLEAN;
 	BEGIN
@@ -115,7 +114,7 @@ MODULE UpdaterAuxillary;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.node;
+		prior := updater.UpdatedBy(0);
 		prior.SetValue(updater.value)
 	END LoadSample;
 
@@ -128,6 +127,11 @@ MODULE UpdaterAuxillary;
 	BEGIN
 		RETURN 0.0
 	END LogLikelihood;
+
+	PROCEDURE (updater: UpdaterUV) Prior* (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN updater.node
+	END Prior;
 
 	PROCEDURE (updater: UpdaterUV) SetChildren* (children: GraphStochastic.Vector);
 	BEGIN
@@ -147,7 +151,7 @@ MODULE UpdaterAuxillary;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.node;
+		prior := updater.UpdatedBy(0);
 		updater.value := prior.value
 	END StoreSample;
 
@@ -170,7 +174,6 @@ MODULE UpdaterAuxillary;
 		size := source.Size();
 		s := source(UpdaterMV);
 		updater.node := s.node;
-		updater.prior := s.prior;
 		NEW(updater.values, size);
 		i := 0;
 		WHILE i < size DO
@@ -183,12 +186,15 @@ MODULE UpdaterAuxillary;
 	PROCEDURE (updater: UpdaterMV) Depth* (): INTEGER;
 		VAR
 			d, depth, i, size: INTEGER;
+			p: GraphStochastic.Node;
 	BEGIN
-		depth := updater.prior[0].depth;
+		p := updater.UpdatedBy(0);
+		depth := p.depth;
 		size := updater.Size();
 		i := 1;
 		WHILE i < size DO
-			d := updater.prior[i].depth;
+			p := updater.UpdatedBy(i);
+			d := p.depth;
 			depth := MAX(depth, d);
 			INC(i)
 		END;
@@ -196,17 +202,8 @@ MODULE UpdaterAuxillary;
 	END Depth;
 
 	PROCEDURE (updater: UpdaterMV) ExternalizePrior- (VAR wr: Stores.Writer);
-		VAR
-			i, size: INTEGER;
 	BEGIN
-		GraphNodes.Externalize(updater.node, wr);
-		size := updater.Size();
-		wr.WriteInt(size);
-		i := 0;
-		WHILE i < size DO
-			GraphNodes.Externalize(updater.prior[i], wr);
-			INC(i)
-		END
+		GraphNodes.Externalize(updater.node, wr)
 	END ExternalizePrior;
 
 	PROCEDURE (updater: UpdaterMV) Externalize- (VAR wr: Stores.Writer);
@@ -214,18 +211,13 @@ MODULE UpdaterAuxillary;
 			i, size: INTEGER;
 	BEGIN
 		size := updater.Size();
-		wr.WriteInt(size);
 		i := 0;
 		WHILE i < size DO
-			GraphNodes.Externalize(updater.prior[i], wr);
 			wr.WriteReal(updater.values[i]);
 			INC(i)
 		END;
 		updater.ExternalizeAuxillary(wr)
 	END Externalize;
-
-	PROCEDURE (updater: UpdaterMV) FindBlock- (prior: GraphStochastic.Node): GraphStochastic.Vector,
-	NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterMV) GenerateInit* (fixFounder: BOOLEAN; OUT res: SET);
 	BEGIN
@@ -238,27 +230,20 @@ MODULE UpdaterAuxillary;
 
 	PROCEDURE (updater: UpdaterMV) InternalizePrior- (VAR rd: Stores.Reader);
 		VAR
-			i, size: INTEGER;
 			p: GraphNodes.Node;
+			size: INTEGER;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		updater.node := p(GraphStochastic.Node);
-		rd.ReadInt(size);
-		NEW(updater.prior, size);
-		i := 0;
-		WHILE i < size DO
-			p := GraphNodes.Internalize(rd);
-			updater.prior[i] := p(GraphStochastic.Node);
-			INC(i)
-		END
+		size := updater.Size();
+		NEW(updater.values, size)
 	END InternalizePrior;
 
 	PROCEDURE (updater: UpdaterMV) Internalize- (VAR rd: Stores.Reader);
 		VAR
 			i, size: INTEGER;
 	BEGIN
-		rd.ReadInt(size);
-		NEW(updater.values, size);
+		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
 			rd.ReadReal(updater.values[i]);
@@ -285,7 +270,7 @@ MODULE UpdaterAuxillary;
 		i := 0;
 		size := updater.Size();
 		WHILE i < size DO
-			prior := updater.prior[i];
+			prior := updater.UpdatedBy(i);
 			prior.SetProps(prior.props + {GraphStochastic.initialized});
 			INC(i)
 		END
@@ -303,11 +288,7 @@ MODULE UpdaterAuxillary;
 
 	PROCEDURE (updater: UpdaterMV) Prior* (index: INTEGER): GraphStochastic.Node;
 	BEGIN
-		IF (index >= 0) & (index < updater.Size()) THEN
-			RETURN updater.prior[index]
-		ELSE
-			RETURN NIL
-		END
+		RETURN updater.node
 	END Prior;
 
 	PROCEDURE (updater: UpdaterMV) SetChildren* (children: GraphStochastic.Vector);
@@ -319,19 +300,9 @@ MODULE UpdaterAuxillary;
 			size: INTEGER;
 	BEGIN
 		updater.node := prior;
-		updater.prior := updater.FindBlock(prior);
-		IF updater.prior # NIL THEN
-			size := LEN(updater.prior);
-			NEW(updater.values, size)
-		ELSE
-			updater.values := NIL
-		END
+		size := updater.Size();
+		NEW(updater.values, size)
 	END SetPrior;
-
-	PROCEDURE (updater: UpdaterMV) Size* (): INTEGER;
-	BEGIN
-		RETURN LEN(updater.prior)
-	END Size;
 
 	PROCEDURE (updater: UpdaterMV) StoreSample*;
 		VAR
@@ -341,7 +312,7 @@ MODULE UpdaterAuxillary;
 		i := 0;
 		size := updater.Size();
 		WHILE i < size DO
-			prior := updater.prior[i];
+			prior := updater.UpdatedBy(i);
 			updater.values[i] := prior.value;
 			INC(i)
 		END

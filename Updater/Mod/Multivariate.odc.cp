@@ -558,6 +558,16 @@ MODULE UpdaterMultivariate;
 		END
 	END StoreSample;
 
+	(*	node in graphical model that updater updates	*)
+	PROCEDURE (updater: Updater) UpdatedBy* (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		IF (index >= 0) & (index < updater.Size()) THEN
+			RETURN updater.prior[index]
+		ELSE
+			RETURN NIL
+		END
+	END UpdatedBy;
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;

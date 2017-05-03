@@ -17,7 +17,7 @@ MODULE UpdaterActions;
 		Stores,
 		GraphNodes, GraphStochastic,
 		MathSort,
-		UpdaterUpdaters;
+		UpdaterAuxillary, UpdaterUpdaters;
 
 	TYPE
 		List = POINTER TO RECORD
@@ -110,27 +110,31 @@ MODULE UpdaterActions;
 			children: GraphStochastic.Vector;
 			prior: GraphStochastic.Node;
 	BEGIN
-		children := updater.Children();
-		prior := updater.Prior(0);
-		IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
-		depth := updater.Depth();
-		canDistribute := (numChild > 2 * avNum) OR (GraphNodes.maxStochDepth = 1);
-		canDistribute := canDistribute & (prior.dependents = NIL);
+		WITH updater: UpdaterAuxillary.UpdaterUV DO
+			canDistribute := FALSE
+		ELSE
+			children := updater.Children();
+			prior := updater.Prior(0);
+			IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
+			depth := updater.Depth();
+			canDistribute := (numChild > 2 * avNum) OR (GraphNodes.maxStochDepth = 1);
+			canDistribute := canDistribute & (prior.dependents = NIL)
+		END;
 		RETURN canDistribute
 	END CanDistribute;
 
 	(*	externalize data of nodes associated with updaters	*)
 	PROCEDURE AllocateLikelihoods*;
 		VAR
-			updater: UpdaterUpdaters.Updater;
+			u: UpdaterUpdaters.Updater;
 			p: GraphStochastic.Node;
 			i, numUpdaters: INTEGER;
 	BEGIN
 		numUpdaters := NumberUpdaters();
 		i := 0;
 		WHILE i < numUpdaters DO
-			updater := updaters[0, i];
-			p := updater.Prior(0);
+			u := updaters[0, i];
+			p := u.UpdatedBy(0);
 			p.AllocateLikelihood;
 			INC(i)
 		END
@@ -230,7 +234,7 @@ MODULE UpdaterActions;
 	(*	externalize pointers to nodes associated with updaters	*)
 	PROCEDURE ExternalizeParamPointers* (VAR wr: Stores.Writer);
 		VAR
-			updater: UpdaterUpdaters.Updater;
+			u: UpdaterUpdaters.Updater;
 			p: GraphStochastic.Node;
 			i, j, numUpdaters, num, size: INTEGER;
 	BEGIN
@@ -238,19 +242,19 @@ MODULE UpdaterActions;
 		num := 0;
 		i := 0;
 		WHILE i < numUpdaters DO
-			updater := updaters[0, i];
-			size := updater.Size();
+			u := updaters[0, i];
+			size := u.Size();
 			INC(num, size);
 			INC(i)
 		END;
 		wr.WriteInt(num);
 		i := 0;
 		WHILE i < numUpdaters DO
-			updater := updaters[0, i];
-			size := updater.Size();
+			u := updaters[0, i];
+			size := u.Size();
 			j := 0;
 			WHILE j < size DO
-				p := updater.Prior(j);
+				p := u.UpdatedBy(j);
 				GraphNodes.ExternalizePointer(p, wr);
 				INC(j)
 			END;
@@ -345,7 +349,7 @@ MODULE UpdaterActions;
 		i := 0;
 		LOOP
 			updater := updaters[chain, i];
-			IF (updater # NIL) & (p = updater.Prior(0)) THEN EXIT END;
+			IF (updater # NIL) & (p = updater.UpdatedBy(0)) THEN EXIT END;
 			INC(i);
 			IF i = numUpdaters THEN EXIT END
 		END;
@@ -707,7 +711,7 @@ MODULE UpdaterActions;
 
 	PROCEDURE StoreStochastics*;
 		VAR
-			updater: UpdaterUpdaters.Updater;
+			u: UpdaterUpdaters.Updater;
 			i, j, num, numUpdaters, size: INTEGER;
 			stochastics: GraphStochastic.Vector;
 	BEGIN
@@ -715,8 +719,8 @@ MODULE UpdaterActions;
 		i := 0;
 		numUpdaters := NumberUpdaters();
 		WHILE i < numUpdaters DO
-			updater := updaters[0, i];
-			size := updater.Size();
+			u := updaters[0, i];
+			size := u.Size();
 			INC(num, size);
 			INC(i)
 		END;
@@ -724,11 +728,11 @@ MODULE UpdaterActions;
 		i := 0;
 		num := 0;
 		WHILE i < numUpdaters DO
-			updater := updaters[0, i];
-			size := updater.Size();
+			u := updaters[0, i];
+			size := u.Size();
 			j := 0;
 			WHILE j < size DO
-				stochastics[num] := updater.Prior(j);
+				stochastics[num] := u.UpdatedBy(j);
 				INC(num);
 				INC(j)
 			END;

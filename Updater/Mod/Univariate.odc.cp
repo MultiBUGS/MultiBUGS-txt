@@ -202,6 +202,15 @@ MODULE UpdaterUnivariate;
 			updater.initialized := FALSE
 		END
 	END StoreSample;
+	(*	node in graphical model that updater updates	*)
+	PROCEDURE (updater: Updater) UpdatedBy* (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		IF index = 0 THEN
+			RETURN updater.prior
+		ELSE
+			RETURN NIL
+		END
+	END UpdatedBy;
 
 	PROCEDURE Maintainer;
 	BEGIN

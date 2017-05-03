@@ -29,6 +29,11 @@ MODULE UpdaterEmpty;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE (updater: Updater) Children (): GraphStochastic.Vector;
+	BEGIN
+		RETURN NIL
+	END Children;
+
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
 			u: Updater;
@@ -92,11 +97,6 @@ MODULE UpdaterEmpty;
 		RETURN TRUE
 	END IsInitialized;
 
-	PROCEDURE (updater: Updater) Children (): GraphStochastic.Vector;
-	BEGIN
-		RETURN NIL
-	END Children;
-
 	PROCEDURE (updater: Updater) LoadSample;
 	BEGIN
 	END LoadSample;
@@ -133,6 +133,11 @@ MODULE UpdaterEmpty;
 	BEGIN
 		RETURN updater.size
 	END Size;
+
+	PROCEDURE (updater: Updater) UpdatedBy (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN NIL
+	END UpdatedBy;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN

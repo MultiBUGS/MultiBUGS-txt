@@ -99,11 +99,11 @@ MODULE UpdaterUpdaters;
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET), NEW, ABSTRACT;
 
 		(*	set the children of  updater	*)
-		PROCEDURE (updater: Updater) SetChildren* (children: GraphStochastic.Vector),
+	PROCEDURE (updater: Updater) SetChildren* (children: GraphStochastic.Vector),
 	NEW, ABSTRACT;
 
 		(*	associate node(s) in graphical model with updater	*)
-		PROCEDURE (updater: Updater) SetPrior- (prior: GraphStochastic.Node),
+	PROCEDURE (updater: Updater) SetPrior- (prior: GraphStochastic.Node),
 	NEW, ABSTRACT;
 
 		(*	number of nodes that updater is associated with	*)
@@ -111,6 +111,8 @@ MODULE UpdaterUpdaters;
 
 		(*	copy node values from graphical model into updater	*)
 	PROCEDURE (updater: Updater) StoreSample*, NEW, ABSTRACT;
+	
+	PROCEDURE (updater: Updater) UpdatedBy* (index: INTEGER): GraphStochastic.Node, NEW, ABSTRACT;
 
 	PROCEDURE (f: Factory) CanUpdate* (prior: GraphStochastic.Node): BOOLEAN, NEW, ABSTRACT;
 
