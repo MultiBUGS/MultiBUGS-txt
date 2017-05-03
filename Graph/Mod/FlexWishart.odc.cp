@@ -13,7 +13,7 @@ MODULE GraphFlexWishart;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateMV, GraphConjugateUV, GraphGamma, GraphMultivariate, GraphNodes,
+		GraphConjugateMV, GraphConjugateUV, GraphFlat, GraphMultivariate, GraphNodes,
 		GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
@@ -29,7 +29,7 @@ MODULE GraphFlexWishart;
 			dim, start, step: INTEGER
 		END;
 
-		Auxillary = POINTER TO RECORD(UpdaterAuxillary.UpdaterUV) END;
+		Auxillary = POINTER TO RECORD(UpdaterAuxillary.UpdaterMV) END;
 
 		Factory = POINTER TO RECORD(GraphMultivariate.Factory) END;
 
@@ -70,41 +70,50 @@ MODULE GraphFlexWishart;
 	BEGIN
 	END InternalizeAuxillary;
 
-	PROCEDURE (auxillary: Auxillary) Prior (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		IF index = 0 THEN
-			RETURN auxillary.node
-		ELSE
-			RETURN NIL
-		END
-	END Prior;
-
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			r, lambda, nu, aa, value: REAL;
 			gamma: GraphConjugateUV.Node;
-			dim: INTEGER;
+			size, i: INTEGER;
 			flexWish: Node;
-			children: GraphStochastic.Vector;
+			components: GraphStochastic.Vector;
 		CONST
 			as = GraphRules.gamma;
 	BEGIN
-		gamma := auxillary.node(GraphConjugateUV.Node);
-		children := gamma.Children();
-		flexWish := children[0](Node);
-		dim := flexWish.dim;
-		gamma.PriorForm(as, nu, aa);
-		IF flexWish.likelihood # NIL THEN
-			lambda := nu * flexWish.value + 1 / (aa * aa);
-			r := (nu + dim) / 2
-		ELSE
-			(* if there is no data, remove information from likelihood*)
-			lambda := 1 / (aa * aa);
-			r := 1 / 2
-		END;
-		value := MathRandnum.Gamma(r, lambda);
-		gamma.SetValue(value)
+		flexWish := auxillary.node(Node);
+		components := flexWish.components;
+		size := auxillary.Size();
+		i := 0;
+		nu := flexWish.nu.Value();
+		WHILE i < size DO
+			flexWish := components[i + size * i](Node);
+			aa := flexWish.aa[i].Value();
+			IF flexWish.likelihood # NIL THEN
+				lambda := nu * flexWish.value + 1 / (aa * aa);
+				r := (nu + size) / 2
+			ELSE
+				(* if there is no data, remove information from likelihood*)
+				lambda := 1 / (aa * aa);
+				r := 1 / 2
+			END;
+			value := MathRandnum.Gamma(r, lambda);
+			gamma.SetValue(value);
+			INC(i)
+		END
 	END Sample;
+	
+	PROCEDURE (auxillary: Auxillary) Size (): INTEGER;
+		VAR
+			node: Node;
+	BEGIN
+		node := auxillary.node(Node);
+		RETURN LEN(node.aa)
+	END Size;
+	
+	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN auxillary.node
+	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -234,7 +243,7 @@ MODULE GraphFlexWishart;
 			node.nu := GraphNodes.Internalize(rd);
 			i := 1;
 			WHILE i < size DO
-				p := node.components[0](Node);
+				p := node.components[i](Node);
 				p.dim := node.dim;
 				p.aa := node.aa;
 				p.start := node.start;
@@ -414,8 +423,18 @@ MODULE GraphFlexWishart;
 			argsNew: GraphStochastic.Args;
 			list: GraphStochastic.Likelihood;
 			gamma: GraphStochastic.Node;
+			p: Node;
 	BEGIN
 		res := {};
+		(* check that Wishart is used as prior *)
+		i := 0;
+		WHILE i < nElem DO
+			IF GraphNodes.data IN node.components[i].props THEN
+				res := {GraphNodes.data, GraphNodes.lhs};
+				RETURN
+			END;
+			INC(i)
+		END;
 		WITH args: GraphStochastic.Args DO
 			nElem := node.Size();
 			dim := SHORT(ENTIER(Math.Sqrt(nElem) + eps));
@@ -439,7 +458,6 @@ MODULE GraphFlexWishart;
 			node.start := start;
 			node.step := step;
 			ASSERT(args.vectors[0].start >= 0, 21);
-			(* assert nu != 0 *)
 			ASSERT(args.scalars[0] # NIL, 21);
 			node.nu := args.scalars[0];
 			IF ~(GraphNodes.data IN node.nu.props) THEN
@@ -455,39 +473,30 @@ MODULE GraphFlexWishart;
 				NEW(node.invA, dim);
 				i := 0;
 				WHILE i < dim DO
-					(* setup Gamma diag objects *)
+					(* setup hidden stochastic node for diag objects *)
 					argsNew.Init;
-					argsNew.numScalars := 2;
-					argsNew.numVectors := 0;
-					argsNew.scalars[0] := node.nu;
-					argsNew.scalars[1] := node.aa[start + i * step];
-					gamma := GraphGamma.fact.New();
+					gamma := GraphFlat.fact.New();
 					gamma.Set(argsNew, res);
 					ASSERT(res = {}, 67);
 					gamma.SetValue(1.0);
 					gamma.SetProps(gamma.props + {GraphStochastic.initialized});
-					(* add diagonal elements, which is required for conjugate sampling *)
-					list := NIL;
-					node.components[i + dim * i].AddToLikelihood(list);
-					gamma.SetLikelihood(list);
-					(* add updater object for gamma diag elements *)
-					auxillary := auxillaryFact.New(gamma);
-					UpdaterActions.RegisterUpdater(auxillary);
 					node.invA[i] := gamma;
 					INC(i)
 				END;
-			ELSE
-				(* copy pointer of first node *)
-				node.invA := node.components[0](Node).invA
-			END;
-			(* check that Wishart is used as prior *)
-			i := 0;
-			WHILE i < nElem DO
-				IF GraphNodes.data IN node.components[i].props THEN
-					res := {GraphNodes.data, GraphNodes.lhs};
-					RETURN
-				END;
-				INC(i)
+				(* add updater object for gamma diag elements *)
+				auxillary := auxillaryFact.New(node);
+				UpdaterActions.RegisterUpdater(auxillary);
+				i := 1;
+				WHILE i < dim * dim DO
+					p := node.components[i](Node);
+					p.dim := node.dim;
+					p.aa := node.aa;
+					p.start := node.start;
+					p.step := node.step;
+					p.invA := node.invA;
+					p.nu := node.nu;
+					INC(i)
+				END
 			END;
 			i := 0;
 			WHILE i < dim DO
@@ -534,6 +543,11 @@ MODULE GraphFlexWishart;
 	BEGIN
 		GraphNodes.SetFactory(fact)
 	END Install;
+
+	PROCEDURE AuxillaryInstall*;
+	BEGIN
+		UpdaterUpdaters.SetFactory(auxillaryFact)
+	END AuxillaryInstall;
 
 	PROCEDURE Maintainer;
 	BEGIN

@@ -3,9 +3,6 @@
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
-
-
-
 *)
 
 
@@ -89,26 +86,14 @@ MODULE GraphStable;
 	BEGIN
 	END ExternalizeAuxillary;
 
-	PROCEDURE (auxillary: Auxillary) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphStable.AuxillaryInstall"
-	END Install;
-
 	PROCEDURE (auxillary: Auxillary) InternalizeAuxillary (VAR rd: Stores.Reader);
 	BEGIN
 	END InternalizeAuxillary;
 
-	PROCEDURE (auxillary: Auxillary) Prior (index: INTEGER): GraphStochastic.Node;
-		VAR
-			stable: Node;
+	PROCEDURE (auxillary: Auxillary) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		IF index = 0 THEN
-			stable := auxillary.node(Node);
-			RETURN stable .y
-		ELSE
-			RETURN NIL
-		END
-	END Prior;
+		install := "GraphStable.AuxillaryInstall"
+	END Install;
 
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		CONST
@@ -148,15 +133,11 @@ MODULE GraphStable;
 			IF i = maxIts THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT END;
 		END
 	END Sample;
-
-	PROCEDURE (f: AuxillaryFactory) GetDefaults;
+	
+	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
 	BEGIN
-	END GetDefaults;
-
-	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphStable.AuxillaryInstall"
-	END Install;
+		RETURN auxillary.node(Node).y
+	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
@@ -170,6 +151,15 @@ MODULE GraphStable;
 		NEW(auxillary);
 		RETURN auxillary
 	END Create;
+
+	PROCEDURE (f: AuxillaryFactory) GetDefaults;
+	BEGIN
+	END GetDefaults;
+
+	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphStable.AuxillaryInstall"
+	END Install;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT lower, upper: REAL);
 	BEGIN

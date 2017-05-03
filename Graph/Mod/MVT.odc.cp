@@ -77,18 +77,6 @@ MODULE GraphMVT;
 	BEGIN
 	END InternalizeAuxillary;
 
-	PROCEDURE (auxillary: Auxillary) Prior (index: INTEGER): GraphStochastic.Node;
-		VAR
-			t: Node;
-	BEGIN
-		IF index = 0 THEN
-			t := auxillary.node(Node);
-			RETURN t.lambda
-		ELSE
-			RETURN NIL
-		END
-	END Prior;
-
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			i, j, nElem, muStart, muStep, tauStart, tauStep: INTEGER;
@@ -125,6 +113,11 @@ MODULE GraphMVT;
 		value := MathRandnum.Gamma(r, lam);
 		lambda.SetValue(value)
 	END Sample;
+	
+	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN auxillary.node(Node).lambda
+	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
