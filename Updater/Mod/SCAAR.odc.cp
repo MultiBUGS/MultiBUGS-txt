@@ -19,10 +19,6 @@ MODULE UpdaterSCAAR;
 		MathRandnum,
 		UpdaterRandWalkUV, UpdaterUpdaters;
 
-	CONST
-		batch = 50;
-		deltaMax = 0.01;
-
 	TYPE
 		Updater = POINTER TO RECORD (UpdaterRandWalkUV.Updater)
 			logSigma: REAL
@@ -43,13 +39,20 @@ MODULE UpdaterSCAAR;
 		VAR
 			delta, rate, optRate: REAL;
 		CONST
+			(*
 			optRateMH = 0.44;
 			optRateDRC = 0.65;
+			deltaMax = 0.01;
+			*)
+			optRateMH = 0.234;
+			optRateDRC = 0.234;
+			deltaMax = 0.2;
+			batch = 50;
 	BEGIN
 		IF updater.iteration MOD batch = 0 THEN
 			rate := (batch - updater.rejectCount) / batch;
-			updater.rejectCount := 0;
-			delta := MIN(deltaMax, 1.0 / Math.Sqrt(updater.iteration));
+			updater.rejectCount := 0; (*	adaption looks too timid ???	*)
+			delta := MIN(deltaMax, 1.0 / Math.Sqrt(updater.iteration DIV batch));
 			IF updater.delayedRejection THEN
 				optRate := optRateDRC
 			ELSE

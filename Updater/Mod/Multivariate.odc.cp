@@ -171,6 +171,8 @@ MODULE UpdaterMultivariate;
 
 	PROCEDURE (updater: Updater) ExternalizeMultivariate- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
+	PROCEDURE (updater: Updater) ParamsSize* (): INTEGER, NEW, ABSTRACT;
+
 	PROCEDURE (updater: Updater) InitializeMultivariate-, NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) CopyFrom- (source: UpdaterUpdaters.Updater);
@@ -336,35 +338,6 @@ MODULE UpdaterMultivariate;
 		END
 	END GetValue;
 
-	PROCEDURE (updater: Updater) ParamsSize* (): INTEGER, NEW, ABSTRACT;
-
-		(*	allocate storage in updater for sampled values	*)
-	PROCEDURE (updater: Updater) Initialize-;
-		VAR
-			i, paramsSize, size: INTEGER;
-			p: GraphStochastic.Node;
-	BEGIN
-		size := updater.Size();
-		ASSERT(size > 1, 66);
-		NEW(updater.values, size);
-		NEW(updater.initialized, size);
-		i := 0;
-		WHILE i < size DO
-			updater.initialized[i] := FALSE;
-			p := updater.prior[i];
-			p.SetProps(p.props + {GraphStochastic.update});
-			INC(i)
-		END;
-		updater.children := BlockLikelihood(updater.prior);
-		paramsSize := updater.ParamsSize();
-		IF paramsSize > 0 THEN
-			NEW(updater.params, paramsSize)
-		ELSE
-			updater.params := NIL
-		END;
-		updater.InitializeMultivariate
-	END Initialize;
-
 	PROCEDURE (updater: Updater) InternalizePrior- (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
@@ -399,6 +372,33 @@ MODULE UpdaterMultivariate;
 		END;
 		updater.InternalizeMultivariate(rd)
 	END Internalize;
+
+		(*	allocate storage in updater for sampled values	*)
+	PROCEDURE (updater: Updater) Initialize-;
+		VAR
+			i, paramsSize, size: INTEGER;
+			p: GraphStochastic.Node;
+	BEGIN
+		size := updater.Size();
+		ASSERT(size > 1, 66);
+		NEW(updater.values, size);
+		NEW(updater.initialized, size);
+		i := 0;
+		WHILE i < size DO
+			updater.initialized[i] := FALSE;
+			p := updater.prior[i];
+			p.SetProps(p.props + {GraphStochastic.update});
+			INC(i)
+		END;
+		updater.children := BlockLikelihood(updater.prior);
+		paramsSize := updater.ParamsSize();
+		IF paramsSize > 0 THEN
+			NEW(updater.params, paramsSize)
+		ELSE
+			updater.params := NIL
+		END;
+		updater.InitializeMultivariate
+	END Initialize;
 
 	PROCEDURE (updater: Updater) IsInitialized* (): BOOLEAN;
 		VAR

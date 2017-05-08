@@ -139,9 +139,6 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterMetnormal.InstallMH");
 		
 		(*	updater for generic distribution with support on whole of real line	*)
-		UpdaterMethods.LoadUpdater("UpdaterSCAM.InstallDRC");
-		
-		(*	updater for generic distribution with support on whole of real line	*)
 		UpdaterMethods.LoadUpdater("UpdaterSDScale.Install");
 			
 		(*	updater for generic distribution can have bounds	*)

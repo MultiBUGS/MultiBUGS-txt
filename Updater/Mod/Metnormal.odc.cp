@@ -41,14 +41,18 @@ MODULE UpdaterMetnormal;
 	PROCEDURE (updater: Updater) AdaptProposal;
 		VAR
 			rate: REAL;
+			adaptivePhase: INTEGER;
 	BEGIN
+		IF updater.delayedRejection THEN
+			adaptivePhase := factDRC.adaptivePhase
+		ELSE
+			adaptivePhase := factMH.adaptivePhase
+		END;
 		IF updater.iteration MOD batch = 0 THEN
 			rate := (batch - updater.rejectCount) / batch;
-			IF updater.delayedRejection THEN
-				rate := rate / 1.5
-			END;
+			(*IF updater.delayedRejection THEN rate := rate / 1.5 END;*)
 			updater.rejectCount := 0;
-			IF updater.iteration <= factMH.adaptivePhase THEN
+			IF updater.iteration <= adaptivePhase THEN
 				IF rate > 0.8 THEN
 					updater.precision := updater.precision * 0.1
 				ELSIF rate > 0.6 THEN
@@ -110,7 +114,11 @@ MODULE UpdaterMetnormal;
 
 	PROCEDURE (updater: Updater) IsAdapting (): BOOLEAN;
 	BEGIN
-		RETURN updater.iteration < factMH.adaptivePhase + 1
+		IF updater.delayedRejection THEN
+			RETURN updater.iteration <= factDRC.adaptivePhase
+		ELSE
+			RETURN updater.iteration <= factMH.adaptivePhase
+		END
 	END IsAdapting;
 
 	PROCEDURE (updater: Updater) SampleProposal (): REAL;

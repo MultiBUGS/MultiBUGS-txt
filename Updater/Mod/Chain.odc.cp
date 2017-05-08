@@ -17,7 +17,7 @@ MODULE UpdaterChain;
 		BugsRegistry,
 		GraphChain, GraphRules, GraphStochastic,
 		UpdaterMultivariate, UpdaterNormal, UpdaterRejection,
-		UpdaterSCAM, UpdaterSlice, UpdaterUnivariate, UpdaterUpdaters;
+		UpdaterSCAAR, UpdaterSlice, UpdaterUnivariate, UpdaterUpdaters;
 
 	TYPE
 		Updater = POINTER TO RECORD(UpdaterMultivariate.Updater)
@@ -59,7 +59,15 @@ MODULE UpdaterChain;
 	END CopyFromMultivariate;
 
 	PROCEDURE (updater: Updater) ExternalizeMultivariate (VAR wr: Stores.Writer);
+		VAR
+			i, size: INTEGER;
 	BEGIN
+		i := 0;
+		size := updater.Size();
+		WHILE i < size DO 
+			UpdaterUpdaters.Externalize(updater.singleSiteUpdaters[i], wr); 
+			INC(i) 
+		END
 	END ExternalizeMultivariate;
 
 	PROCEDURE (updater: Updater) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
@@ -71,11 +79,6 @@ MODULE UpdaterChain;
 	END FindBlock;
 
 	PROCEDURE (updater: Updater) InitializeMultivariate;
-		CONST
-			bounds = {GraphStochastic.leftNatural, GraphStochastic.leftImposed,
-			GraphStochastic.rightNatural, GraphStochastic.rightImposed};
-			left = {GraphStochastic.leftNatural, GraphStochastic.leftImposed};
-			right = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 		VAR
 			i, numConstraints, size: INTEGER;
 			factInner: UpdaterUpdaters.Factory;
@@ -103,7 +106,7 @@ MODULE UpdaterChain;
 			|GraphRules.normal, GraphRules.mVN:
 				factInner := UpdaterNormal.factStd
 			ELSE
-				factInner := UpdaterSCAM.factMH
+				factInner := UpdaterSCAAR.factDRC
 			END;
 			factInner.SetProps(factInner.props + {UpdaterUpdaters.active});
 			u := factInner.New(prior[i]);
@@ -118,7 +121,15 @@ MODULE UpdaterChain;
 	END Install;
 
 	PROCEDURE (updater: Updater) InternalizeMultivariate (VAR rd: Stores.Reader);
+		VAR
+			i, size: INTEGER;
 	BEGIN
+		i := 0;
+		size := updater.Size();
+		WHILE i < size DO 
+			UpdaterUpdaters.Internalize(updater.singleSiteUpdaters[i], rd); 
+			INC(i) 
+		END
 	END InternalizeMultivariate;
 
 	PROCEDURE (updater: Updater) IsAdapting (): BOOLEAN;

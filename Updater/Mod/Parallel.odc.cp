@@ -12,8 +12,8 @@ copyright:	"Rsrc/About"
 MODULE UpdaterParallel;
 
 	IMPORT 
-		Stores,
-		GraphFlat, GraphLogical, GraphMultivariate, GraphNodes, GraphStochastic,
+		Stores, 
+		GraphDeviance, GraphFlat, GraphLogical, GraphMultivariate, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterConjugateMV, UpdaterEmpty,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -386,30 +386,12 @@ MODULE UpdaterParallel;
 			children: GraphStochastic.Vector;
 			child: GraphStochastic.Node;
 			numData: POINTER TO ARRAY OF INTEGER;
+			ok: BOOLEAN;
 
-		PROCEDURE IsObserved (stochastic: GraphStochastic.Node): BOOLEAN;
-			CONST
-				observed = {GraphNodes.data, GraphStochastic.censored};
-			VAR
-				i, size: INTEGER;
-				isObserved: BOOLEAN;
-				multi: GraphMultivariate.Node;
-		BEGIN
-			isObserved := observed * stochastic.props # {};
-			IF ~isObserved & (stochastic IS GraphMultivariate.Node) THEN
-				multi := stochastic(GraphMultivariate.Node);
-				i := 0;
-				size := stochastic.Size();
-				WHILE ~isObserved & (i < size) DO
-					IF multi.components # NIL THEN
-						isObserved := observed * multi.components[i].props # {}
-					END;
-					INC(i)
-				END
-			END;
-			RETURN isObserved
-		END IsObserved;
-
+		CONST
+			count = 0;
+			add = 1;
+			
 		PROCEDURE ClearMarks;
 		BEGIN
 			i := 0;
@@ -424,7 +406,7 @@ MODULE UpdaterParallel;
 			END
 		END ClearMarks;
 
-		PROCEDURE Deviance (add: BOOLEAN);
+		PROCEDURE DevianceDo (action: INTEGER): BOOLEAN;
 		BEGIN
 			i := 0;
 			WHILE i < numUpdaters DO
@@ -436,10 +418,15 @@ MODULE UpdaterParallel;
 					WHILE k < numChild DO
 						IF (id[i] # 0) OR (k MOD commSize = j) THEN
 							child := children[k];
-							IF IsObserved(child) THEN
+							IF GraphDeviance.IsObserved(child) THEN
+								IF ~GraphDeviance.DevianceExists(child) THEN
+									WHILE j < commSize DO numData[j] := 0; INC(j) END;
+									ClearMarks;
+									RETURN FALSE
+								END;
 								IF ~(GraphNodes.mark IN child.props) THEN
 									child.SetProps(child.props + {GraphNodes.mark});
-									IF add THEN observations[j, numData[j]] := child END;
+									IF action = add THEN observations[j, numData[j]] := child END;
 									INC(numData[j])
 								END
 							END
@@ -450,7 +437,9 @@ MODULE UpdaterParallel;
 				END;
 				INC(i)
 			END;
-		END Deviance;
+			ClearMarks;
+			RETURN TRUE
+		END DevianceDo;
 
 	BEGIN
 		numUpdaters := LEN(updaters[0]);
@@ -458,16 +447,18 @@ MODULE UpdaterParallel;
 		NEW(observations, commSize);
 		NEW(numData, commSize);
 		WHILE j < commSize DO numData[j] := 0; INC(j) END;
-		Deviance(FALSE);
+		ok := DevianceDo(count);
 		j := 0;
 		WHILE j < commSize DO
-			IF numData[j] > 0 THEN NEW(observations[j], numData[j]) END;
-			numData[j] := 0;
+			IF numData[j] > 0 THEN 
+				NEW(observations[j], numData[j]);
+				numData[j] := 0
+			ELSE
+				observations[j] := NIL
+			END;
 			INC(j)
 		END;
-		ClearMarks;
-		Deviance(TRUE);
-		ClearMarks
+		IF ok THEN ok := DevianceDo(add) END
 	END DistributeObservations;
 
 	PROCEDURE DistributeUpdaters* (commSize, chain: INTEGER;

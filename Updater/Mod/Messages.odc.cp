@@ -107,10 +107,6 @@ MODULE UpdaterMessages;
 
 		StoreKey("UpdaterSCAAR.InstallDRC", "adaptive acceptance rate DR");
 
-		StoreKey("UpdaterSCAM.InstallMH", "adaptive metropolis");
-
-		StoreKey("UpdaterSCAM.InstallDRC", "adaptive metropolis DR");
-
 		StoreKey("UpdaterMetnormal.InstallDRC", "normal rand walk");
 		
 		StoreKey("UpdaterSCDE.InstallMet", "differential evolution");
@@ -133,6 +129,8 @@ MODULE UpdaterMessages;
 		StoreKey("GraphT.MixingInstall", "t-mixing");
 		
 		StoreKey("GraphHalfT.AuxillaryInstall", "half T mixing");
+		
+		StoreKey("GraphFlexWishart.AuxillaryInstall", "flex wishart mixing");
 
 		StoreKey("GraphStable.AuxillaryInstall", "stable mixing");
 		

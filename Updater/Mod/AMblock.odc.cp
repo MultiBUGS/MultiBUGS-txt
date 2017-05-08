@@ -78,11 +78,6 @@ MODULE UpdaterAMblock;
 	BEGIN
 	END ExternalizeAM;
 
-	PROCEDURE (updater: Updater) FastLogLikelihood (): REAL;
-	BEGIN
-		RETURN updater.LogLikelihood()
-	END FastLogLikelihood;
-
 	PROCEDURE (updater: Updater) InternalizeAM (VAR rd: Stores.Reader);
 	BEGIN
 	END InternalizeAM;
@@ -242,7 +237,7 @@ MODULE UpdaterAMblock;
 	BEGIN
 		Maintainer;
 		NEW(fNL);
-		fNL.SetProps({(*UpdaterUpdaters.enabled*)});
+		fNL.SetProps({UpdaterUpdaters.enabled});
 		fNL.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)

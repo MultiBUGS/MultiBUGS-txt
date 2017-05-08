@@ -19,36 +19,22 @@ MODULE UpdaterAM;
 		UpdaterMetropolisMV, UpdaterUpdaters;
 
 	TYPE
-		Matrix = ARRAY OF ARRAY OF REAL;
+		Matrix = POINTER TO ARRAY OF ARRAY OF REAL;
 
-		Vector = ARRAY OF REAL;
+		Vector = POINTER TO ARRAY OF REAL;
 
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMetropolisMV.Updater)
-			means: POINTER TO Vector;
-			means2: POINTER TO Matrix;
-			delayedRejection-: BOOLEAN
+			means: Vector;
+			means2, precision: Matrix;
+			scale: REAL;
+			delayedRejection: BOOLEAN
 		END;
 
 	VAR
-		delta, means, vector, y, zero: POINTER TO Vector;
-		cov, means2, precision, luDecomp: POINTER TO Matrix;
+		delta, y, zero: Vector;
+		cov: Matrix;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
-	PROCEDURE CopyMatrix (IN a: Matrix; blockSize: INTEGER; OUT b: Matrix);
-		VAR
-			i, j: INTEGER;
-	BEGIN
-		i := 0;
-		WHILE i < blockSize DO
-			j := 0;
-			WHILE j < blockSize DO
-				b[i, j] := a[i, j];
-				INC(j)
-			END;
-			INC(i)
-		END
-	END CopyMatrix;
 
 	PROCEDURE AdaptProposal (updater: Updater);
 		VAR
@@ -60,11 +46,11 @@ MODULE UpdaterAM;
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
-			updater.means[i] := (n / (n + 1)) * updater.means[i] + (prior[i].value / (n + 1));
+			updater.means[i] := updater.means[i] + (prior[i].value - updater.means[i]) / n;
 			j := 0;
 			WHILE j < size DO
-				updater.means2[i, j] := (n / (n + 1)) * updater.means2[i, j] + 
-				(prior[i].value * prior[j].value / (n + 1));
+				updater.means2[i, j] := updater.means2[i, j] 
+							+ (prior[i].value * prior[j].value - updater.means2[i, j]) / n;
 				INC(j)
 			END;
 			INC(i)
@@ -73,7 +59,6 @@ MODULE UpdaterAM;
 
 	PROCEDURE CalculatePrecision (updater: Updater);
 		CONST
-			scale = 2.4* 2.4;
 			minVar = 1.0E-4;
 		VAR
 			i, j, size: INTEGER;
@@ -81,34 +66,11 @@ MODULE UpdaterAM;
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
-			means[i] := updater.means[i];
 			j := 0;
 			WHILE j < size DO
-				means2[i, j] := updater.means2[i, j];
+				cov[i, j] := updater.scale * (updater.means2[i, j] - updater.means[i] * updater.means[j]);
 				INC(j)
 			END;
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < size DO
-			j := 0;
-			WHILE j < size DO
-				cov[i, j] := means2[i, j] - means[i] * means[j];
-				INC(j)
-			END;
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < size DO
-			j := 0;
-			WHILE j < size DO
-				cov[i, j] := scale * cov[i, j] / size;
-				INC(j)
-			END;
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < size DO
 			cov[i, i] := cov[i, i] + minVar;
 			INC(i)
 		END;
@@ -117,21 +79,20 @@ MODULE UpdaterAM;
 		WHILE i < size DO
 			j := 0;
 			WHILE j < size DO
-				vector[j] := 0.0;
+				y[j] := 0.0;
 				INC(j)
 			END;
-			vector[i] := 1.0;
-			MathMatrix.ForwardSub(cov, vector, size);
-			MathMatrix.BackSub(cov, vector, size);
+			y[i] := 1.0;
+			MathMatrix.ForwardSub(cov, y, size);
+			MathMatrix.BackSub(cov, y, size);
 			j := 0;
 			WHILE j < size DO
-				precision[j, i] := vector[j];
+				updater.precision[j, i] := y[j];
 				INC(j)
 			END;
 			INC(i)
 		END;
-		INC(updater.iteration);
-		AdaptProposal(updater);
+		MathMatrix.Cholesky(updater.precision, size)
 	END CalculatePrecision;
 
 	PROCEDURE (updater: Updater) CopyFromAM- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT
@@ -145,16 +106,19 @@ MODULE UpdaterAM;
 		size := updater.Size();
 		NEW(updater.means, size);
 		NEW(updater.means2, size, size);
+		NEW(updater.precision, size, size);
 		i := 0;
 		WHILE i < size DO
 			updater.means[i] := s.means[i];
 			j := 0;
 			WHILE j < size DO
+				updater.precision[i, j] := s.precision[i, j];
 				updater.means2[i, j] := s.means2[i, j];
 				INC(j)
 			END;
 			INC(i)
 		END;
+		updater.scale := s.scale;
 		updater.delayedRejection := s.delayedRejection;
 		updater.CopyFromAM(source)
 	END CopyFromMetropolisMV;
@@ -185,11 +149,10 @@ MODULE UpdaterAM;
 			END;
 			INC(i)
 		END;
+		wr.WriteReal(updater.scale);
 		wr.WriteBool(updater.delayedRejection);
 		updater.ExternalizeAM(wr)
 	END ExternalizeMetropolisMV;
-
-	PROCEDURE (updater: Updater) FastLogLikelihood- (): REAL, NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) InitializeAM-, NEW, ABSTRACT;
 
@@ -201,7 +164,9 @@ MODULE UpdaterAM;
 		size := LEN(updater.prior);
 		NEW(updater.means, size);
 		NEW(updater.means2, size, size);
+		NEW(updater.precision, size, size);
 		updater.rejectCount := 0;
+		updater.scale := 2.4 * 2.4 / size;
 		i := 0;
 		WHILE i < size DO
 			updater.means[i] := 0.0;
@@ -212,9 +177,7 @@ MODULE UpdaterAM;
 			END;
 			INC(i)
 		END;
-		IF size > LEN(means) THEN
-			NEW(means, size);
-			NEW(vector, size);
+		IF size > LEN(cov, 0) THEN
 			NEW(y, size);
 			NEW(delta, size);
 			NEW(zero, size);
@@ -224,9 +187,6 @@ MODULE UpdaterAM;
 				INC(i)
 			END;
 			NEW(cov, size, size);
-			NEW(luDecomp, size, size);
-			NEW(means2, size, size);
-			NEW(precision, size, size);
 		END;
 		updater.InitializeAM
 	END InitializeMetropolisMV;
@@ -252,6 +212,7 @@ MODULE UpdaterAM;
 			END;
 			INC(i)
 		END;
+		rd.ReadReal(updater.scale);
 		rd.ReadBool(updater.delayedRejection);
 		updater.InternalizeAM(rd)
 	END InternalizeMetropolisMV;
@@ -274,17 +235,22 @@ MODULE UpdaterAM;
 			i, size: INTEGER;
 			prior: GraphStochastic.Node;
 			reject: BOOLEAN;
+			acceptanceRate, deltaRate: REAL;
+		CONST
+			batch = 100;
+			deltaMax = 0.2;
+			optRate = 0.234;
 	BEGIN
 		res := {};
 		prior := updater.Prior(0);
 		size := updater.Size();
 		updater.StoreOldValue;
 		oldLogPrior := updater.LogPrior();
-		oldLogLike := updater.FastLogLikelihood();
+		oldLogLike := updater.LogLikelihood();
+		INC(updater.iteration);
+		AdaptProposal(updater);
 		CalculatePrecision(updater);
-		CopyMatrix(precision, size, luDecomp);
-		MathMatrix.Cholesky(luDecomp, size);
-		MathRandnum.MNormal(luDecomp, zero, size, delta);
+		MathRandnum.MNormal(updater.precision, zero, size, delta);
 		i := 0;
 		WHILE i < size DO
 			y[i] := updater.oldVals[i] + delta[i];
@@ -292,7 +258,7 @@ MODULE UpdaterAM;
 		END;
 		updater.SetValue(y);
 		newLogPrior := updater.LogPrior();
-		newLogLike := updater.FastLogLikelihood();
+		newLogLike := updater.LogLikelihood();
 		deltaLogPrior := newLogPrior - oldLogPrior;
 		deltaLogLike := newLogLike - oldLogLike;
 		IF GraphStochastic.distributed IN prior.props THEN
@@ -309,7 +275,7 @@ MODULE UpdaterAM;
 				END;
 				updater.SetValue(y);
 				psiBarLogPrior := updater.LogPrior();
-				psiBarLogLike := updater.FastLogLikelihood();
+				psiBarLogLike := updater.LogLikelihood();
 				i := 0;
 				WHILE i < size DO
 					y[i] := updater.oldVals[i] - delta[i];
@@ -317,7 +283,7 @@ MODULE UpdaterAM;
 				END;
 				updater.SetValue(y);
 				new1LogPrior := updater.LogPrior();
-				new1LogLike := updater.FastLogLikelihood();
+				new1LogLike := updater.LogLikelihood();
 				deltaLC[0] := new1LogLike - oldLogLike;
 				deltaLC[1] := psiBarLogLike - new1LogLike;
 				IF GraphStochastic.distributed IN prior.props THEN
@@ -333,7 +299,17 @@ MODULE UpdaterAM;
 			END;
 			IF reject THEN
 				updater.SetValue(updater.oldVals);
-				INC(updater.rejectCount)
+				INC(updater.rejectCount);
+			END
+		END;
+		IF updater.iteration MOD batch = 0 THEN
+			acceptanceRate := 1 - updater.rejectCount / batch;
+			updater.rejectCount := 0;
+			deltaRate := 2 * MIN(deltaMax, 1.0 / Math.Sqrt(updater.iteration DIV batch));
+			IF acceptanceRate > optRate THEN
+				updater.scale :=  updater.scale * Math.Exp(deltaRate)
+			ELSE
+				updater.scale :=  updater.scale * Math.Exp(-deltaRate)
 			END
 		END
 	END Sample;
@@ -351,8 +327,6 @@ MODULE UpdaterAM;
 			size = 10;
 	BEGIN
 		Maintainer;
-		NEW(means, size);
-		NEW(vector, size);
 		NEW(y, size);
 		NEW(delta, size);
 		NEW(zero, size);
@@ -362,9 +336,6 @@ MODULE UpdaterAM;
 			INC(i)
 		END;
 		NEW(cov, size, size);
-		NEW(luDecomp, size, size);
-		NEW(means2, size, size);
-		NEW(precision, size, size)
 	END Init;
 
 BEGIN

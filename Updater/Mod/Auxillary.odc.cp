@@ -7,7 +7,7 @@ copyright:	"Rsrc/About"
 
 *)
 
-(*	this updater does not always update the prior	*)
+(*	this class of updater does not always update the prior	*)
 
 MODULE UpdaterAuxillary;
 
@@ -202,7 +202,12 @@ MODULE UpdaterAuxillary;
 	END Depth;
 
 	PROCEDURE (updater: UpdaterMV) ExternalizePrior- (VAR wr: Stores.Writer);
+	
+		VAR
+			size: INTEGER;
 	BEGIN
+		size := updater.Size();
+		wr.WriteInt(size);
 		GraphNodes.Externalize(updater.node, wr)
 	END ExternalizePrior;
 
@@ -233,9 +238,9 @@ MODULE UpdaterAuxillary;
 			p: GraphNodes.Node;
 			size: INTEGER;
 	BEGIN
+		rd.ReadInt(size);
 		p := GraphNodes.Internalize(rd);
 		updater.node := p(GraphStochastic.Node);
-		size := updater.Size();
 		NEW(updater.values, size)
 	END InternalizePrior;
 
@@ -300,7 +305,7 @@ MODULE UpdaterAuxillary;
 			size: INTEGER;
 	BEGIN
 		updater.node := prior;
-		size := updater.Size();
+		size := updater.Size(); 
 		NEW(updater.values, size)
 	END SetPrior;
 

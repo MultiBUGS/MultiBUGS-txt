@@ -70,7 +70,7 @@ MODULE UpdaterRandWalkUV;
 	
 	PROCEDURE (updater: Updater) SampleProposal- (): REAL, NEW, ABSTRACT;
 
-		(*	Antithetic delayed rejection metropolis	*)
+	(*	Antithetic delayed rejection metropolis	*)
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			deltaLogLike, deltaLogPrior, deltaValue, logAlpha, newVal, newLogLike,

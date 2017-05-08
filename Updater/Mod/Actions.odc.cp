@@ -14,7 +14,7 @@ MODULE UpdaterActions;
 	
 
 	IMPORT 
-		Stores,
+		Stores, 
 		GraphNodes, GraphStochastic,
 		MathSort,
 		UpdaterAuxillary, UpdaterUpdaters;
@@ -223,7 +223,7 @@ MODULE UpdaterActions;
 			size := updater.Size();
 			j := 0;
 			WHILE j < size DO
-				p := updater.Prior(j);
+				p := updater.UpdatedBy(j);
 				p.Externalize(wr); 
 				INC(j)
 			END;
