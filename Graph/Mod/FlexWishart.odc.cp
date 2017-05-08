@@ -13,8 +13,8 @@ MODULE GraphFlexWishart;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateMV, GraphConjugateUV, GraphFlat, GraphMultivariate, GraphNodes,
-		GraphRules, GraphStochastic,
+		GraphConjugateMV, GraphFlat, GraphMultivariate, 
+		GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
@@ -23,10 +23,10 @@ MODULE GraphFlexWishart;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphConjugateMV.Node)
-			aa: GraphNodes.Vector;
-			nu: GraphNodes.Node;
-			invA: GraphStochastic.Vector;
-			dim, start, step: INTEGER
+			scale: POINTER TO ARRAY OF REAL;
+			nu: REAL;
+			a: GraphStochastic.Vector;
+			dim: INTEGER
 		END;
 
 		Auxillary = POINTER TO RECORD(UpdaterAuxillary.UpdaterMV) END;
@@ -72,28 +72,27 @@ MODULE GraphFlexWishart;
 
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			r, lambda, nu, aa, value: REAL;
-			gamma: GraphConjugateUV.Node;
+			r, lambda, nu, scale, value: REAL;
+			gamma: GraphStochastic.Node;
 			size, i: INTEGER;
 			flexWish: Node;
 			components: GraphStochastic.Vector;
-		CONST
-			as = GraphRules.gamma;
 	BEGIN
 		flexWish := auxillary.node(Node);
 		components := flexWish.components;
 		size := auxillary.Size();
 		i := 0;
-		nu := flexWish.nu.Value();
+		nu := flexWish.nu;
 		WHILE i < size DO
 			flexWish := components[i + size * i](Node);
-			aa := flexWish.aa[i].Value();
+			gamma := flexWish.a[i];
+			scale := flexWish.scale[i];
 			IF flexWish.likelihood # NIL THEN
-				lambda := nu * flexWish.value + 1 / (aa * aa);
+				lambda := nu * flexWish.value + 1 / (scale * scale);
 				r := (nu + size) / 2
 			ELSE
 				(* if there is no data, remove information from likelihood*)
-				lambda := 1 / (aa * aa);
+				lambda := 1 / (scale * scale);
 				r := 1 / 2
 			END;
 			value := MathRandnum.Gamma(r, lambda);
@@ -106,13 +105,13 @@ MODULE GraphFlexWishart;
 		VAR
 			node: Node;
 	BEGIN
-		node := auxillary.node(Node);
-		RETURN LEN(node.aa)
+		node := auxillary.node(Node); 
+		RETURN node.dim
 	END Size;
 	
 	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
 	BEGIN
-		RETURN auxillary.node
+		RETURN auxillary.node(Node).a[index]
 	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
@@ -150,7 +149,7 @@ MODULE GraphFlexWishart;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0
 	END ClassifyLikelihood;
 
@@ -161,56 +160,51 @@ MODULE GraphFlexWishart;
 
 	PROCEDURE (node: Node) Deviance (): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0.0
 	END Deviance;
 
 	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0
 	END DiffLogConditionalMap;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0.0
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0.0
 	END DiffLogPrior;
 
 	PROCEDURE (node: Node) ExternalizeConjugateMV (VAR wr: Stores.Writer);
 		VAR
-			v: GraphNodes.SubVector;
 			i, dim: INTEGER;
 	BEGIN
 		IF node.index = 0 THEN
 			dim := node.dim;
 			wr.WriteInt(dim);
-			v := GraphNodes.NewVector();
-			v.components := node.aa;
-			v.start := node.start; v.nElem := dim; v.step := node.step;
-			GraphNodes.ExternalizeSubvector(v, wr);
 			i := 0;
 			WHILE i < dim DO
-				GraphNodes.Externalize(node.invA[i], wr); INC(i)
+				wr.WriteReal(node.scale[i]);
+				GraphNodes.Externalize(node.a[i], wr);
+				INC(i)
 			END;
-			GraphNodes.Externalize(node.nu, wr)
+			wr.WriteReal(node.nu)
 		END
 	END ExternalizeConjugateMV;
 
 	PROCEDURE (node: Node) InitConjugateMV;
 	BEGIN
-		node.aa := NIL;
-		node.nu := NIL;
-		node.invA := NIL;
+		node.a := NIL;
+		node.nu := -1;
+		node.scale := NIL;
 		node.dim :=  - 1;
-		node.start :=  - 1;
-		node.step :=  - 1
 	END InitConjugateMV;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -221,7 +215,6 @@ MODULE GraphFlexWishart;
 	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
 		VAR
 			dim, i, size: INTEGER;
-			v: GraphNodes.SubVector;
 			q: GraphNodes.Node;
 			p: Node;
 	BEGIN
@@ -229,26 +222,21 @@ MODULE GraphFlexWishart;
 			size := node.Size();
 			rd.ReadInt(dim);
 			node.dim := dim;
-			GraphNodes.InternalizeSubvector(v, rd);
-			node.aa := v.components;
-			node.start := v.start;
-			node.step := v.step;
-			NEW(node.invA, dim);
+			NEW(node.scale, dim);
+			NEW(node.a, dim);
 			i := 0;
 			WHILE i < dim DO
+				rd.ReadReal(node.scale[i]);
 				q := GraphNodes.Internalize(rd);
-				node.invA[i] := q(GraphStochastic.Node);
+				node.a[i] := q(GraphStochastic.Node);
 				INC(i)
 			END;
-			node.nu := GraphNodes.Internalize(rd);
+			rd.ReadReal(node.nu); 
 			i := 1;
 			WHILE i < size DO
 				p := node.components[i](Node);
 				p.dim := node.dim;
-				p.aa := node.aa;
-				p.start := node.start;
-				p.step := node.step;
-				p.invA := node.invA;
+				p.a := node.a;
 				p.nu := node.nu;
 				INC(i)
 			END
@@ -271,14 +259,14 @@ MODULE GraphFlexWishart;
 			dim, i, j, index: INTEGER;
 			nu: REAL;
 	BEGIN
-		nu := node.nu.Value();
+		nu := node.nu;
 		dim := node.dim;
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
 				IF i = j THEN
-					s[i, j] := 2 * nu * node.invA[i].value
+					s[i, j] := 2 * nu * node.a[i].value
 				ELSE
 					s[i, j] := 0.0
 				END;
@@ -338,13 +326,13 @@ MODULE GraphFlexWishart;
 		ASSERT(as = GraphRules.wishart, 21);
 		(* Provide FlexWishart input scale matrix - with gamma's on diag *)
 		dim := node.dim;
-		nu := node.nu.Value();
+		nu := node.nu;
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
 				IF i = j THEN
-					p1[i, j] := 2 * nu * node.invA[i].value;
+					p1[i, j] := 2 * nu * node.a[i].value;
 				ELSE
 					p1[i, j] := 0.0;
 				END;
@@ -369,7 +357,7 @@ MODULE GraphFlexWishart;
 		i := 0;
 		dim := node.dim;
 		WHILE i < dim DO
-			node.invA[i].AddParent(list);
+			node.a[i].AddParent(list);
 			INC(i)
 		END;
 		RETURN list
@@ -385,14 +373,14 @@ MODULE GraphFlexWishart;
 			k, nu: REAL;
 	BEGIN
 		dim := node.dim;
-		nu := node.nu.Value();
+		nu := node.nu;
 		(* create s-matrix with 0 on off-diag and diagonal from diag()  *)
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
 				IF i = j THEN
-					s[i, j] := 2 * nu * node.invA[i].value;
+					s[i, j] := 2 * nu * node.a[i].value;
 				ELSE
 					s[i, j] := 0.0;
 				END;
@@ -421,13 +409,14 @@ MODULE GraphFlexWishart;
 			dim, i, nElem, start, step: INTEGER;
 			auxillary: UpdaterUpdaters.Updater;
 			argsNew: GraphStochastic.Args;
-			list: GraphStochastic.Likelihood;
 			gamma: GraphStochastic.Node;
 			p: Node;
+			q: GraphNodes.Node;
 	BEGIN
 		res := {};
 		(* check that Wishart is used as prior *)
 		i := 0;
+		nElem := node.Size();
 		WHILE i < nElem DO
 			IF GraphNodes.data IN node.components[i].props THEN
 				res := {GraphNodes.data, GraphNodes.lhs};
@@ -436,7 +425,6 @@ MODULE GraphFlexWishart;
 			INC(i)
 		END;
 		WITH args: GraphStochastic.Args DO
-			nElem := node.Size();
 			dim := SHORT(ENTIER(Math.Sqrt(nElem) + eps));
 			IF dim * dim # nElem THEN
 				res := {GraphNodes.length, GraphNodes.lhs};
@@ -452,65 +440,60 @@ MODULE GraphFlexWishart;
 				res := {GraphNodes.length, GraphNodes.arg1};
 				RETURN
 			END;
-			node.aa := args.vectors[0].components;
 			start := args.vectors[0].start;
 			step := args.vectors[0].step;
-			node.start := start;
-			node.step := step;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			ASSERT(args.scalars[0] # NIL, 21);
-			node.nu := args.scalars[0];
-			IF ~(GraphNodes.data IN node.nu.props) THEN
+			q := args.scalars[0];
+			IF ~(GraphNodes.data IN q.props) THEN
 				res := {GraphNodes.data, GraphNodes.arg2};
 				RETURN
 			END;
 			(* Check nu >= 1 *)
-			IF node.nu.Value() < 1 - eps THEN
+			IF q.Value() < 1 - eps THEN
 				res := {GraphNodes.invalidPosative, GraphNodes.arg2};
 				RETURN
 			END;
+			node.nu := q.Value();
 			IF node.index = 0 THEN
-				NEW(node.invA, dim);
+				NEW(node.scale, dim);
+				NEW(node.a, dim);
 				i := 0;
 				WHILE i < dim DO
-					(* setup hidden stochastic node for diag objects *)
+					q := args.vectors[0].components[start + i * step];
+					IF q = NIL THEN
+						res := {GraphNodes.nil, GraphNodes.arg1};
+						RETURN
+					ELSIF ~(GraphNodes.data IN q.props) THEN
+						res := {GraphNodes.data, GraphNodes.arg1};
+						RETURN
+					ELSIF q.Value() < eps THEN
+						res := {GraphNodes.posative, GraphNodes.arg1};
+						RETURN
+					END;
+					node.scale[i] := q.Value();
+					(* setup hidden stochastic node for diag elements of Wishart R matrix *)
 					argsNew.Init;
 					gamma := GraphFlat.fact.New();
 					gamma.Set(argsNew, res);
 					ASSERT(res = {}, 67);
 					gamma.SetValue(1.0);
 					gamma.SetProps(gamma.props + {GraphStochastic.initialized});
-					node.invA[i] := gamma;
+					node.a[i] := gamma;
 					INC(i)
 				END;
-				(* add updater object for gamma diag elements *)
+				(* add multivariate updater object for gamma diag elements *)
 				auxillary := auxillaryFact.New(node);
 				UpdaterActions.RegisterUpdater(auxillary);
 				i := 1;
 				WHILE i < dim * dim DO
 					p := node.components[i](Node);
 					p.dim := node.dim;
-					p.aa := node.aa;
-					p.start := node.start;
-					p.step := node.step;
-					p.invA := node.invA;
+					p.a := node.a;
+					p.scale := node.scale;
 					p.nu := node.nu;
 					INC(i)
 				END
-			END;
-			i := 0;
-			WHILE i < dim DO
-				IF node.aa[i] = NIL THEN
-					res := {GraphNodes.nil, GraphNodes.arg1};
-					RETURN
-				ELSIF ~(GraphNodes.data IN node.aa[i].props) THEN
-					res := {GraphNodes.data, GraphNodes.arg1};
-					RETURN
-				ELSIF node.aa[i].Value() < eps THEN
-					res := {GraphNodes.posative, GraphNodes.arg1};
-					RETURN
-				END;
-				INC(i)
 			END
 		END
 	END SetConjugateMV;

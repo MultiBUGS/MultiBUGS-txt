@@ -217,7 +217,6 @@ MODULE GraphUnivariate;
 		likelihood := GraphStochastic.InternalizeLikelihood(rd);
 		node.SetLikelihood(likelihood);
 		rd.ReadInt(type);
-		ASSERT(GraphLimits.fact # NIL, 21);
 		node.censor := GraphLimits.fact.New(type);
 		node.censor.Internalize(rd);
 		rd.ReadInt(type);

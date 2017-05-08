@@ -115,25 +115,30 @@ MODULE GraphInverse;
 	PROCEDURE (node: Node) InternalizeVector (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
-			dim: INTEGER;
+			dim, i, size: INTEGER;
 			p: Node;
 	BEGIN
 		IF node.index = 0 THEN
-			rd.ReadInt(node.dim);
+			rd.ReadInt(dim);
+			IF dim > LEN(tau, 0) THEN
+				NEW(tau, dim, dim);
+			END;
+			node.dim := dim;
 			GraphNodes.InternalizeSubvector(v, rd);
 			node.matrix := v.components;
 			node.start := v.start;
 			node.step := v.step;
-			dim := node.dim;
-			IF dim > LEN(tau, 0) THEN
-				NEW(tau, dim, dim);
+			i := 1;
+			size := node.Size();
+			WHILE i < size DO
+				p := node.components[i](Node);
+				p.start := node.start;
+				p.step := node.step;
+				p.matrix := node.matrix;
+				p.dim := node.dim;
+				INC(i)
 			END
-		END;
-		p := node.components[0](Node);
-		node.start := p.start;
-		node.step := p.step;
-		node.matrix := p.matrix;
-		node.dim := p.dim;
+		END
 	END InternalizeVector;
 
 	PROCEDURE (node: Node) InitLogical;

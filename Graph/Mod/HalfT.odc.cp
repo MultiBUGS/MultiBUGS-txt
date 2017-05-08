@@ -68,20 +68,21 @@ MODULE GraphHalfT;
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			node: Node;
-			k, tau, a, b, r, x, y: REAL;
+			k, tau, r1, lambda1, r2, lambda2, x, y: REAL;
 	BEGIN
 		res := {};
 		node := auxillary.node(Node);
+		x := node.value;
 		k := node.k.Value();
 		tau := node.tau.Value();
-		r := 0.5 * k;
-		a := 0.5;
-		b := tau * k;
-		x := node.value;
+		r1 := 0.5 * k;
+		lambda1 := k * x;
+		r2 := 0.5;
+		lambda2 := k / tau;
 		IF node.likelihood # NIL THEN
-			y :=  MathRandnum.Gamma(a + r, k * k * x + b)
+			y :=  MathRandnum.Gamma(r1 + r2, lambda1 + lambda2)
 		ELSE
-			y := MathRandnum.Gamma(a, b)
+			y := MathRandnum.Gamma(r2, lambda2)
 		END;
 		node.y.SetValue(y)
 	END Sample;
@@ -227,14 +228,14 @@ MODULE GraphHalfT;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
-			logL, k, lambda, x, y, r: REAL;
+			logL, k, lambda1, x, y, r1: REAL;
 	BEGIN
 		x := node.value;
 		y := node.y.value;
 		k := node.k.Value();
-		r := 0.5 * k;
-		lambda := y * k* k;
-		logL := (r - 1.0) * Math.Ln(x) - lambda * x;
+		r1 := 0.5 * k;
+		lambda1 := k * y;
+		logL := (r1 - 1.0) * Math.Ln(x) - lambda1 * x;
 		RETURN logL
 	END LogPrior;
 
@@ -249,13 +250,14 @@ MODULE GraphHalfT;
 	
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
-			r, k, y: REAL;
+			r1, lambda1, k, y: REAL;
 	BEGIN
 		k := node.k.Value();
-		r := 0.5 * k;
+		r1 := 0.5 * k;
 		y := node.y.value;
-		p0 := r;
-		p1 := y * k * k
+		lambda1 := k * y;
+		p0 := r1;
+		p1 := lambda1
 	END PriorForm;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);

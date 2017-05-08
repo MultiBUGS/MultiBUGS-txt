@@ -141,7 +141,7 @@ MODULE GraphDeviance;
 		HALT(126)
 	END ValDiff;
 
-	PROCEDURE IsObserved (stochastic: GraphStochastic.Node): BOOLEAN;
+	PROCEDURE IsObserved* (stochastic: GraphStochastic.Node): BOOLEAN;
 		CONST
 			observed = {GraphNodes.data, GraphStochastic.censored};
 		VAR
@@ -164,7 +164,7 @@ MODULE GraphDeviance;
 		RETURN isObserved
 	END IsObserved;
 
-	PROCEDURE DevianceExists (stochastic: GraphStochastic.Node): BOOLEAN;
+	PROCEDURE DevianceExists* (stochastic: GraphStochastic.Node): BOOLEAN;
 		VAR
 			devianceExists: BOOLEAN;
 			i, size: INTEGER;
@@ -190,13 +190,38 @@ MODULE GraphDeviance;
 		RETURN devianceExists
 	END DevianceExists;
 
+	PROCEDURE ClearMarks;
+		VAR
+			i, j, len, num: INTEGER;
+			children, stochastics: GraphStochastic.Vector;
+			child, p, stoch: GraphStochastic.Node;
+	BEGIN
+		i := 0;
+		len := GraphStochastic.numStochastics;
+		stochastics := GraphStochastic.stochastics;
+		WHILE i < len DO
+		stoch := stochastics[i];
+		p := stoch.Representative();
+		IF p = stoch THEN
+			children := stoch.Children();
+			IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+			j := 0;
+			WHILE j < num DO
+				child := children[j];
+				child.SetProps(child.props - {GraphNodes.mark});
+				INC(j)
+			END
+		END;
+		INC(i)
+	END
+	END ClearMarks;
+	
 	PROCEDURE (f: Factory) New (): GraphLogical.Node;
 		VAR
 			deviance: Node;
 			i, len, numParents, numTerms, j, num: INTEGER;
-			stochastics: GraphStochastic.Vector;
+			children, stochastics: GraphStochastic.Vector;
 			p: GraphNodes.Node;
-			children: GraphStochastic.Vector;
 			stoch, child: GraphStochastic.Node;
 			observed: BOOLEAN;
 	BEGIN
@@ -219,7 +244,10 @@ MODULE GraphDeviance;
 					child := children[j];
 					IF IsObserved(child) THEN
 						observed := TRUE;
-						IF ~DevianceExists(child) THEN RETURN NIL END;
+						IF ~DevianceExists(child) THEN 
+							ClearMarks;
+							RETURN NIL 
+						END;
 						IF ~(GraphNodes.mark IN child.props) THEN
 							child.SetProps(child.props + {GraphNodes.mark});
 							INC(numTerms)
