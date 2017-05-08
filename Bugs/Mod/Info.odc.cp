@@ -12,7 +12,7 @@ MODULE BugsInfo;
 	
 
 	IMPORT
-		Fonts, Strings, Views,
+		Strings, Views,
 		BugsBlueDiamonds, BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
 		BugsParser,
 		GraphLogical, GraphNodes, GraphStochastic,
@@ -49,6 +49,9 @@ MODULE BugsInfo;
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		
+	CONST
+		bold = 700;
 		
 	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
 	BEGIN
@@ -310,7 +313,7 @@ MODULE BugsInfo;
 			maxCols := maximumCols
 		END;
 		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		newAttr := TextModels.NewWeight(oldAttr, bold);
 		f.rider.SetAttr(newAttr);
 		f.WriteString(name.string);
 		f.rider.SetAttr(oldAttr);
@@ -564,7 +567,7 @@ MODULE BugsInfo;
 	PROCEDURE ModelMetrics* (VAR f: TextMappers.Formatter);
 		VAR
 			numUpdater, numData, numObs, meanNumChild, 
-			medianNumChild, numLogical, numParam: INTEGER;
+			medianNumChild, numLogical, numParam, minDepth, maxDepth: INTEGER;
 	BEGIN
 		numObs := CountObservations();
 		numData := CountDatum();
@@ -573,6 +576,7 @@ MODULE BugsInfo;
 		numUpdater := UpdaterActions.NumberUpdaters();
 		meanNumChild := UpdaterActions.MeanNumChildren();
 		medianNumChild := UpdaterActions.MedianNumChildren();
+		UpdaterActions.MinMaxDepth(minDepth, maxDepth);
 		f.WriteTab;
 		f.WriteString("Number of constants: ");
 		f.WriteInt(numData);
@@ -600,6 +604,10 @@ MODULE BugsInfo;
 		f.WriteTab;
 		f.WriteString("Median number of children per updater: ");
 		f.WriteInt(medianNumChild);
+		f.WriteLn;
+		f.WriteTab;
+		f.WriteString("Depth of model graph: ");
+		f.WriteInt(maxDepth);
 		f.WriteLn
 	END ModelMetrics;
 
@@ -768,7 +776,7 @@ MODULE BugsInfo;
 		f.WriteString("row");
 		f.WriteTab;
 		f.WriteLn;
-		numUpdaters := LEN(updaters[0]);
+		numUpdaters := LEN(updaters[0]); 
 		j := 0;
 		WHILE j < numUpdaters DO
 			index := 0;
@@ -784,7 +792,7 @@ MODULE BugsInfo;
 						start := i; thin := numProc
 					ELSE
 						start := -1; thin := 1
-					END;
+					END;;
 					children := u.Children();
 					IF (index # 0) & ~isAuxillary THEN f.WriteTab; f.WriteChar("(") END;
 					IF p # NIL THEN
@@ -798,14 +806,16 @@ MODULE BugsInfo;
 									string := "aux_" + string
 								END;
 								f.WriteTab; 
-								(*blueDiamond := BugsBlueDiamonds.New(children, string, start, thin);
-								f.WriteView(blueDiamond);*)
+								blueDiamond := BugsBlueDiamonds.New(children, string, start, thin);
+								f.WriteView(blueDiamond);
 								f.WriteString(string);
 							END
 						ELSE
-							IF index = 0 THEN f.WriteTab END; 
-							blueDiamond := BugsBlueDiamonds.New(children, string, start, thin);
-							f.WriteView(blueDiamond);
+							IF index = 0 THEN 
+								f.WriteTab; 
+								blueDiamond := BugsBlueDiamonds.New(children, string, start, thin);
+								f.WriteView(blueDiamond);
+							END; 
 							f.WriteString(string);
 						END
 					ELSE

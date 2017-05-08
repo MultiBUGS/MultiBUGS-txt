@@ -89,6 +89,7 @@ MODULE BugsMessages;
 		StoreKey("BugsNodes7", "multiple definitions of node ^0");
 		StoreKey("BugsNodes8", "expected multivariate node");
 		StoreKey("BugsNodes9", "unable to create stochastic node ^0 with these options");
+		StoreKey("BugsNodes10", "invalid arguments for  node ^0");
 		
 		StoreKey("BugsParallel1", "unable to create updater for ^0");
 
@@ -238,28 +239,7 @@ MODULE BugsMessages;
 		StoreKey("BugsCmds:couldNotChangeUpdater", "could not change (all) updaters for ^0");
 		StoreKey("BugsCmds:UninitializedNodes", "all nodes in model are initialized");
 		StoreKey("BugsCmds:DataOut", "model data");
-		
-		StoreKey("BugsEmbed:OkSyntax", "model is syntactically correct");
-		StoreKey("BugsEmbed:OkData", "data loaded");
-		StoreKey("BugsEmbed:OkCompile", "model compiled");
-		StoreKey("BugsEmbed:UninitOther", "initial values loaded and chain initialized but another chain contain uninitialized variables");
-		StoreKey("BugsEmbed:NotInit", "initial values loaded but chain contain uninitialized variables");
-		StoreKey("BugsEmbed:OkInits", "model is initialized");
-		StoreKey("BugsEmbed:OkGenInits", "initial values generated, model initialized");
-		StoreKey("BugsEmbed:UpdatesTook", "^0 updates took ^1 s");
-		StoreKey("BugsEmbed:Updating", "model is updating");
-
-		StoreKey("BugsEmbed:NoFile", "file ^0 does not exist");
-		StoreKey("BugsEmbed:NoCheckData", "model must be checked before data is loaded");
-		StoreKey("BugsEmbed:NoCheckCompile", "model must be checked before compiling");
-		StoreKey("BugsEmbed:NoCompileInits", "model must be compiled before initial values loaded");
-		StoreKey("BugsEmbed:NoCompileGenInits", "model must be compiled before generating initial values");
-		StoreKey("BugsEmbed:AlreadyInits", "model is already initialized");
-		StoreKey("BugsEmbed:NotInits", "model must be initialized before updating");
-		StoreKey("BugsEmbed:SeedZero", "seed of random number generator must not be zero");
-		StoreKey("BugsEmbed.AlreadyCompiled", "this option can not be changed once the model is compiled");
-		StoreKey("BugsEmbed:chainsWrittenOut", "chains written out");
-		StoreKey("BugsEmbed:couldNotChangeUpdater", "could not change (all) updaters for  ^0 ")
+		StoreKey("BugsCmds:NoDeviance", "no deviance for model");
 		
 	END Load;
 

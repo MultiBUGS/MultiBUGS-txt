@@ -47,7 +47,8 @@ MODULE BugsMaster;
 		terminate = 1;
 		getMonitors = 2;
 		getSamples = 3;
-
+		debug = FALSE;
+		
 	PROCEDURE DeleteFiles;
 		VAR
 			loc: Files.Locator;
@@ -254,6 +255,7 @@ MODULE BugsMaster;
 			endTime, startTime: LONGINT;
 			cmd, path, string, executable, bugFile: ARRAY 1024 OF CHAR;
 			loc: Files.Locator;
+			fileList: Files.FileInfo;
 			f: Files.File;
 			resultParams: ARRAY 3 OF INTEGER;
 			deviance: GraphNodes.Node;
@@ -277,17 +279,18 @@ MODULE BugsMaster;
 		bugFile := fileStemName + "_" + timeStamp;
 		f := Files.dir.New(restartLoc, Files.dontAsk);
 		startTime := Services.Ticks();
+		IF debug THEN BugsComponents.Debug(numChains) END;
 		BugsComponents.WriteModel(f, numChains, port, ok);
-		StdLog.Ln;
-		StdLog.String("port name:");
-		StdLog.Ln;
-		StdLog.String(LONG(port)); 
-		StdLog.Ln;
 		IF ~ok THEN
 			BugsInterface.SetDistributeHook(NIL);
 			BugsMsg.Store("unable to write graph file for worker");
 			RETURN
 		END;
+		StdLog.Ln;
+		StdLog.String("port name:");
+		StdLog.Ln;
+		StdLog.String(LONG(port)); 
+		StdLog.Ln;
 		(*	find deviance and mark it as distributed if it exists	*)
 		name := BugsIndex.Find("deviance");
 		deviance := name.components[0];
@@ -304,8 +307,17 @@ MODULE BugsMaster;
 		endTime := Services.Ticks();
 		h.linkTime := SHORT(endTime - startTime);
 		Strings.IntToString(numWorker, string);
-		cmd := "mpiexec -n " + string;
+		cmd := "mpiexec -n " + string; 
 		loc := Files.dir.This("");
+		fileList := Files.dir.FileList(loc);
+		WHILE (fileList # NIL) & (fileList.name #  executable + ".exe") DO
+			fileList := fileList.next 
+		END;
+		IF fileList = NIL THEN
+			BugsInterface.SetDistributeHook(NIL);
+			BugsMsg.Store("unable to link BugsWorker executable");
+			RETURN
+		END;
 		path := loc(HostFiles.Locator).path$;
 		(*	need quotes round command line for case of space in file path	*)
 		executable := executable + '"';
@@ -421,7 +433,7 @@ MODULE BugsMaster;
 		END;
 		RecvMonitoredValues(h.numChains, h.numMonitored)
 	END Update;
-
+	
 	PROCEDURE Install* (mpiImplementation: ARRAY OF CHAR);
 		VAR
 			h: Hook;

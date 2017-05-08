@@ -140,7 +140,6 @@ MODULE BugsGraph;
 		BugsIndex.Accept(v)
 	END AllocateLikelihoods;
 
-
 	PROCEDURE (v: ClassifyConditional) Do (name: BugsNames.Name);
 		VAR
 			node: GraphNodes.Node;
@@ -536,11 +535,6 @@ MODULE BugsGraph;
 
 	(*
 
-	First the logical nodes in the model are created, then all other, non data,  nodes in the model
-	are set to tempory stochastic nodes. Any logical node that does not have stochastic parents is
-	replaced by a constant node. The stochastic nodes in the model are then created. The logical
-	nodes are then written again.
-
 	The optimization procedures for logical nodes process the nodes by level (where level one nodes only
 	have stochastic parents, level two nodes only level one logical or stochastic parents etc.)
 
@@ -573,10 +567,12 @@ MODULE BugsGraph;
 			dev: GraphNodes.Node;
 	BEGIN
 		dev := GraphDeviance.fact.New();
-		name := BugsNames.New("deviance", 0);
-		name.AllocateNodes;
-		name.components[0] := dev;
-		BugsIndex.Store(name)
+		IF GraphDeviance.DevianceTerms(dev) # NIL THEN
+			name := BugsNames.New("deviance", 0);
+			name.AllocateNodes;
+			name.components[0] := dev;
+			BugsIndex.Store(name)
+		END
 	END CreateDeviance;
 
 	PROCEDURE LinkNode (node: GraphLogical.Node);
@@ -654,7 +650,7 @@ MODULE BugsGraph;
 			chain: INTEGER;
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
-		WriteGraph(ok); IF ~ok THEN UpdaterActions.Clear; RETURN END;
+		WriteGraph(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
 		BuildFullConditionals;
 		AllocateLikelihoods;
 		ClassifyConditionals;
@@ -663,7 +659,7 @@ MODULE BugsGraph;
 		ELSE
 			CreateUpdatersByNode
 		END;
-		MissingUpdaters(ok); IF ~ok THEN UpdaterActions.Clear; RETURN END;
+		MissingUpdaters(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
 		UpdaterActions.CreateUpdaters(numChains);
 		UpdaterActions.AllocateLikelihoods;
 		IF IsAdapting(numChains) THEN
@@ -686,7 +682,7 @@ MODULE BugsGraph;
 		inits := UpdaterActions.IsInitialized(0);
 		IF inits THEN
 			BugsNodes.Checks(ok);
-			IF ~ok THEN UpdaterActions.Clear; RETURN END
+			IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END
 		END
 	END Compile;
 

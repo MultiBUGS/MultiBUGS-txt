@@ -13,6 +13,7 @@ MODULE BugsCmds;
 
 	IMPORT
 		Controllers, Converters, Dialog, Files, Meta, Models, Ports, Services, Strings, Views,
+		StdLog,
 		BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface, BugsLatexprinter,
 		BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser, BugsPrettyprinter,
 		BugsRandnum, BugsScripting, BugsSerialize, BugsVersion,
@@ -21,7 +22,6 @@ MODULE BugsCmds;
 		HostMenus,
 		MathRandnum,
 		MonitorMonitors,
-		StdLog,
 		TextCmds, TextControllers, TextMappers, TextModels, TextViews,
 		UpdaterActions, UpdaterMethods, UpdaterSettings;
 
@@ -268,7 +268,7 @@ MODULE BugsCmds;
 		s.ConnectToText(text);
 		pos := GetPos();
 		s.SetPos(pos);
-		BugsInterface.ParseModel(s);
+		BugsInterface.ParseModel(s, ok);
 		IF ~BugsInterface.IsParsed() THEN TextError(s, text); filePath := ""; RETURN END;
 		BugsDialog.UpdateDialogs;
 		BugsMsg.Show("BugsCmds:OkSyntax");
@@ -437,7 +437,7 @@ MODULE BugsCmds;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
 		CONST
-			space = 30* Ports.mm;
+			space = 35 * Ports.mm;
 	BEGIN
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
@@ -634,23 +634,6 @@ MODULE BugsCmds;
 		END
 	END ScriptFile;
 
-	PROCEDURE Methods*;
-		VAR
-			tabs: ARRAY 3 OF INTEGER;
-			f:TextMappers.Formatter;
-			text: TextModels.Model;
-	BEGIN
-		text := TextModels.dir.New();
-		f.ConnectTo(text);
-		f.SetPos(0);
-		tabs[0] := 0;
-		tabs[1] := 25 * Ports.mm;
-		tabs[2] := 75 * Ports.mm;
-		BugsFiles.WriteRuler(tabs, f);
-		BugsInfo.Methods(infoDialog.node.item, f);
-		BugsFiles.Open("Node update methods", text)
-	END Methods;
-
 	PROCEDURE Metrics*;
 		VAR
 			tabs: ARRAY 3 OF INTEGER;
@@ -667,23 +650,6 @@ MODULE BugsCmds;
 		BugsInfo.ModelMetrics(f);
 		BugsFiles.Open("Model metrics", text)
 	END Metrics;
-
-	PROCEDURE Types*;
-		VAR
-			tabs: ARRAY 3 OF INTEGER;
-			f: TextMappers.Formatter;
-			text: TextModels.Model;
-	BEGIN
-		text := TextModels.dir.New();
-		f.ConnectTo(text);
-		f.SetPos(0);
-		tabs[0] := 0;
-		tabs[1] := 25 * Ports.mm;
-		tabs[2] := 75 * Ports.mm;
-		BugsFiles.WriteRuler(tabs, f);
-		BugsInfo.Types(infoDialog.node.item, f);
-		BugsFiles.Open("Node types", text)
-	END Types;
 
 	PROCEDURE UpdatersByName*;
 		VAR
@@ -1356,6 +1322,11 @@ MODULE BugsCmds;
 		par.readOnly := mod.obj # Meta.modObj
 	END CompileCPGuardWin;
 
+	PROCEDURE DevianceGuardWin* (VAR par: Dialog.Par);
+	BEGIN
+		par.disabled := ~BugsInterface.IsInitialized() OR (BugsIndex.Find("deviance") = NIL) 
+	END DevianceGuardWin;
+
 	PROCEDURE DistributeGuardWin* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := BugsInterface.IsDistributed() OR (~BugsInterface.IsInitialized())
@@ -1422,6 +1393,14 @@ MODULE BugsCmds;
 	BEGIN
 		par.disabled := ~BugsInterface.IsInitialized() OR (GraphNodes.maxStochDepth > 1)
 	END MAPGuardWin;
+
+	PROCEDURE DevianceGuard* (OUT ok: BOOLEAN);
+	BEGIN
+		ok := BugsIndex.Find("deviance") # NIL;
+		IF ~ok THEN
+			BugsMsg.Show("BugsCmds:NoDeviance")
+		END
+	END DevianceGuard;
 
 	PROCEDURE ParseGuard* (OUT ok: BOOLEAN);
 		VAR
