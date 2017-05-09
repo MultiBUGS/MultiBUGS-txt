@@ -91,20 +91,7 @@ Model
 
 Data	(Click to open)
 
-Inits for chain 1	Inits for chain 2	(Click to open)
-
-One update took 0.6ms
-
-Update methods
-
-		Updater type	Size	Depth
-	S[1]	wrapper for chain graph updater	56	2
-	<S[2]>
-
-	<S[56]>
-	alpha	conjugate normal updater	1	1
-	gamma	slice updater	1	1
-	prec	conjugate gamma updater	1	1
+Inits for chain 1   Inits for chain 2  (Click to open)
 
 
 
@@ -112,70 +99,7 @@ Update methods
 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1418	-0.1444	0.1586	0.001663	-0.4565	0.1757	1001	20000	9096
-	gamma	0.1629	0.1687	0.01945	2.558E-4	0.112	0.1822	1001	20000	5780
-	sigma	1.778	1.757	0.2464	0.003308	1.35	2.32	1001	20000	5549
-
-
-
-GMRF updater
-
-One update took 6s
-
-Choice of updaters
-
-		Updater type	Size	Depth
-	S[1]	general GMRF updater	56	2
-	<S[2]>
-	...
-	<S[56]>
-	alpha	conjugate normal updater	1	1
-	gamma	slice updater	1	1
-	prec	conjugate gamma updater	1	1
-
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1368	-0.1381	0.1592	0.002673	-0.4468	0.1774	1001	20000	3547
-	gamma	0.1632	0.1688	0.0189	2.887E-4	0.1129	0.1823	1001	20000	4283
-	sigma	1.776	1.758	0.2478	0.005966	1.338	2.313	1001	20000	1724
-
-
-
-Check of externalization first process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1441	-0.1466	0.158	0.002404	-0.459	0.1764	1001	10000	4319
-	gamma	0.1625	0.1684	0.01984	3.899E-4	0.1116	0.1822	1001	10000	2590
-	sigma	1.786	1.763	0.247	0.004855	1.363	2.334	1001	10000	2589
-
-second process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1441	-0.1466	0.158	0.002404	-0.459	0.1764	1001	10000	4319
-	gamma	0.1625	0.1684	0.01984	3.899E-4	0.1116	0.1822	1001	10000	2590
-	sigma	1.786	1.763	0.247	0.004855	1.363	2.334	1001	10000	2589
-	
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1418	-0.1444	0.1586	0.001663	-0.4565	0.1757	1001	20000	9096
-	gamma	0.1629	0.1687	0.01945	2.558E-4	0.112	0.1822	1001	20000	5780
-	sigma	1.778	1.757	0.2464	0.003308	1.35	2.32	1001	20000	5549
-
-Check of externalization first process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1326	-0.1323	0.159	0.003669	-0.4409	0.1829	1001	10000	1878
-	gamma	0.1631	0.1686	0.01887	4.113E-4	0.113	0.1823	1001	10000	2104
-	sigma	1.778	1.759	0.2482	0.007915	1.338	2.312	1001	10000	982
-
-second process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1326	-0.1323	0.159	0.003669	-0.4409	0.1829	1001	10000	1878
-	gamma	0.1631	0.1686	0.01887	4.113E-4	0.113	0.1823	1001	10000	2104
-	sigma	1.778	1.759	0.2482	0.007915	1.338	2.312	1001	10000	982
-	
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.1368	-0.1381	0.1592	0.002673	-0.4468	0.1774	1001	20000	3547
-	gamma	0.1632	0.1688	0.0189	2.887E-4	0.1129	0.1823	1001	20000	4283
-	sigma	1.776	1.758	0.2478	0.005966	1.338	2.313	1001	20000	1724
+	alpha	-0.1419	-0.1426	0.1588	0.001748	-0.4518	0.1696	1001	20000	8248
+	gamma	0.1632	0.1687	0.01883	2.423E-4	0.1131	0.1823	1001	20000	6035
+	sigma	1.784	1.767	0.2471	0.003224	1.361	2.326	1001	20000	5878
 

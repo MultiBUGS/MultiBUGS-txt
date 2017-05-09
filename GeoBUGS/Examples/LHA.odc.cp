@@ -42,64 +42,19 @@ Model
 
 			}
 
- Data	(click to open)
+ Data  (click to open)
 
 Inits for chain 1	Inits for chain 2	(click to open
 
-One update took 1ms
-
-Update methods
-
-		Updater type	Size	Depth
-	alpha	log-linear block glm updater	2	1
-	<beta>
-	b[1]	wrapper for chain graph updater	44	2
-	<b[2]>
-...
-	<b[44]>
-	h[1]	log-linear rejection updater	1	2
-...
-	h[44]	log-linear rejection updater	1	2
-	tau.b	conjugate gamma updater	1	1
-	tau.h	conjugate gamma updater	1	1
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.2075	-0.2051	0.1018	0.00176	-0.4188	-0.0164	2001	20000	3345
-	beta	0.04643	0.0465	0.01876	3.132E-4	0.009459	0.08348	2001	20000	3588
-	sigma.b	0.08107	0.04169	0.1088	0.006566	0.01367	0.4315	2001	20000	274
-	sigma.h	0.1509	0.1308	0.1131	0.006312	0.01663	0.3955	2001	20000	321
+	alpha	-0.206	-0.2021	0.1024	0.001819	-0.4205	-0.01755	2001	20000	3167
+	beta	0.04647	0.04639	0.01877	2.882E-4	0.009153	0.08394	2001	20000	4242
+	sigma.b	0.07745	0.04172	0.09671	0.005884	0.01358	0.3824	2001	20000	270
+	sigma.h	0.1438	0.1077	0.1168	0.006542	0.01527	0.4003	2001	20000	318
 
 
 
 
 
-
-		mean	sd	MC_error	val2.5pc	median	val97.5pc	start	sample
-	alpha	-0.2112	0.1028	0.00168	-0.4256	-0.2075	-0.01786	2001	20000
-	beta	0.04727	0.01875	2.747E-4	0.01064	0.0471	0.08432	2001	20000
-	sigma.b	0.06724	0.0737	0.004109	0.01406	0.04163	0.2816	2001	20000
-	sigma.h	0.1664	0.1188	0.006763	0.01523	0.1562	0.4046	2001	20000
-
-
-Check of externalization first process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.2064	-0.2039	0.1036	0.002446	-0.4207	-0.01144	2001	10000	1793
-	beta	0.04583	0.04626	0.01937	4.743E-4	0.006235	0.08289	2001	10000	1667
-	sigma.b	0.1007	0.04972	0.1288	0.009479	0.01404	0.4869	2001	10000	184
-	sigma.h	0.1494	0.1268	0.1136	0.007985	0.01774	0.3936	2001	10000	202
-
-second process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.2064	-0.2039	0.1036	0.002446	-0.4207	-0.01144	2001	10000	1793
-	beta	0.04583	0.04626	0.01937	4.743E-4	0.006235	0.08289	2001	10000	1667
-	sigma.b	0.1007	0.04972	0.1288	0.009479	0.01404	0.4869	2001	10000	184
-	sigma.h	0.1494	0.1268	0.1136	0.007985	0.01774	0.3936	2001	10000	202
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha	-0.2075	-0.2051	0.1018	0.00176	-0.4188	-0.0164	2001	20000	3345
-	beta	0.04643	0.0465	0.01876	3.132E-4	0.009459	0.08348	2001	20000	3588
-	sigma.b	0.08107	0.04169	0.1088	0.006566	0.01367	0.4315	2001	20000	274
-	sigma.h	0.1509	0.1308	0.1131	0.006312	0.01663	0.3955	2001	20000	321
 

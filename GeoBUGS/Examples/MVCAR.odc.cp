@@ -67,24 +67,6 @@ Data (click to open)
 Inits for chain 1  Inits for chain 2 (click to open)
 
 Results
-One update took 4ms
-
-Update methods
-
-		Updater type	Size	Depth
-	S[1,1]	wrapper for chain graph updater	252	2
-	<S[1,2]>
-...
-	<S[1,126]>
-	<S[2,1]>
-...
-	<S[2,126]>
-	alpha[1]	log-linear rejection updater	1	1
-	alpha[2]	log-linear rejection updater	1	1
-	omega[1,1]	conjugate wishart updater	4	1
-	<omega[1,2]>
-	<omega[2,1]>
-	<omega[2,2]>
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha[1]	-0.008237	-0.007886	0.03687	3.884E-4	-0.0805	0.06314	1001	20000	9010
@@ -193,30 +175,5 @@ A 10000 iteration burn-in followed by a further 50000 updates gave the following
 
 Again, the posterior correlation between the spatially structured risk components (S) for oral cavity and lung cancers is high (0.82; 95% CI: 0.29, 0.98), although correlation between the unstructured risk components (U) is less strong (0.38; 95% CI: -0.64, 0.92). Since the spatial component of risk dominates, the correlation between the total random effect (U + S) for oral cancer and lung cancer is also high (0.75; 95% CI: 0.36, 0.94), again suggesting strong shared geographical pattern of risk between the two diseases. 
 
-
-Check of externalization first process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha[1]	-0.008227	-0.008038	0.03668	5.585E-4	-0.08	0.06467	1001	10000	4312
-	alpha[2]	-0.02288	-0.02286	0.008274	9.249E-5	-0.0394	-0.006612	1001	10000	8002
-	corr	0.8357	0.8786	0.1378	0.008791	0.4721	0.9756	1001	10000	245
-	sigma[1]	0.2683	0.2612	0.0801	0.005436	0.1202	0.4437	1001	10000	217
-	sigma[2]	0.3664	0.3652	0.03042	5.512E-4	0.3113	0.4291	1001	10000	3046
-
-second process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha[1]	-0.008227	-0.008038	0.03668	5.585E-4	-0.08	0.06467	1001	10000	4312
-	alpha[2]	-0.02288	-0.02286	0.008274	9.249E-5	-0.0394	-0.006612	1001	10000	8002
-	corr	0.8357	0.8786	0.1378	0.008791	0.4721	0.9756	1001	10000	245
-	sigma[1]	0.2683	0.2612	0.0801	0.005436	0.1202	0.4437	1001	10000	217
-	sigma[2]	0.3664	0.3652	0.03042	5.512E-4	0.3113	0.4291	1001	10000	3046
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	alpha[1]	-0.008237	-0.007886	0.03687	3.884E-4	-0.0805	0.06314	1001	20000	9010
-	alpha[2]	-0.02295	-0.02294	0.008294	6.879E-5	-0.03933	-0.006594	1001	20000	14540
-	corr	0.833	0.8717	0.1318	0.006406	0.4874	0.9739	1001	20000	423
-	sigma[1]	0.2667	0.263	0.07918	0.004325	0.1163	0.4348	1001	20000	335
-	sigma[2]	0.3661	0.3648	0.03078	4.149E-4	0.3103	0.4301	1001	20000	5505
 
 

@@ -126,49 +126,6 @@ Results
 
 RW(1) prior:
 
-One update took 0.6ms
-
-Update methods
-
-		Updater type	Size	Depth
-	beta	conjugate normal updater	1	1
-	tau	conjugate gamma updater	1	1
-	tau.err	conjugate gamma updater	1	1
-	theta[1]	wrapper for chain graph updater	366	2
-	<theta[2]>
-	...
-	<theta[366]>
-	y[21]	univariate forward updater	1	-3
-	y[42]	univariate forward updater	1	-3
-	y[43]	univariate forward updater	1	-3
-	y[44]	univariate forward updater	1	-3
-	y[45]	univariate forward updater	1	-3
-	y[109]	univariate forward updater	1	-3
-	y[110]	univariate forward updater	1	-3
-	y[111]	univariate forward updater	1	-3
-	y[112]	univariate forward updater	1	-3
-	y[123]	univariate forward updater	1	-3
-	y[124]	univariate forward updater	1	-3
-	y[125]	univariate forward updater	1	-3
-	y[126]	univariate forward updater	1	-3
-	y[127]	univariate forward updater	1	-3
-	y[128]	univariate forward updater	1	-3
-	y[129]	univariate forward updater	1	-3
-	y[130]	univariate forward updater	1	-3
-	y[131]	univariate forward updater	1	-3
-	y[132]	univariate forward updater	1	-3
-	y[133]	univariate forward updater	1	-3
-	y[134]	univariate forward updater	1	-3
-	y[135]	univariate forward updater	1	-3
-	y[136]	univariate forward updater	1	-3
-	y[141]	univariate forward updater	1	-3
-	y[142]	univariate forward updater	1	-3
-	y[185]	univariate forward updater	1	-3
-	y[210]	univariate forward updater	1	-3
-	y[211]	univariate forward updater	1	-3
-	y[212]	univariate forward updater	1	-3
-	y[213]	univariate forward updater	1	-3
-	y[345]	univariate forward updater	1	-3
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	beta	3.03	3.03	0.02003	6.173E-4	2.991	3.07	1001	20000	1052
@@ -198,38 +155,4 @@ Equivalent plot assuming an RW(2) prior. Note the greater amount of smoothing im
 
   
 
-
-Check of externalization first process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	beta	3.03	3.03	0.02018	8.302E-4	2.99	3.069	1001	10000	590
-	mu[1]	2.87	2.871	0.1999	0.002865	2.481	3.264	1001	10000	4871
-	mu[2]	2.837	2.834	0.1825	0.004329	2.488	3.198	1001	10000	1776
-	mu[3]	3.111	3.112	0.1684	0.002272	2.777	3.442	1001	10000	5496
-	mu[4]	3.321	3.322	0.1855	0.005567	2.955	3.681	1001	10000	1110
-	mu[5]	3.108	3.107	0.168	0.002113	2.775	3.44	1001	10000	6323
-	sigma	0.2638	0.2624	0.04135	0.002522	0.1883	0.3508	1001	10000	268
-	sigma.err	0.2496	0.2523	0.03668	0.00217	0.1696	0.3137	1001	10000	285
-
-second process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	beta	3.03	3.03	0.02018	8.302E-4	2.99	3.069	1001	10000	590
-	mu[1]	2.87	2.871	0.1999	0.002865	2.481	3.264	1001	10000	4871
-	mu[2]	2.837	2.834	0.1825	0.004329	2.488	3.198	1001	10000	1776
-	mu[3]	3.111	3.112	0.1684	0.002272	2.777	3.442	1001	10000	5496
-	mu[4]	3.321	3.322	0.1855	0.005567	2.955	3.681	1001	10000	1110
-	mu[5]	3.108	3.107	0.168	0.002113	2.775	3.44	1001	10000	6323
-	sigma	0.2638	0.2624	0.04135	0.002522	0.1883	0.3508	1001	10000	268
-	sigma.err	0.2496	0.2523	0.03668	0.00217	0.1696	0.3137	1001	10000	285
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	beta	3.03	3.03	0.02003	6.173E-4	2.991	3.07	1001	20000	1052
-	mu[1]	2.869	2.868	0.197	0.001898	2.486	3.258	1001	20000	10773
-	mu[2]	2.833	2.831	0.181	0.003193	2.488	3.191	1001	20000	3213
-	mu[3]	3.114	3.115	0.1687	0.001747	2.786	3.446	1001	20000	9315
-	mu[4]	3.327	3.327	0.186	0.004047	2.958	3.693	1001	20000	2113
-	mu[5]	3.11	3.11	0.1685	0.001655	2.775	3.441	1001	20000	10366
-	sigma	0.266	0.2647	0.03997	0.001869	0.192	0.3488	1001	20000	457
-	sigma.err	0.2476	0.2498	0.03555	0.001617	0.1722	0.311	1001	20000	483
 

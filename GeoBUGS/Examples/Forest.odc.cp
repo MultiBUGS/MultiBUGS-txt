@@ -108,19 +108,6 @@ Inits for chain 1 	  Inits for chain 2	(Click to open)
 
 Results
 
-Assuming adjacency-based kernel (equivalent to Ickstadt and Wolpert's model MS):	
-
-One update took 0.4ms
-
-Update methods
-
-		Updater type	Size	Depth
-	gamma[1]	conjugate gamma updater	1	2
-	...
-	gamma[16]	conjugate gamma updater	1	2
-	theta0	adaptive metropolis 1D updater	1	1
-	theta1	slice updater	1	1
-	theta2	adaptive metropolis 1D updater	1	1
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	spatial.effect	0.2843	0.2534	0.1768	0.00718	0.04118	0.692	2001	20000	606
@@ -134,20 +121,6 @@ Ickstadt and Wolpert report a posterior mean (sd) of 0.281 (0.156) for the spati
 
 Assuming distance-based kernel (equivalent to Ickstadt and Wolpert's model MD):
 
-One update took 1.1ms
-
-Update methods
-
-		Updater type	Size	Depth
-	gamma[1]	conjugate gamma updater	1	2
-...
-	gamma[16]	conjugate gamma updater	1	2
-	theta0	adaptive metropolis 1D updater	1	1
-	theta1	slice updater	1	1
-	theta2	adaptive metropolis 1D updater	1	1
-
-
-
 
 			mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	spatial.effect	7.077	4.157	6.839	0.279	0.5397	22.82	10001	100000	600
@@ -156,8 +129,6 @@ Update methods
 	theta2	1.455	1.425	1.064	0.03283	-0.6167	3.128	10001	100000	1050
 
 	
-	
-
 Ickstadt and Wolpert report a posterior mean (sd) of 7.449 (6.764) for the spatial effect, exp(q2), from their analysis using a 4x4 partition of the study region (Table 1.3), and posterior means of -0.02, -5.28 and 1.54 respectively for theta0, theta1 and theta2. Ickstadt and Wolpert noted that the posterior for the spatial effect was multi-modal:
 
 Note however that convergence of this distance-based model is not very good, and the results reported above are not particularly stable (the adjacency-based model appears to converge much better). This may be partly due to the rather strong prior information about theta2 for the distance-based model which, as noted by Ickstadt and Wolpert, appears to conflict with the data. 

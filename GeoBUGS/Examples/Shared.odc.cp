@@ -116,41 +116,6 @@ Inits for chain 1  	Inits for chain 2	(Click to open)
 
 Results
 
-One update took 12.9ms
-
-Update methods
-
-		Updater type	Size	Depth
-	S.sh[1]	wrapper for chain graph updater	126	2
-	<S.sh[2]>
-...
-	<S.sh[126]>
-	S.sp[1,1]	wrapper for chain graph updater	126	2
-	<S.sp[1,2]>
-...
-	<S.sp[1,126]>
-	S.sp[2,1]	wrapper for chain graph updater	126	2
-	<S.sp[2,2]>
-...
-	<S.sp[2,126]>
-	U.sh[1]	log-linear rejection updater	1	2
-...
-	U.sh[126]	log-linear rejection updater	1	2
-	U.sp[1,1]	log-linear rejection updater	1	2
-...
-	U.sp[1,126]	log-linear rejection updater	1	2
-	U.sp[2,1]	log-linear rejection updater	1	2
-...
-	U.sp[2,126]	log-linear rejection updater	1	2
-	alpha[1]	log-linear rejection updater	1	1
-	alpha[2]	log-linear rejection updater	1	1
-	logdelta	adaptive metropolis 1D updater	1	1
-	omega.spatial	conjugate gamma updater	1	1
-	omega.unstr	conjugate gamma updater	1	1
-	tau.spatial[1]	conjugate gamma updater	1	1
-	tau.spatial[2]	conjugate gamma updater	1	1
-	tau.unstr[1]	conjugate gamma updater	1	1
-	tau.unstr[2]	conjugate gamma updater	1	1
 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
@@ -178,39 +143,5 @@ Maps showing the spatial pattern of the shared component and the disease-specifi
 
 
 
-
-Check of externalization first process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	RR.ratio	0.7758	0.7417	0.3584	0.02669	0.2913	1.591	2001	10000	180
-	delta	0.8589	0.8612	0.1951	0.01508	0.5397	1.261	2001	10000	167
-	frac.shared[1]	0.7705	0.8232	0.1822	0.01363	0.3076	0.98	2001	10000	178
-	frac.shared[2]	0.7744	0.8687	0.2245	0.01774	0.1699	0.9862	2001	10000	160
-	var.shared[1]	0.01941	0.01585	0.01385	0.00104	0.00292	0.05194	2001	10000	177
-	var.shared[2]	0.0324	0.03468	0.01009	7.416E-4	0.006851	0.04679	2001	10000	185
-	var.specific[1]	0.005285	0.00299	0.006128	4.321E-4	5.32E-4	0.02361	2001	10000	201
-	var.specific[2]	0.009478	0.005385	0.009729	7.628E-4	5.787E-4	0.03583	2001	10000	162
-
-second process
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	RR.ratio	0.7758	0.7417	0.3584	0.02669	0.2913	1.591	2001	10000	180
-	delta	0.8589	0.8612	0.1951	0.01508	0.5397	1.261	2001	10000	167
-	frac.shared[1]	0.7705	0.8232	0.1822	0.01363	0.3076	0.98	2001	10000	178
-	frac.shared[2]	0.7744	0.8687	0.2245	0.01774	0.1699	0.9862	2001	10000	160
-	var.shared[1]	0.01941	0.01585	0.01385	0.00104	0.00292	0.05194	2001	10000	177
-	var.shared[2]	0.0324	0.03468	0.01009	7.416E-4	0.006851	0.04679	2001	10000	185
-	var.specific[1]	0.005285	0.00299	0.006128	4.321E-4	5.32E-4	0.02361	2001	10000	201
-	var.specific[2]	0.009478	0.005385	0.009729	7.628E-4	5.787E-4	0.03583	2001	10000	162
-
-		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	RR.ratio	0.801	0.7028	0.4769	0.02063	0.2791	2.015	2001	60000	534
-	delta	0.8658	0.8383	0.2267	0.01043	0.5283	1.419	2001	60000	471
-	frac.shared[1]	0.7178	0.7827	0.2256	0.01007	0.179	0.9793	2001	60000	501
-	frac.shared[2]	0.7613	0.8776	0.2557	0.01277	0.1139	0.9881	2001	60000	401
-	var.shared[1]	0.01831	0.01581	0.01259	5.263E-4	0.002438	0.04975	2001	60000	572
-	var.shared[2]	0.03203	0.03547	0.01136	5.365E-4	0.004679	0.04705	2001	60000	448
-	var.specific[1]	0.007611	0.004002	0.00937	3.732E-4	4.741E-4	0.03485	2001	60000	630
-	var.specific[2]	0.01008	0.00509	0.01104	5.437E-4	4.986E-4	0.03818	2001	60000	412
 
 
