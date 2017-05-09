@@ -39,7 +39,6 @@ For computational reasons Breslow and Clayton impose constraints on their random
 		for (i in 1:I)  {
 			cases[i]        ~ dpois(mu[i])
 			log(mu[i])     <- log(pyr[i]) + alpha[age[i]] + beta[year[i]]
-			#cumulative.cases[i] <- cumulative(cases[i], cases[i])
 		}
 		betamean[1]    <- 2 * beta[2] - beta[3]
 		Nneighs[1]     <- 1
