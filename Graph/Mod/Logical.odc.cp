@@ -83,7 +83,7 @@ MODULE GraphLogical;
 		END
 	END Clear;
 
-	PROCEDURE Ancestors* (node: GraphNodes.Node; all: BOOLEAN): List;
+	PROCEDURE Parents* (node: GraphNodes.Node; all: BOOLEAN): List;
 		VAR
 			list: List;
 			cursor, parents, pList: GraphNodes.List;
@@ -114,7 +114,7 @@ MODULE GraphLogical;
 		END;
 		Clear(list);
 		RETURN list
-	END Ancestors;
+	END Parents;
 
 	PROCEDURE (node: Node) CalculateLevel*, NEW;
 		VAR
@@ -148,7 +148,7 @@ MODULE GraphLogical;
 		IF node.level # undefined THEN
 			all := TRUE;
 			node.level := undefined;
-			list := Ancestors(node, all);
+			list := Parents(node, all);
 			WHILE list # NIL DO
 				p := list.node;
 				p.level := undefined;

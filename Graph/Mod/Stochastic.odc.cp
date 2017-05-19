@@ -19,9 +19,9 @@ MODULE GraphStochastic;
 
 	CONST
 		(*	node properties	*)
-		mark* = GraphNodes.mark;
 		data* = GraphNodes.data;
-
+		
+		mark* = 3; 	(*	node is marked	*)
 		censored* = 4; 	(*	node is censored	*)
 		truncated* = 5; 	(*	node is truncated	*)
 		leftNatural* = 6; 	(*	node's support has left / lower bound	*)
@@ -33,7 +33,6 @@ MODULE GraphStochastic;
 		initialized* = 12; 	(*	node has been given an initial value	*)
 		likelihood* = 13; 	(*	nodes has been added to likelihood list of its parents	*)
 		devParent* = 14; 	(*	node is stochastic parent of deviance	*)
-		blockMark* = 15; 	(*	node is member of a block	*)
 		coParent* = 16; 	(*	node is coparent	*)
 
 		noCDF* = 17; 	(*	cdf can not be expressed in closed form	*)
@@ -41,7 +40,8 @@ MODULE GraphStochastic;
 		noMean* = 19; (*	node has mean	*)
 
 		distributed* = 20; (*	distribute sampling over multiple processors	*)
-
+		stochParent* = 22;
+		
 		nR* = 28; 	(*	node is not relevant and should not be used in normal way	*)
 		temp* = 29; 	(*	node is tempory	*)
 		hint1* = 30;
@@ -113,7 +113,7 @@ MODULE GraphStochastic;
 		VAR
 			cursor: List;
 	BEGIN
-		IF ~(mark IN node.props) THEN
+		IF ~(GraphNodes.mark IN node.props) THEN
 			NEW(cursor);
 			cursor.node := node;
 			cursor.next := list;
@@ -135,20 +135,23 @@ MODULE GraphStochastic;
 			p := nList.node;
 			WITH p: Node DO
 				AddToList(p, list);
-				p.SetProps(p.props + {mark})
+				p.SetProps(p.props + {GraphNodes.mark})
 			ELSE
 			END;
 			nList := nList.next
 		END;
-		lList := GraphLogical.Ancestors(node, all);
+		lList := GraphLogical.Parents(node, all);
 		WHILE lList # NIL DO
 			p := lList.node;
+			IF (p IS GraphLogical.Node) & (node IS Node) THEN
+				p.SetProps(p.props + {stochParent})
+			END;
 			nList := p.Parents(all);
 			WHILE nList # NIL DO
 				q := nList.node;
 				WITH q: Node DO
 					AddToList(q, list);
-					q.SetProps(q.props + {mark})
+					q.SetProps(q.props + {GraphNodes.mark})
 				ELSE
 				END;
 				nList := nList.next
@@ -158,7 +161,7 @@ MODULE GraphStochastic;
 		cursor := list;
 		WHILE cursor # NIL DO
 			stochastic := cursor.node;
-			stochastic.SetProps(stochastic.props - {mark});
+			stochastic.SetProps(stochastic.props - {GraphNodes.mark});
 			cursor := cursor.next
 		END;
 		RETURN list
@@ -198,7 +201,7 @@ MODULE GraphStochastic;
 				q := parent.Representative();
 				IF p = q THEN
 					class := GraphRules.linear
-				ELSIF blockMark IN p.props THEN
+				ELSIF mark IN p.props THEN
 					class := GraphRules.linear
 				ELSE
 					class := GraphRules.const
@@ -271,7 +274,7 @@ MODULE GraphStochastic;
 			element: List;
 			listLike: ListLikelihood;
 	BEGIN
-		IF ~(mark IN node.props) THEN
+		IF ~(GraphNodes.mark IN node.props) THEN
 			IF likelihood = NIL THEN
 				NEW(listLike);
 				listLike.children := NIL;
@@ -652,7 +655,7 @@ MODULE GraphStochastic;
 		END;
 	END Init;
 
-	PROCEDURE AddMark* (vector: Vector; mark: SET);
+	PROCEDURE AddMarks* (vector: Vector; mark: SET);
 		VAR
 			i, size: INTEGER;
 	BEGIN
@@ -662,9 +665,9 @@ MODULE GraphStochastic;
 			vector[i].SetProps(vector[i].props + mark);
 			INC(i)
 		END
-	END AddMark;
+	END AddMarks;
 
-	PROCEDURE ClearMark* (vector: Vector; mark: SET);
+	PROCEDURE ClearMarks* (vector: Vector; mark: SET);
 		VAR
 			i, size: INTEGER;
 	BEGIN
@@ -674,7 +677,7 @@ MODULE GraphStochastic;
 			vector[i].SetProps(vector[i].props - mark);
 			INC(i)
 		END
-	END ClearMark;
+	END ClearMarks;
 
 	PROCEDURE IsBounded* (vector: Vector): BOOLEAN;
 		VAR

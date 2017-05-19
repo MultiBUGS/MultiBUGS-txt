@@ -60,7 +60,7 @@ MODULE GraphVD;
 			i := 0;
 			jump := FALSE;
 			WHILE (i < num) & ~jump DO
-				logicals := GraphLogical.Ancestors(children[i], all);
+				logicals := GraphLogical.Parents(children[i], all);
 				WHILE (logicals # NIL) & ~jump DO
 					logical := logicals.node;
 					WITH logical: Node DO
