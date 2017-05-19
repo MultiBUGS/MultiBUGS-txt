@@ -188,13 +188,13 @@ MODULE MonitorMonitors;
 			all = TRUE;
 	BEGIN
 		IF node IS GraphStochastic.Node THEN
-			props := node.props + {GraphStochastic.blockMark};
+			props := node.props + {GraphStochastic.mark};
 			node.SetProps(props);
 		ELSE
 			list := GraphStochastic.Parents(node, all);
 			WHILE list # NIL DO
 				node := list.node;
-				props := node.props + {GraphStochastic.blockMark};
+				props := node.props + {GraphStochastic.mark};
 				node.SetProps(props);
 				list := list.next
 			END
@@ -233,8 +233,8 @@ MODULE MonitorMonitors;
 		WHILE i < len DO (*	any node that has its represenative marked is also marked	*)
 			p := stochastics[i];
 			q := p.Representative();
-			IF GraphStochastic.blockMark IN q.props THEN
-				p.SetProps(p.props + {GraphStochastic.blockMark})
+			IF GraphStochastic.mark IN q.props THEN
+				p.SetProps(p.props + {GraphStochastic.mark})
 			END;
 			INC(i)
 		END;
@@ -242,7 +242,7 @@ MODULE MonitorMonitors;
 		num := 0;
 		WHILE i < len DO
 			p := stochastics[i];
-			IF GraphStochastic.blockMark IN p.props THEN
+			IF GraphStochastic.mark IN p.props THEN
 				nodes[num] := i;
 				INC(num)
 			END;
