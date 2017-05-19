@@ -13,13 +13,13 @@ MODULE SpatialCARProper;
 
 	IMPORT
 		Math, Stores,
-		GraphChain, GraphGMRF, GraphMultivariate, GraphNodes, GraphParamtrans,
+		GraphMRF, GraphMultivariate, GraphNodes, GraphParamtrans,
 		GraphRules, GraphStochastic,
 		MathFunc, MathMatrix, MathRandnum, MathSparsematrix;
 
 	TYPE
 
-		Node = POINTER TO RECORD (GraphGMRF.Node)
+		Node = POINTER TO RECORD (GraphMRF.Node)
 			adj, num, offset: POINTER TO ARRAY OF INTEGER;
 			c, m, eigenvalues: POINTER TO ARRAY OF REAL;
 			mu: GraphNodes.Vector;
@@ -36,7 +36,8 @@ MODULE SpatialCARProper;
 		maintainer-: ARRAY 40 OF CHAR;
 		v0, v1, v2: POINTER TO ARRAY OF REAL;
 		log2Pi: REAL;
-
+		start, step: INTEGER;
+		
 		PROCEDURE EigenValues (IN c, m: ARRAY OF REAL; IN adj, cols: ARRAY OF INTEGER;
 	OUT eigenvalues: ARRAY OF REAL);
 		VAR
@@ -379,7 +380,7 @@ MODULE SpatialCARProper;
 		VAR
 			nElem: INTEGER;
 	BEGIN
-		type := GraphGMRF.sparse;
+		type := GraphMRF.sparse;
 		nElem := node.Size();
 		nElements := LEN(node.c);
 		ASSERT(~ODD(nElements), 66);
@@ -444,10 +445,26 @@ MODULE SpatialCARProper;
 		END
 	END MVSample;
 
+	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
+		VAR
+			p: Node;
+	BEGIN
+		NEW(p);
+		p^ := node^;
+		p.tau := GraphParamtrans.LogTransform(p.tau);
+		p.gamma := GraphParamtrans.IdentTransform(p.gamma);
+		RETURN p
+	END Modify;
+
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN 0
 	END NumberConstraints;
+
+	PROCEDURE (node: Node) NumberNeighbours (): INTEGER;
+	BEGIN
+		RETURN node.num[node.index]
+	END NumberNeighbours;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -582,16 +599,11 @@ MODULE SpatialCARProper;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
+	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
 	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		p.gamma := GraphParamtrans.IdentTransform(p.gamma);
-		RETURN p
-	END Modify;
+		start := first;
+		step := thin
+	END ThinLikelihood;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
@@ -599,6 +611,8 @@ MODULE SpatialCARProper;
 	BEGIN
 		NEW(node);
 		node.Init;
+		start := 0;
+		step := 1;
 		RETURN node
 	END New;
 
@@ -629,7 +643,9 @@ MODULE SpatialCARProper;
 		NEW(f); fact := f;
 		NEW(v0, initSize);
 		NEW(v1, initSize);
-		NEW(v2, initSize)
+		NEW(v2, initSize);
+		start := 0;
+		step := 1
 	END Init;
 
 BEGIN

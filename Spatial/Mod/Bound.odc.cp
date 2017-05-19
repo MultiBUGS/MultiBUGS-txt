@@ -152,8 +152,10 @@ MODULE SpatialBound;
 			eps = 1.0E-10;
 		VAR
 			i, nElem, start: INTEGER;
+			isData: BOOLEAN;
 	BEGIN
 		res := {};
+		isData := TRUE;
 		WITH args: GraphStochastic.ArgsLogical DO
 			ASSERT(args.vectors[0].components # NIL, 21); ASSERT(args.vectors[0].start >= 0, 21);
 			ASSERT(args.vectors[0].nElem > 0, 21);
@@ -170,6 +172,7 @@ MODULE SpatialBound;
 			WHILE i < nElem DO
 				node.c[i] := args.vectors[0].components[start + i];
 				IF node.c[i] = NIL THEN res := {GraphNodes.arg1, GraphNodes.nil}; RETURN END;
+				IF ~(GraphNodes.data IN node.c[i].props) THEN isData := FALSE END;
 				INC(i)
 			END;
 			nElem := args.vectors[1].nElem; start := args.vectors[1].start;
@@ -192,7 +195,8 @@ MODULE SpatialBound;
 			NEW(node.adj, nElem);
 			i := 0;
 			WHILE i < nElem DO
-				node.adj[i] := SHORT(ENTIER(args.vectors[1].components[start + i].Value() + eps)) - 1; INC(i)
+				node.adj[i] := SHORT(ENTIER(args.vectors[1].components[start + i].Value() + eps)) - 1; 
+				INC(i)
 			END;
 			nElem := args.vectors[2].nElem; start := args.vectors[2].start;
 			IF start + nElem > LEN(args.vectors[2].components) THEN
@@ -211,7 +215,8 @@ MODULE SpatialBound;
 			NEW(node.cols, nElem);
 			i := 0;
 			WHILE i < nElem DO
-				node.cols[i] := SHORT(ENTIER(args.vectors[2].components[start + i].Value() + eps)); INC(i)
+				node.cols[i] := SHORT(ENTIER(args.vectors[2].components[start + i].Value() + eps)); 
+				INC(i)
 			END;
 			nElem := args.vectors[3].nElem; start := args.vectors[3].start;
 			IF start + nElem > LEN(args.vectors[3].components) THEN
@@ -224,12 +229,14 @@ MODULE SpatialBound;
 				IF node.m[i] = NIL THEN
 					res := {GraphNodes.arg4, GraphNodes.nil}; RETURN
 				END;
+				IF ~(GraphNodes.data IN node.m[i].props) THEN isData := FALSE END;
 				INC(i)
 			END;
 			IF args.vectors[2].nElem # args.vectors[3]. nElem THEN
 				res := {GraphNodes.arg4, GraphNodes.length}; RETURN
 			END
-		END
+		END;
+		IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
 	END Set;
 
 	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);

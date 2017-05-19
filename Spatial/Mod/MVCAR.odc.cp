@@ -13,11 +13,11 @@ MODULE SpatialMVCAR;
 
 	IMPORT
 		Math, Stores,
-		GraphGMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
+		GraphMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum, MathSparsematrix;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphGMRF.Node)
+		Node = POINTER TO RECORD(GraphMRF.Node)
 			neighs: POINTER TO ARRAY OF INTEGER;
 			weights: POINTER TO ARRAY OF REAL;
 			tau: GraphNodes.Vector;
@@ -35,7 +35,8 @@ MODULE SpatialMVCAR;
 		maintainer-: ARRAY 40 OF CHAR;
 		mean: POINTER TO ARRAY OF REAL;
 		prec, tau: POINTER TO ARRAY OF ARRAY OF REAL;
-
+		start, step: INTEGER;
+		
 	PROCEDURE MarkNeighs (node: Node);
 		VAR
 			i, numNeigh: INTEGER;
@@ -523,7 +524,7 @@ MODULE SpatialMVCAR;
 		VAR
 			dim, i, nElem, numAreas, sizeDiagBlock, sizeNonDiagBlock: INTEGER;
 	BEGIN
-		type := GraphGMRF.sparse;
+		type := GraphMRF.sparse;
 		nElem := node.Size();
 		dim := node.dim;
 		numAreas := nElem DIV dim;
@@ -676,10 +677,27 @@ MODULE SpatialMVCAR;
 		END;
 	END MVSample;
 
+	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
+		VAR
+			p: Node;
+	BEGIN
+		NEW(p);
+		p^ := node^;
+		RETURN p
+	END Modify;
+
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN node.dim
 	END NumberConstraints;
+
+	PROCEDURE (node: Node) NumberNeighbours (): INTEGER;
+		VAR
+			num: INTEGER;
+	BEGIN
+		IF node.neighs # NIL THEN num := LEN(node.neighs) ELSE num := 0 END;
+		RETURN num
+	END NumberNeighbours;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -926,14 +944,11 @@ MODULE SpatialMVCAR;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
+	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
 	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END Modify;
+		start := first;
+		step := thin
+	END ThinLikelihood;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
@@ -941,6 +956,8 @@ MODULE SpatialMVCAR;
 	BEGIN
 		NEW(node);
 		node.Init;
+		start := 0;
+		step := 1;
 		RETURN node
 	END New;
 
@@ -970,7 +987,9 @@ MODULE SpatialMVCAR;
 		NEW(f);
 		fact := f;
 		mean := NIL;
-		prec := NIL
+		prec := NIL;
+		start := 0;
+		step := 1
 	END Init;
 
 BEGIN
