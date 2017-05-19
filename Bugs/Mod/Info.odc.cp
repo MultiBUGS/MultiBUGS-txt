@@ -687,7 +687,7 @@ MODULE BugsInfo;
 
 	PROCEDURE UpdatersByDepth* (VAR f: TextMappers.Formatter);
 		VAR
-			depth, i, factors, size, numUpdaters: INTEGER;
+			depth, i, factors, size, numUpdaters, pos: INTEGER;
 			p: GraphStochastic.Node;
 			children: GraphStochastic.Vector;
 			updater: UpdaterUpdaters.Updater;
@@ -723,6 +723,11 @@ MODULE BugsInfo;
 					string := "aux[1:" + sizeString + "]_" + string
 				ELSE
 				END;
+				IF size = 0 THEN (*	is a constraint	*)
+					Strings.Find(string, "[", 0, pos);
+					IF pos # -1 THEN string[pos] := 0X END;
+					string := string + "[]"
+				END;
 				f.WriteTab;
 				f.WriteString(string);
 				f.WriteTab;
@@ -746,7 +751,7 @@ MODULE BugsInfo;
 
 	PROCEDURE Distribute* (numProc: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
-			i, j, index, numUpdaters, size, space, start, thin: INTEGER;
+			i, j, index, numUpdaters, pos, size, space, start, thin: INTEGER;
 			updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
 			u: UpdaterUpdaters.Updater;
 			fact: UpdaterUpdaters.Factory;
@@ -783,6 +788,24 @@ MODULE BugsInfo;
 			u := updaters[0, j];
 			isAuxillary := (u IS UpdaterAuxillary.UpdaterUV) OR (u IS UpdaterAuxillary.UpdaterMV);
 			size := u.Size();
+			IF size = 0 THEN (*	write constraint	*)
+				i := 0;
+				WHILE i < numProc DO
+					u := updaters[i, j];
+					p := u.Prior(0);
+					FindGraphNode(p, string);
+					Strings.Find(string, "[", 0, pos);
+					string[pos] := 0X;
+					string := "cons(" + string + "[])";
+					f.WriteTab;
+					f.WriteString(string);
+					INC(i)
+				END;
+				ASSERT(id[j] = 0, 77);
+				f.WriteTab;
+				f.WriteString("-");
+				f.WriteLn
+			END;
 			WHILE index < size DO
 				i := 0;
 				WHILE i < numProc DO
@@ -792,7 +815,7 @@ MODULE BugsInfo;
 						start := i; thin := numProc
 					ELSE
 						start := -1; thin := 1
-					END;;
+					END;
 					children := u.Children();
 					IF (index # 0) & ~isAuxillary THEN f.WriteTab; f.WriteChar("(") END;
 					IF p # NIL THEN

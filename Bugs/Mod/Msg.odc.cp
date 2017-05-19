@@ -27,21 +27,6 @@ MODULE BugsMsg;
 
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
-	PROCEDURE Lookup* (IN key: ARRAY OF CHAR; OUT mes: ARRAY OF CHAR);
-		VAR
-			cursor: MsgList;
-	BEGIN
-		cursor := msgList;
-		WHILE (cursor # NIL) & (key # cursor.key^) DO
-			cursor := cursor.next
-		END;
-		IF cursor # NIL THEN
-			mes := cursor.msg$
-		ELSE
-			mes := key$
-		END;
-	END Lookup;
 	
 	PROCEDURE InverseMapMsg* (IN msg: ARRAY OF CHAR; OUT key: ARRAY OF CHAR);
 		VAR
@@ -57,6 +42,21 @@ MODULE BugsMsg;
 			key := ""
 		END
 	END InverseMapMsg;
+
+	PROCEDURE Lookup* (IN key: ARRAY OF CHAR; OUT mes: ARRAY OF CHAR);
+		VAR
+			cursor: MsgList;
+	BEGIN
+		cursor := msgList;
+		WHILE (cursor # NIL) & (key # cursor.key^) DO
+			cursor := cursor.next
+		END;
+		IF cursor # NIL THEN
+			mes := cursor.msg$
+		ELSE
+			mes := key$
+		END;
+	END Lookup;
 
 	PROCEDURE LookupParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR; 
 	OUT msg: ARRAY OF CHAR);
@@ -96,7 +96,8 @@ MODULE BugsMsg;
 	BEGIN
 		Lookup(key, msg);
 		Dialog.ShowStatus(msg);
-		Log.String(msg); Log.Ln
+		Log.String(msg); Log.Ln;
+		message := msg$
 	END Show;
 	
 	PROCEDURE ShowParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR);
@@ -105,7 +106,8 @@ MODULE BugsMsg;
 	BEGIN
 		LookupParam(key, p, msg);
 		Dialog.ShowStatus(msg);
-		Log.String(msg); Log.Ln
+		Log.String(msg); Log.Ln;
+		message := msg$
 	END ShowParam;
 
 	PROCEDURE Store* (IN msg: ARRAY OF CHAR);

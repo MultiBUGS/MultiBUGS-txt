@@ -93,7 +93,7 @@ MODULE BugsInterface;
 		END;
 		DeleteFiles;
 		GraphStochastic.SetStochastics(NIL);
-		BugsParser.SetModel(NIL);
+		BugsParser.Clear;
 		BugsVariables.Clear;
 		UpdaterActions.Clear;
 		MonitorMonitors.Clear;
@@ -286,7 +286,7 @@ MODULE BugsInterface;
 
 	PROCEDURE MarkMonitored*;
 	BEGIN
-		GraphStochastic.ClearMark(GraphStochastic.stochastics, {GraphStochastic.blockMark});
+		GraphStochastic.ClearMarks(GraphStochastic.stochastics, {GraphStochastic.mark});
 		MonitorMonitors.MarkMonitored
 	END MarkMonitored;
 
@@ -309,9 +309,8 @@ MODULE BugsInterface;
 		END
 	END SendCommand;
 
-	PROCEDURE ParseModel* (VAR s: BugsMappers.Scanner);
+	PROCEDURE ParseModel* (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN);
 		VAR
-			ok: BOOLEAN;
 			pos: INTEGER;
 	BEGIN
 		pos := s.Pos();
@@ -330,7 +329,9 @@ MODULE BugsInterface;
 		REPEAT
 			s.Scan
 		UNTIL ((s.type = BugsMappers.char) & (s.char = "{")) OR s.eot;
-		BugsParser.ParseModel(s)
+		BugsParser.ParseModel(s); 
+		ok := ~BugsParser.error;
+		IF ~ok THEN BugsParser.Clear END
 	END ParseModel;
 
 	PROCEDURE LoadDeviance* (chain: INTEGER);

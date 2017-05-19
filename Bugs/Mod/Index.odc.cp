@@ -13,7 +13,7 @@ MODULE BugsIndex;
 	
 
 	IMPORT SYSTEM,
-		Stores, Strings,
+		Stores, Strings, 
 		BugsNames,
 		GraphNodes;
 

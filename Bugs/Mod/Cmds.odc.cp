@@ -332,6 +332,7 @@ MODULE BugsCmds;
 			elapsedTime := Services.Ticks() - startTime;
 			elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 			Strings.IntToString(elapsedTime, p[0]);
+			StdLog.Ln;
 			BugsMsg.ShowParam("BugsCmds:OkCompile", p);
 		ELSE
 			BugsMsg.Show(BugsMsg.message);

@@ -325,11 +325,11 @@ MODULE BugsScripts;
 		"ModelsCmds.SetVariable('^0'); ModelsCmds.SetGuard; ModelsCmds.Set");
 
 		(*	displays component probs for  model monitor for variable s	*)
-		StoreKey("modelsSet(s)",
+		StoreKey("modelsComp(s)",
 		"ModelsCmds.SetVariable('^0'); ModelsCmds.StatsGuard; ModelsCmds.ComponentProbs");
 
 		(*	displays model probs for  model monitor for variable s	*)
-		StoreKey("modelsSet(s)",
+		StoreKey("modelsProbs(s)",
 		"ModelsCmds.SetVariable('^0'); ModelsCmds.StatsGuard; ModelsCmds.ModelProbs");
 
 		(*	clears model monitor for variable s	*)
@@ -340,7 +340,7 @@ MODULE BugsScripts;
 		StoreKey("dicSet()",
 		"DevianceCmds.SetVariable('*'); DevianceCmds.SetGuard; DevianceCmds.Set");
 
-		(*	sets monitor for DIC with direct parents should only run on worker	*)
+		(*	sets monitor for DIC with direct parents	*)
 		StoreKey("dicSetD()",
 		"DeviancePluginD.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
 
@@ -365,10 +365,10 @@ MODULE BugsScripts;
 		StoreKey("infoUnitializedUpdaters()", "BugsCmds.NotCompiledGuard; BugsCmds.WriteUninitNodes");
 
 		(*	display updaters sorted by node name	*)
-		StoreKey("infoUpdatersbyName()", "BugsCmds.NotCompiledGuard; BugsCmds.UpdatersByName");
+		StoreKey("infoUpdatersByName()", "BugsCmds.NotCompiledGuard; BugsCmds.UpdatersByName");
 
 		(*	display updaters sorted by node depth in graph	*)
-		StoreKey("infoUpdatersbyDepth()", "BugsCmds.NotCompiledGuard; BugsCmds.UpdatersByDepth");
+		StoreKey("infoUpdatersByDepth()", "BugsCmds.NotCompiledGuard; BugsCmds.UpdatersByDepth");
 
 		(*	display model	*)
 		StoreKey("infoModel()", "BugsCmds.ParsedGuard; BugsCmds.PrintModel");

@@ -13,7 +13,7 @@ MODULE BugsSerialize;
 	
 
 	IMPORT 
-		Files, Services, Stores,
+		Files, Services, Stores, 
 		BugsCPCompiler, BugsGraph, BugsIndex, BugsParser, BugsRandnum,
 		DeviancePlugin,
 		GraphNodes,

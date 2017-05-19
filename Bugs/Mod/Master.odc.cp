@@ -159,9 +159,6 @@ MODULE BugsMaster;
 	BEGIN
 		BugsCPCompiler.CreateTimeStamp;
 		modules := BugsComponents.Modules(mpiImplementation);
-		IF Dialog.IsLinux() THEN
-			LinuxModules(modules);
-		END;
 		text := TextModels.dir.New();
 		wr := text.NewWriter(NIL);
 		WriteString(wr, exeFile); WriteString(wr, " := "); wr.WriteChar(TextModels.line);

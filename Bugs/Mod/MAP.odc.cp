@@ -12,7 +12,7 @@ MODULE BugsMAP;
 	
 
 	IMPORT
-		Fonts, Math, Strings,
+		Math, Strings,
 		BugsFiles, BugsIndex, BugsNames, 
 		GraphMAP, GraphStochastic, 
 		MathMatrix,
@@ -21,6 +21,9 @@ MODULE BugsMAP;
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		
+	CONST
+		bold = 700;
 		
 	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
 	BEGIN
@@ -92,7 +95,7 @@ MODULE BugsMAP;
 		BugsFiles.SetPrec(5);
 		f.WriteLn; f.WriteLn;
 		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		newAttr := TextModels.NewWeight(oldAttr, bold);
 		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteString(" name"); f.WriteTab;

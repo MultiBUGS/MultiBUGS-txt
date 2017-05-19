@@ -12,7 +12,7 @@ MODULE BugsGraph;
 	
 
 	IMPORT
-		Strings,
+		Strings, 
 		BugsIndex, BugsMsg,
 		BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		GraphConjugateMV, GraphDeviance, GraphLogical, GraphNodes, GraphRules,
@@ -258,6 +258,8 @@ MODULE BugsGraph;
 			i, numFactories: INTEGER;
 			v: CreateUpdaterByMethod;
 			factory: UpdaterUpdaters.Factory;
+			string: ARRAY 64 OF CHAR;
+			updater: UpdaterUpdaters.Updater;
 	BEGIN
 		NEW(v);
 		i := 0;
@@ -421,7 +423,7 @@ MODULE BugsGraph;
 				all := TRUE;
 				IF node.level = GraphLogical.undefined THEN
 					v.new := TRUE;
-					list := GraphLogical.Ancestors(node, all);
+					list := GraphLogical.Parents(node, all);
 					WHILE list # NIL DO
 						p := list.node;
 						IF p.level = GraphLogical.undefined THEN
@@ -461,7 +463,7 @@ MODULE BugsGraph;
 		IF node # NIL THEN
 			IF (node IS GraphStochastic.Node) & ~(GraphStochastic.nR IN node.props) THEN
 				all := TRUE;
-				list := GraphLogical.Ancestors(node, all);
+				list := GraphLogical.Parents(node, all);
 				WHILE list # NIL DO
 					logical := list.node;
 					IF logical.level = GraphLogical.undefined THEN
@@ -567,7 +569,7 @@ MODULE BugsGraph;
 			dev: GraphNodes.Node;
 	BEGIN
 		dev := GraphDeviance.fact.New();
-		IF GraphDeviance.DevianceTerms(dev) # NIL THEN
+		IF (dev # NIL) & (GraphDeviance.DevianceTerms(dev) # NIL) THEN
 			name := BugsNames.New("deviance", 0);
 			name.AllocateNodes;
 			name.components[0] := dev;
@@ -620,7 +622,7 @@ MODULE BugsGraph;
 		node := name.components[v.index];
 		IF (node # NIL) & (node = node.Representative()) THEN
 			all := TRUE;
-			list := GraphLogical.Ancestors(node, all);
+			list := GraphLogical.Parents(node, all);
 			WITH node: GraphLogical.Node DO
 				node.AddToList(list)
 			ELSE
@@ -660,6 +662,7 @@ MODULE BugsGraph;
 			CreateUpdatersByNode
 		END;
 		MissingUpdaters(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
+		UpdaterActions.InsertConstraints;
 		UpdaterActions.CreateUpdaters(numChains);
 		UpdaterActions.AllocateLikelihoods;
 		IF IsAdapting(numChains) THEN

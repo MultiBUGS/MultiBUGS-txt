@@ -85,6 +85,7 @@ MODULE BugsParser;
 
 	VAR
 		model-: Statement;
+		error-: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		nodeLabel: INTEGER;
@@ -222,7 +223,7 @@ MODULE BugsParser;
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("BugsParser" + numToString, errorMes);
 		BugsMsg.Store(errorMes);
-		(*model := NIL*)
+		error := TRUE
 	END Error;
 
 	PROCEDURE NewBinary (pos, op: INTEGER): Binary;
@@ -893,7 +894,9 @@ MODULE BugsParser;
 			variable: Variable;
 			name: BugsNames.Name;
 	BEGIN
-		ASSERT(s.type = BugsMappers.string, 21);
+		IF s.type # BugsMappers.string THEN (*	expected variable name	*)
+			Error(13); RETURN NIL
+		END;
 		name := BugsIndex.Find(s.string);
 		IF name = NIL THEN (*	expected variable name	*)
 			Error(13); RETURN NIL
@@ -1391,6 +1394,7 @@ MODULE BugsParser;
 	BEGIN
 		model := NIL;
 		loops := NIL;
+		error := FALSE;
 		NEW(parents, 1);
 		s.Scan;
 		LOOP
@@ -1542,7 +1546,7 @@ MODULE BugsParser;
 			ELSE
 				Error(45); RETURN (*	invalid or unexpected token scanned	*)
 			END
-		END
+		END;
 	END ParseModel;
 
 	PROCEDURE StringToVariable* (IN string: ARRAY OF CHAR): Variable;
@@ -1683,9 +1687,18 @@ MODULE BugsParser;
 
 	PROCEDURE SetModel* (m: Statement);
 	BEGIN
-		model := m
+		model := m;
+		error := FALSE
 	END SetModel;
 
+	PROCEDURE Clear*;
+	BEGIN
+		nodes := NIL;
+		nodeLabel := 0;
+		error := FALSE;
+		model := NIL
+	END Clear;
+	
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
@@ -1694,9 +1707,8 @@ MODULE BugsParser;
 
 	PROCEDURE Init;
 	BEGIN
-		Maintainer;
-		nodes := NIL;
-		nodeLabel := 0
+		Clear;
+		Maintainer
 	END Init;
 
 BEGIN

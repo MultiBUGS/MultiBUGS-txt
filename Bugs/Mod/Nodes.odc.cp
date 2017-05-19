@@ -460,8 +460,8 @@ MODULE BugsNodes;
 				args.scalars[0] := ref;
 				node.Set(args, res); ASSERT(res = {}, 88)
 			ELSE
-				BugsCodegen.WriteFunctionArgs(function, args); (*	put in error handling	*)
-				IF ~args.valid THEN ok := FALSE; RETURN END;
+				BugsCodegen.WriteFunctionArgs(function, args); 
+				IF ~args.valid THEN ok := FALSE; Error(10, varName); RETURN END;
 				i := vector.start;
 				end := vector.start + vector.nElem;
 				WHILE i < end DO

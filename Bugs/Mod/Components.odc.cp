@@ -15,7 +15,7 @@ MODULE BugsComponents;
 		Files, Kernel, Meta, Services, Stores, Strings,
 		BugsIndex, BugsMsg, BugsRandnum, BugsSerialize,
 		GraphNodes, GraphStochastic,
-		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
+		UpdaterActions, UpdaterMethods, UpdaterParallel, UpdaterUpdaters;
 
 	TYPE
 		List = POINTER TO RECORD
@@ -48,51 +48,138 @@ MODULE BugsComponents;
 		END;
 		RETURN vector;
 	END ListToVector;
-
-	PROCEDURE Modules* (mpiImplementation: ARRAY OF CHAR): POINTER TO ARRAY OF Files.Name;
+		
+	PROCEDURE AddModule (name: Files.Name; VAR modList: List);
 		VAR
-			name, timeStamp: ARRAY 128 OF CHAR;
-			index, pos, numMod: INTEGER;
-			list, cursor, cursor1, modList: List;
-			modItem: Meta.Item;
-			modules: POINTER TO ARRAY OF Files.Name;
+			entry: List;
+	BEGIN
+		NEW(entry);
+		entry.name := name;
+		entry.next := modList;
+		modList := entry;
+		IF name = "Files" THEN
+			AddModule("HostFiles", modList)
+		END
+	END AddModule;
 
-		PROCEDURE Imports (name: ARRAY OF CHAR);
-			VAR
-				mod: Kernel.Module;
-				i: INTEGER;
-				element: List;
-		BEGIN
-			mod := Kernel.modList;
-			WHILE (mod # NIL) & (mod.name # name) DO mod := mod.next END;
-			IF mod # NIL THEN
-				NEW(element);
-				element.name := name$;
-				element.next := list;
-				list := element;
+	PROCEDURE IsNew (name: Files.Name; modList: List): BOOLEAN;
+		VAR
+			cursor: List;
+	BEGIN
+		cursor := modList;
+		WHILE (cursor # NIL) & (cursor.name # name) DO cursor := cursor.next END;
+		RETURN cursor = NIL
+	END IsNew;
+
+	PROCEDURE Imports (name: Files.Name; VAR modList: List);
+		VAR
+			mod: Kernel.Module;
+			i: INTEGER;
+			ok: BOOLEAN;
+	BEGIN
+		IF name = "Kernel" THEN RETURN END;
+		mod := Kernel.modList;
+		WHILE (mod # NIL) & (mod.name # name) DO mod := mod.next END;
+		IF mod # NIL THEN
+			ok := IsNew(name, modList);
+			IF ok THEN
 				i := 0;
 				WHILE i < mod.nofimps DO
 					IF (mod.imports[i] # NIL) & (mod.imports[i].name # "Kernel") THEN
-						Imports(LONG(mod.imports[i].name))
+						Imports(LONG(mod.imports[i].name), modList)
 					END;
 					INC(i)
-				END
+				END;
+				AddModule(name, modList)
 			END
-		END Imports;
-
-		PROCEDURE AddModule (name: Files.Name; VAR modList: List);
-			VAR
-				entry: List;
+		END
+	END Imports;
+	
+	PROCEDURE ImportList (file: Files.File): POINTER TO ARRAY OF Files.Name;
+		VAR
+			i, num, p: INTEGER;
+			imports: POINTER TO ARRAY OF Files.Name;
+			rd: Files.Reader;
+			name: Files.Name;
+					
+		PROCEDURE RWord (VAR x: INTEGER);
+			VAR b: BYTE; y: INTEGER;
 		BEGIN
-			NEW(entry);
-			entry.name := name;
-			entry.next := modList;
-			modList := entry
-		END AddModule;
+			rd.ReadByte(b); y := b MOD 256;
+			rd.ReadByte(b); y := y + 100H * (b MOD 256);
+			rd.ReadByte(b); y := y + 10000H * (b MOD 256);
+			rd.ReadByte(b); x := y + 1000000H * b
+		END RWord;
+
+		PROCEDURE RNum (VAR x: INTEGER);
+			VAR b: BYTE; s, y: INTEGER;
+		BEGIN
+			s := 0; y := 0; rd.ReadByte(b);
+			WHILE b < 0 DO INC(y, ASH(b + 128, s)); INC(s, 7); rd.ReadByte(b) END;
+			x := ASH((b + 64) MOD 128 - 64, s) + y
+		END RNum;
+
+		PROCEDURE RName (VAR name: ARRAY OF CHAR);
+			VAR b: BYTE; i, n: INTEGER;
+		BEGIN
+			i := 0; n := LEN(name) - 1; rd.ReadByte(b);
+			WHILE (i < n) & (b # 0) DO name[i] := CHR(b); INC(i); rd.ReadByte(b) END;
+			WHILE b # 0 DO rd.ReadByte(b) END;
+			name[i] := 0X
+		END RName;
 
 	BEGIN
-		list := NIL;
+		imports := NIL;
+		rd := file.NewReader(NIL);
+		rd.SetPos(0); RWord(p);
+		IF p = 6F4F4346H THEN
+			RWord(p); RWord(p); RWord(p); RWord(p); RWord(p); RWord(p);
+			RNum(num); 
+			NEW(imports, num);
+			RName(name); 
+			i := 0;
+			WHILE i < num DO RName(imports[i]); INC(i) END;
+		END;
+		file.Close;
+		RETURN imports
+	END ImportList;
+	
+	PROCEDURE Modules* (mpiImplementation: ARRAY OF CHAR): POINTER TO ARRAY OF Files.Name;
+		VAR
+			name, timeStamp: Files.Name;
+			i, index, pos, numMod: INTEGER;
+			modList: List;
+			modules: POINTER TO ARRAY OF Files.Name;
+			file: Files.File;
+			imports: POINTER TO ARRAY OF Files.Name;
+			loc: Files.Locator;
+			mod: Meta.Item;
+			
+	BEGIN
 		modList := NIL;
+		
+		(*	add Kernel to modList	*)
+		AddModule("Kernel+", modList);
+		
+		(*	load some modules used by ParallelWorker	*)
+		loc := Files.dir.This("Parallel");
+		loc := loc.This("Code");
+		file := Files.dir.Old(loc, "Worker.ocf", Files.shared);
+		imports := ImportList(file);
+		numMod := LEN(imports);
+		i := 0;
+		WHILE i < numMod DO 
+			Meta.Lookup(imports[i], mod);
+			Imports(imports[i], modList); 
+			INC(i) 
+		END; 
+
+		(*	add time stamp to linker list but do not load	*)
+		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
+		AddModule("DynamicTime_" + timeStamp, modList);
+				
+		(*	add mpi implementation to linker script but do not load	*)
+		AddModule(mpiImplementation$, modList);
 
 		(*	get used Updater modules	*)
 		index := 0;
@@ -100,7 +187,7 @@ MODULE BugsComponents;
 		WHILE name # "" DO
 			Strings.Find(name, ".", 0, pos);
 			name[pos] := 0X;
-			Imports(name);
+			Imports(name, modList);
 			INC(index);
 			UpdaterUpdaters.GetInstallProc(index, name);
 		END;
@@ -111,42 +198,12 @@ MODULE BugsComponents;
 		WHILE name # "" DO
 			Strings.Find(name, ".", 0, pos);
 			name[pos] := 0X;
-			Imports(name);
+			Imports(name, modList);
 			INC(index);
 			GraphNodes.GetInstallProc(index, name);
 		END;
 
-		Meta.Lookup("MPIworker", modItem);
-		Imports("MPIworker");
-		Imports("ParallelUpdaters");
-		Meta.Lookup("ParallelActions", modItem);
-		Imports("ParallelActions");
-
-		AddModule("Kernel+", modList);
-
-		(*	remove duplicate module names from linker script	*)
-		cursor := list;
-		WHILE cursor # NIL DO
-			cursor1 := modList;
-			WHILE (cursor1 # NIL) & (cursor1.name # cursor.name) DO
-				cursor1 := cursor1.next
-			END;
-			IF cursor1 = NIL THEN
-				AddModule(cursor.name, modList);
-				IF cursor.name = "Files" THEN
-					AddModule("HostFiles", modList)
-				END;
-			END;
-			cursor := cursor.next
-		END;
-
-		AddModule(mpiImplementation$, modList);
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
-		AddModule("DynamicTime_" + timeStamp, modList);
-		AddModule("GraphCenTrunc", modList);
-		AddModule("ParallelTraphandler", modList);
-		AddModule("MonitorMonitors", modList);
-		AddModule("Services", modList);
+		(*	top level module for BUGS worker program but do not load	*)
 		AddModule("ParallelWorker", modList);
 
 		modules := ListToVector(modList); 
@@ -259,6 +316,33 @@ MODULE BugsComponents;
 		f.Flush;
 		wr.ConnectTo(NIL)
 	END WriteModel;
+
+	PROCEDURE Debug* (numChains: INTEGER);
+		VAR
+			f: Files.File;
+			loc: Files.Locator;
+			wr: Stores.Writer;
+			rd: Stores.Reader;
+			ok: BOOLEAN;
+			numberChains: INTEGER;
+	BEGIN
+		loc := Files.dir.This("");
+		f := Files.dir.New(loc, Files.exclusive);
+		wr.ConnectTo(f);
+		wr.SetPos(0);
+		wr.WriteInt(numChains);
+		UpdaterActions.MarkDistributed;
+		ModifyUpdaterMethods(ok);
+		IF ~ok THEN HALT(0) END;
+		UpdaterActions.UnMarkDistributed;
+		BugsSerialize.ExternalizeGraph(wr);
+		UpdaterActions.ExternalizeUpdaterData(wr);
+		rd.ConnectTo(f);
+		rd.SetPos(0);
+		rd.ReadInt(numberChains);
+		UpdaterParallel.ReadGraph(0, rd);
+		HALT(0)
+	END Debug;
 
 	PROCEDURE Maintainer;
 	BEGIN

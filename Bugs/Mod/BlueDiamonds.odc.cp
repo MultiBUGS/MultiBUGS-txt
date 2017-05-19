@@ -12,9 +12,10 @@ copyright:	"Rsrc/About"
 MODULE BugsBlueDiamonds;
 
 	IMPORT
-		Controllers, Fonts, Ports, Properties, Stores, Strings, Views,
+		Controllers, Ports, Properties, Stores, Strings, Views,
 		BugsFiles, BugsIndex, 
 		GraphStochastic,
+		UpdaterParallel,
 		TextMappers, TextModels;
 
 	TYPE
@@ -31,7 +32,7 @@ MODULE BugsBlueDiamonds;
 	
 	CONST
 		refViewSize = 10 * Ports.point;
-		bold = Fonts.bold;
+		bold = 700;
 		
 	PROCEDURE VectorState (vector: GraphStochastic.Vector; start, thin: INTEGER;
 	VAR f: TextMappers.Formatter);
@@ -40,17 +41,24 @@ MODULE BugsBlueDiamonds;
 			p: GraphStochastic.Node;
 			label: ARRAY 128 OF CHAR;
 	BEGIN
-		IF vector # NIL THEN size := LEN(vector) ELSE size := 0 END;
-		i := MAX(0, start);
-		WHILE i < size DO
-			p := vector[i];
-			BugsIndex.FindGraphNode(p, label);
-			len := LEN(label$);
-			Strings.Extract(label, 1, len - 2, label);
-			f.WriteTab; 
-			f.WriteString(label);
-			f.WriteLn;
-			INC(i,  thin)
+		IF vector # NIL THEN 
+			start:= MAX(0, start);
+			size := LEN(vector);
+			UpdaterParallel.MarkChildren(vector, thin, start);
+			i := 0;
+			WHILE i < size DO
+				p := vector[i];
+				IF GraphStochastic.mark IN p.props THEN
+					p.SetProps(p.props - {GraphStochastic.mark});
+					BugsIndex.FindGraphNode(p, label);
+					len := LEN(label$);
+					Strings.Extract(label, 1, len - 2, label);
+					f.WriteTab; 
+					f.WriteString(label);
+					f.WriteLn;
+				END;
+				INC(i)
+			END
 		END
 	END VectorState;
 		

@@ -14,8 +14,7 @@ MODULE BugsDistribute;
 	IMPORT
 		Converters, Dialog, Files, Strings, Views,
 		StdLog,
-		TextViews(*,
-		HtmlExporter*);
+		TextViews;
 
 	VAR
 		nDir, nTran, nCopy, nSkip: INTEGER;
