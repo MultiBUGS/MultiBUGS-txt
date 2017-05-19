@@ -43,7 +43,7 @@ MODULE UpdaterMultivariate;
 			children := block[0].Children();
 			RETURN children
 		END;
-		GraphStochastic.AddMark(block, {GraphNodes.mark});
+		GraphStochastic.AddMarks(block, {GraphNodes.mark});
 		list := NIL;
 		blockSize := LEN(block);
 		i := 0;
@@ -62,9 +62,9 @@ MODULE UpdaterMultivariate;
 			END;
 			INC(i)
 		END;
-		GraphStochastic.ClearMark(block, {GraphNodes.mark});
+		GraphStochastic.ClearMarks(block, {GraphNodes.mark});
 		children := GraphStochastic.ListToVector(list);
-		GraphStochastic.ClearMark(children, {GraphNodes.mark});
+		GraphStochastic.ClearMarks(children, {GraphNodes.mark});
 		RETURN children
 	END BlockLikelihood;
 
@@ -126,14 +126,14 @@ MODULE UpdaterMultivariate;
 		likelihood := BlockLikelihood(block);
 		IF likelihood # NIL THEN num := LEN(likelihood) ELSE num := 0 END;
 		i := 0;
-		GraphStochastic.AddMark(block, {GraphStochastic.blockMark});
+		GraphStochastic.AddMarks(block, {GraphStochastic.mark});
 		class := likelihood[0].ClassifyLikelihood(block[0]);
 		LOOP
 			IF i = num THEN EXIT END;
 			IF class # likelihood[i].ClassifyLikelihood(block[0]) THEN EXIT END;
 			INC(i)
 		END;
-		GraphStochastic.ClearMark(block, {GraphStochastic.blockMark});
+		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
 		RETURN i = num
 	END IsGLMBlock;
 
@@ -152,7 +152,7 @@ MODULE UpdaterMultivariate;
 		WHILE (i < num) & (varParents < 2) DO
 			varParents := 0;
 			parents := likelihood[i].Parents(FALSE);
-			GraphStochastic.AddMark(block, {GraphStochastic.blockMark});
+			GraphStochastic.AddMarks(block, {GraphStochastic.mark});
 			WHILE parents # NIL DO
 				node := parents.node;
 				IF GraphStochastic.ClassFunction(node, block[0]) # GraphRules.const THEN
@@ -160,10 +160,10 @@ MODULE UpdaterMultivariate;
 				END;
 				parents := parents.next
 			END;
-			GraphStochastic.ClearMark(block, {GraphStochastic.blockMark});
+			GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
 			INC(i)
 		END;
-		GraphStochastic.ClearMark(block, {GraphStochastic.blockMark, GraphNodes.mark});
+		GraphStochastic.ClearMarks(block, {GraphStochastic.mark, GraphNodes.mark});
 		RETURN (*varParents < 2*)TRUE
 	END IsNLBlock;
 

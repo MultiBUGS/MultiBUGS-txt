@@ -15,7 +15,7 @@ MODULE UpdaterActions;
 
 	IMPORT 
 		Stores, 
-		GraphNodes, GraphStochastic,
+		GraphMRF, GraphLogical, GraphNodes, GraphStochastic,
 		MathSort,
 		UpdaterAuxillary, UpdaterUpdaters;
 
@@ -102,26 +102,6 @@ MODULE UpdaterActions;
 		MathSort.HeapSort(x, numUpdaters);
 		RETURN SHORT(ENTIER(x[numUpdaters DIV 2] + eps))
 	END MedianNumChildren;
-
-	PROCEDURE CanDistribute (updater: UpdaterUpdaters.Updater; avNum: INTEGER): BOOLEAN;
-		VAR
-			canDistribute: BOOLEAN;
-			depth, numChild: INTEGER;
-			children: GraphStochastic.Vector;
-			prior: GraphStochastic.Node;
-	BEGIN
-		WITH updater: UpdaterAuxillary.UpdaterUV DO
-			canDistribute := FALSE
-		ELSE
-			children := updater.Children();
-			prior := updater.Prior(0);
-			IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
-			depth := updater.Depth();
-			canDistribute := (numChild > 2 * avNum) OR (GraphNodes.maxStochDepth = 1);
-			canDistribute := canDistribute & (prior.dependents = NIL)
-		END;
-		RETURN canDistribute
-	END CanDistribute;
 
 	(*	externalize data of nodes associated with updaters	*)
 	PROCEDURE AllocateLikelihoods*;
@@ -414,6 +394,52 @@ MODULE UpdaterActions;
 		RETURN updaters[chain, index]
 	END GetUpdater;
 
+	PROCEDURE InsertConstraints*;
+		VAR
+			mrf, oldMRF: GraphMRF.Node;
+			cursor, prev, element: List;
+			updater: UpdaterUpdaters.Updater;
+			prior, prevPrior: GraphStochastic.Node;
+			factory: UpdaterUpdaters.Factory;
+	BEGIN
+		factory := UpdaterUpdaters.InstallFactory("UpdaterMRFConstrain.Install");
+		oldMRF := NIL;
+		prev := NIL;
+		cursor := list;
+		WHILE cursor # NIL DO
+			updater := cursor.updater;
+			prior := updater.UpdatedBy(0);
+			IF prior IS GraphMRF.Node THEN
+				mrf := prior(GraphMRF.Node);
+				mrf := mrf.components[0](GraphMRF.Node);
+				IF mrf # oldMRF THEN
+					IF oldMRF # NIL THEN
+						IF factory.CanUpdate(prevPrior) THEN
+							NEW(element);
+							element.updater := factory.New(prevPrior);
+							element.next := cursor;
+							prev.next := element
+						END
+					END;
+					oldMRF := mrf
+				END
+			ELSE
+				IF oldMRF # NIL THEN
+					IF factory.CanUpdate(prevPrior) THEN
+						NEW(element);
+						element.updater := factory.New(prevPrior);
+						element.next := cursor;
+						prev.next := element
+					END;
+					oldMRF := NIL
+				END
+			END;
+			prev := cursor;
+			prevPrior := prev.updater.UpdatedBy(0);
+			cursor := cursor.next
+		END
+	END InsertConstraints;
+	
 	(*	Internalize updaters mutable state	*)
 	PROCEDURE InternalizeUpdaterData* (chain: INTEGER; VAR rd: Stores.Reader);
 		VAR
@@ -522,6 +548,35 @@ MODULE UpdaterActions;
 			INC(i)
 		END
 	END LoadSamples;
+
+	PROCEDURE CanDistribute (updater: UpdaterUpdaters.Updater; avNum: INTEGER): BOOLEAN;
+		VAR
+			canDistribute: BOOLEAN;
+			i, numChild: INTEGER;
+			children: GraphStochastic.Vector;
+			prior: GraphStochastic.Node;
+			dependents: GraphLogical.List;
+	BEGIN
+		WITH updater: UpdaterAuxillary.UpdaterUV DO
+			canDistribute := FALSE
+		ELSE
+			children := updater.Children();
+			prior := updater.Prior(0);
+			IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
+			canDistribute := (numChild > 2 * avNum) OR (GraphNodes.maxStochDepth = 1);
+			i := 0;
+			WHILE ~canDistribute & (i < numChild) DO
+				canDistribute := children[i] IS GraphMRF.Node;
+				INC(i)
+			END;
+			dependents := prior.dependents;
+			WHILE canDistribute & (dependents # NIL) DO
+				canDistribute := ~(GraphStochastic.stochParent IN dependents.node.props);
+				dependents := dependents.next
+			END
+		END;
+		RETURN canDistribute
+	END CanDistribute;
 
 	PROCEDURE MarkDistributed*;
 		VAR

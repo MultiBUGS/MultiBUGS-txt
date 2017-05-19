@@ -17,7 +17,7 @@ MODULE UpdaterGMRF;
 	IMPORT
 		Math, Meta, Stores,
 		BugsRegistry,
-		GraphGMRF, GraphRules, GraphStochastic, MathDiagmatrix,
+		GraphMRF, GraphRules, GraphStochastic, MathDiagmatrix,
 		MathMatrix, MathRandnum, MathSparsematrix,
 		UpdaterMetropolisMV, UpdaterRejection, UpdaterUnivariate, UpdaterUpdaters;
 
@@ -25,7 +25,7 @@ MODULE UpdaterGMRF;
 
 		Updater = POINTER TO ABSTRACT RECORD(UpdaterMetropolisMV.Updater)
 			constraints: POINTER TO ARRAY OF ARRAY OF REAL;
-			elements, mu, new, old: POINTER TO ARRAY OF REAL;
+			elements, mu, new: POINTER TO ARRAY OF REAL;
 			matrixType, numConstraints: INTEGER;
 			sparseMatrix: MathSparsematrix.Matrix;
 			choleskyDecomp: MathSparsematrix.LLT
@@ -56,10 +56,10 @@ MODULE UpdaterGMRF;
 	PROCEDURE SetMatrixFactory (type: INTEGER);
 	BEGIN
 		CASE type OF
-		|GraphGMRF.diagonal: MathSparsematrix.SetFactory(diagFactory);
-		|GraphGMRF.sparse: MathSparsematrix.SetFactory(sparseFactory)
-		|GraphGMRF.banded: MathSparsematrix.SetFactory(bandedFactory)
-		|GraphGMRF.full: MathSparsematrix.SetFactory(fullFactory)
+		|GraphMRF.diagonal: MathSparsematrix.SetFactory(diagFactory);
+		|GraphMRF.sparse: MathSparsematrix.SetFactory(sparseFactory)
+		|GraphMRF.banded: MathSparsematrix.SetFactory(bandedFactory)
+		|GraphMRF.full: MathSparsematrix.SetFactory(fullFactory)
 		END;
 	END SetMatrixFactory;
 
@@ -69,8 +69,8 @@ MODULE UpdaterGMRF;
 			class, class1, i, size: INTEGER;
 	BEGIN
 		block := NIL;
-		IF prior IS GraphGMRF.Node THEN
-			block := prior(GraphGMRF.Node).components;
+		IF prior IS GraphMRF.Node THEN
+			block := prior(GraphMRF.Node).components;
 			i := 0;
 			size := LEN(block);
 			class1 := GraphRules.unif;
@@ -111,7 +111,7 @@ MODULE UpdaterGMRF;
 			delta = 0.0001;
 		VAR
 			node: GraphStochastic.Node;
-			gMRF: GraphGMRF.Node;
+			mRF: GraphMRF.Node;
 			prior: GraphStochastic.Vector;
 			children: GraphStochastic.Vector;
 			derivFirst, derivSecond, eta0, f, fMinus, fPlus: REAL;
@@ -161,8 +161,8 @@ MODULE UpdaterGMRF;
 		numConstraints := updater.numConstraints;
 		i := 0;
 		WHILE i < size DO
-			gMRF := updater.prior[i](GraphGMRF.Node);
-			gMRF.PriorForm(GraphRules.mVN, mean[i], p1);
+			mRF := updater.prior[i](GraphMRF.Node);
+			mRF.PriorForm(GraphRules.mVN, mean[i], p1);
 			updater.mu[i] := mean[i] + a[i];
 			INC(i)
 		END;
@@ -175,7 +175,7 @@ MODULE UpdaterGMRF;
 			IF (numConstraints > LEN(V, 0)) OR (size > LEN(V, 1)) THEN
 				NEW(A, numConstraints, size); NEW(U, numConstraints, size); NEW(V, numConstraints, size)
 			END;
-			gMRF.Constraints(A);
+			mRF.Constraints(A);
 			j := 0;
 			WHILE j < numConstraints DO
 				i := 0; WHILE i < size DO V[j, i] := A[j, i]; INC(i) END;
@@ -261,7 +261,7 @@ MODULE UpdaterGMRF;
 	PROCEDURE SampleProposal (updater: Updater; OUT sample: ARRAY OF REAL);
 		VAR
 			i, j, numConstraints, size: INTEGER;
-			gMRF: GraphGMRF.Node;
+			mRF: GraphMRF.Node;
 	BEGIN
 		size := updater.Size();
 		i := 0;
@@ -275,8 +275,8 @@ MODULE UpdaterGMRF;
 			sample[i] := sample[i] + updater.mu[i];
 			INC(i)
 		END;
-		gMRF := updater.prior[0](GraphGMRF.Node);
-		numConstraints := gMRF.NumberConstraints();
+		mRF := updater.prior[0](GraphMRF.Node);
+		numConstraints := mRF.NumberConstraints();
 		IF numConstraints # 0 THEN
 			i := 0;
 			WHILE i < numConstraints DO
@@ -301,9 +301,23 @@ MODULE UpdaterGMRF;
 	BEGIN
 		RETURN 0
 	END ParamsSize;
+	
+	PROCEDURE (updater: Updater) CopyFromGMRF (source: UpdaterUpdaters.Updater), NEW, EMPTY;
 
 	PROCEDURE (updater: Updater) CopyFromMetropolisMV (source: UpdaterUpdaters.Updater);
+		VAR
+			s: Updater;
 	BEGIN
+		s := source(Updater);
+		updater.constraints := s.constraints;
+		updater.elements := s.elements;
+		updater.mu := s.mu;
+		updater.new := s.new;
+		updater.matrixType := s.matrixType;
+		updater.numConstraints := s.numConstraints;
+		updater.sparseMatrix := s.sparseMatrix;
+		updater.choleskyDecomp := s.choleskyDecomp;
+		updater.CopyFromGMRF(source)
 	END CopyFromMetropolisMV;
 
 	PROCEDURE (updater: Updater) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
@@ -313,13 +327,13 @@ MODULE UpdaterGMRF;
 
 	PROCEDURE (updater: Updater) InitializeMetropolisMV;
 		VAR
-			prior: GraphGMRF.Node;
+			prior: GraphMRF.Node;
 			i, nElements, size, type: INTEGER;
 			colPtr, rowInd: POINTER TO ARRAY OF INTEGER;
 			factInner: UpdaterUpdaters.Factory;
 			u: UpdaterUpdaters.Updater;
 	BEGIN
-		prior := updater.prior[0](GraphGMRF.Node);
+		prior := updater.prior[0](GraphMRF.Node);
 		size := prior.Size();
 		prior.MatrixInfo(type, nElements);
 		updater.numConstraints := prior.NumberConstraints();
@@ -328,7 +342,6 @@ MODULE UpdaterGMRF;
 		updater.sparseMatrix := MathSparsematrix.New(size, nElements);
 		MathSparsematrix.SetFactory(MathSparsematrix.stdFact);
 		NEW(updater.new, size);
-		NEW(updater.old, size);
 		NEW(updater.mu, size);
 		NEW(updater.elements, nElements);
 		IF size > LEN(a) THEN
@@ -368,6 +381,24 @@ MODULE UpdaterGMRF;
 		NEW(u);
 		RETURN u
 	END Clone;
+		
+	PROCEDURE (updater: GeneralUpdater) CopyFromGMRF (source: UpdaterUpdaters.Updater);
+		VAR
+			s: GeneralUpdater;
+			i, size: INTEGER;
+			copy: UpdaterUpdaters.Updater;
+	BEGIN
+		s := source(GeneralUpdater);
+		size := updater.Size();
+		NEW(updater.singleSiteUpdaters, size);
+		i := 0;
+		WHILE i < size DO
+			copy := UpdaterUpdaters.CopyFrom(s.singleSiteUpdaters[i]);
+			updater.singleSiteUpdaters[i] := copy(UpdaterUnivariate.Updater);
+			INC(i)
+		END	
+	END CopyFromGMRF;
+	
 
 	PROCEDURE (updater: GeneralUpdater) ExternalizeMetropolisMV (VAR wr: Stores.Writer);
 		VAR
@@ -403,20 +434,20 @@ MODULE UpdaterGMRF;
 		VAR
 			acceptProb, newDensity, newProp, numNonZero, oldDensity, oldProp, sum, value: REAL;
 			i, j, modeIts, numConstraints, size: INTEGER;
-			gmrf: GraphGMRF.Node;
+			mrf: GraphMRF.Node;
 			prior: GraphStochastic.Vector;
 	BEGIN
 		res := {};
 		size := updater.Size();
-		gmrf := updater.prior[0](GraphGMRF.Node);
+		mrf := updater.prior[0](GraphMRF.Node);
 		prior := updater.prior;
 		IF (updater.iteration MOD batch # 0) & (updater.iteration > 100) THEN
+			updater.StoreOldValue;
 			modeIts := factGeneral.iterations;
 			modeIts := MAX(1, modeIts);
-			gmrf.MatrixElements(updater.elements);
-			updater.GetValue(updater.old);
+			mrf.MatrixElements(updater.elements);
 			oldDensity := updater.LogConditional();
-			ConstructProposal(updater, updater.old, modeIts);
+			ConstructProposal(updater, updater.oldVals, modeIts);
 			SampleProposal(updater, updater.new);
 			updater.SetValue(updater.new);
 			newDensity := updater.LogConditional();
@@ -424,10 +455,10 @@ MODULE UpdaterGMRF;
 			updater.choleskyDecomp.Free;
 			updater.choleskyDecomp := NIL;
 			ConstructProposal(updater, updater.new, modeIts);
-			newProp := ProposalDensity(updater, updater.old);
+			newProp := ProposalDensity(updater, updater.oldVals);
 			acceptProb := newDensity - oldDensity + newProp - oldProp;
 			IF acceptProb < Math.Ln(MathRandnum.Rand()) THEN
-				updater.SetValue(updater.old);
+				updater.SetValue(updater.oldVals);
 			END;
 			updater.choleskyDecomp.Free;
 			updater.choleskyDecomp := NIL;
@@ -437,12 +468,12 @@ MODULE UpdaterGMRF;
 				updater.singleSiteUpdaters[j].Sample(overRelax, res);
 				INC(j)
 			END;
-			numConstraints := gmrf.NumberConstraints();
+			numConstraints := mrf.NumberConstraints();
 			IF numConstraints # 0 THEN
 				IF updater.constraints = NIL THEN
 					NEW(updater.constraints, numConstraints, size)
 				END;
-				gmrf.Constraints(updater.constraints);
+				mrf.Constraints(updater.constraints);
 				j := 0;
 				WHILE j < numConstraints DO
 					i := 0;
@@ -493,13 +524,12 @@ MODULE UpdaterGMRF;
 	(*	this is ignoring constraints at the moment do we need a metropolis test???	*)
 	PROCEDURE (updater: NormalUpdater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			gmrf: GraphGMRF.Node;
+			mrf: GraphMRF.Node;
 	BEGIN
 		res := {};
-		gmrf := updater.prior[0](GraphGMRF.Node);
-		updater.GetValue(updater.old);
-		gmrf.MatrixElements(updater.elements);
-		ConstructProposal(updater, updater.old, one);
+		mrf := updater.prior[0](GraphMRF.Node);
+		mrf.MatrixElements(updater.elements);
+		ConstructProposal(updater, updater.oldVals, one);
 		SampleProposal(updater, updater.new);
 		updater.SetValue(updater.new);
 		IF updater.choleskyDecomp # NIL THEN
@@ -534,16 +564,16 @@ MODULE UpdaterGMRF;
 		VAR
 			class, i, nElements, size, type: INTEGER;
 			block: GraphStochastic.Vector;
-			gmrf: GraphGMRF.Node;
+			mrf: GraphMRF.Node;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
-		IF ~(prior IS GraphGMRF.Node) THEN RETURN FALSE END;
+		IF ~(prior IS GraphMRF.Node) THEN RETURN FALSE END;
 		class := prior.classConditional;
 		IF ~(class IN glm) THEN RETURN FALSE END;
-		gmrf := prior(GraphGMRF.Node);
-		gmrf.MatrixInfo(type, nElements);
-		IF type = GraphGMRF.full THEN RETURN FALSE END;
+		mrf := prior(GraphMRF.Node);
+		mrf.MatrixInfo(type, nElements);
+		IF type = GraphMRF.full THEN RETURN FALSE END;
 		block := FindBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
 		i := 0; size := LEN(block);
@@ -576,15 +606,15 @@ MODULE UpdaterGMRF;
 		VAR
 			block: GraphStochastic.Vector;
 			i, nElements, size, type: INTEGER;
-			gmrf: GraphGMRF.Node;
+			mrf: GraphMRF.Node;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
-		IF ~(prior IS GraphGMRF.Node) THEN RETURN FALSE END;
+		IF ~(prior IS GraphMRF.Node) THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.normal THEN RETURN FALSE END;
-		gmrf := prior(GraphGMRF.Node);
-		gmrf.MatrixInfo(type, nElements);
-		IF type = GraphGMRF.full THEN RETURN FALSE END;
+		mrf := prior(GraphMRF.Node);
+		mrf.MatrixInfo(type, nElements);
+		IF type = GraphMRF.full THEN RETURN FALSE END;
 		block := FindBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
 		i := 0; size := LEN(block);
@@ -657,7 +687,7 @@ MODULE UpdaterGMRF;
 			END
 		END;
 		NEW(fGeneral);
-		fGeneral.SetProps({UpdaterUpdaters.iterations, UpdaterUpdaters.enabled});
+		fGeneral.SetProps({UpdaterUpdaters.iterations(*, UpdaterUpdaters.enabled*)});
 		fGeneral.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)

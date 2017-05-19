@@ -73,7 +73,7 @@ MODULE UpdaterVDMVN;
 			i := 0;
 			jump := FALSE;
 			WHILE (i < num) & ~jump DO
-				logicals := GraphLogical.Ancestors(children[i], all);
+				logicals := GraphLogical.Parents(children[i], all);
 				WHILE (logicals # NIL) & ~jump DO
 					logical := logicals.node;
 					jump := logical IS GraphVD.Node;
@@ -331,7 +331,7 @@ MODULE UpdaterVDMVN;
 			j := 1;
 			WHILE j < numBeta + numTheta + 1 DO
 				updater.prior[j].CalculateDepth;
-				list := GraphLogical.Ancestors(updater.prior[j], all);
+				list := GraphLogical.Parents(updater.prior[j], all);
 				WHILE list # NIL DO
 					list.node.CalculateLevel;
 					list := list.next

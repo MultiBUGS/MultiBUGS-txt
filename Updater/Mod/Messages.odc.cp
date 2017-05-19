@@ -136,6 +136,8 @@ MODULE UpdaterMessages;
 		
 		StoreKey("SpatialPoissconv.MultinomialInstall", "pois conv mixing");
 		
+		StoreKey("UpdaterMRFConstrain.Install", "mrf constraint");
+		
 	END Load;
 
 	PROCEDURE Maintainer;

@@ -63,7 +63,7 @@ MODULE UpdaterUnivariate;
 	BEGIN
 		prior := updater.prior;
 		depth := prior.depth;
-		IF prior.likelihood = NIL THEN
+		IF (prior.likelihood = NIL) & (prior.Size() = 1) THEN
 			depth :=  - depth
 		END;
 		RETURN depth
