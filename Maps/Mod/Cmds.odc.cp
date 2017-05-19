@@ -710,6 +710,11 @@ MODULE MapsCmds;
 		MapsViews1.FocusSetRegion(dialog1.id)
 	END SetRegion;
 
+	PROCEDURE ColourRegion*;
+	BEGIN
+		MapsViews1.FocusColourRegion(Ports.blue, dialog1.id)
+	END ColourRegion;
+	
 	PROCEDURE Print*;
 		VAR
 			map: MapsMap.Map;

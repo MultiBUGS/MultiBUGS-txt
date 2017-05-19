@@ -370,6 +370,22 @@ MODULE MapsViews1;
 		END
 	END FocusSetRegion;
 
+	PROCEDURE FocusColourRegion* (colour, id: INTEGER);
+		VAR
+			i, len: INTEGER; v: Views.View; cursor: MapsAdjacency.List;
+	BEGIN
+		v := Controllers.FocusView();
+		WITH v: View DO
+			len := v.map.numReg;
+			IF (id > len) OR (len < 1) OR (id < 1) THEN RETURN END;
+			Views.BeginModification(Views.notUndoable, v);
+			v.selection := id;
+			v.colour[v.selection - 1] := colour;
+			Views.EndModification(Views.notUndoable, v);
+			Views.Update(v, Views.keepFrames)
+		END
+	END FocusColourRegion;
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
