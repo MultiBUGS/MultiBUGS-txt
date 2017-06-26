@@ -12,7 +12,7 @@ MODULE UpdaterAMblock;
 	
 
 	IMPORT
-		Stores, 
+		Stores,
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		UpdaterAM, UpdaterMultivariate, UpdaterUpdaters;
@@ -64,8 +64,8 @@ MODULE UpdaterAMblock;
 				END
 			END
 		END;
-		IF ~UpdaterMultivariate.IsNLBlock(block) THEN 
-			block := NIL 
+		IF ~UpdaterMultivariate.IsNLBlock(block) THEN
+			block := NIL
 		END;
 		RETURN block
 	END FindNLBlock;
@@ -190,7 +190,7 @@ MODULE UpdaterAMblock;
 		VAR
 			block: GraphStochastic.Vector;
 		CONST
-			glm = {GraphRules.logitReg, GraphRules.cloglogReg, GraphRules.probitReg, 
+			glm = {GraphRules.logitReg, GraphRules.cloglogReg, GraphRules.probitReg,
 			GraphRules.logReg, GraphRules.logCon};
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
@@ -237,7 +237,7 @@ MODULE UpdaterAMblock;
 	BEGIN
 		Maintainer;
 		NEW(fNL);
-		fNL.SetProps({UpdaterUpdaters.enabled});
+		fNL.SetProps({(*UpdaterUpdaters.enabled*)});
 		fNL.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)

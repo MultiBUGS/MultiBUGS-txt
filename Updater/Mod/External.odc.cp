@@ -87,10 +87,7 @@ MODULE UpdaterExternal;
 		(*	updater for chain graph prior and logit,  loglinear or normal likelihood	*)
 		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallNormal");
 		
-		UpdaterMethods.LoadUpdater("UpdaterGMRF.GeneralInstall");
-
-		(*	updater for chain graph priors	*)
-		UpdaterMethods.LoadUpdater("UpdaterChain.Install");
+		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallGeneral");
 
 		(*	block updaters	*)
 
@@ -131,6 +128,9 @@ MODULE UpdaterExternal;
 		
 		(*	sampler for generic distribution using Differential Evolution needs multiple >= 5 chains *)
 		UpdaterMethods.LoadUpdater("UpdaterSCDE.InstallMet");
+
+		(*	updater for generic distribution with support on whole of real line	*)
+		UpdaterMethods.LoadUpdater("UpdaterMALA1D.Install");
 
 		(*	updater for generic distribution with support on whole of real line	*)
 		UpdaterMethods.LoadUpdater("UpdaterSCAAR.InstallDRC");

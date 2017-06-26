@@ -30,12 +30,7 @@ MODULE UpdaterUnivariate;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	PROCEDURE (updater: Updater) CopyFromUnivariate- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) ExternalizeUnivariate- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) InternalizeUnivariate- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
+	(*	returns children of updater	*)
 	PROCEDURE (updater: Updater) Children* (): GraphStochastic.Vector;
 		VAR
 			prior: GraphStochastic.Node;
@@ -43,6 +38,8 @@ MODULE UpdaterUnivariate;
 		prior := updater.prior;
 		RETURN prior.Children()
 	END Children;
+
+	PROCEDURE (updater: Updater) CopyFromUnivariate- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) CopyFrom- (source: UpdaterUpdaters.Updater);
 		VAR
@@ -55,7 +52,7 @@ MODULE UpdaterUnivariate;
 		updater.CopyFromUnivariate(source)
 	END CopyFrom;
 
-	(*	toplogical depth of node that the updater updates	*)
+	(*	topological depth of node that the updater updates	*)
 	PROCEDURE (updater: Updater) Depth* (): INTEGER;
 		VAR
 			depth: INTEGER;
@@ -69,10 +66,14 @@ MODULE UpdaterUnivariate;
 		RETURN depth
 	END Depth;
 
+	(*	writes the prior of updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(updater.prior, wr)
 	END ExternalizePrior;
+
+	(*	writes internal fields of updater to store	*)
+	PROCEDURE (updater: Updater) ExternalizeUnivariate- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) Externalize- (VAR wr: Stores.Writer);
 	BEGIN
@@ -81,6 +82,7 @@ MODULE UpdaterUnivariate;
 		updater.ExternalizeUnivariate(wr);
 	END Externalize;
 
+	(*	initializes the internal fields of updater	*)
 	PROCEDURE (updater: Updater) InitializeUnivariate-, NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) Initialize-;
@@ -93,6 +95,7 @@ MODULE UpdaterUnivariate;
 		updater.InitializeUnivariate
 	END Initialize;
 
+	(*	reads in the node the updater updates from store	*)
 	PROCEDURE (updater: Updater) InternalizePrior- (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
@@ -100,6 +103,9 @@ MODULE UpdaterUnivariate;
 		p := GraphNodes.Internalize(rd);
 		updater.prior := p(GraphStochastic.Node)
 	END InternalizePrior;
+
+	(*	reads internal fields of updater from store	*)
+	PROCEDURE (updater: Updater) InternalizeUnivariate- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) Internalize- (VAR rd: Stores.Reader);
 	BEGIN
@@ -128,6 +134,7 @@ MODULE UpdaterUnivariate;
 		END
 	END LoadSample;
 
+	(*	calculates log conditional of updater	*)
 	PROCEDURE (updater: Updater) LogConditional* (): REAL;
 		VAR
 			logConditional: REAL;
@@ -137,7 +144,8 @@ MODULE UpdaterUnivariate;
 		logConditional := prior.LogPrior() + updater.LogLikelihood();
 		RETURN logConditional
 	END LogConditional;
-
+	
+	(*	calculates log likelihood of updater	*)
 	PROCEDURE (updater: Updater) LogLikelihood* (): REAL;
 		VAR
 			logLikelihood, logLike: REAL;
@@ -161,8 +169,18 @@ MODULE UpdaterUnivariate;
 		END;
 		RETURN logLikelihood
 	END LogLikelihood;
-
+	
 	(*	node in graphical model that updater updates	*)
+	PROCEDURE (updater: Updater) Node* (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		IF index = 0 THEN
+			RETURN updater.prior
+		ELSE
+			RETURN NIL
+		END
+	END Node;
+
+	(*	node in graphical model associated with updater	*)
 	PROCEDURE (updater: Updater) Prior* (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		IF index = 0 THEN
@@ -202,15 +220,6 @@ MODULE UpdaterUnivariate;
 			updater.initialized := FALSE
 		END
 	END StoreSample;
-	(*	node in graphical model that updater updates	*)
-	PROCEDURE (updater: Updater) UpdatedBy* (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		IF index = 0 THEN
-			RETURN updater.prior
-		ELSE
-			RETURN NIL
-		END
-	END UpdatedBy;
 
 	PROCEDURE Maintainer;
 	BEGIN

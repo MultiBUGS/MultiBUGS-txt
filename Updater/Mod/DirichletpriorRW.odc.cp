@@ -125,7 +125,6 @@ MODULE UpdaterDirichletpriorRW;
 		size := prior.Size();
 		oldCond := updater.LogConditional() - updater.lambda * updater.sum;
 		updater.GetValue(old);
-		prior.PropagateMsg(GraphLogical.metBegin);
 		propSum := 0;
 		oldJac := 0; newJac := 0;
 		i := 0;
@@ -141,14 +140,12 @@ MODULE UpdaterDirichletpriorRW;
 		updater.SetValue(prop);
 		newCond := updater.LogConditional() - updater.lambda * propSum;
 		alpha := newCond - oldCond + oldJac - newJac;
-		IF alpha < Math.Ln(MathRandnum.Rand()) THEN	(* reject *)
+		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
 			updater.SetValue(old);
 			INC(updater.rejectCount);
-			prior.PropagateMsg(GraphLogical.metReject)
-		ELSE	(* accept *)
+		ELSE	
 			updater.sum := propSum
 		END;
-		prior.PropagateMsg(GraphLogical.metEnd);
 		INC(updater.iteration);
 		IF updater.iteration MOD batch = 0 THEN
 			rate := (batch - updater.rejectCount) / batch;

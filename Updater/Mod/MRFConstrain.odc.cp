@@ -73,7 +73,10 @@ MODULE UpdaterMRFConstrain;
 	END ExternalizePrior;
 	
 	PROCEDURE (updater: Updater) GenerateInit (fixFounder: BOOLEAN; OUT res: SET);
+		CONST
+			overRelax = FALSE;
 	BEGIN
+		updater.Sample(overRelax, res);
 		res := {}
 	END GenerateInit;
 	
@@ -134,6 +137,11 @@ MODULE UpdaterMRFConstrain;
 	BEGIN
 		RETURN 0.0
 	END LogLikelihood;
+	
+	PROCEDURE (updater: Updater) Node (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN updater.mrf
+	END Node;
 	
 	PROCEDURE (updater: Updater) Prior (index: INTEGER): GraphStochastic.Node;
 	BEGIN
@@ -200,11 +208,6 @@ MODULE UpdaterMRFConstrain;
 	PROCEDURE (updater: Updater) StoreSample;
 	BEGIN
 	END StoreSample;
-	
-	PROCEDURE (updater: Updater) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		RETURN updater.mrf
-	END UpdatedBy;
 	
 	PROCEDURE (f: Factory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN

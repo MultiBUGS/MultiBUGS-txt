@@ -13,7 +13,7 @@ MODULE UpdaterMultivariate;
 	
 
 	IMPORT
-		Stores, 
+		Stores,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		UpdaterUpdaters;
 
@@ -169,12 +169,6 @@ MODULE UpdaterMultivariate;
 
 	PROCEDURE (updater: Updater) CopyFromMultivariate- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
-	PROCEDURE (updater: Updater) ExternalizeMultivariate- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) ParamsSize* (): INTEGER, NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) InitializeMultivariate-, NEW, ABSTRACT;
-
 	PROCEDURE (updater: Updater) CopyFrom- (source: UpdaterUpdaters.Updater);
 		VAR
 			s: Updater;
@@ -218,22 +212,11 @@ MODULE UpdaterMultivariate;
 			depth := MAX(depth, prior.depth);
 			INC(i)
 		END;
-		IF ~likelihood THEN depth :=  - depth END;
+		IF ~likelihood THEN depth := - depth END;
 		RETURN depth
 	END Depth;
 
-	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer);
-		VAR
-			i, size: INTEGER;
-	BEGIN
-		size := updater.Size();
-		wr.WriteInt(size);
-		i := 0;
-		WHILE i < size DO
-			GraphNodes.Externalize(updater.prior[i], wr);
-			INC(i)
-		END
-	END ExternalizePrior;
+	PROCEDURE (updater: Updater) ExternalizeMultivariate- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) Externalize- (VAR wr: Stores.Writer);
 		VAR
@@ -251,6 +234,19 @@ MODULE UpdaterMultivariate;
 		END;
 		updater.ExternalizeMultivariate(wr)
 	END Externalize;
+
+	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer);
+		VAR
+			i, size: INTEGER;
+	BEGIN
+		size := updater.Size();
+		wr.WriteInt(size);
+		i := 0;
+		WHILE i < size DO
+			GraphNodes.Externalize(updater.prior[i], wr);
+			INC(i)
+		END
+	END ExternalizePrior;
 
 	PROCEDURE (updater: Updater) FindBlock- (prior: GraphStochastic.Node): GraphStochastic.Vector,
 	NEW, ABSTRACT;
@@ -338,40 +334,9 @@ MODULE UpdaterMultivariate;
 		END
 	END GetValue;
 
-	PROCEDURE (updater: Updater) InternalizePrior- (VAR rd: Stores.Reader);
-		VAR
-			p: GraphNodes.Node;
-			i, size: INTEGER;
-	BEGIN
-		rd.ReadInt(size);
-		NEW(updater.prior, size); ;
-		i := 0;
-		WHILE i < size DO
-			p := GraphNodes.Internalize(rd);
-			updater.prior[i] := p(GraphStochastic.Node);
-			INC(i)
-		END
-	END InternalizePrior;
+	PROCEDURE (updater: Updater) InitializeMultivariate-, NEW, ABSTRACT;
 
-	PROCEDURE (updater: Updater) InternalizeMultivariate- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
-	PROCEDURE (updater: Updater) Internalize- (VAR rd: Stores.Reader);
-		VAR
-			i, size: INTEGER;
-	BEGIN
-		i := 0;
-		size := updater.Size();
-		WHILE i < size DO
-			rd.ReadBool(updater.initialized[i]);
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < size DO
-			IF updater.initialized[i] THEN rd.ReadReal(updater.values[i]) END;
-			INC(i)
-		END;
-		updater.InternalizeMultivariate(rd)
-	END Internalize;
+	PROCEDURE (updater: Updater) ParamsSize* (): INTEGER, NEW, ABSTRACT;
 
 		(*	allocate storage in updater for sampled values	*)
 	PROCEDURE (updater: Updater) Initialize-;
@@ -399,6 +364,41 @@ MODULE UpdaterMultivariate;
 		END;
 		updater.InitializeMultivariate
 	END Initialize;
+
+	PROCEDURE (updater: Updater) InternalizeMultivariate- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+
+	PROCEDURE (updater: Updater) Internalize- (VAR rd: Stores.Reader);
+		VAR
+			i, size: INTEGER;
+	BEGIN
+		i := 0;
+		size := updater.Size();
+		WHILE i < size DO
+			rd.ReadBool(updater.initialized[i]);
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < size DO
+			IF updater.initialized[i] THEN rd.ReadReal(updater.values[i]) END;
+			INC(i)
+		END;
+		updater.InternalizeMultivariate(rd)
+	END Internalize;
+
+	PROCEDURE (updater: Updater) InternalizePrior- (VAR rd: Stores.Reader);
+		VAR
+			p: GraphNodes.Node;
+			i, size: INTEGER;
+	BEGIN
+		rd.ReadInt(size);
+		NEW(updater.prior, size); ;
+		i := 0;
+		WHILE i < size DO
+			p := GraphNodes.Internalize(rd);
+			updater.prior[i] := p(GraphStochastic.Node);
+			INC(i)
+		END
+	END InternalizePrior;
 
 	PROCEDURE (updater: Updater) IsInitialized* (): BOOLEAN;
 		VAR
@@ -449,12 +449,12 @@ MODULE UpdaterMultivariate;
 		children := updater.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
-		WHILE (i < num) & (logLikelihood #  - INF) DO
+		WHILE (i < num) & (logLikelihood # - INF) DO
 			log := children[i].LogLikelihood();
-			IF log #  - INF THEN
+			IF log # - INF THEN
 				logLikelihood := logLikelihood + log
 			ELSE
-				logLikelihood :=  - INF
+				logLikelihood := - INF
 			END;
 			INC(i)
 		END;
@@ -463,23 +463,24 @@ MODULE UpdaterMultivariate;
 
 	PROCEDURE (updater: Updater) LogPrior* (): REAL, NEW;
 		VAR
-			i, nodeSize, size: INTEGER;
+			i, size: INTEGER;
 			logPrior, log: REAL;
 			prior: GraphStochastic.Node;
 	BEGIN
 		i := 0;
-		size := updater.Size();
+		size := LEN(updater.prior);
 		logPrior := 0.0;
-		WHILE (i < size) & (logPrior #  - INF) DO
+		WHILE (i < size) & (logPrior # - INF) DO
 			prior := updater.prior[i];
-			nodeSize := prior.Size();
-			log := prior.LogLikelihood();
-			IF log #  - INF THEN
-				logPrior := logPrior + log
-			ELSE
-				logPrior :=  - INF
+			IF prior = prior.Representative() THEN
+				log := prior.LogLikelihood();
+				IF log # - INF THEN
+					logPrior := logPrior + log
+				ELSE
+					logPrior := - INF
+				END
 			END;
-			INC(i, nodeSize)
+			INC(i)
 		END;
 		RETURN logPrior
 	END LogPrior;
@@ -490,13 +491,23 @@ MODULE UpdaterMultivariate;
 	BEGIN
 		logPrior := updater.LogPrior();
 		logLikelihood := updater.LogLikelihood();
-		IF (logPrior =  - INF) OR (logLikelihood =  - INF) THEN
-			logCond :=  - INF
+		IF (logPrior = - INF) OR (logLikelihood = - INF) THEN
+			logCond := - INF
 		ELSE
 			logCond := logPrior + logLikelihood
 		END;
 		RETURN logCond
 	END LogConditional;
+
+	(*	node in graphical model that updater updates	*)
+	PROCEDURE (updater: Updater) Node* (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		IF (index >= 0) & (index < updater.Size()) THEN
+			RETURN updater.prior[index]
+		ELSE
+			RETURN NIL
+		END
+	END Node;
 
 	(*	node in graphical model that updater updates	*)
 	PROCEDURE (updater: Updater) Prior* (index: INTEGER): GraphStochastic.Node;
@@ -557,16 +568,6 @@ MODULE UpdaterMultivariate;
 			INC(i)
 		END
 	END StoreSample;
-
-	(*	node in graphical model that updater updates	*)
-	PROCEDURE (updater: Updater) UpdatedBy* (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		IF (index >= 0) & (index < updater.Size()) THEN
-			RETURN updater.prior[index]
-		ELSE
-			RETURN NIL
-		END
-	END UpdatedBy;
 
 	PROCEDURE Maintainer;
 	BEGIN

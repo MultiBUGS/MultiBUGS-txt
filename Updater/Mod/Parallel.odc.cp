@@ -11,9 +11,9 @@ copyright:	"Rsrc/About"
 
 MODULE UpdaterParallel;
 
-	IMPORT 
-		Stores, StdLog,
-		GraphDeviance, GraphFlat, GraphMRF, GraphLogical, GraphNodes, GraphStochastic,
+	IMPORT
+		Stores, 
+		GraphDeviance, GraphDummy, GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterConjugateMV, UpdaterEmpty,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -32,23 +32,19 @@ MODULE UpdaterParallel;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		colPtr, rowInd: POINTER TO ARRAY OF INTEGER;
-		
+		globalStochs: POINTER TO ARRAY OF GraphStochastic.Vector;
+
 	PROCEDURE MarkChildren* (children: GraphStochastic.Vector; numProc, rank: INTEGER);
 		VAR
 			node: GraphStochastic.Node;
-			i,  j, num: INTEGER;
+			i, j, num: INTEGER;
 	BEGIN
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		j := 0;
 		i := 0;
 		WHILE (i < rank) & (j < num) DO
 			node := children[j];
-			WITH node: GraphMRF.Node DO
-				node.SetProps(node.props + {GraphStochastic.mark});
-				node.ThinLikelihood(rank, numProc)
-			ELSE
-				INC(i)
-			END;
+			INC(i);
 			INC(j)
 		END;
 		IF i = rank THEN
@@ -59,12 +55,7 @@ MODULE UpdaterParallel;
 			i := 0;
 			WHILE (i < numProc) & (j < num) DO
 				node := children[j];
-				WITH node: GraphMRF.Node DO
-					node.SetProps(node.props + {GraphStochastic.mark});
-					node.ThinLikelihood(rank, numProc)
-				ELSE
-					INC(i)
-				END;
+				INC(i);
 				INC(j)
 			END;
 			IF (i = numProc) & (j < num) THEN
@@ -87,7 +78,7 @@ MODULE UpdaterParallel;
 			INC(i)
 		END
 	END UnMarkChildren;
-	
+
 	PROCEDURE ThinChildren (children: GraphStochastic.Vector): GraphStochastic.Vector;
 		VAR
 			i, num, len, j: INTEGER;
@@ -217,14 +208,14 @@ MODULE UpdaterParallel;
 			list := prior.dependents;
 			WHILE (list # NIL) & ~isMarked DO
 				logical := list.node;
-				isMarked :=  GraphStochastic.mark IN logical.props;
+				isMarked := GraphLogical.mark IN logical.props;
 				list := list.next
 			END;
 			INC(i)
 		END;
 		RETURN isMarked
 	END IsMarkedDependents;
-	
+
 	PROCEDURE MarkDependents (updater: UpdaterUpdaters.Updater);
 		VAR
 			i, size: INTEGER;
@@ -239,8 +230,8 @@ MODULE UpdaterParallel;
 			list := prior.dependents;
 			WHILE list # NIL DO
 				logical := list.node;
-				IF GraphStochastic.stochParent IN logical.props THEN
-					logical.SetProps(logical.props + {GraphStochastic.mark})
+				IF GraphLogical.stochParent IN logical.props THEN
+					logical.SetProps(logical.props + {GraphLogical.mark})
 				END;
 				list := list.next
 			END;
@@ -262,7 +253,7 @@ MODULE UpdaterParallel;
 			list := prior.dependents;
 			WHILE list # NIL DO
 				logical := list.node;
-				logical.SetProps(logical.props - {GraphStochastic.mark});
+				logical.SetProps(logical.props - {GraphLogical.mark});
 				list := list.next
 			END;
 			INC(i)
@@ -301,7 +292,7 @@ MODULE UpdaterParallel;
 		END;
 		RETURN isMarked
 	END IsMarkedNeighbour;
-	
+
 	PROCEDURE MarkNeighbour (updater: UpdaterUpdaters.Updater);
 		VAR
 			prior: GraphStochastic.Node;
@@ -331,17 +322,17 @@ MODULE UpdaterParallel;
 		isMarked := IsMarkedNeighbour(u) OR IsMarkedLike(u) OR IsMarkedDependents(u);
 		RETURN isMarked
 	END IsMarked;
-	
+
 	PROCEDURE Mark (u: UpdaterUpdaters.Updater);
 	BEGIN
 		MarkLike(u); MarkDependents(u); MarkNeighbour(u)
 	END Mark;
-	
+
 	PROCEDURE UnMark (u: UpdaterUpdaters.Updater);
 	BEGIN
 		UnMarkLike(u); UnMarkDependents(u); UnMarkNeighbour(u)
 	END UnMark;
-	
+
 	(*	distribute fixed effects	*)
 	PROCEDURE FixedEffects (depth, chain: INTEGER; VAR lists: ARRAY OF List; VAR rowId: RowId);
 		VAR
@@ -355,10 +346,10 @@ MODULE UpdaterParallel;
 		commSize := LEN(lists);
 		i := start;
 		WHILE i # finish DO
-			updater := UpdaterActions.GetUpdater(chain, i);
+			updater := UpdaterActions.updaters[chain, i];
 			prior := updater.Prior(0);
 			(*	distributed updater 	*)
-			IF GraphStochastic.distributed IN prior.props THEN	
+			IF GraphStochastic.distributed IN prior.props THEN
 				j := 0;
 				WHILE j < commSize DO
 					NEW(link); link.next := lists[j]; lists[j] := link; INC(j)
@@ -376,8 +367,8 @@ MODULE UpdaterParallel;
 	END FixedEffects;
 
 	(*	distribute un-structured random effects	*)
-	PROCEDURE RandomEffects (depth, chain: INTEGER; 
-						VAR lists: ARRAY OF List; VAR rowId: RowId; OUT new: BOOLEAN);
+	PROCEDURE RandomEffects (depth, chain: INTEGER;
+	VAR lists: ARRAY OF List; VAR rowId: RowId; OUT new: BOOLEAN);
 		VAR
 			i, j, finish, rank, commSize, numRows, size, start: INTEGER;
 			u: UpdaterUpdaters.Updater;
@@ -392,12 +383,12 @@ MODULE UpdaterParallel;
 		numRows := 1;
 		i := start;
 		WHILE i # finish DO
-			u := UpdaterActions.GetUpdater(chain, i);
-			prior := u.UpdatedBy(0);
-			IF ({GraphStochastic.distributed, GraphNodes.mark} * prior.props = {}) THEN	
+			u := UpdaterActions.updaters[chain, i];
+			prior := u.Node(0);
+			IF ({GraphStochastic.distributed, GraphNodes.mark} * prior.props = {}) THEN
 				(*	potential parallel updater	*)
-				IF ~(prior IS GraphMRF.Node) & ~IsMarked(u) THEN	
-				(*	likelihoods disjoint etc	*)
+				IF ~(prior IS GraphMRF.Node) & ~IsMarked(u) THEN
+					(*	likelihoods disjoint etc	*)
 					IF rank = 0 THEN	(*	add new row of updaters	*)
 						j := 0;
 						WHILE j < commSize DO
@@ -421,15 +412,15 @@ MODULE UpdaterParallel;
 		END;
 		i := start;
 		WHILE i # finish DO
-			u := UpdaterActions.GetUpdater(chain, i);
+			u := UpdaterActions.updaters[chain, i];
 			UnMark(u);
 			INC(i)
 		END;
-		rowId.id := -ABS(rowId.id)
+		rowId.id := - ABS(rowId.id)
 	END RandomEffects;
 
-	PROCEDURE FindMRF (depth, chain: INTEGER; 
-							OUT mrfList: List; OUT constraint: UpdaterUpdaters.Updater);
+	PROCEDURE FindMRF (depth, chain: INTEGER;
+	OUT mrfList: List; OUT constraint: UpdaterUpdaters.Updater);
 		VAR
 			gmrf: GraphMRF.Node;
 			list, element, cursor: List;
@@ -440,11 +431,12 @@ MODULE UpdaterParallel;
 		list := NIL;
 		gmrf := NIL;
 		constraint := NIL;
+		numNeigh := 0;
 		UpdaterActions.StartFinish(depth, start, finish);
 		i := start;
 		WHILE (i # finish) & (gmrf = NIL) DO
-			u := UpdaterActions.GetUpdater(chain, i);
-			prior := u.UpdatedBy(0);
+			u := UpdaterActions.updaters[chain, i];
+			prior := u.Node(0);
 			WITH prior: GraphMRF.Node DO
 				IF ~(GraphNodes.mark IN prior.props) THEN
 					numNeigh := prior.NumberNeighbours();
@@ -462,11 +454,11 @@ MODULE UpdaterParallel;
 			ELSE
 			END;
 			INC(i)
-		END; 
+		END;
 		(*	add new gmrf nodes to list	*)
 		WHILE i # finish DO
-			u := UpdaterActions.GetUpdater(chain, i);
-			prior := u.UpdatedBy(0);
+			u := UpdaterActions.updaters[chain, i];
+			prior := u.Node(0);
 			WITH prior: GraphMRF.Node DO
 				IF ~(GraphNodes.mark IN prior.props) & (prior.components[0] = gmrf) THEN
 					IF u.Size() # 0 THEN
@@ -490,7 +482,7 @@ MODULE UpdaterParallel;
 			cursor := list;
 			WHILE cursor # NIL DO
 				u := cursor.updater;
-				prior := u.UpdatedBy(0);
+				prior := u.Node(0);
 				gmrf := prior(GraphMRF.Node);
 				IF gmrf.NumberNeighbours() = i THEN
 					NEW(element);
@@ -505,8 +497,8 @@ MODULE UpdaterParallel;
 	END FindMRF;
 
 	(*	distribute structured random effects	*)
-	PROCEDURE RandomEffectsMRF (depth, chain: INTEGER; mrfList: List;
-						VAR lists: ARRAY OF List; VAR rowId: RowId; OUT lastColour: BOOLEAN);
+	PROCEDURE RandomEffectsMRF (mrfList: List;
+	VAR lists: ARRAY OF List; VAR rowId: RowId; OUT lastColour: BOOLEAN);
 		VAR
 			j, rank, commSize, numRows: INTEGER;
 			u: UpdaterUpdaters.Updater;
@@ -520,8 +512,8 @@ MODULE UpdaterParallel;
 		cursor := mrfList;
 		WHILE cursor # NIL DO
 			u := cursor.updater;
-			prior := u.UpdatedBy(0);
-			IF ~(GraphNodes.mark IN  prior.props) & ~IsMarked(u) THEN	
+			prior := u.Node(0);
+			IF ~(GraphNodes.mark IN prior.props) & ~IsMarked(u) THEN
 				IF rank = 0 THEN	(*	add new row of updaters	*)
 					j := 0;
 					WHILE j < commSize DO
@@ -543,14 +535,14 @@ MODULE UpdaterParallel;
 		WHILE cursor # NIL DO
 			u := cursor.updater;
 			UnMark(u);
-			prior := u.UpdatedBy(0);
-			IF ~(GraphNodes.mark IN  prior.props) THEN lastColour := FALSE END;
+			prior := u.Node(0);
+			IF ~(GraphNodes.mark IN prior.props) THEN lastColour := FALSE END;
 			cursor := cursor.next
 		END;
-		rowId.id := -ABS(rowId.id)
+		rowId.id := - ABS(rowId.id)
 	END RandomEffectsMRF;
-	
-	PROCEDURE AddConstraint (constraint: UpdaterUpdaters.Updater;VAR  lists: ARRAY OF List;
+
+	PROCEDURE AddConstraint (constraint: UpdaterUpdaters.Updater; VAR lists: ARRAY OF List;
 	VAR rowId: RowId);
 		VAR
 			j, commSize: INTEGER;
@@ -570,7 +562,7 @@ MODULE UpdaterParallel;
 			INC(j)
 		END
 	END AddConstraint;
-	
+
 	PROCEDURE CompleteRows (lists: ARRAY OF List);
 		VAR
 			i, num, size: INTEGER;
@@ -596,8 +588,8 @@ MODULE UpdaterParallel;
 		END
 	END CompleteRows;
 
-	PROCEDURE DistributeObservations* (updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
-	id: POINTER TO ARRAY OF INTEGER;
+	PROCEDURE DistributeObservations* (IN updaters: ARRAY OF UpdaterUpdaters.Vector;
+	IN id: ARRAY OF INTEGER;
 	OUT observations: POINTER TO ARRAY OF GraphStochastic.Vector);
 		VAR
 			i, j, k, numChild, numUpdaters, commSize: INTEGER;
@@ -609,7 +601,7 @@ MODULE UpdaterParallel;
 		CONST
 			count = 0;
 			add = 1;
-			
+
 		PROCEDURE ClearMarks;
 		BEGIN
 			i := 0;
@@ -668,7 +660,7 @@ MODULE UpdaterParallel;
 		ok := DevianceDo(count);
 		j := 0;
 		WHILE j < commSize DO
-			IF numData[j] > 0 THEN 
+			IF numData[j] > 0 THEN
 				NEW(observations[j], numData[j]);
 				numData[j] := 0
 			ELSE
@@ -702,21 +694,21 @@ MODULE UpdaterParallel;
 		UpdaterActions.MarkDistributed;
 		depth := maxDepth;
 		WHILE depth >= minDepth DO
-			FixedEffects(depth, chain, lists, rowId); 
+			FixedEffects(depth, chain, lists, rowId);
 			(*	do structured random effects	*)
 			FindMRF(depth, chain, mrfList, constraint);
 			WHILE mrfList # NIL DO
 				REPEAT
-					RandomEffectsMRF(depth, chain, mrfList, lists, rowId, lastColour); 
+					RandomEffectsMRF(mrfList, lists, rowId, lastColour);
 				UNTIL lastColour;
-				IF constraint # NIL THEN 
+				IF constraint # NIL THEN
 					AddConstraint(constraint, lists, rowId)
-				END; 
+				END;
 				FindMRF(depth, chain, mrfList, constraint)
 			END;
 			(*	do un-structured random effects	*)
 			REPEAT
-				RandomEffects(depth, chain, lists, rowId, new); 
+				RandomEffects(depth, chain, lists, rowId, new);
 			UNTIL ~new;
 			DEC(depth)
 		END;
@@ -754,7 +746,7 @@ MODULE UpdaterParallel;
 			i := 0;
 			WHILE i < commSize DO
 				updaters[i, j] := lists[i].updater;
-				prior := lists[i].updater.UpdatedBy(0);
+				prior := lists[i].updater.Node(0);
 				IF prior # NIL THEN
 					prior.SetProps(prior.props - {GraphNodes.mark})
 				END;
@@ -773,7 +765,7 @@ MODULE UpdaterParallel;
 		IF commSize > 1 THEN
 			j := 0;
 			WHILE j < numUpdaters DO
-				IF id[j] =  - 1 THEN
+				IF id[j] = - 1 THEN
 					q := updaters[0, j].Prior(0);
 					prior := updaters[1, j].Prior(0);
 					IF (prior = NIL) & ~(q IS GraphMRF.Node) THEN
@@ -793,6 +785,136 @@ MODULE UpdaterParallel;
 		colPtr := NIL;
 		rowInd := NIL
 	END DistributeUpdaters;
+
+	PROCEDURE DistributeStochastic* (IN updaters: ARRAY OF UpdaterUpdaters.Vector): POINTER TO ARRAY OF GraphStochastic.Vector;
+		VAR
+			i, j, k, commSize, len, num, size: INTEGER;
+			p: GraphStochastic.Node;
+			u: UpdaterUpdaters.Updater;
+			stochastics: POINTER TO ARRAY OF GraphStochastic.Vector;
+	BEGIN
+		commSize := LEN(updaters);
+		num := LEN(updaters[0]);
+		j := 0;
+		len := 0;
+		WHILE j < num DO
+			u := updaters[0, j];
+			size := u.Size();
+			INC(len, size);
+			INC(j)
+		END;
+		NEW(stochastics, commSize);
+		i := 0;
+		WHILE i < commSize DO
+			NEW(stochastics[i], len);
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < commSize DO
+			j := 0;
+			len := 0;
+			WHILE j < num DO
+				u := updaters[i, j];
+				size := u.Size();
+				k := 0;
+				WHILE k < size DO
+					p := u.Node(k);
+					IF p = NIL THEN p := GraphDummy.fact.New() END;
+					stochastics[i, len] := p;
+					INC(len);
+					INC(k)
+				END;
+				INC(j)
+			END;
+			INC(i)
+		END;
+		RETURN stochastics
+	END DistributeStochastic;
+
+	PROCEDURE SetStochastics* (stochastics: POINTER TO ARRAY OF GraphStochastic.Vector);
+	BEGIN
+		globalStochs := stochastics
+	END SetStochastics;
+
+	PROCEDURE ReadSample* (IN values: ARRAY OF REAL);
+		VAR
+			i, j, commSize, num: INTEGER;
+	BEGIN
+		commSize := LEN(globalStochs);
+		num := LEN(globalStochs[0]);
+		i := 0;
+		WHILE i < commSize DO
+			j := 0;
+			WHILE j < num DO
+				globalStochs[i, j].SetValue(values[i * num + j]);
+				INC(j)
+			END;
+			INC(i)
+		END
+	END ReadSample;
+
+	PROCEDURE WriteSample* (OUT values: ARRAY OF REAL);
+		VAR
+			i, j, commSize, num: INTEGER;
+	BEGIN
+		commSize := LEN(globalStochs);
+		num := LEN(globalStochs[0]);
+		i := 0;
+		WHILE i < commSize DO
+			j := 0;
+			WHILE j < num DO
+				values[i * num + j] := globalStochs[i, j].value;
+				INC(j)
+			END;
+			INC(i)
+		END
+	END WriteSample;
+
+	PROCEDURE ExternalizeStochastics* (VAR wr: Stores.Writer);
+		VAR
+			i, j, commSize, num: INTEGER;
+	BEGIN
+		commSize := LEN(globalStochs);
+		num := LEN(globalStochs[0]);
+		wr.WriteInt(commSize);
+		wr.WriteInt(num);
+		i := 0;
+		WHILE i < commSize DO
+			j := 0;
+			WHILE j < num DO
+				GraphNodes.ExternalizePointer(globalStochs[i, j], wr);
+				INC(j)
+			END;
+			INC(i)
+		END
+	END ExternalizeStochastics;
+
+	PROCEDURE InternalizeStochastics* (VAR rd: Stores.Reader);
+		VAR
+			i, j, commSize, num: INTEGER;
+			p: GraphNodes.Node;
+	BEGIN
+		commSize := LEN(globalStochs);
+		num := LEN(globalStochs[0]);
+		rd.ReadInt(commSize);
+		rd.ReadInt(num);
+		NEW(globalStochs, commSize);
+		i := 0;
+		WHILE i < commSize DO
+			NEW(globalStochs[i], num);
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < commSize DO
+			j := 0;
+			WHILE j < num DO
+				p := GraphNodes.InternalizePointer(rd);
+				globalStochs[i, j] := p(GraphStochastic.Node);
+				INC(j)
+			END;
+			INC(i)
+		END
+	END InternalizeStochastics;
 
 	PROCEDURE CountRows (id: POINTER TO ARRAY OF INTEGER; blockNum: INTEGER): INTEGER;
 		VAR
@@ -828,9 +950,9 @@ MODULE UpdaterParallel;
 				u := updaters[i, j];
 				k := 0;
 				WHILE k < size DO
-					block[offset] := u.UpdatedBy(k);
+					block[offset] := u.Node(k);
 					IF block[offset] = NIL THEN (*	handle dummy updater case	*)
-						block[offset] := GraphFlat.fact.New();
+						block[offset] := GraphDummy.fact.New();
 						block[offset].SetValue(0.0)
 					END;
 					INC(offset);
@@ -856,7 +978,7 @@ MODULE UpdaterParallel;
 			size := u.Size();
 			i := 0;
 			WHILE i < size DO
-				prior := u.UpdatedBy(i);
+				prior := u.Node(i);
 				IF prior # NIL THEN
 					prior.SetProps(prior.props + mark)
 				END;
@@ -879,7 +1001,7 @@ MODULE UpdaterParallel;
 			size := u.Size();
 			i := 0;
 			WHILE i < size DO
-				prior := u.UpdatedBy(i);
+				prior := u.Node(i);
 				IF prior # NIL THEN
 					prior.SetProps(prior.props - mark)
 				END;

@@ -76,7 +76,6 @@ MODULE UpdaterNaivemet;
 		prior := updater.prior;
 		oldVal := prior.value;
 		oldDen := prior.LogConditional();
-		prior.PropagateMsg(GraphLogical.metBegin);
 		newVal := MathRandnum.Normal(oldVal, precision);
 		prior.SetValue(newVal);
 		newDen := prior.LogConditional();
@@ -84,9 +83,7 @@ MODULE UpdaterNaivemet;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
 			prior.SetValue(oldVal);
 			INC(updater.rejectCount);
-			prior.PropagateMsg(GraphLogical.metReject)
 		END;
-		prior.PropagateMsg(GraphLogical.metEnd);
 		INC(updater.iteration);
 		IF updater.iteration MOD batch = 0 THEN
 			updater.rejectCount := 0

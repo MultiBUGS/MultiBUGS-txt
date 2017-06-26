@@ -111,6 +111,11 @@ MODULE UpdaterEmpty;
 		RETURN 0.0
 	END LogLikelihood;
 
+	PROCEDURE (updater: Updater) Node (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN NIL
+	END Node;
+
 	PROCEDURE (updater: Updater) Prior (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		RETURN NIL
@@ -133,11 +138,6 @@ MODULE UpdaterEmpty;
 	BEGIN
 		RETURN updater.size
 	END Size;
-
-	PROCEDURE (updater: Updater) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		RETURN NIL
-	END UpdatedBy;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN

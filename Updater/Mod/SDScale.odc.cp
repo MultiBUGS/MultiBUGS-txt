@@ -125,7 +125,6 @@ MODULE UpdaterSDScale;
 		prior := updater.prior;
 		oldVal := prior.value;
 		oldDen := prior.LogConditional();
-		prior.PropagateMsg(GraphLogical.metBegin);
 		a := updater.a;
 		b := updater.b;
 		piHat := updater.piHat;
@@ -138,7 +137,6 @@ MODULE UpdaterSDScale;
 		 - 0.5 * (newVal - oldVal) * (newVal - oldVal) * (precY - precX);
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
 			prior.SetValue(oldVal);
-			prior.PropagateMsg(GraphLogical.metReject)
 		ELSE
 			IF Math.Ln(1.0 + ABS(prior.value)) > piHat THEN
 				INC(updater.acceptCount1)
@@ -147,7 +145,6 @@ MODULE UpdaterSDScale;
 			END
 		END;
 		updater.sumG := updater.sumG + Math.Ln(1.0 + ABS(prior.value));
-		prior.PropagateMsg(GraphLogical.metEnd);
 		INC(updater.iteration);
 		IF updater.iteration MOD batch = 0 THEN
 			rate := (updater.acceptCount1 + updater.acceptCount2) / batch;

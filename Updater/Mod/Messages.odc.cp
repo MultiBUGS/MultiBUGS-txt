@@ -44,8 +44,6 @@ MODULE UpdaterMessages;
 
 		StoreKey("UpdaterCatagorical.Install", "categorical");
 
-		StoreKey("UpdaterChain.Install", "wrapper for chain graph");
-
 		StoreKey("UpdaterDEblock.InstallHetro", "differential evolution (mixed) block");
 		StoreKey("UpdaterDEblock.InstallGLM", "differential evolution (glm) block");
 
@@ -102,6 +100,8 @@ MODULE UpdaterMessages;
 
 		StoreKey("UpdaterRejection.InstallLogit", "logit rejection");
 		StoreKey("UpdaterRejection.InstallLoglin", "log-linear rejection");
+
+		StoreKey("UpdaterMALA1D.Install", "adaptive acceptance rate MALA");
 
 		StoreKey("UpdaterSCAAR.InstallMH", "adaptive acceptance rate");
 

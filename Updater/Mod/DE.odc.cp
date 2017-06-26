@@ -59,7 +59,7 @@ MODULE UpdaterDE;
 		UpdaterActions.FindUpdater(updater, updater.chain, index);
 		i := 0;
 		WHILE i < numChains DO
-			updater.updaters[i] := UpdaterActions.GetUpdater(i, index);
+			updater.updaters[i] := UpdaterActions.updaters[i, index];
 			INC(i)
 		END
 	END BuildProposal;

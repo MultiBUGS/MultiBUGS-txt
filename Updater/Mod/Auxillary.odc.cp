@@ -33,20 +33,16 @@ MODULE UpdaterAuxillary;
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
-	PROCEDURE (updater: UpdaterUV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
-
-	PROCEDURE (updater: UpdaterUV) ExternalizeAuxillary- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-	PROCEDURE (updater: UpdaterUV) InternalizeAuxillary- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 	
 	PROCEDURE (updater: UpdaterUV) Children* (): GraphStochastic.Vector;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.UpdatedBy(0);
+		prior := updater.Node(0);
 		RETURN prior.Children()
 	END Children;
+
+	PROCEDURE (updater: UpdaterUV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterUV) CopyFrom- (source: UpdaterUpdaters.Updater);
 		VAR
@@ -62,9 +58,11 @@ MODULE UpdaterAuxillary;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.UpdatedBy(0);
+		prior := updater.Node(0);
 		RETURN prior.depth
 	END Depth;
+
+	PROCEDURE (updater: UpdaterUV) ExternalizeAuxillary- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterUV) Externalize- (VAR wr: Stores.Writer);
 	BEGIN
@@ -85,6 +83,8 @@ MODULE UpdaterAuxillary;
 	PROCEDURE (updater: UpdaterUV) Initialize-;
 	BEGIN
 	END Initialize;
+
+	PROCEDURE (updater: UpdaterUV) InternalizeAuxillary- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterUV) Internalize- (VAR rd: Stores.Reader);
 	BEGIN
@@ -114,7 +114,7 @@ MODULE UpdaterAuxillary;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.UpdatedBy(0);
+		prior := updater.Node(0);
 		prior.SetValue(updater.value)
 	END LoadSample;
 
@@ -151,20 +151,16 @@ MODULE UpdaterAuxillary;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		prior := updater.UpdatedBy(0);
+		prior := updater.Node(0);
 		updater.value := prior.value
 	END StoreSample;
-
-	PROCEDURE (updater: UpdaterMV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
-
-	PROCEDURE (updater: UpdaterMV) ExternalizeAuxillary- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-	PROCEDURE (updater: UpdaterMV) InternalizeAuxillary- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterMV) Children* (): GraphStochastic.Vector;
 	BEGIN
 		RETURN NIL
 	END Children;
+
+	PROCEDURE (updater: UpdaterMV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterMV) CopyFrom- (source: UpdaterUpdaters.Updater);
 		VAR
@@ -188,18 +184,20 @@ MODULE UpdaterAuxillary;
 			d, depth, i, size: INTEGER;
 			p: GraphStochastic.Node;
 	BEGIN
-		p := updater.UpdatedBy(0);
+		p := updater.Node(0);
 		depth := p.depth;
 		size := updater.Size();
 		i := 1;
 		WHILE i < size DO
-			p := updater.UpdatedBy(i);
+			p := updater.Node(i);
 			d := p.depth;
 			depth := MAX(depth, d);
 			INC(i)
 		END;
 		RETURN depth
 	END Depth;
+
+	PROCEDURE (updater: UpdaterMV) ExternalizeAuxillary- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterMV) ExternalizePrior- (VAR wr: Stores.Writer);
 	
@@ -244,6 +242,8 @@ MODULE UpdaterAuxillary;
 		NEW(updater.values, size)
 	END InternalizePrior;
 
+	PROCEDURE (updater: UpdaterMV) InternalizeAuxillary- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+
 	PROCEDURE (updater: UpdaterMV) Internalize- (VAR rd: Stores.Reader);
 		VAR
 			i, size: INTEGER;
@@ -275,7 +275,8 @@ MODULE UpdaterAuxillary;
 		i := 0;
 		size := updater.Size();
 		WHILE i < size DO
-			prior := updater.UpdatedBy(i);
+			prior := updater.Node(i);
+			prior.SetValue(updater.values[i]);
 			prior.SetProps(prior.props + {GraphStochastic.initialized});
 			INC(i)
 		END
@@ -317,7 +318,7 @@ MODULE UpdaterAuxillary;
 		i := 0;
 		size := updater.Size();
 		WHILE i < size DO
-			prior := updater.UpdatedBy(i);
+			prior := updater.Node(i);
 			updater.values[i] := prior.value;
 			INC(i)
 		END
