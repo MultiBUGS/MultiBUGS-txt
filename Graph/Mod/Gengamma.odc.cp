@@ -16,7 +16,7 @@ MODULE GraphGengamma;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -179,16 +179,16 @@ MODULE GraphGengamma;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.value <  - eps THEN
+		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
 		IF node.r.Value() < 0 THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.mu.Value() <  - eps THEN
+		IF node.mu.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.beta.Value() <  - eps THEN
+		IF node.beta.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -239,18 +239,6 @@ MODULE GraphGengamma;
 			node.beta := args.scalars[2]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.r := GraphParamtrans.LogTransform(p.r);
-		p.beta := GraphParamtrans.LogTransform(p.beta);
-		p.mu := GraphParamtrans.LogTransform(p.beta);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR

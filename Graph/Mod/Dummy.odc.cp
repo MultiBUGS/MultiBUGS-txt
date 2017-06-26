@@ -99,7 +99,7 @@ MODULE GraphDummy;
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
 		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.initialized,
-		GraphStochastic.nR, GraphStochastic.update, GraphNodes.hidden})
+		GraphStochastic.hidden, GraphStochastic.update})
 	END InitUnivariate;
 
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
@@ -130,15 +130,6 @@ MODULE GraphDummy;
 		HALT(0)
 	END Sample;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
-
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR
 			node: Node;
@@ -157,11 +148,6 @@ MODULE GraphDummy;
 	BEGIN
 		GraphNodes.SetFactory(fact)
 	END Install;
-
-	PROCEDURE IsDummy* (node: GraphNodes.Node): BOOLEAN;
-	BEGIN
-		RETURN node IS Node
-	END IsDummy;
 
 	PROCEDURE Maintainer;
 	BEGIN

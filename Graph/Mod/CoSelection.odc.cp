@@ -11,7 +11,7 @@ MODULE GraphCoSelection;
 
 	IMPORT
 		Stores,
-		GraphBern, GraphFlat, GraphLogical, GraphNodes, GraphNormal,
+		GraphBern, GraphLogical, GraphNodes, GraphNormal,
 		GraphRules, GraphScalar, GraphStochastic, GraphUnivariate, GraphVD, GraphVector;
 
 	TYPE
@@ -270,11 +270,6 @@ MODULE GraphCoSelection;
 			p: GraphStochastic.Node;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		node.k.AddParent(list);
 		GraphNodes.ClearList(list);
 		RETURN list
@@ -436,11 +431,6 @@ MODULE GraphCoSelection;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
@@ -487,7 +477,7 @@ MODULE GraphCoSelection;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (predictor: PredictorNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (predictor: PredictorNode) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -496,7 +486,7 @@ MODULE GraphCoSelection;
 		v.components := predictor.z;
 		v.start := predictor.zStart; v.nElem := predictor.zSize; v.step := predictor.zStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
 	PROCEDURE (predictor: PredictorNode) InitLogical;
 	BEGIN
@@ -504,7 +494,7 @@ MODULE GraphCoSelection;
 		predictor.z := NIL
 	END InitLogical;
 
-	PROCEDURE (predictor: PredictorNode) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (predictor: PredictorNode) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -514,7 +504,7 @@ MODULE GraphCoSelection;
 		predictor.zSize := v.nElem;
 		predictor.zStart := v.start;
 		predictor.zStep := v.step;
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: PredictorNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -527,11 +517,6 @@ MODULE GraphCoSelection;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;

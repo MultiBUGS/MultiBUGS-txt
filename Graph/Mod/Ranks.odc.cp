@@ -14,18 +14,18 @@ MODULE GraphRanks;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphVector,
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathSort;
 
 	TYPE
 
-		RankedNode = POINTER TO RECORD(GraphScalar.MemNode)
+		RankedNode = POINTER TO RECORD(GraphMemory.Node)
 			start, step, nElem: INTEGER;
 			rank: GraphNodes.Node;
 			vector: GraphNodes.Vector
 		END;
 
-		RankNode = POINTER TO RECORD(GraphScalar.MemNode)
+		RankNode = POINTER TO RECORD(GraphMemory.Node)
 			start, step, nElem: INTEGER;
 			index: GraphNodes.Node;
 			vector: GraphNodes.Vector
@@ -36,9 +36,9 @@ MODULE GraphRanks;
 			vector: GraphNodes.Vector
 		END;
 
-		RankedFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		RankedFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
-		RankFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		RankFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 		SortFactory = POINTER TO RECORD(GraphVector.Factory) END;
 
@@ -46,8 +46,7 @@ MODULE GraphRanks;
 		eps = 1.0E-20;
 
 	VAR
-		factRanked-, factRank-: GraphScalar.Factory;
-		factSort-: GraphVector.Factory;
+		factRanked-, factRank-, factSort-: GraphNodes.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		workValues: POINTER TO ARRAY OF REAL;
@@ -106,7 +105,7 @@ MODULE GraphRanks;
 		HALT(126)
 	END EvaluateVD;
 
-	PROCEDURE (node: RankedNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: RankedNode) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -115,9 +114,9 @@ MODULE GraphRanks;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.rank, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: RankedNode) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: RankedNode) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -125,7 +124,7 @@ MODULE GraphRanks;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
 		node.vector := v.components;
 		node.rank := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: RankedNode) InitLogical;
 	BEGIN
@@ -273,7 +272,7 @@ MODULE GraphRanks;
 		HALT(126)
 	END EvaluateVD;
 
-	PROCEDURE (node: RankNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: RankNode) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -282,16 +281,16 @@ MODULE GraphRanks;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.index, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: RankNode) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: RankNode) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
 		node.index := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: RankNode) InitLogical;
 	BEGIN
@@ -522,7 +521,7 @@ MODULE GraphRanks;
 		HALT(126)
 	END ValDiff;
 
-	PROCEDURE (f: RankedFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: RankedFactory) New (): GraphMemory.Node;
 		VAR
 			node: RankedNode;
 	BEGIN
@@ -536,7 +535,7 @@ MODULE GraphRanks;
 		signature := "vs"
 	END Signature;
 
-	PROCEDURE (f: RankFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: RankFactory) New (): GraphMemory.Node;
 		VAR
 			node: RankNode;
 	BEGIN

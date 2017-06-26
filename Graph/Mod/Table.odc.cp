@@ -14,20 +14,20 @@ MODULE GraphTable;
 
 	IMPORT
 		Stores, 
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
 
-		Node = POINTER TO RECORD(GraphScalar.MemNode)
+		Node = POINTER TO RECORD(GraphMemory.Node)
 			nElem, xStart, xStep, yStart, yStep: INTEGER;
 			x0: GraphNodes.Node;
 			x, y: GraphNodes.Vector
 		END;
 
-		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
+		Factory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 	VAR
-		fact-: GraphScalar.Factory;
+		fact-: GraphNodes.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -119,7 +119,7 @@ MODULE GraphTable;
 		diff := diff * slope
 	END EvaluateVD;
 	
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -131,9 +131,9 @@ MODULE GraphTable;
 		v.start := node.yStart; v.nElem := node.nElem; v.step := node.yStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.x0, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -144,7 +144,7 @@ MODULE GraphTable;
 		node.y := v.components;
 		node.yStart := v.start; node.nElem := v.nElem; node.yStep := v.step;
 		node.x0 := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -240,7 +240,7 @@ MODULE GraphTable;
 		END
 	END Set;
 
-	PROCEDURE (f: Factory) New (): GraphScalar.Node;
+	PROCEDURE (f: Factory) New (): GraphMemory.Node;
 		VAR
 			node: Node;
 	BEGIN

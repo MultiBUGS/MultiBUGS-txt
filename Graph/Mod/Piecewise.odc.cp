@@ -63,7 +63,7 @@ MODULE GraphPiecewise;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			len, i: INTEGER;
 	BEGIN
@@ -76,9 +76,9 @@ MODULE GraphPiecewise;
 			GraphNodes.Externalize(node.components[i], wr);
 			INC(i);
 		END;
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			len, i: INTEGER;
 	BEGIN
@@ -95,7 +95,7 @@ MODULE GraphPiecewise;
 			node.components[i] := GraphNodes.Internalize(rd);
 			INC(i);
 		END;
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -136,7 +136,6 @@ MODULE GraphPiecewise;
 		(*	need to set node.dummy	*)
 		argsS.Init;
 		node.dummy.Set(argsS, res);
-		node.dummy.SetProps({GraphStochastic.nR});
 		WITH args: GraphStochastic.ArgsLogical DO
 			ASSERT(args.vectors[0].components # NIL, trap);
 			len := LEN(args.vectors[0].components);

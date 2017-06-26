@@ -14,7 +14,7 @@ MODULE GraphZipf;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -83,7 +83,7 @@ MODULE GraphZipf;
 	BEGIN
 		alpha := node.alpha.Value();
 		x := node.value;
-		logDensity :=  - Math.Ln(MathFunc.Zeta(alpha)) - alpha * Math.Ln(x);
+		logDensity := - Math.Ln(MathFunc.Zeta(alpha)) - alpha * Math.Ln(x);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
 
@@ -127,7 +127,7 @@ MODULE GraphZipf;
 	BEGIN
 		alpha := node.alpha.Value();
 		x := node.value;
-		; logDensity :=  - Math.Ln(MathFunc.Zeta(alpha)) - alpha * Math.Ln(x);
+		; logDensity := - Math.Ln(MathFunc.Zeta(alpha)) - alpha * Math.Ln(x);
 		RETURN logDensity
 	END LogLikelihoodUnivariate;
 
@@ -137,7 +137,7 @@ MODULE GraphZipf;
 	BEGIN
 		alpha := node.alpha.Value();
 		x := node.value;
-		logPrior :=  - alpha * Math.Ln(x);
+		logPrior := - alpha * Math.Ln(x);
 		RETURN logPrior
 	END LogPrior;
 
@@ -166,16 +166,6 @@ MODULE GraphZipf;
 			node.alpha := args.scalars[0]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.alpha := GraphParamtrans.LogTransform(p.alpha);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR

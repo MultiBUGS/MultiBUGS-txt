@@ -23,10 +23,6 @@ MODULE GraphVector;
 			index-: INTEGER
 		END;
 
-		MetNode* = POINTER TO ABSTRACT RECORD(Node)
-			old: REAL
-		END;
-
 		Factory* = POINTER TO ABSTRACT RECORD (GraphLogical.Factory) END;
 
 	VAR
@@ -54,9 +50,6 @@ MODULE GraphVector;
 			WHILE i < size DO GraphNodes.ExternalizePointer(components[i], wr); INC(i) END;
 			i := 0;
 			WHILE i < size DO wr.WriteReal(node.values[i]); INC(i) END;
-		END;
-		IF node IS MetNode THEN
-			wr.WriteReal(node(MetNode).old)
 		END;
 		node.ExternalizeVector(wr)
 	END ExternalizeLogical;
@@ -113,9 +106,6 @@ MODULE GraphVector;
 				INC(i)
 			END
 		END;
-		IF node IS MetNode THEN
-			rd.ReadReal(node(MetNode).old)
-		END;
 		node.InternalizeVector(rd)
 	END InternalizeLogical;
 
@@ -138,51 +128,14 @@ MODULE GraphVector;
 			r: Node;
 	BEGIN
 		q := node.components[0];
-		r := q(Node);
-		IF evaluate * r.props # {} THEN
+		IF evaluate * q.props # {} THEN
+			r := q(Node);
 			r.Evaluate(r.values);
 			r.SetProps(r.props - {GraphLogical.dirty})
 		END;
 		index := node.index;
 		RETURN node.values[index]
 	END Value;
-
-	PROCEDURE (node: MetNode) HandleMsg* (msg: INTEGER);
-		VAR
-			i, size: INTEGER;
-			p: MetNode;
-			first: GraphLogical.Node;
-	BEGIN
-		IF ~(GraphLogical.alwaysEvaluate IN node.components[0].props) THEN
-			first := node.components[0];
-			IF msg = GraphLogical.metBegin THEN
-				IF ~(GraphLogical.dirty IN node.components[0].props) THEN
-					size := node.Size();
-					i := 0;
-					WHILE i < size DO
-						p := node.components[i](MetNode);
-						p.old := p.values[i];
-						INC(i)
-					END;
-					first.SetProps(first.props + {GraphLogical.saved})
-				END
-			ELSIF msg = GraphLogical.metReject THEN
-				IF GraphLogical.saved IN node.components[0].props THEN
-					size := node.Size();
-					i := 0;
-					WHILE i < size DO
-						p := node.components[i](MetNode);
-						p.values[i] := p.old;
-						INC(i)
-					END;
-					first.SetProps(first.props - {GraphLogical.dirty})
-				END
-			ELSIF msg = GraphLogical.metEnd THEN
-				first.SetProps(first.props - {GraphLogical.saved})
-			ELSE
-			END
-		END
-	END HandleMsg;
 
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
 

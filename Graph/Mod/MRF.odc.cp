@@ -27,16 +27,20 @@ MODULE GraphMRF;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE (node: Node) Bounds* (OUT lower, upper: REAL);
+	BEGIN
+		lower :=  - INF;
+		upper := INF
+	END Bounds;
+
+	PROCEDURE (node: Node) MatrixElements* (OUT values: ARRAY OF REAL), NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) MatrixInfo* (OUT type, nElements: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) MatrixMap* (OUT rowInd, colPtr: ARRAY OF INTEGER),
 	NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) MatrixElements* (OUT values: ARRAY OF REAL), NEW, ABSTRACT;
-
 	PROCEDURE (node: Node) NumberNeighbours* (): INTEGER, NEW, ABSTRACT;
-
-	PROCEDURE (node: Node) ThinLikelihood* (first, thin: INTEGER), NEW, ABSTRACT;
 	
 	PROCEDURE Maintainer;
 	BEGIN

@@ -16,7 +16,7 @@ MODULE GraphLogistic;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -36,13 +36,13 @@ MODULE GraphLogistic;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left :=  - INF;
+		left := - INF;
 		right := INF
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() <  - eps THEN
+		IF node.tau.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -115,18 +115,18 @@ MODULE GraphLogistic;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.tau.props) THEN
 			node.mu.ValDiff(x, mu, diffMu);
 			tau := node.tau.Value();
-			differential := diffMu * (- tau + 2 * tau * factor);
+			differential := diffMu * ( - tau + 2 * tau * factor);
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
 			mu := node.mu.Value();
 			node.tau.ValDiff(x, tau, diffTau);
 			differential := diffTau * (1 / tau + (val - mu) - 2 * (val - mu) * factor);
 			factor := Math.Exp(tau * (val - mu)) / (1.0 + Math.Exp(tau * (val - mu)));
-			differential := diffMu * (- tau + 2 * tau * factor);
+			differential := diffMu * ( - tau + 2 * tau * factor);
 		ELSE
 			node.mu.ValDiff(x, mu, diffMu);
 			node.tau.ValDiff(x, tau, diffTau);
 			factor := Math.Exp(tau * (val - mu)) / (1.0 + Math.Exp(tau * (val - mu)));
-			differential := diffMu * (- tau + 2 * tau * factor)
+			differential := diffMu * ( - tau + 2 * tau * factor)
 			 + diffTau * (1 / tau + (val - mu) - 2 * (val - mu) * factor);
 		END;
 		RETURN differential
@@ -218,17 +218,6 @@ MODULE GraphLogistic;
 			node.tau := args.scalars[1]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.IdentTransform(p.mu);
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR

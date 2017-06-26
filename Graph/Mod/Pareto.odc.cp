@@ -16,7 +16,7 @@ MODULE GraphPareto;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -109,7 +109,7 @@ MODULE GraphPareto;
 	BEGIN
 		x := node.value;
 		alpha := node.alpha.Value();
-		differential :=  - (alpha + 1.0) / x;
+		differential := - (alpha + 1.0) / x;
 		RETURN differential
 	END DiffLogPrior;
 
@@ -143,7 +143,7 @@ MODULE GraphPareto;
 	BEGIN
 		x := node.value;
 		alpha := node.alpha.Value();
-		logPrior :=  - (alpha + 1.0) * Math.Ln(x);
+		logPrior := - (alpha + 1.0) * Math.Ln(x);
 		RETURN logPrior
 	END LogPrior;
 
@@ -163,7 +163,7 @@ MODULE GraphPareto;
 			p0 := prior.alpha.Value();
 			p1 := prior.c.Value()
 		ELSE
-			p0 :=  - prior.alpha.Value();
+			p0 := - prior.alpha.Value();
 			p1 := 0.0
 		END
 	END PriorForm;
@@ -180,7 +180,7 @@ MODULE GraphPareto;
 	BEGIN
 		c := node.c.Value();
 		alpha := node.alpha.Value();
-		IF c <  - eps THEN
+		IF c < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		IF node.value < c - eps THEN
@@ -231,17 +231,6 @@ MODULE GraphPareto;
 			node.c := args.scalars[1]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.alpha := GraphParamtrans.IdentTransform(p.alpha);
-		p.c := GraphParamtrans.IdentTransform(p.c);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR

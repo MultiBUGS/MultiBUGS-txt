@@ -11,7 +11,7 @@ MODULE GraphSpline;
 
 	IMPORT
 		Math, Stores,
-		GraphBern, GraphFlat, GraphLogical, GraphNodes, GraphNormal, GraphRules, GraphScalar,
+		GraphBern, GraphLogical, GraphNodes, GraphNormal, GraphRules, GraphScalar,
 		GraphStochastic, GraphUniform, GraphUnivariate, GraphVD, GraphVector;
 
 	TYPE
@@ -179,11 +179,6 @@ MODULE GraphSpline;
 			p: GraphStochastic.Node;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		node.k.AddParent(list);
 		GraphNodes.ClearList(list);
 		RETURN list
@@ -678,11 +673,6 @@ MODULE GraphSpline;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
@@ -731,17 +721,17 @@ MODULE GraphSpline;
 		HALT(126)
 	END ValDiff;
 
-	PROCEDURE (predictor: PredictorNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (predictor: PredictorNode) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(predictor.node, wr);
 		wr.WriteReal(predictor.x)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (predictor: PredictorNode) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (predictor: PredictorNode) InternalizeLogical (VAR rd: Stores.Reader);
 	BEGIN
 		predictor.node := GraphNodes.Internalize(rd);
 		rd.ReadReal(predictor.x)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (f: FactoryLinearDescrete) New (): GraphVector.Node;
 		VAR

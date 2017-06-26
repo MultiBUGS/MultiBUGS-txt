@@ -16,8 +16,7 @@ MODULE GraphDirichlet;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphParamtrans, GraphRules,
-		GraphStochastic,
+		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -53,7 +52,7 @@ MODULE GraphDirichlet;
 		i := 0;
 		WHILE i < nElem DO
 			prop := node.components[i].value;
-			IF (prop <  - eps) OR (prop > 1.0 + eps) THEN
+			IF (prop < - eps) OR (prop > 1.0 + eps) THEN
 				RETURN {GraphNodes.proportion, GraphNodes.lhs}
 			END;
 			sum := sum + prop;
@@ -216,7 +215,7 @@ MODULE GraphDirichlet;
 	BEGIN
 		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
 		node.alpha := NIL;
-		node.start :=  - 1;
+		node.start := - 1;
 		node.step := 0
 	END InitConjugateMV;
 
@@ -495,29 +494,6 @@ MODULE GraphDirichlet;
 			END;
 		END
 	END SetConjugateMV;
-
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			i, nElem, start, step: INTEGER;
-			vector: GraphNodes.Vector;
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		i := 0;
-		start := p.start;
-		step := p.step;
-		nElem := p.Size();
-		NEW(vector, nElem);
-		WHILE i < nElem DO
-			vector[i] := GraphParamtrans.IdentTransform(p.alpha[start + i * step]);
-			INC(i)
-		END;
-		p.alpha := vector;
-		p.start := 0;
-		p.step := 1;
-		RETURN p
-	END Modify;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

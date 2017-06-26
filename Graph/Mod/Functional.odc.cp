@@ -14,11 +14,11 @@ MODULE GraphFunctional;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic,
 		MathFunctional;
 
 	TYPE
-		Node* = POINTER TO ABSTRACT RECORD(GraphScalar.MetNode)
+		Node* = POINTER TO ABSTRACT RECORD(GraphMemory.Node)
 			tol: REAL;
 			function, x, x0, x1: GraphNodes.Node;
 			functional: MathFunctional.Functional;
@@ -77,23 +77,23 @@ MODULE GraphFunctional;
 		HALT(126)
 	END EvaluateVD;
 
-	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeMemory- (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteReal(node.tol);
 		GraphNodes.Externalize(node.function, wr);
 		GraphNodes.Externalize(node.x, wr);
 		GraphNodes.Externalize(node.x0, wr);
 		GraphNodes.Externalize(node.x1, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeMemory- (VAR rd: Stores.Reader);
 	BEGIN
 		rd.ReadReal(node.tol);
 		node.function := GraphNodes.Internalize(rd);
 		node.x := GraphNodes.Internalize(rd);
 		node.x0 := GraphNodes.Internalize(rd);
 		node.x1 := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN

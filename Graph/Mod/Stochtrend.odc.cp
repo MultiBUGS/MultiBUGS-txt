@@ -13,10 +13,13 @@ MODULE GraphStochtrend;
 	
 
 	IMPORT
-		GraphMRF, GraphUVGMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
+		Stores,
+		GraphMRF,
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUVMRF,
+		MathFunc;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphUVGMRF.Node) END;
+		Node = POINTER TO RECORD(GraphUVMRF.Normal) END;
 
 		Factory = POINTER TO RECORD (GraphMultivariate.Factory) END;
 
@@ -24,31 +27,63 @@ MODULE GraphStochtrend;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		start, step: INTEGER;
-		
+
+	PROCEDURE (node: Node) CheckUVMRF (): SET;
+	BEGIN
+		RETURN {}
+	END CheckUVMRF;
+
+	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF (parent: GraphStochastic.Node): INTEGER;
+	BEGIN
+		RETURN GraphRules.unif
+	END ClassifyLikelihoodUVMRF;
+
+	PROCEDURE (node: Node) ExternalizeChainUVMRF (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeChainUVMRF;
+
+	PROCEDURE (node: Node) InitStochasticUVMRF;
+	BEGIN
+	END InitStochasticUVMRF;
+
+	PROCEDURE (node: Node) InternalizeChainUVMRF (VAR rd: Stores.Reader);
+	BEGIN
+	END InternalizeChainUVMRF;
+
+	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
+	BEGIN
+		RETURN NIL
+	END ParentsUVMRF;
+
+	PROCEDURE (node: Node) SetUVMRF (IN args: GraphNodes.Args; OUT res: SET);
+	BEGIN
+		res := {}
+	END SetUVMRF;
+
+
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
-			index, size: INTEGER;
+			i, size: INTEGER;
 			differential, tau, x, mean: REAL;
 			b: GraphStochastic.Vector;
 	BEGIN
-		index := node.index;
+		i := node.index;
 		size := node.Size();
 		tau := node.tau.Value();
 		x := node.value;
 		b := node.components;
-		IF index = 0 THEN
+		IF i = 0 THEN
 			mean := 2 * b[1].value - b[2].value;
-		ELSIF index = 1 THEN
+		ELSIF i = 1 THEN
 			mean := (2 * b[0].value + 4 * b[2].value - b[3].value) / 5
-		ELSIF index < size - 2 THEN
-			mean := (4 * b[index - 1].value + 4 * b[index + 1].value - b[index - 2].value - b[index + 2].value) / 6
-		ELSIF index = size - 2 THEN
+		ELSIF i < size - 2 THEN
+			mean := (4 * b[i - 1].value + 4 * b[i + 1].value - b[i - 2].value - b[i + 2].value) / 6
+		ELSIF i = size - 2 THEN
 			mean := (2 * b[size - 1].value + 4 * b[size - 3].value - b[size - 4].value) / 5
 		ELSE
 			mean := 2 * b[size - 2].value - b[size - 3].value
 		END;
-		differential :=  - tau * (x - mean);
+		differential := - tau * (x - mean);
 		RETURN differential
 	END DiffLogPrior;
 
@@ -65,44 +100,54 @@ MODULE GraphStochtrend;
 			b: GraphStochastic.Vector;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		ASSERT(node.index = 0, 20);
 		size := node.Size();
 		p0 := 0.0;
 		p1 := 0.0;
-		i := start;
-		WHILE i < size DO
-			IF i = 0 THEN
-				b := node.components;
-				sumWeights := 1;
-				value := b[0].value;
-				mean := 2 * b[1].value - b[2].value;
-				p1 := sumWeights * value * (value - mean);
-			ELSIF i = 1 THEN
-				sumWeights := 5;
-				value := b[1].value;
-				mean := (2 * b[0].value + 4 * b[2].value - b[3].value) / sumWeights;
-				p1 := p1 + sumWeights * value * (value - mean);
-			ELSIF i = size - 2 THEN
-				sumWeights := 5;
-				value := b[size - 2].value;
-				mean := (2 * b[size - 1].value + 4 * b[size - 3].value - b[size - 4].value) / sumWeights;
-				p1 := p1 + sumWeights * value * (value - mean);
-			ELSIF i = size - 1 THEN
-				sumWeights := 1;
-				value := b[size - 1].value;
-				mean := 2 * b[size - 2].value - b[size - 3].value;
-				p1 := p1 + sumWeights * value * (value - mean);
-			ELSE
-				sumWeights := 6; value := b[i].value;
-				mean := (4 * b[i - 1].value + 4 * b[i + 1].value - b[i - 2].value - b[i + 2].value) / sumWeights;
-				p1 := p1 + sumWeights * value * (value - mean)
-			END;
-			p0 := p0 + 0.5;
-			INC(i, step)
+		b := node.components;
+		i := node.index;
+		IF i = 0 THEN
+			sumWeights := 1;
+			value := b[0].value;
+			mean := 2 * b[1].value - b[2].value;
+			p1 := sumWeights * value * (value - mean);
+		ELSIF i = 1 THEN
+			sumWeights := 5;
+			value := b[1].value;
+			mean := (2 * b[0].value + 4 * b[2].value - b[3].value) / sumWeights;
+			p1 := p1 + sumWeights * value * (value - mean);
+		ELSIF i = size - 2 THEN
+			sumWeights := 5;
+			value := b[size - 2].value;
+			mean := (2 * b[size - 1].value + 4 * b[size - 3].value - b[size - 4].value) / sumWeights;
+			p1 := p1 + sumWeights * value * (value - mean);
+		ELSIF i = size - 1 THEN
+			sumWeights := 1;
+			value := b[size - 1].value;
+			mean := 2 * b[size - 2].value - b[size - 3].value;
+			p1 := p1 + sumWeights * value * (value - mean);
+		ELSE
+			sumWeights := 6; value := b[i].value;
+			mean := (4 * b[i - 1].value + 4 * b[i + 1].value - b[i - 2].value - b[i + 2].value) / sumWeights;
+			p1 := p1 + sumWeights * value * (value - mean)
 		END;
+		p0 := 0.5;
 		p1 := 0.5 * p1;
 		x := node.tau
 	END LikelihoodForm;
+
+	PROCEDURE (node: Node) LogLikelihood (): REAL;
+		VAR
+			as: INTEGER;
+			lambda, logLikelihood, logTau, r, tau: REAL;
+			x: GraphNodes.Node;
+	BEGIN
+		as := GraphRules.gamma;
+		node.LikelihoodForm(as, x, r, lambda);
+		tau := x.Value();
+		logTau := MathFunc.Ln(tau);
+		logLikelihood := r * logTau - tau * lambda;
+		RETURN logLikelihood
+	END LogLikelihood;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -122,17 +167,17 @@ MODULE GraphStochtrend;
 		size := node.Size();
 		nElements := 3 * size - 3;
 		nnz := 0;
-		elements[nnz] := tau; INC(nnz); elements[nnz] :=  - 2 * tau; INC(nnz); 
+		elements[nnz] := tau; INC(nnz); elements[nnz] := - 2 * tau; INC(nnz);
 		elements[nnz] := tau; INC(nnz);
-		elements[nnz] := 5 * tau; INC(nnz); elements[nnz] :=  - 4 * tau; INC(nnz); 
+		elements[nnz] := 5 * tau; INC(nnz); elements[nnz] := - 4 * tau; INC(nnz);
 		elements[nnz] := tau; INC(nnz);
 		i := 2;
 		WHILE i < size - 2 DO
-			elements[nnz] := 6 * tau; INC(nnz); elements[nnz] :=  - 4 * tau; INC(nnz); 
+			elements[nnz] := 6 * tau; INC(nnz); elements[nnz] := - 4 * tau; INC(nnz);
 			elements[nnz] := tau; INC(nnz);
 			INC(i)
 		END;
-		elements[nnz] := 5 * tau; INC(nnz); elements[nnz] :=  - 2 * tau; INC(nnz);
+		elements[nnz] := 5 * tau; INC(nnz); elements[nnz] := - 2 * tau; INC(nnz);
 		elements[nnz] := tau; INC(nnz);
 		ASSERT(nnz = nElements, 66)
 	END MatrixElements;
@@ -179,7 +224,7 @@ MODULE GraphStochtrend;
 	BEGIN
 		size := node.Size();
 		index := node.index;
-		IF (index = 0) OR (index = size - 1) THEN 
+		IF (index = 0) OR (index = size - 1) THEN
 			num := 2
 		ELSIF (index = 1) OR (index = size - 1) THEN
 			num := 3
@@ -188,16 +233,6 @@ MODULE GraphStochtrend;
 		END;
 		RETURN num
 	END NumberNeighbours;
-
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.TransformParams;
-		RETURN p
-	END Modify;
 
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
@@ -232,20 +267,12 @@ MODULE GraphStochtrend;
 		END
 	END PriorForm;
 
-	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
-	BEGIN
-		start := first;
-		step := thin
-	END ThinLikelihood;
-
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
 			node: Node;
 	BEGIN
 		NEW(node);
 		node.Init;
-		start := 0;
-		step := 1;
 		RETURN node
 	END New;
 
@@ -271,9 +298,7 @@ MODULE GraphStochtrend;
 	BEGIN
 		Maintainer;
 		NEW(f);
-		fact := f;
-		start := 0;
-		step := 1
+		fact := f
 	END Init;
 
 BEGIN

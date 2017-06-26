@@ -43,7 +43,7 @@ MODULE GraphSample;
 
 	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END Bounds;
 
@@ -72,7 +72,7 @@ MODULE GraphSample;
 		be a node of type GraphSample.Node
 		*)
 		size := node.theta.Size();
-		size0 :=  - 1;
+		size0 := - 1;
 		i := 0;
 		children := node.theta.Children();
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
@@ -84,7 +84,7 @@ MODULE GraphSample;
 				props := theta.props;
 				theta.SetProps(props + {GraphNodes.mark});
 				size1 := sNode.Size();
-				IF (size0 #  - 1) & (size0 # size1) THEN class := GraphRules.invalid END;
+				IF (size0 # - 1) & (size0 # size1) THEN class := GraphRules.invalid END;
 				size0 := size1;
 				INC(i)
 			ELSE
@@ -250,15 +250,6 @@ MODULE GraphSample;
 			END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END Modify;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

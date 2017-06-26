@@ -48,11 +48,11 @@ MODULE GraphWeight;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.cutParent, wr);
 		GraphNodes.Externalize(node.weight, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -66,11 +66,11 @@ MODULE GraphWeight;
 		install := "GraphWeight.Install"
 	END Install;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 	BEGIN
 		node.cutParent := GraphNodes.Internalize(rd);
 		node.weight := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR

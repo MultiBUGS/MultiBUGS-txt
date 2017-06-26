@@ -14,7 +14,7 @@ MODULE GraphTrapezium;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -252,19 +252,6 @@ MODULE GraphTrapezium;
 			node.d := args.scalars[3]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.a := GraphParamtrans.IdentTransform(p.a);
-		p.b := GraphParamtrans.IdentTransform(p.b);
-		p.c := GraphParamtrans.IdentTransform(p.c);
-		p.d := GraphParamtrans.IdentTransform(p.d);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

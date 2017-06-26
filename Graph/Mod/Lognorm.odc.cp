@@ -16,7 +16,7 @@ MODULE GraphLognorm;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -91,7 +91,7 @@ MODULE GraphLognorm;
 		mu := node.mu.Value();
 		tau := node.tau.Value();
 		logTau := MathFunc.Ln(tau);
-		logDensity :=  - logX + 0.5 * logTau - 0.5 * tau * (logX - mu) * (logX - mu) - 0.5 * log2Pi;
+		logDensity := - logX + 0.5 * logTau - 0.5 * tau * (logX - mu) * (logX - mu) - 0.5 * log2Pi;
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
 
@@ -105,7 +105,7 @@ MODULE GraphLognorm;
 			OR (GraphNodes.data IN node.tau.props) THEN
 			node.mu.ValDiff(x, mu, diffMu);
 			tau := node.tau.Value();
-			differential :=  - diffMu * tau * (mu - logX)
+			differential := - diffMu * tau * (mu - logX)
 		ELSIF (GraphStochastic.hint1 IN x.props)
 			OR (x.classConditional IN {GraphRules.gamma, GraphRules.gamma1})
 			OR (GraphNodes.data IN node.mu.props) THEN
@@ -115,7 +115,7 @@ MODULE GraphLognorm;
 		ELSE
 			node.mu.ValDiff(x, mu, diffMu);
 			node.tau.ValDiff(x, tau, diffTau);
-			differential :=  - diffMu * tau * (mu - logX) + 0.5 * diffTau * (1 / tau - (mu - logX) * (mu - logX))
+			differential := - diffMu * tau * (mu - logX) + 0.5 * diffTau * (1 / tau - (mu - logX) * (mu - logX))
 		END;
 		RETURN differential
 	END DiffLogLikelihood;
@@ -128,7 +128,7 @@ MODULE GraphLognorm;
 		logX := Math.Ln(x);
 		mu := node.mu.Value();
 		tau := node.tau.Value();
-		differential :=  - (1 + tau * (logX - mu)) / x;
+		differential := - (1 + tau * (logX - mu)) / x;
 		RETURN differential
 	END DiffLogPrior;
 
@@ -198,11 +198,11 @@ MODULE GraphLognorm;
 		VAR
 			tau: REAL;
 	BEGIN
-		IF node.value <  - eps THEN
+		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
 		tau := node.tau.Value();
-		IF tau <  - eps THEN
+		IF tau < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -236,17 +236,6 @@ MODULE GraphLognorm;
 		node.tau.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.IdentTransform(p.mu);
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN

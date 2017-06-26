@@ -16,7 +16,7 @@ MODULE GraphNormal;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphConstant, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic,
+		GraphConjugateUV, GraphConstant, GraphNodes, GraphRules, GraphStochastic,
 		GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
@@ -38,13 +38,13 @@ MODULE GraphNormal;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left :=  - INF;
+		left := - INF;
 		right := INF
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() <  - eps THEN
+		IF node.tau.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -120,7 +120,7 @@ MODULE GraphNormal;
 			OR (GraphNodes.data IN node.tau.props) THEN
 			node.mu.ValDiff(x, mu, diffMu);
 			tau := node.tau.Value();
-			differential :=  - diffMu * tau * (mu - val)
+			differential := - diffMu * tau * (mu - val)
 		ELSIF (GraphStochastic.hint1 IN x.props)
 			OR (x.classConditional IN {GraphRules.gamma, GraphRules.gamma1})
 			OR (GraphNodes.data IN node.mu.props) THEN
@@ -130,7 +130,7 @@ MODULE GraphNormal;
 		ELSE
 			node.mu.ValDiff(x, mu, diffMu);
 			node.tau.ValDiff(x, tau, diffTau);
-			differential :=  - diffMu * tau * (val - mu) + 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu))
+			differential := - diffMu * tau * (val - mu) + 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu))
 		END;
 		RETURN differential
 	END DiffLogLikelihood;
@@ -142,7 +142,7 @@ MODULE GraphNormal;
 		x := node.value;
 		mu := node.mu.Value();
 		tau := node.tau.Value();
-		differential :=  - tau * (x - mu);
+		differential := - tau * (x - mu);
 		RETURN differential
 	END DiffLogPrior;
 
@@ -266,17 +266,6 @@ MODULE GraphNormal;
 		res := {}
 	END Sample;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.IdentTransform(p.mu);
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		RETURN p
-	END ModifyUnivariate;
-
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR
 			node: Node;
@@ -313,7 +302,7 @@ MODULE GraphNormal;
 			normals[i] := fact.New();
 			normals[i].Set(args, res);
 			props := normals[i].props;
-			normals[i].SetProps(props + {GraphNodes.hidden, GraphStochastic.initialized});
+			normals[i].SetProps(props + {GraphStochastic.hidden, GraphStochastic.initialized});
 			INC(i)
 		END;
 		RETURN normals

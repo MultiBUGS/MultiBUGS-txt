@@ -14,7 +14,7 @@ MODULE GraphTriangle;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -229,18 +229,6 @@ MODULE GraphTriangle;
 			node.c := args.scalars[2]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.a := GraphParamtrans.IdentTransform(p.a);
-		p.b := GraphParamtrans.IdentTransform(p.b);
-		node.c := GraphParamtrans.IdentTransform(p.c);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

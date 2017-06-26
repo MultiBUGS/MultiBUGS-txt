@@ -32,7 +32,7 @@ MODULE GraphPriorNP;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left :=  - INF;
+		left := - INF;
 		right := INF
 	END BoundsUnivariate;
 
@@ -100,9 +100,9 @@ MODULE GraphPriorNP;
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
 		node.sample := NIL;
-		node.size :=  - 1;
-		node.start :=  - 1;
-		node.step :=  - 1;
+		node.size := - 1;
+		node.start := - 1;
+		node.step := - 1;
 		node.SetProps(node.props + {GraphStochastic.noMean})
 	END InitUnivariate;
 
@@ -172,15 +172,6 @@ MODULE GraphPriorNP;
 			INC(i)
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

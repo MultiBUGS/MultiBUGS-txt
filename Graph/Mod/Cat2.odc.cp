@@ -29,7 +29,7 @@ MODULE GraphCat2;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsUnivariate;
 
@@ -137,15 +137,6 @@ MODULE GraphCat2;
 			node.s := args.scalars[0]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

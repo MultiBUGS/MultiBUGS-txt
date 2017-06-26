@@ -14,7 +14,7 @@ MODULE GraphFounder;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -50,7 +50,7 @@ MODULE GraphFounder;
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
 		p := node.p.Value();
-		IF (p <=  - eps) OR (p >= 1 + eps) THEN
+		IF (p <= - eps) OR (p >= 1 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -213,16 +213,6 @@ MODULE GraphFounder;
 			node.p := args.scalars[0]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.p := GraphParamtrans.LogitTransform(p.p);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (ft: Factory) New (): GraphUnivariate.Node;
 		VAR

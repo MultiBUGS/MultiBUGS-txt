@@ -16,7 +16,7 @@ MODULE GraphBeta;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -177,17 +177,6 @@ MODULE GraphBeta;
 		node.normalize := ~(GraphNodes.data IN node.a.props) OR ~(GraphNodes.data IN node.b.props)
 	END SetUnivariate;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.a := GraphParamtrans.IdentTransform(p.a);
-		p.b := GraphParamtrans.IdentTransform(p.b);
-		RETURN p
-	END ModifyUnivariate;
-
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
 		left := 0.0;
@@ -201,7 +190,7 @@ MODULE GraphBeta;
 			eps = 1.0E-20;
 	BEGIN
 		p := node.value;
-		IF (p <  - eps) OR (p > 1.0 + eps) THEN
+		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.lhs}
 		END;
 		IF node.a.Value() < eps THEN

@@ -13,10 +13,13 @@ MODULE GraphRandwalk;
 	
 
 	IMPORT
-		GraphMRF, GraphUVGMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
+		Stores,
+		GraphMRF,
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUVMRF,
+		MathFunc;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphUVGMRF.Node) END;
+		Node = POINTER TO RECORD(GraphUVMRF.Normal) END;
 
 		Factory = POINTER TO RECORD (GraphMultivariate.Factory) END;
 
@@ -24,8 +27,40 @@ MODULE GraphRandwalk;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		start, step: INTEGER;
-		
+
+	PROCEDURE (node: Node) CheckUVMRF (): SET;
+	BEGIN
+		RETURN {}
+	END CheckUVMRF;
+
+	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF (parent: GraphStochastic.Node): INTEGER;
+	BEGIN
+		RETURN GraphRules.unif
+	END ClassifyLikelihoodUVMRF;
+
+	PROCEDURE (node: Node) ExternalizeChainUVMRF (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeChainUVMRF;
+
+	PROCEDURE (node: Node) InitStochasticUVMRF;
+	BEGIN
+	END InitStochasticUVMRF;
+
+	PROCEDURE (node: Node) InternalizeChainUVMRF (VAR rd: Stores.Reader);
+	BEGIN
+	END InternalizeChainUVMRF;
+
+	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
+	BEGIN
+		RETURN NIL
+	END ParentsUVMRF;
+
+	PROCEDURE (node: Node) SetUVMRF (IN args: GraphNodes.Args; OUT res: SET);
+	BEGIN
+		res := {}
+	END SetUVMRF;
+
+
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
 			index, size: INTEGER;
@@ -44,7 +79,7 @@ MODULE GraphRandwalk;
 		ELSE
 			mean := b[size - 2].value
 		END;
-		differential :=  - tau * (x - mean);
+		differential := - tau * (x - mean);
 		RETURN differential
 	END DiffLogPrior;
 
@@ -61,32 +96,40 @@ MODULE GraphRandwalk;
 			b: GraphStochastic.Vector;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		ASSERT(node.index = 0, 20);
-		size := node.Size();
-		p0 := 0.0;
+		size := LEN(node.components);
+		i := node.index;
 		p1 := 0.0;
 		b := node.components;
-		i := start;
-		WHILE i < size DO
-			IF i = 0 THEN
-				value := b[0].value;
-				mean := b[1].value;
-				p1 := p1 + value * (value - mean);
-			ELSIF i = size - 1 THEN
-				value := b[size - 1].value;
-				mean := b[size - 2].value;
-				p1 := p1 + value * (value - mean);
-			ELSE
-				sumWeights := 2; value := b[i].value;
-				mean := (b[i - 1].value + b[i + 1].value) / sumWeights;
-				p1 := p1 + sumWeights * value * (value - mean)
-			END;
-			p0 := p0 + 0.5;
-			INC(i, step)
+		IF i = 0 THEN
+			value := b[0].value;
+			mean := b[1].value;
+			p1 := p1 + value * (value - mean);
+		ELSIF i = size - 1 THEN
+			value := b[size - 1].value;
+			mean := b[size - 2].value;
+			p1 := p1 + value * (value - mean);
+		ELSE
+			sumWeights := 2; value := b[i].value;
+			mean := (b[i - 1].value + b[i + 1].value) / sumWeights;
+			p1 := p1 + sumWeights * value * (value - mean)
 		END;
-		p1 := 0.5 * p1;
+		p0 := 0.5;
 		x := node.tau
 	END LikelihoodForm;
+
+	PROCEDURE (node: Node) LogLikelihood (): REAL;
+		VAR
+			as: INTEGER;
+			lambda, logLikelihood, logTau, r, tau: REAL;
+			x: GraphNodes.Node;
+	BEGIN
+		as := GraphRules.gamma;
+		node.LikelihoodForm(as, x, r, lambda);
+		tau := x.Value();
+		logTau := MathFunc.Ln(tau);
+		logLikelihood := r * logTau - tau * lambda;
+		RETURN logLikelihood
+	END LogLikelihood;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -106,10 +149,10 @@ MODULE GraphRandwalk;
 		size := node.Size();
 		nElements := 2 * size - 1;
 		nnz := 0;
-		values[nnz] := tau; INC(nnz); values[nnz] :=  - tau; INC(nnz);
+		values[nnz] := tau; INC(nnz); values[nnz] := - tau; INC(nnz);
 		i := 1;
 		WHILE i < size - 1 DO
-			values[nnz] := 2 * tau; INC(nnz); values[nnz] :=  - tau; INC(nnz);
+			values[nnz] := 2 * tau; INC(nnz); values[nnz] := - tau; INC(nnz);
 			INC(i)
 		END;
 		values[nnz] := tau; INC(nnz);
@@ -143,16 +186,6 @@ MODULE GraphRandwalk;
 		ASSERT(nnz = nElements, 66)
 	END MatrixMap;
 
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.TransformParams;
-		RETURN p
-	END Modify;
-
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN 1
@@ -164,14 +197,14 @@ MODULE GraphRandwalk;
 	BEGIN
 		size := node.Size();
 		index := node.index;
-		IF (index = 0) OR (index = size - 1) THEN 
+		IF (index = 0) OR (index = size - 1) THEN
 			num := 1
 		ELSE
 			num := 2
 		END;
 		RETURN num
 	END NumberNeighbours;
-	
+
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
 			index, size: INTEGER;
@@ -199,20 +232,12 @@ MODULE GraphRandwalk;
 		END
 	END PriorForm;
 
-	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
-	BEGIN
-		start := first;
-		step := thin
-	END ThinLikelihood;
-
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
 			node: Node;
 	BEGIN
 		NEW(node);
 		node.Init;
-		start := 0;
-		step := 1;
 		RETURN node
 	END New;
 
@@ -238,9 +263,7 @@ MODULE GraphRandwalk;
 	BEGIN
 		Maintainer;
 		NEW(f);
-		fact := f;
-		start := 0;
-		step := 1
+		fact := f
 	END Init;
 
 BEGIN

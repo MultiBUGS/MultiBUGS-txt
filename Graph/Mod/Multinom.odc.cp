@@ -23,8 +23,8 @@ MODULE GraphMultinom;
 	
 
 	IMPORT
-		Stores, 
-		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphParamtrans, GraphRules,
+		Stores,
+		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules,
 		GraphStochastic,
 		MathFunc, MathRandnum;
 
@@ -91,7 +91,7 @@ MODULE GraphMultinom;
 		i := 0;
 		WHILE i < nElem DO
 			prob := p[start + i * step].Value();
-			IF (prob <  - eps) OR (prob > 1.0 + eps) THEN
+			IF (prob < - eps) OR (prob > 1.0 + eps) THEN
 				RETURN {GraphNodes.proportion, GraphNodes.arg1}
 			END;
 			sum := sum + prob;
@@ -253,9 +253,9 @@ MODULE GraphMultinom;
 		node.SetProps(node.props + {GraphStochastic.integer, GraphStochastic.leftNatural,
 		GraphStochastic.rightNatural, GraphStochastic.noMean});
 		node.p := NIL;
-		node.start :=  - 1;
+		node.start := - 1;
 		node.step := 0;
-		node.order :=  - 1
+		node.order := - 1
 	END InitConjugateMV;
 
 	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
@@ -410,7 +410,7 @@ MODULE GraphMultinom;
 			node.components[i].SetValue(rand[i]);
 			INC(i)
 		END;
-		res := {} 
+		res := {}
 	END MVSample;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
@@ -427,7 +427,7 @@ MODULE GraphMultinom;
 		components := node.components;
 		order := node.order;
 		i := 0;
-		last :=  - 1;
+		last := - 1;
 		WHILE i < nElem DO
 			IF ~(GraphNodes.data IN components[i].props) THEN last := i END;
 			INC(i)
@@ -483,18 +483,6 @@ MODULE GraphMultinom;
 		RETURN list
 	END ParentsConjugateMV;
 
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			size: INTEGER;
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node;
-		size := p.Size();
-		GraphParamtrans.MultiLogitTransform(p.p, p.start, size, p.step);
-		RETURN p
-	END Modify;
-	
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
 			i, order, size, start, step: INTEGER;
@@ -517,53 +505,53 @@ MODULE GraphMultinom;
 		WHILE i < size DO
 			node.components[i].SetValue(x[i]);
 			INC(i)
-		END; 
-	END Sample;
-	
-(*	PROCEDURE (node: Node) Sample (OUT res: SET);
-		CONST
-			maxIts = 100;
-		VAR
-			i, index, iterations, lastStoch, n, nElem, start, step: INTEGER;
-			newLast, oldLast, oldX, p, sumP, sumX, x: REAL;
-			components: GraphStochastic.Vector;
-	BEGIN
-		components := node.components;
-		nElem := LEN(components);
-		start := node.start;
-		step := node.step;
-		i := 0;
-		index := node.index;
-		sumX := 0;
-		sumP := 0.0;
-		WHILE i < nElem DO
-			IF (GraphNodes.data IN components[i].props) OR (i < index) THEN
-				sumP := sumP + node.p[start + i * step].Value();
-				sumX := sumX + components[i].value
-			END;
-			IF ~(GraphNodes.data IN components[i].props) THEN lastStoch := i END;
-			INC(i)
 		END;
-		p := node.p[start + index * step].Value();
-		IF 1.0 - sumP > eps THEN p := p / (1.0 - sumP) END;
-		n := node.order - SHORT(ENTIER(sumX + eps));
-		oldX := node.value;
-		oldLast := node.components[lastStoch].value;
-		iterations := maxIts;
-		LOOP
-			DEC(iterations);
-			x := MathRandnum.Binomial(p, n);
-			newLast := oldX + oldLast - x;
-			IF newLast >= 0 THEN
-				node.SetValue(x);
-				node.components[lastStoch].SetValue(x);
-				res := {};
-				EXIT
-			ELSIF iterations = 0 THEN
-				res := {GraphNodes.tooManyIts};
-				EXIT
-			END
-		END
+	END Sample;
+
+	(*	PROCEDURE (node: Node) Sample (OUT res: SET);
+	CONST
+	maxIts = 100;
+	VAR
+	i, index, iterations, lastStoch, n, nElem, start, step: INTEGER;
+	newLast, oldLast, oldX, p, sumP, sumX, x: REAL;
+	components: GraphStochastic.Vector;
+	BEGIN
+	components := node.components;
+	nElem := LEN(components);
+	start := node.start;
+	step := node.step;
+	i := 0;
+	index := node.index;
+	sumX := 0;
+	sumP := 0.0;
+	WHILE i < nElem DO
+	IF (GraphNodes.data IN components[i].props) OR (i < index) THEN
+	sumP := sumP + node.p[start + i * step].Value();
+	sumX := sumX + components[i].value
+	END;
+	IF ~(GraphNodes.data IN components[i].props) THEN lastStoch := i END;
+	INC(i)
+	END;
+	p := node.p[start + index * step].Value();
+	IF 1.0 - sumP > eps THEN p := p / (1.0 - sumP) END;
+	n := node.order - SHORT(ENTIER(sumX + eps));
+	oldX := node.value;
+	oldLast := node.components[lastStoch].value;
+	iterations := maxIts;
+	LOOP
+	DEC(iterations);
+	x := MathRandnum.Binomial(p, n);
+	newLast := oldX + oldLast - x;
+	IF newLast >= 0 THEN
+	node.SetValue(x);
+	node.components[lastStoch].SetValue(x);
+	res := {};
+	EXIT
+	ELSIF iterations = 0 THEN
+	res := {GraphNodes.tooManyIts};
+	EXIT
+	END
+	END
 	END Sample;*)
 
 	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);

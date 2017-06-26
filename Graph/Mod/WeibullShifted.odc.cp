@@ -15,7 +15,7 @@ MODULE GraphWeibullShifted;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -155,7 +155,7 @@ MODULE GraphWeibullShifted;
 		nu := node.nu.Value();
 		lambda := node.lambda.Value();
 		x0 := node.x0.Value();
-		mean := Math.Power(lambda,  - 1 / nu) * Math.Exp(MathFunc.LogGammaFunc(1 + 1 / nu));
+		mean := Math.Power(lambda, - 1 / nu) * Math.Exp(MathFunc.LogGammaFunc(1 + 1 / nu));
 		RETURN mean + x0
 	END Location;
 
@@ -208,13 +208,13 @@ MODULE GraphWeibullShifted;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.nu.Value() <  - eps THEN
+		IF node.nu.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() <  - eps THEN
+		IF node.lambda.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.x0.Value() <  - eps THEN
+		IF node.x0.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		IF node.value < node.x0.Value() THEN
@@ -255,17 +255,6 @@ MODULE GraphWeibullShifted;
 		node.x0.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p.nu := GraphParamtrans.IdentTransform(p.nu);
-		p.lambda := GraphParamtrans.LogTransform(p.lambda);
-		p.x0 := GraphParamtrans.IdentTransform(p.x0);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN

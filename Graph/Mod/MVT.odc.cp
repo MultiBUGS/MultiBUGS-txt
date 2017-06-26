@@ -22,7 +22,7 @@ MODULE GraphMVT;
 	IMPORT
 		Math, Stores,
 		GraphConjugateMV, GraphConjugateUV, GraphConstant, GraphGamma, GraphHalf,
-		GraphMultivariate, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic,
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathFunc, MathMatrix, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
@@ -77,6 +77,11 @@ MODULE GraphMVT;
 	BEGIN
 	END InternalizeAuxillary;
 
+	PROCEDURE (auxillary: Auxillary) Node (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN auxillary.node(Node).lambda
+	END Node;
+
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			i, j, nElem, muStart, muStep, tauStart, tauStep: INTEGER;
@@ -113,11 +118,6 @@ MODULE GraphMVT;
 		value := MathRandnum.Gamma(r, lam);
 		lambda.SetValue(value)
 	END Sample;
-	
-	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		RETURN auxillary.node(Node).lambda
-	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -143,7 +143,7 @@ MODULE GraphMVT;
 
 	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsConjugateMV;
 
@@ -422,10 +422,10 @@ MODULE GraphMVT;
 	PROCEDURE (node: Node) InitConjugateMV;
 	BEGIN
 		node.mu := NIL;
-		node.muStart :=  - 1;
+		node.muStart := - 1;
 		node.muStep := 0;
 		node.tau := NIL;
-		node.tauStart :=  - 1;
+		node.tauStart := - 1;
 		node.tauStep := 0;
 		node.k := NIL
 	END InitConjugateMV;
@@ -602,7 +602,7 @@ MODULE GraphMVT;
 	BEGIN
 		x := node.value;
 		node.PriorForm(GraphRules.normal, mu, tau);
-		prior :=  - 0.50 * tau * (x - mu) * (x - mu);
+		prior := - 0.50 * tau * (x - mu) * (x - mu);
 		RETURN prior
 	END LogPrior;
 
@@ -742,7 +742,7 @@ MODULE GraphMVT;
 		lambda := node.lambda.value;
 		mu := node.mu[muStart + index * muStep].Value();
 		p1 := node.tau[tauStart + (index * nElem + index) * tauStep].Value();
-		p0 :=  - p1 * mu;
+		p0 := - p1 * mu;
 		i := 0;
 		WHILE i < nElem DO
 			IF i # index THEN
@@ -753,7 +753,7 @@ MODULE GraphMVT;
 			END;
 			INC(i)
 		END;
-		p0 :=  - p0 / p1;
+		p0 := - p0 / p1;
 		p1 := p1 * lambda
 	END PriorForm;
 
@@ -835,7 +835,7 @@ MODULE GraphMVT;
 					lambda.Set(argsS, res); ASSERT(res = {}, 67);
 					lambda.SetValue(1.0);
 					lambda.SetProps(lambda.props + {GraphNodes.data, GraphStochastic.initialized,
-					GraphNodes.hidden});
+					GraphStochastic.hidden});
 					lambda.BuildLikelihood;
 					lambda.SetProps(lambda.props - {GraphNodes.data});
 					node.lambda := lambda
@@ -857,35 +857,6 @@ MODULE GraphMVT;
 			END
 		END
 	END SetConjugateMV;
-
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			i, nElem, start, step: INTEGER;
-			mu: GraphNodes.Vector;
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		(*	need to make deep copy of mu vector	*)
-		start := p.muStart;
-		nElem := p.Size();
-		step := p.muStep;
-		NEW(mu, nElem);
-		i := 0;
-		WHILE i < nElem DO
-			mu[i] := GraphParamtrans.IdentTransform(p.mu[start + i * step]);
-			INC(i)
-		END;
-		p.mu := mu;
-		p.muStart := 0;
-		p.muStep := 1;
-		(*	need to make deep copy of tau vector	*)
-		start := p.tauStart;
-		nElem := nElem * nElem;
-		GraphParamtrans.CholeskyTransform(p.tau, p.tauStart, nElem, p.tauStep);
-		p.k := GraphParamtrans.LogTransform(p.k);
-		RETURN p
-	END Modify;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

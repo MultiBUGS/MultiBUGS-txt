@@ -80,27 +80,6 @@ MODULE GraphMultivariate;
 		node.InternalizeMultivariate(rd)
 	END InternalizeStochastic;
 
-	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
-		CONST
-			observed = {GraphNodes.data, GraphStochastic.censored};
-		VAR
-			isLikelihoodTerm: BOOLEAN;
-			i, size: INTEGER;
-			com: GraphStochastic.Vector;
-	BEGIN
-		isLikelihoodTerm := FALSE;
-		IF node.index = 0 THEN
-			com := node.components;
-			i := 0;
-			size := node.Size();
-			WHILE (i < size) & ~isLikelihoodTerm DO
-				isLikelihoodTerm := (observed * com[i].props # {}) OR (com[i].likelihood # NIL);
-				INC(i)
-			END
-		END;
-		RETURN isLikelihoodTerm
-	END IsLikelihoodTerm;
-
 	PROCEDURE (node: Node) LikelihoodForm* (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL), NEW, ABSTRACT;
 

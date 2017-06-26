@@ -74,16 +74,16 @@ MODULE GraphConstant;
 		diff := 0.0
 	END ValDiff;
 
-	PROCEDURE (node: Node) Externalize (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeNode (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteReal(node.value);
-	END Externalize;
+	END ExternalizeNode;
 
-	PROCEDURE (node: Node) Internalize (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeNode (VAR rd: Stores.Reader);
 	BEGIN
 		node.SetProps({GraphNodes.data});
 		rd.ReadReal(node.value);
-	END Internalize;
+	END InternalizeNode;
 
 	PROCEDURE (f: Factory) New (): GraphNodes.Node;
 		VAR

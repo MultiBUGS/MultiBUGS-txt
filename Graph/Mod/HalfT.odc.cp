@@ -3,12 +3,12 @@
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
-	When used as a prior on the precision is equivalent to a half T prior on the standard deviation
-	
-	Implemented as a mixture of gamma distributions
-	
-	x ~ dgamma(r, lambda)     lambda ~ dgamma(a, b)
-	
+When used as a prior on the precision is equivalent to a half T prior on the standard deviation
+
+Implemented as a mixture of gamma distributions
+
+x ~ dgamma(r, lambda)     lambda ~ dgamma(a, b)
+
 *)
 
 
@@ -17,9 +17,9 @@ MODULE GraphHalfT;
 	
 
 	IMPORT
-		Math, Stores, 
-		GraphConjugateUV, GraphFlat, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
-		MathRandnum, 
+		Math, Stores,
+		GraphConjugateUV, GraphDummy, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
+		MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
 	TYPE
@@ -39,7 +39,7 @@ MODULE GraphHalfT;
 		auxillaryFact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		
+
 	PROCEDURE (updater: Auxillary) Clone (): Auxillary;
 		VAR
 			u: Auxillary;
@@ -65,6 +65,11 @@ MODULE GraphHalfT;
 		install := "GraphHalfT.AuxillaryInstall"
 	END Install;
 
+	PROCEDURE (auxillary: Auxillary) Node (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN auxillary.node(Node).y
+	END Node;
+
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			node: Node;
@@ -80,17 +85,12 @@ MODULE GraphHalfT;
 		r2 := 0.5;
 		lambda2 := k / tau;
 		IF node.likelihood # NIL THEN
-			y :=  MathRandnum.Gamma(r1 + r2, lambda1 + lambda2)
+			y := MathRandnum.Gamma(r1 + r2, lambda1 + lambda2)
 		ELSE
 			y := MathRandnum.Gamma(r2, lambda2)
 		END;
 		node.y.SetValue(y)
 	END Sample;
-	
-	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		RETURN auxillary.node(Node).y
-	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
@@ -116,7 +116,7 @@ MODULE GraphHalfT;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  0;
+		lower := 0;
 		upper := INF
 	END BoundsUnivariate;
 
@@ -134,7 +134,7 @@ MODULE GraphHalfT;
 			RETURN {GraphNodes.notData, GraphNodes.arg1}
 		END;
 		tau := node.tau.Value();
-		IF tau <  - eps THEN
+		IF tau < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		IF ~(GraphNodes.data IN node.tau.props) THEN
@@ -146,7 +146,7 @@ MODULE GraphHalfT;
 	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate (parent: GraphStochastic.Node): INTEGER;
 	BEGIN
 		HALT(0);
-		RETURN -1
+		RETURN - 1
 	END ClassifyLikelihoodUnivariate;
 
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
@@ -214,7 +214,7 @@ MODULE GraphHalfT;
 		HALT(0);
 		RETURN 0.0
 	END Location;
-	
+
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node; OUT p0, p1: REAL);
 	BEGIN
 		HALT(0)
@@ -247,7 +247,7 @@ MODULE GraphHalfT;
 		node.y.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-	
+
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
 			r1, lambda1, k, y: REAL;
@@ -270,7 +270,7 @@ MODULE GraphHalfT;
 		y := node.y.value;
 		lambda := y * k * k;
 		x := MathRandnum.Gamma(r, lambda);
-		node.SetValue(x) 
+		node.SetValue(x)
 	END Sample;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
@@ -284,26 +284,16 @@ MODULE GraphHalfT;
 			ASSERT(args.scalars[1] # NIL, 21);
 			node.tau := args.scalars[0];
 			node.k := args.scalars[1];
-			y := GraphFlat.fact.New();
+			y := GraphDummy.fact.New();
 			(*	need to set y	*)
 			y.Set(args, res);
 			node.y := y;
 			y.SetValue(1.0);
-			y.SetProps(y.props + {GraphNodes.hidden, GraphStochastic.initialized});
+			y.SetProps(y.props + {GraphStochastic.hidden, GraphStochastic.initialized});
 			auxillary := auxillaryFact.New(node);
 			UpdaterActions.RegisterUpdater(auxillary)
 		END
 	END SetUnivariate;
-
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

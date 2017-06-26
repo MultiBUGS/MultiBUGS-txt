@@ -73,17 +73,17 @@ MODULE GraphKepler;
 		RETURN f
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.e, wr);
 		GraphNodes.Externalize(node.l, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 	BEGIN
 		node.e := GraphNodes.Internalize(rd);
 		node.l := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN

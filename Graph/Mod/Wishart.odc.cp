@@ -45,7 +45,7 @@ MODULE GraphWishart;
 
 	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsConjugateMV;
 
@@ -142,7 +142,7 @@ MODULE GraphWishart;
 		node.r := NIL;
 		node.k := NIL;
 		node.dim := 0;
-		node.start :=  - 1;
+		node.start := - 1;
 		node.step := 0
 	END InitConjugateMV;
 
@@ -348,16 +348,6 @@ MODULE GraphWishart;
 			END
 		END
 	END SetConjugateMV;
-
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		HALT(0);
-		RETURN p
-	END Modify;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

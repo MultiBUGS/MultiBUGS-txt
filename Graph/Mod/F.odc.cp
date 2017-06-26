@@ -16,7 +16,7 @@ MODULE GraphF;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -225,19 +225,6 @@ MODULE GraphF;
 		node.tau.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.IdentTransform(p.mu);
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		p.m := GraphParamtrans.IdentTransform(p.m);
-		p.n := GraphParamtrans.IdentTransform(p.n);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN

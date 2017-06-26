@@ -16,7 +16,7 @@ MODULE GraphCat;
 
 	IMPORT
 		Stores,
-		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphParamtrans, GraphRules,
+		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules,
 		GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
@@ -62,7 +62,7 @@ MODULE GraphCat;
 		i := 0;
 		WHILE i < dimP DO
 			p := node.p[start + i * step].Value();
-			IF (p <  - eps) OR (p > 1.0 + eps) THEN
+			IF (p < - eps) OR (p > 1.0 + eps) THEN
 				RETURN {GraphNodes.proportion, GraphNodes.arg1}
 			END;
 			sum := sum + p;
@@ -211,7 +211,7 @@ MODULE GraphCat;
 		{GraphStochastic.integer, GraphStochastic.leftNatural,
 		GraphStochastic.rightNatural, GraphStochastic.noMean});
 		node.p := NIL;
-		node.start :=  - 1;
+		node.start := - 1;
 		node.dimP := 0;
 		node.step := 0
 	END InitUnivariate;
@@ -346,16 +346,6 @@ MODULE GraphCat;
 			node.step := args.vectors[0].step
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		GraphParamtrans.MultiLogitTransform(p.p, p.start, p.dimP, p.step);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

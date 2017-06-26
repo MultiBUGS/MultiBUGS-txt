@@ -16,8 +16,7 @@ MODULE GraphGEV;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic,
-		GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -85,9 +84,9 @@ MODULE GraphGEV;
 		ELSIF ABS(eta) > eps THEN
 			etaInv := 1 / eta;
 			logFactor := Math.Ln(factor);
-			logLikelihood :=  - Math.Ln(sigma) - (1 + etaInv) * logFactor - Math.Exp( - etaInv * logFactor)
+			logLikelihood := - Math.Ln(sigma) - (1 + etaInv) * logFactor - Math.Exp( - etaInv * logFactor)
 		ELSE
-			logLikelihood :=  - Math.Ln(sigma) - (x - mu) / sigma - Math.Exp( - (x - mu) / sigma)
+			logLikelihood := - Math.Ln(sigma) - (x - mu) / sigma - Math.Exp( - (x - mu) / sigma)
 		END;
 		RETURN - 2 * logLikelihood
 	END DevianceUnivariate;
@@ -115,9 +114,9 @@ MODULE GraphGEV;
 		ELSIF ABS(eta) > eps THEN
 			etaInv := 1 / eta;
 			logFactor := Math.Ln(factor);
-			differential := diffFactor * (- (1 + etaInv) + etaInv * Math.Exp( - etaInv * logFactor)) / factor
+			differential := diffFactor * ( - (1 + etaInv) + etaInv * Math.Exp( - etaInv * logFactor)) / factor
 		ELSE
-			differential :=  - 1 / sigma + Math.Exp( - (x - mu) / sigma) / sigma
+			differential := - 1 / sigma + Math.Exp( - (x - mu) / sigma) / sigma
 		END;
 		RETURN differential
 	END DiffLogPrior;
@@ -143,9 +142,9 @@ MODULE GraphGEV;
 		ELSIF ABS(eta) > eps THEN
 			etaInv := 1 / eta;
 			logFactor := Math.Ln(factor);
-			logLikelihood :=  - Math.Ln(sigma) - (1 + etaInv) * logFactor - Math.Exp( - etaInv * logFactor)
+			logLikelihood := - Math.Ln(sigma) - (1 + etaInv) * logFactor - Math.Exp( - etaInv * logFactor)
 		ELSE
-			logLikelihood :=  - Math.Ln(sigma) - (x - mu) / sigma - Math.Exp( - (x - mu) / sigma)
+			logLikelihood := - Math.Ln(sigma) - (x - mu) / sigma - Math.Exp( - (x - mu) / sigma)
 		END;
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
@@ -173,11 +172,11 @@ MODULE GraphGEV;
 		IF eta > eps THEN
 			right := INF;
 			left := mu - (sigma / eta)
-		ELSIF eta <  - eps THEN
-			left :=  - INF;
+		ELSIF eta < - eps THEN
+			left := - INF;
 			right := mu - (sigma / eta)
 		ELSE
-			left :=  - INF;
+			left := - INF;
 			right := INF
 		END
 	END BoundsUnivariate;
@@ -190,7 +189,7 @@ MODULE GraphGEV;
 		sigma := node.sigma.Value();
 		eta := node.eta.Value();
 		x := node.value;
-		IF sigma <  - eps THEN
+		IF sigma < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		factor := 1.0 + eta * (x - mu) / sigma;
@@ -231,18 +230,6 @@ MODULE GraphGEV;
 		node.eta.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.IdentTransform(p.mu);
-		p.eta := GraphParamtrans.LogTransform(p.eta);
-		p.sigma := GraphParamtrans.LogTransform(p.sigma);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN

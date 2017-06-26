@@ -19,7 +19,7 @@ MODULE GraphGeometric;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -138,7 +138,7 @@ MODULE GraphGeometric;
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
 		p := node.p.Value();
-		IF (p <  - eps) OR (p > 1.0 + eps) THEN
+		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, 0}
 		END;
 		RETURN {}
@@ -157,7 +157,7 @@ MODULE GraphGeometric;
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
 		p := node.p.Value();
-		IF (p <  - eps) OR (p > 1.0 + eps) THEN
+		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, 0}
 		END;
 		RETURN {}
@@ -209,7 +209,7 @@ MODULE GraphGeometric;
 	BEGIN
 		r := node.value;
 		node.p.ValDiff(x, p, diff);
-		RETURN diff * (- r / (1 - p) + 1 / p)
+		RETURN diff * ( - r / (1 - p) + 1 / p)
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: OneNode) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
@@ -218,7 +218,7 @@ MODULE GraphGeometric;
 	BEGIN
 		r := node.value - 1;
 		node.p.ValDiff(x, p, diff);
-		RETURN diff * (- r / (1 - p) + 1 / p)
+		RETURN diff * ( - r / (1 - p) + 1 / p)
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: ZeroNode) Install (OUT install: ARRAY OF CHAR);
@@ -344,26 +344,6 @@ MODULE GraphGeometric;
 			res := {GraphNodes.lhs}
 		END
 	END Sample;
-
-	PROCEDURE (node: OneNode) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: OneNode;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.p := GraphParamtrans.LogitTransform(p.p);
-		RETURN p
-	END ModifyUnivariate;
-
-	PROCEDURE (node: ZeroNode) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: ZeroNode;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.p := GraphParamtrans.LogitTransform(p.p);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN

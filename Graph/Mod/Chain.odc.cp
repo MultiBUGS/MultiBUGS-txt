@@ -23,14 +23,6 @@ MODULE GraphChain;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) Constraints* (OUT constraints: ARRAY OF ARRAY OF REAL), NEW, ABSTRACT;
-
-	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-	PROCEDURE (node: Node) InternalizeChain- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
-	PROCEDURE (node: Node) NumberConstraints* (): INTEGER, NEW, ABSTRACT;
-
 	PROCEDURE (node: Node) AddLikelihoodTerm- (offspring: GraphStochastic.Node);
 		VAR
 			likelihood: GraphStochastic.Likelihood;
@@ -68,6 +60,8 @@ MODULE GraphChain;
 		RETURN canEvaluate
 	END CanEvaluate;
 
+	PROCEDURE (node: Node) Constraints* (OUT constraints: ARRAY OF ARRAY OF REAL), NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) DiffLogConditionalMap* (): REAL;
 		VAR
 			diffCond: REAL;
@@ -85,11 +79,15 @@ MODULE GraphChain;
 		RETURN diffCond
 	END DiffLogConditionalMap;
 
+	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer), NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) ExternalizeMultivariate- (VAR wr: Stores.Writer);
 	BEGIN
 		GraphStochastic.ExternalizeLikelihood(node.likelihood, wr);
 		node.ExternalizeChain(wr)
 	END ExternalizeMultivariate;
+
+	PROCEDURE (node: Node) InternalizeChain- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) InternalizeMultivariate- (VAR rd: Stores.Reader);
 		VAR
@@ -105,6 +103,16 @@ MODULE GraphChain;
 		node.SetValue(y)
 	END InvMap;
 
+	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
+		CONST
+			observed = {GraphNodes.data, GraphStochastic.censored};
+		VAR
+			isLikelihoodTerm: BOOLEAN;
+	BEGIN
+		isLikelihoodTerm := (observed * node.props # {}) OR (node.likelihood # NIL);
+		RETURN isLikelihoodTerm
+	END IsLikelihoodTerm;
+
 	PROCEDURE (node: Node) LogJacobian* (): REAL;
 	BEGIN
 		RETURN 0
@@ -114,6 +122,8 @@ MODULE GraphChain;
 	BEGIN
 		RETURN node.value
 	END Map;
+
+	PROCEDURE (node: Node) NumberConstraints* (): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) Representative* (): Node;
 	BEGIN

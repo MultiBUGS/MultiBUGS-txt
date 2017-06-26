@@ -19,7 +19,7 @@ MODULE GraphUnivariatetemp1;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphStochastic, GraphUnivariate, GraphUnivariateT,
+		GraphNodes, GraphStochastic, GraphUnivariate, GraphUnivariateT,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -94,7 +94,7 @@ MODULE GraphUnivariatetemp1;
 		val := node.value;
 		node.scalars[0].ValDiff(x, mu, diffMu);
 		node.scalars[1].ValDiff(x, tau, diffTau);
-		differential :=  - diffMu * tau * (val - mu) + 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu));
+		differential := - diffMu * tau * (val - mu) + 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu));
 		RETURN differential
 	END DiffLogLikelihood;
 
@@ -163,7 +163,7 @@ MODULE GraphUnivariatetemp1;
 
 		This is compulsory
 		*)
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsUnivariate;
 
@@ -185,18 +185,6 @@ MODULE GraphUnivariatetemp1;
 		UNTIL (x >= lower) & (x <= upper);
 		node.SetValue(x)
 	END Sample;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		(*	make any parameter transformatiuons required	*)
-		p.scalars[0] := GraphParamtrans.IdentTransform(p.scalars[0]);
-		p.scalars[1] := GraphParamtrans.LogTransform(p.scalars[1]);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

@@ -16,7 +16,7 @@ MODULE GraphChisqr;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -69,7 +69,7 @@ MODULE GraphChisqr;
 	BEGIN
 		x := node.value;
 		k := 0.5 * node.k.Value();
-		logDensity :=  - k * Math.Ln(2) + (k - 1.0) * Math.Ln(x) - 0.5 * x - MathFunc.LogGammaFunc(k);
+		logDensity := - k * Math.Ln(2) + (k - 1.0) * Math.Ln(x) - 0.5 * x - MathFunc.LogGammaFunc(k);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
 
@@ -81,7 +81,7 @@ MODULE GraphChisqr;
 		node.k.ValDiff(x, k, diffK);
 		k := 0.5 * k;
 		diffK := 0.5 * diffK;
-		differential :=  - diffK * Math.Ln(2) + diffK * Math.Ln(val) - diffK * MathFunc.Digamma(k);
+		differential := - diffK * Math.Ln(2) + diffK * Math.Ln(val) - diffK * MathFunc.Digamma(k);
 		RETURN differential
 	END DiffLogLikelihood;
 
@@ -105,7 +105,7 @@ MODULE GraphChisqr;
 	BEGIN
 		x := node.value;
 		k := 0.5 * node.k.Value();
-		logLikelihood :=  - k * Math.Ln(2) + (k - 1.0) * Math.Ln(x) - 0.5 * x - MathFunc.LogGammaFunc(k);
+		logLikelihood := - k * Math.Ln(2) + (k - 1.0) * Math.Ln(x) - 0.5 * x - MathFunc.LogGammaFunc(k);
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
 
@@ -147,10 +147,10 @@ MODULE GraphChisqr;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.value <  - eps THEN
+		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.k.Value() <  - eps THEN
+		IF node.k.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -180,16 +180,6 @@ MODULE GraphChisqr;
 		node.k.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.k := GraphParamtrans.LogTransform(p.k);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN

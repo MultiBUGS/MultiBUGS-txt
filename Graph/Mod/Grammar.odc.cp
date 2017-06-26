@@ -4,13 +4,13 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
 
-The abstract syntax tree can be processed to give two representations of logical nodes suitable for
-computation: firstly a stack based form (module GraphStack) and secondly Component Pascal
-code that can be compiled on the fly to new logical node classes. The stack based representation
-is used as default.
+The parse tree is first processed to a stack based representation of logical relations. This stack based representation can then be futher processed to produce Component Pascal source code that can be compiled on the fly to create new logical node classes. This is implemented in module BugsCPWrite.
 
-The data type Internal contains the integer field 'key' used by the stack based representation
-and the string field 'function' used by the Component Pascal representation.
+The data type 'Internal' contains the integer field 'key' used by the stack based representation of logical
+relations and the string field 'function' used by the Component Pascal representation.
+
+The data type 'Exterrnal' is used to both represent stochastic realations and special logical relations. The field
+'density' distinguishes the two cases. The field 'name' is the BUGS language name of a distribution or special logical function. The field 'install' is the procedure which creates a factory, field 'fact',  to create this type of stochastic or logical node. The factory is is only created if it is needed.
 
 *)
 
@@ -22,7 +22,7 @@ MODULE GraphGrammar;
 	IMPORT
 		GraphNodes;
 
-		(*	internal functions and operators	*)
+	(*	internal functions and operators	*)
 	CONST
 		ref* = 0; const* = 1; refStoch* = 2; add* = 3; sub* = 4; mult* = 5; div* = 6; uminus* = 7;
 		cloglog* = 10; cos* = 11; equals* = 12; exp* = 13; log* = 14; logfact* = 15; logit* = 16;
@@ -31,6 +31,7 @@ MODULE GraphGrammar;
 		arctan* = 31; sinh* = 32; cosh* = 33; tanh* = 34; arcsinh* = 35; arccosh* = 36;
 		arctanh* = 37; ilogit* = 38; icloglog* = 39;
 
+	(*	external functions and distributions	*)
 	TYPE
 		External* = POINTER TO RECORD
 			name-, install: ARRAY 128 OF CHAR;
@@ -53,12 +54,9 @@ MODULE GraphGrammar;
 
 	PROCEDURE Find (IN name: ARRAY OF CHAR; density: BOOLEAN): External;
 		VAR
-			i, j: INTEGER;
-			install, arg: ARRAY 1024 OF CHAR;
 			descriptor: External;
 	BEGIN
 		descriptor := externalsList;
-		install := "";
 		WHILE (descriptor # NIL) & ((descriptor.name # name) OR (descriptor.density # density)) DO
 			descriptor := descriptor.next
 		END;

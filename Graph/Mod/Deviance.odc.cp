@@ -15,7 +15,7 @@ MODULE GraphDeviance;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphMultivariate, GraphNodes, GraphParamtrans, GraphScalar, GraphStochastic;
+		GraphLogical, GraphMultivariate, GraphNodes, GraphScalar, GraphStochastic;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphScalar.Node)
@@ -42,7 +42,7 @@ MODULE GraphDeviance;
 		RETURN 0
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -59,9 +59,9 @@ MODULE GraphDeviance;
 			GraphNodes.Externalize(node.parents[i], wr);
 			INC(i)
 		END
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 			p: GraphNodes.Node;
@@ -81,7 +81,7 @@ MODULE GraphDeviance;
 			node.parents[i] := GraphNodes.Internalize(rd);
 			INC(i)
 		END
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -150,13 +150,15 @@ MODULE GraphDeviance;
 			multi: GraphMultivariate.Node;
 	BEGIN
 		isObserved := observed * stochastic.props # {};
+		isObserved := isObserved & ~(GraphStochastic.hidden IN stochastic.props);
 		IF ~isObserved & (stochastic IS GraphMultivariate.Node) THEN
 			multi := stochastic(GraphMultivariate.Node);
 			i := 0;
 			size := stochastic.Size();
 			WHILE ~isObserved & (i < size) DO
 				IF multi.components # NIL THEN
-					isObserved := observed * multi.components[i].props # {}
+					isObserved := observed * multi.components[i].props # {};
+					isObserved := isObserved & ~(GraphStochastic.hidden IN multi.components[i].props)
 				END;
 				INC(i)
 			END
@@ -200,22 +202,22 @@ MODULE GraphDeviance;
 		len := GraphStochastic.numStochastics;
 		stochastics := GraphStochastic.stochastics;
 		WHILE i < len DO
-		stoch := stochastics[i];
-		p := stoch.Representative();
-		IF p = stoch THEN
-			children := stoch.Children();
-			IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-			j := 0;
-			WHILE j < num DO
-				child := children[j];
-				child.SetProps(child.props - {GraphNodes.mark});
-				INC(j)
-			END
-		END;
-		INC(i)
-	END
+			stoch := stochastics[i];
+			p := stoch.Representative();
+			IF p = stoch THEN
+				children := stoch.Children();
+				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+				j := 0;
+				WHILE j < num DO
+					child := children[j];
+					child.SetProps(child.props - {GraphNodes.mark});
+					INC(j)
+				END
+			END;
+			INC(i)
+		END
 	END ClearMarks;
-	
+
 	PROCEDURE (f: Factory) New (): GraphLogical.Node;
 		VAR
 			deviance: Node;
@@ -244,9 +246,9 @@ MODULE GraphDeviance;
 					child := children[j];
 					IF IsObserved(child) THEN
 						observed := TRUE;
-						IF ~DevianceExists(child) THEN 
+						IF ~DevianceExists(child) THEN
 							ClearMarks;
-							RETURN NIL 
+							RETURN NIL
 						END;
 						IF ~(GraphNodes.mark IN child.props) THEN
 							child.SetProps(child.props + {GraphNodes.mark});
@@ -256,9 +258,7 @@ MODULE GraphDeviance;
 					END;
 					INC(j)
 				END;
-				IF observed THEN
-					INC(numParents)
-				END
+				IF observed THEN INC(numParents) END
 			END;
 			INC(i)
 		END;
@@ -320,65 +320,8 @@ MODULE GraphDeviance;
 		RETURN node IS Node
 	END IsDeviance;
 
-	PROCEDURE ModifiedDeviance* (node: GraphNodes.Node): GraphNodes.Node;
-		CONST
-			all = TRUE;
-		VAR
-			i, j, len, len1: INTEGER;
-			deviance: Node;
-			terms: GraphStochastic.Vector;
-			p, p1: GraphStochastic.Node;
-			q, q1: GraphNodes.Node;
-			list, parentList: GraphNodes.List;
-			com: GraphLogical.Vector;
-	BEGIN
-		IF node IS Node THEN
-			deviance := node(Node);
-			i := 0;
-			terms := deviance.terms;
-			IF terms # NIL THEN len := LEN(terms) ELSE len := 0 END;
-			NEW(deviance);
-			IF len # 0 THEN NEW(deviance.terms, len) ELSE deviance.terms := NIL END;
-			parentList := NIL;
-			WHILE i < len DO
-				p := terms[i];
-				p1 := p.Modify();
-				list := p1.Parents(all);
-				WHILE list # NIL DO
-					q := list.node;
-					(*	get the transformed parameter these rather than the inverse transformed parameters
-					are treated as the parents of the deviance	*)
-					IF q IS GraphParamtrans.Inverse THEN
-						q1 := q(GraphParamtrans.Inverse).Transform();
-						q1.AddParent(parentList);
-					ELSE
-						com := q(GraphParamtrans.VectorInverse).components;
-						len1 := LEN(com);
-						j := 0;
-						WHILE j < len1 DO
-							q1 := com[j](GraphParamtrans.VectorInverse).Transform();
-							IF q1 # NIL THEN
-								q1.AddParent(parentList);
-							END;
-							INC(j)
-						END
-					END;
-					list := list.next
-				END;
-				GraphNodes.ClearList(parentList);
-				deviance.terms[i] := p1;
-				INC(i)
-			END;
-			deviance.parents := GraphNodes.ListToVector(parentList);
-			RETURN deviance
-		ELSE
-			RETURN NIL
-		END
-	END ModifiedDeviance;
-
 	PROCEDURE SetValue* (node: GraphNodes.Node; value: REAL);
 		VAR
-
 			deviance: Node;
 	BEGIN
 		IF (node # NIL) & (node IS Node) THEN

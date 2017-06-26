@@ -65,9 +65,9 @@ MODULE GraphHypergeometric;
 		left := MAX(0, m1 - n + n1);
 		right := MIN(n1, m1);
 		a := psi - 1;
-		b :=  - ((m1 + n1 + 2) * psi + n - n1 - m1);
+		b := - ((m1 + n1 + 2) * psi + n - n1 - m1);
 		c := psi * (n1 + 1) * (m1 + 1);
-		q :=  - (b + Math.Sign(b) * Math.Sqrt(b * b - 4 * a * c)) / 2;
+		q := - (b + Math.Sign(b) * Math.Sqrt(b * b - 4 * a * c)) / 2;
 		mm := SHORT(ENTIER(c / q));
 		IF ((right >= mm) & (mm >= left)) THEN
 			RETURN mm
@@ -350,15 +350,6 @@ MODULE GraphHypergeometric;
 		END
 	END SetUnivariate;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
-
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
 			i, left, m1, n, n1, r, right: INTEGER;
@@ -375,8 +366,8 @@ MODULE GraphHypergeometric;
 		REPEAT
 			r := MathRandnum.Hypergeometric(n1, m1, n, psi);
 			DEC(i)
-		UNTIL ((r > left) & (r < right)) OR (i = 0) OR (r =  - 1);
-		IF (i = 0) OR (r =  - 1) THEN
+		UNTIL ((r > left) & (r < right)) OR (i = 0) OR (r = - 1);
+		IF (i = 0) OR (r = - 1) THEN
 			res := {GraphNodes.lhs}
 		ELSE
 			node.SetValue(r);

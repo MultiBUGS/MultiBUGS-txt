@@ -17,7 +17,7 @@ MODULE GraphPoisson;
 
 	IMPORT
 		Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -55,7 +55,7 @@ MODULE GraphPoisson;
 		IF r < 0 THEN
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
-		IF lambda <  - eps
+		IF lambda < - eps
 			THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
@@ -96,7 +96,7 @@ MODULE GraphPoisson;
 			logDensity := r * logLambda - lambda - MathFunc.LogGammaFunc(r + 1)
 		ELSE
 			lambda := node.lambda .Value();
-			logDensity :=  - lambda - MathFunc.LogGammaFunc(r + 1)
+			logDensity := - lambda - MathFunc.LogGammaFunc(r + 1)
 		END;
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
@@ -162,7 +162,7 @@ MODULE GraphPoisson;
 			logLikelihood := r * logLambda - lambda
 		ELSE
 			lambda := node.lambda.Value();
-			logLikelihood :=  - lambda
+			logLikelihood := - lambda
 		END;
 		IF ~(GraphNodes.data IN node.props) THEN
 			logLikelihood := logLikelihood - MathFunc.LogGammaFunc(r + 1)
@@ -176,7 +176,7 @@ MODULE GraphPoisson;
 			lambda, logLambda, logPrior: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
-		logPrior :=  - MathFunc.LogGammaFunc(r + 1);
+		logPrior := - MathFunc.LogGammaFunc(r + 1);
 		IF r > 0 THEN
 			lambda := node.lambda.Value();
 			logLambda := MathFunc.Ln(lambda);
@@ -238,16 +238,6 @@ MODULE GraphPoisson;
 			node.lambda := args.scalars[0]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.lambda := GraphParamtrans.LogTransform(p.lambda);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

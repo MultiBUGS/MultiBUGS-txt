@@ -16,7 +16,7 @@ MODULE GraphValDiff;
 
 	IMPORT
 		Stores,
-		GraphFlat, GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate;
+		GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate;
 
 	TYPE
 
@@ -69,20 +69,20 @@ MODULE GraphValDiff;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: NodeLogical) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: NodeLogical) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.parent, wr);
 		GraphNodes.Externalize(node.x, wr);
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: NodeLogical) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: NodeLogical) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		node.parent := GraphNodes.Internalize(rd);
 		p := GraphNodes.Internalize(rd);
 		node.x := p(GraphStochastic.Node)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: NodeLogical) InitLogical;
 	BEGIN
@@ -175,15 +175,15 @@ MODULE GraphValDiff;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: NodeStochastic) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: NodeStochastic) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.prior, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: NodeStochastic) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: NodeStochastic) InternalizeLogical (VAR rd: Stores.Reader);
 	BEGIN
 		node.prior := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: NodeStochastic) InitLogical;
 	BEGIN
@@ -196,11 +196,6 @@ MODULE GraphValDiff;
 			p: GraphNodes.Node;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		p := node.prior;
 		p.AddParent(list);
 		GraphNodes.ClearList(list);
@@ -376,6 +371,31 @@ MODULE GraphValDiff;
 		signature := "s"
 	END Signature;
 
+	PROCEDURE ADInstall*;
+	BEGIN
+		GraphNodes.SetFactory(aDFact)
+	END ADInstall;
+
+	PROCEDURE FDInstall*;
+	BEGIN
+		GraphNodes.SetFactory(fDFact)
+	END FDInstall;
+
+	PROCEDURE ADLogCondInstall*;
+	BEGIN
+		GraphNodes.SetFactory(aDLogCondFact)
+	END ADLogCondInstall;
+
+	PROCEDURE FDLogCondInstall*;
+	BEGIN
+		GraphNodes.SetFactory(fDLogCondFact)
+	END FDLogCondInstall;
+
+	PROCEDURE LogCondInstall*;
+	BEGIN
+		GraphNodes.SetFactory(logCondFact)
+	END LogCondInstall;
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
@@ -402,31 +422,6 @@ MODULE GraphValDiff;
 		NEW(logCondF);
 		logCondFact := logCondF
 	END Init;
-
-	PROCEDURE ADInstall*;
-	BEGIN
-		GraphNodes.SetFactory(aDFact)
-	END ADInstall;
-
-	PROCEDURE FDInstall*;
-	BEGIN
-		GraphNodes.SetFactory(fDFact)
-	END FDInstall;
-
-	PROCEDURE ADLogCondInstall*;
-	BEGIN
-		GraphNodes.SetFactory(aDLogCondFact)
-	END ADLogCondInstall;
-
-	PROCEDURE FDLogCondInstall*;
-	BEGIN
-		GraphNodes.SetFactory(fDLogCondFact)
-	END FDLogCondInstall;
-
-	PROCEDURE LogCondInstall*;
-	BEGIN
-		GraphNodes.SetFactory(logCondFact)
-	END LogCondInstall;
 
 BEGIN
 	Init

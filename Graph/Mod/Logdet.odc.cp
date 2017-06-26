@@ -14,22 +14,22 @@ MODULE GraphLogdet;
 
 	IMPORT
 		Math, Stores,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphScalar.MemNode)
+		Node = POINTER TO RECORD(GraphMemory.Node)
 			dim, start, step: INTEGER;
 			matrix: GraphNodes.Vector
 		END;
 
-		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
+		Factory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 	CONST
 		eps = 1.0E-10;
 
 	VAR
-		fact-: GraphScalar.Factory;
+		fact-: GraphNodes.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		matrix: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -97,7 +97,7 @@ MODULE GraphLogdet;
 		HALT(126)
 	END EvaluateVD;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			dim: INTEGER;
 			v: GraphNodes.SubVector;
@@ -108,9 +108,9 @@ MODULE GraphLogdet;
 		v.components := node.matrix;
 		v.start := node.start; v.step := node.step; v.nElem := dim * dim;
 		GraphNodes.ExternalizeSubvector(v, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -118,7 +118,7 @@ MODULE GraphLogdet;
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.matrix := v.components;
 		node.start := v.start; node.step := v.step;
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -207,7 +207,7 @@ MODULE GraphLogdet;
 		END
 	END Set;
 
-	PROCEDURE (f: Factory) New (): GraphScalar.Node;
+	PROCEDURE (f: Factory) New (): GraphMemory.Node;
 		VAR
 			node: Node;
 	BEGIN

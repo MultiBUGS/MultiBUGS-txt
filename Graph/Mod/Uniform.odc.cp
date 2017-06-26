@@ -16,7 +16,7 @@ MODULE GraphUniform;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphConstant, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic,
+		GraphConjugateUV, GraphConstant, GraphNodes, GraphRules, GraphStochastic,
 		GraphUnivariate,
 		MathFunc, MathRandnum;
 
@@ -99,7 +99,7 @@ MODULE GraphUniform;
 	BEGIN
 		a := node.a.Value();
 		b := node.b.Value();
-		logDensity :=  - Math.Ln(b - a);
+		logDensity := - Math.Ln(b - a);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
 
@@ -114,7 +114,7 @@ MODULE GraphUniform;
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.a.props) THEN
 			a := node.a.Value();
 			node.b.ValDiff(x, b, diffB);
-			differential :=  - diffB / ((b - a) * (b - a))
+			differential := - diffB / ((b - a) * (b - a))
 		ELSE
 			node.a.ValDiff(x, a, diffA);
 			node.b.ValDiff(x, b, diffB);
@@ -168,7 +168,7 @@ MODULE GraphUniform;
 		a := node.a.Value();
 		b := node.b.Value();
 		IF (node.value >= a) & (node.value <= b) THEN
-			logLikelihood :=  - Math.Ln(b - a)
+			logLikelihood := - Math.Ln(b - a)
 		ELSE
 			logLikelihood := MathFunc.logOfZero
 		END;
@@ -184,6 +184,11 @@ MODULE GraphUniform;
 		RETURN 0.5 * (a + b)
 	END Location;
 
+	PROCEDURE (node: Node) LogPrior (): REAL;
+	BEGIN
+		RETURN 0
+	END LogPrior;
+
 	PROCEDURE (node: Node) ParentsUnivariate (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
@@ -194,12 +199,7 @@ MODULE GraphUniform;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) LogPrior (): REAL;
-	BEGIN
-		RETURN 0
-	END LogPrior;
-
+	
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as IN {GraphRules.beta, GraphRules.gamma, GraphRules.normal}, 21);
@@ -237,17 +237,6 @@ MODULE GraphUniform;
 		END
 	END SetUnivariate;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.a := GraphParamtrans.IdentTransform(p.a);
-		p.b := GraphParamtrans.IdentTransform(p.b);
-		RETURN p
-	END ModifyUnivariate;
-
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR
 			node: Node;
@@ -282,7 +271,7 @@ MODULE GraphUniform;
 			uniforms[i] := fact.New();
 			uniforms[i].Set(args, res);
 			props := uniforms[i].props;
-			uniforms[i].SetProps(props + {GraphNodes.hidden, GraphStochastic.initialized});
+			uniforms[i].SetProps(props + {GraphStochastic.hidden, GraphStochastic.initialized});
 			INC(i)
 		END;
 		RETURN uniforms

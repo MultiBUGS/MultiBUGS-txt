@@ -13,12 +13,12 @@ MODULE GraphPValue;
 
 	IMPORT
 		Stores,
-		GraphFlat, GraphLogical, GraphMultivariate, GraphNodes, GraphRules,
-		GraphScalar, GraphStochastic, GraphVector;
+		GraphLogical, GraphMemory, GraphMultivariate, GraphNodes, GraphRules,
+		GraphStochastic, GraphVector;
 
 	TYPE
 
-		Scalar = POINTER TO ABSTRACT RECORD(GraphScalar.MemNode)
+		Scalar = POINTER TO ABSTRACT RECORD(GraphMemory.Node)
 			prior: GraphNodes.Node
 		END;
 
@@ -33,15 +33,14 @@ MODULE GraphPValue;
 			nElem, start, step: INTEGER
 		END;
 
-		ScalarPostFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		ScalarPostFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
-		ScalarPriorFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		ScalarPriorFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 		VectorPostFactory = POINTER TO RECORD(GraphVector.Factory) END;
 
 	VAR
-		scalarPostFact-, scalarPriorFact-: GraphScalar.Factory;
-		vectorPostFact-: GraphVector.Factory;
+		scalarPostFact-, scalarPriorFact-, vectorPostFact-: GraphNodes.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		oldValues: POINTER TO ARRAY OF REAL;
@@ -63,11 +62,6 @@ MODULE GraphPValue;
 			p: GraphNodes.Node;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		p := node.prior;
 		p.AddParent(list);
 		GraphNodes.ClearList(list);
@@ -95,15 +89,15 @@ MODULE GraphPValue;
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: ScalarPostNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: ScalarPostNode) ExternalizeMemory (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.prior, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: ScalarPostNode) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: ScalarPostNode) InternalizeMemory (VAR rd: Stores.Reader);
 	BEGIN
 		node.prior := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: ScalarPostNode) InitLogical;
 	BEGIN
@@ -180,7 +174,7 @@ MODULE GraphPValue;
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: ScalarPriorNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: ScalarPriorNode) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 			vector: GraphStochastic.Vector;
@@ -193,9 +187,9 @@ MODULE GraphPValue;
 		WHILE i < len DO
 			GraphNodes.Externalize(vector[i], wr); INC(i)
 		END
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: ScalarPriorNode) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: ScalarPriorNode) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 			vector: GraphStochastic.Vector;
@@ -211,7 +205,7 @@ MODULE GraphPValue;
 			INC(i)
 		END;
 		node.priorParents := vector
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: ScalarPriorNode) Evaluate (OUT value: REAL);
 		VAR
@@ -368,11 +362,6 @@ MODULE GraphPValue;
 			i, nElem, start, step: INTEGER;
 	BEGIN
 		list := NIL;
-		IF all THEN
-			p := GraphFlat.fact.New();
-			p.Init;
-			p.AddParent(list);
-		END;
 		start := node.start;
 		step := node.step;
 		i := 0;
@@ -427,7 +416,7 @@ MODULE GraphPValue;
 		HALT(0)
 	END ValDiff;
 
-	PROCEDURE (f: ScalarPostFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: ScalarPostFactory) New (): GraphMemory.Node;
 		VAR
 			node: ScalarPostNode;
 	BEGIN
@@ -441,7 +430,7 @@ MODULE GraphPValue;
 		signature := "s"
 	END Signature;
 
-	PROCEDURE (f: ScalarPriorFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: ScalarPriorFactory) New (): GraphMemory.Node;
 		VAR
 			node: ScalarPriorNode;
 	BEGIN

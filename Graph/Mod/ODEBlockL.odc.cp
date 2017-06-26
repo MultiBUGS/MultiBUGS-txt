@@ -25,7 +25,7 @@ MODULE GraphODEBlockL;
 		trap = 55;
 
 	TYPE
-		Node* = POINTER TO ABSTRACT RECORD (GraphVector.MetNode)
+		Node* = POINTER TO ABSTRACT RECORD (GraphVector.Node)
 			linked: BOOLEAN;
 			tol, atol: REAL;
 			x0, x1: POINTER TO ARRAY OF REAL;
@@ -289,7 +289,8 @@ MODULE GraphODEBlockL;
 				stochastic.SetValue(end);
 				i := 0;
 				WHILE i < numEq DO
-					stochastic := node.x[i](GraphStochastic.Node); stochastic.SetValue(node.x1[i]);
+					stochastic := node.x[i](GraphStochastic.Node); 
+					stochastic.SetValue(node.x1[i]);
 					INC(i)
 				END;
 				i := 0;
@@ -403,7 +404,7 @@ MODULE GraphODEBlockL;
 				NEW(node.grid, gridSize); NEW(node.deriv, numEq);
 				NEW(node.x, numEq); NEW(node.origins, numBlocks);
 				node.t := args.scalars[0]; ASSERT(args.scalars[0] # NIL, trap);
-				node.t.SetProps(node.t.props + {GraphStochastic.nR});
+				node.t.SetProps(node.t.props + {GraphStochastic.hidden});
 				ASSERT(args.vectors[0].components # NIL, trap);
 				ASSERT(args.vectors[1].components # NIL, trap);
 				ASSERT(args.vectors[2].components # NIL, trap);
@@ -426,7 +427,7 @@ MODULE GraphODEBlockL;
 				(*	need to set node.block	*)
 				argsS.Init;
 				node.block.Set(argsS, res);
-				node.block.SetProps(node.block.props + {GraphStochastic.nR});
+				node.block.SetProps(node.block.props + {GraphStochastic.hidden});
 				i := 0;
 				WHILE i < numBlocks DO
 					j := 0;
@@ -467,7 +468,7 @@ MODULE GraphODEBlockL;
 					ASSERT(off < LEN(args.vectors[3].components), trap);
 					ASSERT(args.vectors[3].components[off] # NIL, trap);
 					node.x[i] := args.vectors[3].components[off];
-					node.x[i].SetProps(node.x[i].props + {GraphStochastic.nR});
+					node.x[i].SetProps(node.x[i].props + {GraphStochastic.hidden});
 					INC(i)
 				END;
 				i := 0;

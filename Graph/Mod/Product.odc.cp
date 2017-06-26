@@ -58,7 +58,7 @@ MODULE GraphProduct;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -66,16 +66,16 @@ MODULE GraphProduct;
 		v.components := node.vector;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step; 
 		GraphNodes.ExternalizeSubvector(v, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.vector := v.components;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN

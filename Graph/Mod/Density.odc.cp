@@ -101,20 +101,20 @@ MODULE GraphDensity;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Univariate) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Univariate) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.prior, wr);
 		GraphNodes.Externalize(node.x, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Univariate) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Univariate) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		node.prior := p(GraphUnivariate.Node);
 		node.x := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Univariate) InitLogical;
 	BEGIN
@@ -193,7 +193,7 @@ MODULE GraphDensity;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Multivariate) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Multivariate) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -202,9 +202,9 @@ MODULE GraphDensity;
 		v.components := node.x;
 		v.start := node.start; v.nElem := node.size; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Multivariate) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Multivariate) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 			v: GraphNodes.SubVector;
@@ -216,7 +216,7 @@ MODULE GraphDensity;
 		node.start := v.start;
 		node.step := v.step;
 		node.size := v.nElem
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Multivariate) InitLogical;
 	BEGIN
@@ -471,7 +471,7 @@ MODULE GraphDensity;
 	BEGIN
 		prior := f.priorFactory.New();
 		prior.Init;
-		prior.SetProps(prior.props + {GraphNodes.hidden});
+		prior.SetProps(prior.props + {GraphStochastic.hidden});
 		univariate := prior(GraphUnivariate.Node);
 		RETURN univariate
 	END NewUnivariate;
@@ -484,7 +484,7 @@ MODULE GraphDensity;
 	BEGIN
 		prior := f.priorFactory.New();
 		prior.Init;
-		prior.SetProps(prior.props + {GraphNodes.hidden});
+		prior.SetProps(prior.props + {GraphStochastic.hidden});
 		multivariate := prior(GraphMultivariate.Node);
 		RETURN multivariate
 	END NewMultivariate;

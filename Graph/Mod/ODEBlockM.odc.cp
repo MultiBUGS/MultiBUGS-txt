@@ -27,7 +27,7 @@ MODULE GraphODEBlockM;
 		maintainer: ARRAY 20 OF CHAR;
 
 	TYPE
-		Node* = POINTER TO RECORD (GraphVector.MetNode)
+		Node* = POINTER TO RECORD (GraphVector.Node)
 			tol, atol: REAL;
 			x0, x1, thetaVal: POINTER TO ARRAY OF REAL;
 			solver: MathODE.Solver;
@@ -410,7 +410,7 @@ MODULE GraphODEBlockM;
 				(*	need to set node.block	*)
 				argsS.Init;
 				node.block.Set(argsS, res);
-				node.block.SetProps(node.block.props + {GraphStochastic.nR});
+				node.block.SetProps(node.block.props + {GraphStochastic.hidden});
 				node.solver.equations(Equations).block := node.block;
 				NEW(node.x0, numEq); NEW(node.x1, numEq);
 				NEW(node.inits, numEq);

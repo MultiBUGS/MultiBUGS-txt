@@ -51,10 +51,10 @@ MODULE GraphHalf;
 		RETURN class
 	END ClassFunction;
 	
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.x, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 	
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -66,10 +66,10 @@ MODULE GraphHalf;
 		install := "GraphHalf.Install"
 	END Install;
 	
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 	BEGIN
 		node.x := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 	
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR

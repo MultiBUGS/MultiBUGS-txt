@@ -9,13 +9,15 @@ copyright:	"Rsrc/About"
 
 MODULE GraphConjugateUV;
 
+	
+
 	IMPORT
 		GraphNodes, GraphUnivariate;
-		
-	TYPE 
+
+	TYPE
 		Node* = POINTER TO ABSTRACT RECORD(GraphUnivariate.Node) END;
-		
-	
+
+
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;

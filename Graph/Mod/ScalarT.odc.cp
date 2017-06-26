@@ -28,10 +28,6 @@ MODULE GraphScalarT;
 			value: REAL
 		END;
 
-		MetNode* = POINTER TO ABSTRACT RECORD (MemNode)
-			old: REAL
-		END;
-
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -89,7 +85,7 @@ MODULE GraphScalarT;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 			i, numScalars, numVectors: INTEGER;
@@ -119,16 +115,13 @@ MODULE GraphScalarT;
 			GraphNodes.ExternalizeSubvector(v, wr);
 			INC(i)
 		END;
-		WITH node: MetNode DO
-			wr.WriteReal(node.value);
-			wr.WriteReal(node.old)
-		|node: MemNode DO
+		WITH node: MemNode DO
 			wr.WriteReal(node.value)
 		ELSE
 		END
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 			i, numScalars, numVectors: INTEGER;
@@ -162,14 +155,11 @@ MODULE GraphScalarT;
 			node.size[i] := v.nElem;
 			INC(i)
 		END;
-		WITH node: MetNode DO
-			rd.ReadReal(node.value);
-			rd.ReadReal(node.old)
-		|node: MemNode DO
+		WITH node: MemNode DO
 			rd.ReadReal(node.value)
 		ELSE
 		END
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
@@ -270,26 +260,6 @@ MODULE GraphScalarT;
 		END;
 		RETURN node.value
 	END Value;
-
-	PROCEDURE (node: MetNode) HandleMsg* (msg: INTEGER);
-	BEGIN
-		IF ~(GraphLogical.alwaysEvaluate IN node.props) THEN
-			IF msg = GraphLogical.metBegin THEN
-				IF ~(GraphLogical.dirty IN node.props) THEN
-					node.old := node.value;
-					node.SetProps(node.props + {GraphLogical.saved})
-				END
-			ELSIF msg = GraphLogical.metReject THEN
-				IF GraphLogical.saved IN node.props THEN
-					node.value := node.old;
-					node.SetProps(node.props - {GraphLogical.dirty})
-				END
-			ELSIF msg = GraphLogical.metEnd THEN
-				node.SetProps(node.props - {GraphLogical.saved})
-			ELSE
-			END
-		END
-	END HandleMsg;
 
 	PROCEDURE Maintainer;
 	BEGIN

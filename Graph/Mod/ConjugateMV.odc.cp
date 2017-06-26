@@ -14,11 +14,11 @@ MODULE GraphConjugateMV;
 
 	IMPORT
 		Stores,
-		GraphLimits, GraphMultivariate, GraphNodes, GraphStochastic;
+		GraphMultivariate, GraphNodes, GraphStochastic, GraphUnivariate;
 
 	TYPE
 		Node* = POINTER TO ABSTRACT RECORD(GraphMultivariate.Node)
-			censors: POINTER TO ARRAY OF GraphLimits.Limits
+			censors: POINTER TO ARRAY OF GraphUnivariate.Limits
 		END;
 
 	VAR
@@ -34,6 +34,27 @@ MODULE GraphConjugateMV;
 	PROCEDURE (node: Node) InitConjugateMV-, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) InternalizeConjugateMV- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
+		CONST
+			observed = {GraphNodes.data, GraphStochastic.censored};
+		VAR
+			isLikelihoodTerm: BOOLEAN;
+			i, size: INTEGER;
+			com: GraphStochastic.Vector;
+	BEGIN
+		isLikelihoodTerm := FALSE;
+		IF node.index = 0 THEN
+			com := node.components;
+			i := 0;
+			size := node.Size();
+			WHILE (i < size) & ~isLikelihoodTerm DO
+				isLikelihoodTerm := (observed * com[i].props # {}) OR (com[i].likelihood # NIL);
+				INC(i)
+			END
+		END;
+		RETURN isLikelihoodTerm
+	END IsLikelihoodTerm;
 
 	PROCEDURE (node: Node) MVLikelihoodForm* (as: INTEGER;
 		OUT x: GraphNodes.Vector; OUT start, step: INTEGER;
@@ -162,7 +183,7 @@ MODULE GraphConjugateMV;
 				rd.ReadInt(type);
 				i := 0;
 				WHILE i < nElem DO
-					node.censors[i] := GraphLimits.fact.New(type);
+					node.censors[i] := GraphUnivariate.NewLimits(type);
 					node.censors[i].Internalize(rd);
 					INC(i)
 				END
@@ -241,19 +262,19 @@ MODULE GraphConjugateMV;
 		WITH args: GraphStochastic.Args DO
 			nElem := node.Size();
 			IF (args.leftVectorCen # NIL) & (args.rightVectorCen # NIL) THEN
-				type := GraphLimits.both
+				type := GraphUnivariate.both
 			ELSIF args.leftVectorCen # NIL THEN
-				type := GraphLimits.left
+				type := GraphUnivariate.left
 			ELSIF args.rightVectorCen # NIL THEN
-				type := GraphLimits.right
+				type := GraphUnivariate.right
 			ELSE
-				type := GraphLimits.non
+				type := GraphUnivariate.non
 			END;
-			IF type # GraphLimits.non THEN
+			IF type # GraphUnivariate.non THEN
 				NEW(node.censors, nElem);
 				i := 0;
 				WHILE i < nElem DO
-					node.censors[i] := GraphLimits.fact.New(type);
+					node.censors[i] := GraphUnivariate.NewLimits(type);
 					leftLimit := Component(args.leftVectorCen, i);
 					rightLimit := Component(args.rightVectorCen, i);
 					node.censors[i].Set(leftLimit, rightLimit);
@@ -261,19 +282,19 @@ MODULE GraphConjugateMV;
 				END
 			END;
 			IF (args.leftVectorTrunc # NIL) & (args.rightVectorTrunc # NIL) THEN
-				type := GraphLimits.both
+				type := GraphUnivariate.both
 			ELSIF args.leftVectorTrunc # NIL THEN
-				type := GraphLimits.left
+				type := GraphUnivariate.left
 			ELSIF args.rightVectorTrunc # NIL THEN
-				type := GraphLimits.right
+				type := GraphUnivariate.right
 			ELSE
-				type := GraphLimits.non
+				type := GraphUnivariate.non
 			END;
-			IF type # GraphLimits.non THEN
+			IF type # GraphUnivariate.non THEN
 				NEW(node.censors, nElem);
 				i := 0;
 				WHILE i < nElem DO
-					node.censors[i] := GraphLimits.fact.New(type);
+					node.censors[i] := GraphUnivariate.NewLimits(type);
 					leftLimit := Component(args.leftVectorTrunc, i);
 					rightLimit := Component(args.rightVectorTrunc, i);
 					node.censors[i].Set(leftLimit, rightLimit);

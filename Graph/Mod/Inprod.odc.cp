@@ -13,21 +13,21 @@ MODULE GraphInprod;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
 
-		Node = POINTER TO RECORD(GraphScalar.MemNode)
+		Node = POINTER TO RECORD(GraphMemory.Node)
 			start0, start1, step0, step1, nElem: INTEGER;
 			vector0, vector1: GraphNodes.Vector;
 			constant0, constant1: POINTER TO ARRAY OF REAL;
 			stoch0, stoch1: GraphStochastic.Vector
 		END;
 
-		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
+		Factory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 	VAR
-		fact-: GraphScalar.Factory;
+		fact-: GraphNodes.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -60,7 +60,7 @@ MODULE GraphInprod;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 			i, len: INTEGER;
@@ -101,9 +101,9 @@ MODULE GraphInprod;
 		ELSE
 			wr.WriteInt(0)
 		END
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 			p: GraphNodes.Node;
@@ -154,7 +154,7 @@ MODULE GraphInprod;
 		ELSE
 			node.stoch1 := NIL
 		END
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -441,7 +441,7 @@ MODULE GraphInprod;
 		END
 	END EvaluateVD;
 
-	PROCEDURE (f: Factory) New (): GraphScalar.Node;
+	PROCEDURE (f: Factory) New (): GraphMemory.Node;
 		VAR
 			node: Node;
 	BEGIN

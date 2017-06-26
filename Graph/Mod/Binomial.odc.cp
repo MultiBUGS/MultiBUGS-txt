@@ -16,7 +16,7 @@ MODULE GraphBinomial;
 
 	IMPORT
 		Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -64,7 +64,7 @@ MODULE GraphBinomial;
 			END
 		END;
 		p := node.p.Value();
-		IF (p <=  - eps) OR (p >= 1.0 + eps) THEN
+		IF (p <= - eps) OR (p >= 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -263,19 +263,6 @@ MODULE GraphBinomial;
 			node.n := args.scalars[1]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.p := GraphParamtrans.LogitTransform(p.p);
-		IF p.n # NIL THEN
-			p.n := GraphParamtrans.IdentTransform(p.n)
-		END;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR

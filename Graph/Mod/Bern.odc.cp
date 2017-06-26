@@ -16,7 +16,7 @@ MODULE GraphBern;
 
 	IMPORT
 		Stores,
-		GraphConjugateUV, GraphConstant, GraphNodes, GraphParamtrans, GraphRules,
+		GraphConjugateUV, GraphConstant, GraphNodes, GraphRules,
 		GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
@@ -53,7 +53,7 @@ MODULE GraphBern;
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
 		p := node.p.Value();
-		IF (p <=  - eps) OR (p >= 1.0 + eps) THEN
+		IF (p <= - eps) OR (p >= 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -216,16 +216,6 @@ MODULE GraphBern;
 		END
 	END SetUnivariate;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.p := GraphParamtrans.LogitTransform(p.p);
-		RETURN p
-	END ModifyUnivariate;
-
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR
 			node: Node;
@@ -263,7 +253,7 @@ MODULE GraphBern;
 			bernoullis[i] := fact.New();
 			bernoullis[i].Set(args, res);
 			props := bernoullis[i].props;
-			bernoullis[i].SetProps(props + {GraphNodes.hidden, GraphStochastic.initialized});
+			bernoullis[i].SetProps(props + {GraphStochastic.hidden, GraphStochastic.initialized});
 			INC(i)
 		END;
 		RETURN bernoullis

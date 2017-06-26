@@ -129,14 +129,14 @@ MODULE GraphFlat;
 		HALT(0)
 	END Sample;
 
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
+(*	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
 		VAR
 			p: Node;
 	BEGIN
 		NEW(p);
 		p^ := node^;
 		RETURN p
-	END ModifyUnivariate;
+	END ModifyUnivariate;*)
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

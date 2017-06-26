@@ -15,7 +15,7 @@ MODULE GraphODEmath;
 		MathODE;
 
 	TYPE
-		Node = POINTER TO RECORD (GraphVector.MetNode)
+		Node = POINTER TO RECORD (GraphVector.Node)
 			t0, tol: REAL;
 			x0, theta, tGrid: GraphNodes.Vector;
 			x0Start, x0Size, thetaStart, thetaSize, tGridSize, tGridStart: INTEGER;

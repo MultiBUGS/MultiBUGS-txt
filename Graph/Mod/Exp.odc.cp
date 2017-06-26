@@ -16,7 +16,7 @@ MODULE GraphExp;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -119,7 +119,7 @@ MODULE GraphExp;
 	BEGIN
 		x := node.value;
 		lambda := node.lambda.Value();
-		logPrior :=  - x * lambda;
+		logPrior := - x * lambda;
 		RETURN logPrior
 	END LogPrior;
 
@@ -146,10 +146,10 @@ MODULE GraphExp;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.value <  - eps THEN
+		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.lambda.Value() <  - eps THEN
+		IF node.lambda.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -179,16 +179,6 @@ MODULE GraphExp;
 		node.lambda.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node;
-		p.lambda := GraphParamtrans.LogTransform(p.lambda);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN

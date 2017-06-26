@@ -14,11 +14,11 @@ MODULE GraphSumation;
 
 	IMPORT
 		Math, Stores,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
 
-		Node = POINTER TO ABSTRACT RECORD(GraphScalar.MemNode)
+		Node = POINTER TO ABSTRACT RECORD(GraphMemory.Node)
 			start, step, nElem: INTEGER;
 			vector: GraphNodes.Vector
 		END;
@@ -29,14 +29,14 @@ MODULE GraphSumation;
 
 		SdNode = POINTER TO RECORD(Node) END;
 
-		SumFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		SumFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
-		MeanFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		MeanFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
-		SdFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+		SdFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 	VAR
-		sumFact-, meanFact-, sdFact-: GraphScalar.Factory;
+		sumFact-, meanFact-, sdFact-: GraphNodes.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -68,7 +68,7 @@ MODULE GraphSumation;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -76,16 +76,16 @@ MODULE GraphSumation;
 		v.components := node.vector;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr)
-	END ExternalizeScalar;
+	END ExternalizeMemory;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.vector := v.components;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step
-	END InternalizeScalar;
+	END InternalizeMemory;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -344,7 +344,7 @@ MODULE GraphSumation;
 		install := "GraphSumation.SdInstall"
 	END Install;
 
-	PROCEDURE (f: SumFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: SumFactory) New (): GraphMemory.Node;
 		VAR
 			node: SumNode;
 	BEGIN
@@ -363,7 +363,7 @@ MODULE GraphSumation;
 		GraphNodes.SetFactory(sumFact)
 	END SumInstall;
 
-	PROCEDURE (f: MeanFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: MeanFactory) New (): GraphMemory.Node;
 		VAR
 			node: MeanNode;
 	BEGIN
@@ -382,7 +382,7 @@ MODULE GraphSumation;
 		GraphNodes.SetFactory(meanFact)
 	END MeanInstall;
 
-	PROCEDURE (f: SdFactory) New (): GraphScalar.Node;
+	PROCEDURE (f: SdFactory) New (): GraphMemory.Node;
 		VAR
 			node: SdNode;
 	BEGIN

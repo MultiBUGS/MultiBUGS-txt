@@ -13,7 +13,7 @@ MODULE GraphStable;
 
 	IMPORT
 		Math, Stores,
-		GraphFlat, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphDummy, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathRandnum, UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
 	TYPE
@@ -95,6 +95,11 @@ MODULE GraphStable;
 		install := "GraphStable.AuxillaryInstall"
 	END Install;
 
+	PROCEDURE (auxillary: Auxillary) Node (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN auxillary.node(Node).y
+	END Node;
+
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		CONST
 			maxIts = 100000;
@@ -115,7 +120,7 @@ MODULE GraphStable;
 		gamma := stable.gamma.Value();
 		zRound := MAX(eps, ABS(x - gamma)) / delta;
 		IF x < gamma THEN
-			lower :=  - 0.5;
+			lower := - 0.5;
 			upper := L(alpha, beta)
 		ELSE
 			lower := L(alpha, beta);
@@ -133,11 +138,6 @@ MODULE GraphStable;
 			IF i = maxIts THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT END;
 		END
 	END Sample;
-	
-	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		RETURN auxillary.node(Node).y
-	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
@@ -163,7 +163,7 @@ MODULE GraphStable;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsUnivariate;
 
@@ -178,11 +178,11 @@ MODULE GraphStable;
 			RETURN {GraphNodes.invalidValue, GraphNodes.arg1}
 		END;
 		beta := node.beta.Value();
-		IF (beta <  - 1) OR (beta > 1) THEN
+		IF (beta < - 1) OR (beta > 1) THEN
 			RETURN {GraphNodes.invalidValue, GraphNodes.arg2}
 		END;
 		delta := node.delta.Value();
-		IF delta <  - eps THEN
+		IF delta < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg4}
 		END;
 		RETURN {}
@@ -316,7 +316,7 @@ MODULE GraphStable;
 		t := T(alpha, beta, y);
 		abs := ABS(xMinusGamma / (delta * t));
 		pow := Math.Power(abs, alpha / (alpha - 1));
-		logP :=  - Math.Ln(xMinusGamma) - pow + (alpha / (alpha - 1)) * Math.Ln(abs);
+		logP := - Math.Ln(xMinusGamma) - pow + (alpha / (alpha - 1)) * Math.Ln(abs);
 		RETURN logP
 	END LogPrior;
 
@@ -363,26 +363,16 @@ MODULE GraphStable;
 			node.beta := args.scalars[1];
 			node.gamma := args.scalars[2];
 			node.delta := args.scalars[3];
-			y := GraphFlat.fact.New();
+			y := GraphDummy.fact.New();
 			(*	need to set y	*)
 			y.Set(args, res);
 			node.y := y;
 			y.SetValue(0.0);
-			y.SetProps(y.props + {GraphNodes.hidden, GraphStochastic.initialized});
+			y.SetProps(y.props + {GraphStochastic.hidden, GraphStochastic.initialized});
 			auxillary := auxillaryFact.New(node);
 			UpdaterActions.RegisterUpdater(auxillary)
 		END
 	END SetUnivariate;
-
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

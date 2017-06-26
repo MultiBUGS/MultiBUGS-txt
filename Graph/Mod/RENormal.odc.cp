@@ -13,10 +13,13 @@ MODULE GraphRENormal;
 	
 
 	IMPORT
-		GraphMRF, GraphUVGMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
+		Stores,
+		GraphMRF,
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUVMRF,
+		MathFunc;
 
 	TYPE
-		Node = POINTER TO ABSTRACT RECORD(GraphUVGMRF.Node) END;
+		Node = POINTER TO ABSTRACT RECORD(GraphUVMRF.Normal) END;
 
 		StdNode = POINTER TO RECORD(Node) END;
 
@@ -30,8 +33,39 @@ MODULE GraphRENormal;
 		factStd-, factCons-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		start, step: INTEGER;
-		
+
+	PROCEDURE (node: Node) CheckUVMRF (): SET;
+	BEGIN
+		RETURN {}
+	END CheckUVMRF;
+
+	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF (parent: GraphStochastic.Node): INTEGER;
+	BEGIN
+		RETURN GraphRules.unif
+	END ClassifyLikelihoodUVMRF;
+
+	PROCEDURE (node: Node) ExternalizeChainUVMRF (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeChainUVMRF;
+
+	PROCEDURE (node: Node) InitStochasticUVMRF;
+	BEGIN
+	END InitStochasticUVMRF;
+
+	PROCEDURE (node: Node) InternalizeChainUVMRF (VAR rd: Stores.Reader);
+	BEGIN
+	END InternalizeChainUVMRF;
+
+	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
+	BEGIN
+		RETURN NIL
+	END ParentsUVMRF;
+
+	PROCEDURE (node: Node) SetUVMRF (IN args: GraphNodes.Args; OUT res: SET);
+	BEGIN
+		res := {}
+	END SetUVMRF;
+
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
 			tau, x: REAL;
@@ -44,24 +78,28 @@ MODULE GraphRENormal;
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
 		VAR
-			i, size: INTEGER;
-			b: GraphStochastic.Vector;
 			y: REAL;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		ASSERT(node.index = 0, 21);
-		size := node.Size();
-		b := node.components;
-		p0 := 0.50 * size;
-		p1 := 0.0;
-		i := 0;
-		WHILE i < size DO
-			y := b[i].value;
-			p1 := p1 + 0.5 * y * y;
-			INC(i)
-		END;
+		p0 := 0.50;
+		y := node.value;
+		p1 := 0.5 * y * y;
 		x := node.tau
 	END LikelihoodForm;
+
+	PROCEDURE (node: Node) LogLikelihood (): REAL;
+		VAR
+			as: INTEGER;
+			lambda, logLikelihood, logTau, r, tau: REAL;
+			x: GraphNodes.Node;
+	BEGIN
+		as := GraphRules.gamma;
+		node.LikelihoodForm(as, x, r, lambda);
+		tau := x.Value();
+		logTau := MathFunc.Ln(tau);
+		logLikelihood := r * logTau - tau * lambda;
+		RETURN logLikelihood
+	END LogLikelihood;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -117,26 +155,10 @@ MODULE GraphRENormal;
 		p1 := prior.tau.Value()
 	END PriorForm;
 
-	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
-	BEGIN
-		start := first;
-		step := thin
-	END ThinLikelihood;
-	
 	PROCEDURE (node: StdNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphRENormal.StdInstall"
 	END Install;
-
-	PROCEDURE (node: StdNode) Modify (): GraphStochastic.Node;
-		VAR
-			p: StdNode;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.TransformParams;
-		RETURN p
-	END Modify;
 
 	PROCEDURE (node: StdNode) NumberConstraints (): INTEGER;
 	BEGIN
@@ -147,16 +169,6 @@ MODULE GraphRENormal;
 	BEGIN
 		install := "GraphRENormal.ConsInstall"
 	END Install;
-
-	PROCEDURE (node: ConsNode) Modify (): GraphStochastic.Node;
-		VAR
-			p: ConsNode;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.TransformParams;
-		RETURN p
-	END Modify;
 
 	PROCEDURE (node: ConsNode) NumberConstraints (): INTEGER;
 	BEGIN
@@ -169,8 +181,6 @@ MODULE GraphRENormal;
 	BEGIN
 		NEW(node);
 		node.Init;
-		start := 0;
-		step := 1;
 		RETURN node
 	END New;
 
@@ -185,8 +195,6 @@ MODULE GraphRENormal;
 	BEGIN
 		NEW(node);
 		node.Init;
-		start := 0;
-		step := 1;
 		RETURN node
 	END New;
 
@@ -220,9 +228,7 @@ MODULE GraphRENormal;
 		NEW(fStd);
 		factStd := fStd;
 		NEW(fCons);
-		factCons := fCons;
-		start := 0;
-		step := 1
+		factCons := fCons
 	END Init;
 
 BEGIN

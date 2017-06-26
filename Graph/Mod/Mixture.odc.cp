@@ -90,7 +90,7 @@ MODULE GraphMixture;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 			i: INTEGER;
@@ -108,9 +108,9 @@ MODULE GraphMixture;
 			GraphNodes.Externalize(node.index[i], wr);
 			INC(i)
 		END
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 			i, slots: INTEGER;
@@ -135,7 +135,7 @@ MODULE GraphMixture;
 			node.index[i] := GraphNodes.Internalize(rd);
 			INC(i)
 		END
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN

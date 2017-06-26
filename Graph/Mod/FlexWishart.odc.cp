@@ -13,7 +13,7 @@ MODULE GraphFlexWishart;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateMV, GraphFlat, GraphMultivariate, 
+		GraphConjugateMV, GraphDummy, GraphMultivariate,
 		GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
@@ -70,6 +70,11 @@ MODULE GraphFlexWishart;
 	BEGIN
 	END InternalizeAuxillary;
 
+	PROCEDURE (auxillary: Auxillary) Node (index: INTEGER): GraphStochastic.Node;
+	BEGIN
+		RETURN auxillary.node(Node).a[index]
+	END Node;
+
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			r, lambda, nu, scale, value: REAL;
@@ -100,19 +105,14 @@ MODULE GraphFlexWishart;
 			INC(i)
 		END
 	END Sample;
-	
+
 	PROCEDURE (auxillary: Auxillary) Size (): INTEGER;
 		VAR
 			node: Node;
 	BEGIN
-		node := auxillary.node(Node); 
+		node := auxillary.node(Node);
 		RETURN node.dim
 	END Size;
-	
-	PROCEDURE (auxillary: Auxillary) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-	BEGIN
-		RETURN auxillary.node(Node).a[index]
-	END UpdatedBy;
 
 	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -138,7 +138,7 @@ MODULE GraphFlexWishart;
 
 	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsConjugateMV;
 
@@ -202,9 +202,9 @@ MODULE GraphFlexWishart;
 	PROCEDURE (node: Node) InitConjugateMV;
 	BEGIN
 		node.a := NIL;
-		node.nu := -1;
+		node.nu := - 1;
 		node.scale := NIL;
-		node.dim :=  - 1;
+		node.dim := - 1;
 	END InitConjugateMV;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -231,7 +231,7 @@ MODULE GraphFlexWishart;
 				node.a[i] := q(GraphStochastic.Node);
 				INC(i)
 			END;
-			rd.ReadReal(node.nu); 
+			rd.ReadReal(node.nu);
 			i := 1;
 			WHILE i < size DO
 				p := node.components[i](Node);
@@ -474,7 +474,7 @@ MODULE GraphFlexWishart;
 					node.scale[i] := q.Value();
 					(* setup hidden stochastic node for diag elements of Wishart R matrix *)
 					argsNew.Init;
-					gamma := GraphFlat.fact.New();
+					gamma := GraphDummy.fact.New();
 					gamma.Set(argsNew, res);
 					ASSERT(res = {}, 67);
 					gamma.SetValue(1.0);
@@ -497,16 +497,6 @@ MODULE GraphFlexWishart;
 			END
 		END
 	END SetConjugateMV;
-
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		HALT(0);
-		RETURN p
-	END Modify;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

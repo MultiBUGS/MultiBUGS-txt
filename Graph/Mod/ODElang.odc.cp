@@ -18,7 +18,7 @@ MODULE GraphODElang;
 		MathODE;
 
 	TYPE
-		Node* = POINTER TO ABSTRACT RECORD (GraphVector.MetNode)
+		Node* = POINTER TO ABSTRACT RECORD (GraphVector.Node)
 			t0, tol: REAL;
 			x0, x, deriv, tGrid: GraphNodes.Vector;
 			x0Start, xStart, derivStart, x0Step, xStep, derivStep: INTEGER;
@@ -325,13 +325,12 @@ MODULE GraphODElang;
 				step := node.xStep;
 				WHILE i < numEq DO
 					node.x[start + i * step].SetProps(node.x[start + i * step].props + 
-					{GraphStochastic.nR, GraphStochastic.initialized, GraphNodes.hidden});
+					{GraphStochastic.hidden, GraphStochastic.initialized});
 					INC(i)
 				END;
 				ASSERT(args.scalars[0] # NIL, 21);
 				node.t := args.scalars[0];
-				node.t.SetProps(node.t.props + 
-				{GraphStochastic.nR, GraphStochastic.initialized, GraphNodes.hidden});
+				node.t.SetProps(node.t.props + {GraphStochastic.hidden, GraphStochastic.initialized});
 				ASSERT(args.scalars[1] # NIL, 21);
 				node.t0 := args.scalars[1].Value();
 				ASSERT(args.scalars[2] # NIL, 21);

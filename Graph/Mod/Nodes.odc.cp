@@ -17,9 +17,9 @@ MODULE GraphNodes;
 		Meta, Stores, Strings;
 
 	CONST
-		mark* = 0; 	(*	the node has been marked	*)
-		data* = 1; 	(*	the node is data (has a fixed value)	*)
-		hidden* = 18; 	(*	node is hidden	*)
+		(*	node properties	*)
+		data* = 0; 	(*	the node is data (has a fixed value)	*)
+		mark* = 1; 	(*	the node has been marked	*)
 
 		(*	asscociate error with this argument of function / density	*)
 		arg1* = 1; 	(*	1st argument	*)
@@ -146,36 +146,50 @@ MODULE GraphNodes;
 
 	(*	checks that internal state of node is consistant	*)
 	PROCEDURE (node: Node) Check* (): SET, NEW, ABSTRACT;
+	
+	(*	externalize interrnal fields of node	*)
+	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-		(*	externalize node	*)
-	PROCEDURE (node: Node) Externalize* (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
+	PROCEDURE (node: Node) Externalize* (VAR wr: Stores.Writer), NEW;
+	BEGIN
+		wr.WriteSet(node.props);
+		node.ExternalizeNode(wr);
+	END Externalize;
+	
+	(*	initializes the internal fields of node to non sensible / possible values	*)
 	PROCEDURE (node: Node) InitNode-, NEW, ABSTRACT;
 
+	(*	gets name of the Install procedure for this type of node	*)
 	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
+	
+	(*	internalize internal fields of node	*)
+	PROCEDURE (node: Node) InternalizeNode- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+	
+	PROCEDURE (node: Node) Internalize* (VAR rd: Stores.Reader), NEW;
+	BEGIN
+		rd.ReadSet(node.props);
+		node.InternalizeNode(rd)
+	END Internalize;
 
-		(*	internalize node	*)
-	PROCEDURE (node: Node) Internalize* (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
-		(*	returns parents of node, all controls if parents not relevant to likelihood are returned	*)
+	(*	returns parents of node, 'all' controls if parents not relevant to likelihood are returned	*)
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): List, NEW, ABSTRACT;
 
-		(*	returns a node that is representetive of node	*)
+	(*	returns a node that is representetive of node	*)
 	PROCEDURE (node: Node) Representative* (): Node, NEW, ABSTRACT;
 
-		(*	sets internal fields of node	*)
+	(*	sets internal fields of node	*)
 	PROCEDURE (node: Node) Set* (IN args: Args; OUT res: SET), NEW, ABSTRACT;
 
-		(*	size of node	*)
+	(*	size of node	*)
 	PROCEDURE (node: Node) Size* (): INTEGER, NEW, ABSTRACT;
 
-		(*	value of node	*)
+	(*	value of node	*)
 	PROCEDURE (node: Node) Value* (): REAL, NEW, ABSTRACT;
 
-		(*	value and differential of node	*)
+	(*	value and value of differential of node wrt x	*)
 	PROCEDURE (node: Node) ValDiff* (x: Node; OUT val, diff: REAL), NEW, ABSTRACT;
 
-		(*	add parent node to list	*)
+	(*	add parent node to list, if node is marked then it is not added to list	*)
 	PROCEDURE (node: Node) AddParent* (VAR list: List), NEW;
 		VAR
 			cursor: List;
@@ -207,16 +221,16 @@ MODULE GraphNodes;
 	(*	initialize args data type	*)
 	PROCEDURE (VAR args: Args) Init*, NEW, ABSTRACT;
 
-		(*	create a new node in graphical model	*)
+	(*	create a new node in graphical model	*)
 	PROCEDURE (f: Factory) New* (): Node, NEW, ABSTRACT;
 
-		(*	number of parameters node created by factory has	*)
+	(*	number of parameters that node created by factory has	*)
 	PROCEDURE (f: Factory) NumParam* (): INTEGER, NEW, ABSTRACT;
 
-		(*	signature of parameters of node created by factory	*)
+	(*	signature of parameters of node created by factory	*)
 	PROCEDURE (f: Factory) Signature* (OUT signature: ARRAY OF CHAR), NEW, ABSTRACT;
 
-		(*	clears mark from nodes in list	*)
+	(*	clears mark from nodes in list	*)
 	PROCEDURE ClearList* (list: List);
 		VAR
 			cursor: List;
@@ -243,10 +257,11 @@ MODULE GraphNodes;
 		RETURN vector
 	END NewVector;
 
-	(*	writes out a pointer to a node to store, if it is the first time this pointer has been
+	(*	Writes out a pointer to a node to store, if it is the first time this pointer has been
 	written type information is also written so that the object can be recreated when it is
-	read back from store if it is the first time an object of a given type has been seen full type
-	information is writen otherwise and index into a type table is writen	*)
+	read back from store. If it is the first time an object of a given type has been seen full type
+	information is writen otherwise and index into a type table is writen. If 'deep' is true then
+	the internal fields of the node are also written.	*)
 
 	PROCEDURE Externalize0 (node: Node; deep: BOOLEAN; VAR wr: Stores.Writer);
 		VAR
@@ -297,8 +312,9 @@ MODULE GraphNodes;
 		Externalize0(node, deep, wr)
 	END Externalize;
 
-	(*	reads in a pointer to a node from store, if it is the first time the pointer has been read a new
-	object of the correct type is created and placed in the globel array nodes	*)
+	(*	Reads in a pointer to a node from store. If it is the first time the pointer has been read a new
+	object of the correct type is created and placed in the global array 'nodes'. Otherwise the pointer
+	is looked in the the array of 'nodes'. If 'deep' is true the internal field of the node are also read	*)
 	PROCEDURE Internalize0 (deep: BOOLEAN; VAR rd: Stores.Reader): Node;
 		VAR
 			node: Node;
@@ -308,7 +324,7 @@ MODULE GraphNodes;
 		IF label = 0 THEN
 			node := NIL
 		ELSIF label > 0 THEN
-			ASSERT(label < LEN(nodes), 66);
+			ASSERT(label < LEN(nodes), 100);
 			node := nodes[label]
 		ELSE
 			label :=  - label;
@@ -349,7 +365,7 @@ MODULE GraphNodes;
 		RETURN node
 	END Internalize;
 
-	(*	internalize pointers to nodes	*)
+	(*	internalize a block of pointers to nodes	*)
 	PROCEDURE InternalizePointers* (num: INTEGER; VAR rd: Stores.Reader);
 		VAR
 			i: INTEGER;
@@ -363,7 +379,7 @@ MODULE GraphNodes;
 		END;
 	END InternalizePointers;
 
-	(*	externalizes a sub vector	*)
+	(*	externalizes a sub-vector	*)
 	PROCEDURE ExternalizeSubvector* (v: SubVector; VAR wr: Stores.Writer);
 		VAR
 			i, start, nElem, step: INTEGER;
@@ -378,7 +394,7 @@ MODULE GraphNodes;
 		END
 	END ExternalizeSubvector;
 
-	(*	internalizes a sub vector	*)
+	(*	internalizes a sub-vector	*)
 	PROCEDURE InternalizeSubvector* (OUT v: SubVector; VAR rd: Stores.Reader);
 		VAR
 			i, nElem: INTEGER;
@@ -395,7 +411,7 @@ MODULE GraphNodes;
 		END
 	END InternalizeSubvector;
 
-	(*	writes a list of pointers to logical nodes to store	*)
+	(*	writes a list of pointers to nodes to store	*)
 	PROCEDURE ExternalizeList* (list: List; VAR wr: Stores.Writer);
 	BEGIN
 		WHILE list # NIL DO
@@ -405,7 +421,7 @@ MODULE GraphNodes;
 		Externalize(NIL, wr)
 	END ExternalizeList;
 
-	(*	reads a list of pointers to logical nodes from store	*)
+	(*	reads a list of pointers to nodes from store	*)
 	PROCEDURE InternalizeList* (VAR rd: Stores.Reader): List;
 		VAR
 			element, list, temp: List;
@@ -427,7 +443,8 @@ MODULE GraphNodes;
 		RETURN nodeList
 	END InternalizeList;
 
-	(*	reads in data and embeded pointers of nodes whoose pointers have already been read	*)
+	(*	Reads in the internal fields of nodes whose pointers have already been read and stored
+	in the 'nodes' array.	*)
 	PROCEDURE InternalizeNodeData* (VAR rd: Stores.Reader);
 		VAR
 			i, numPtr: INTEGER;
@@ -441,7 +458,7 @@ MODULE GraphNodes;
 		END
 	END InternalizeNodeData;
 
-	(*	begin externalization of graph	*)
+	(*	initializes the externalization of graph	*)
 	PROCEDURE BeginExternalize* (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
@@ -463,7 +480,7 @@ MODULE GraphNodes;
 		typeLabel := 0
 	END BeginExternalize;
 
-	(*	end externalization of graph	*)
+	(*	finalizes the externalization of graph	*)
 	PROCEDURE EndExternalize* (VAR wr: Stores.Writer);
 		VAR
 			endPos, numNodes, i, numTypes: INTEGER;
@@ -488,7 +505,7 @@ MODULE GraphNodes;
 		END
 	END EndExternalize;
 
-	(*	begin internalization of graph	*)
+	(*	initialize the internalization of graph	*)
 	PROCEDURE BeginInternalize* (VAR rd: Stores.Reader);
 		VAR
 			numNodes, endPos, pos, numTypes, i: INTEGER;
@@ -514,7 +531,7 @@ MODULE GraphNodes;
 		rd.SetPos(pos)
 	END BeginInternalize;
 
-	(*	end internalization of graph	*)
+	(*	finalize the internalization of graph	*)
 	PROCEDURE EndInternalize* (VAR rd: Stores.Reader);
 		VAR
 			i, len, numTypes: INTEGER;
@@ -549,7 +566,7 @@ MODULE GraphNodes;
 
 	PROCEDURE ListToVector* (list: List): Vector;
 		VAR
-			i, j, len, numUnivariate: INTEGER;
+			i, len: INTEGER;
 			cursor: List;
 			vector: Vector;
 	BEGIN
@@ -574,6 +591,7 @@ MODULE GraphNodes;
 		RETURN vector
 	END ListToVector;
 
+	(*	sets depth information	*)
 	PROCEDURE SetDepth* (maxD, maxSD: INTEGER);
 	BEGIN
 		maxDepth := maxD;
@@ -586,6 +604,7 @@ MODULE GraphNodes;
 		fact := f
 	END SetFactory;
 
+	(*	clears global parameters	*)
 	PROCEDURE Clear*;
 	BEGIN
 		maxDepth := 0;

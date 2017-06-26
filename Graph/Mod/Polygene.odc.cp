@@ -15,7 +15,7 @@ MODULE GraphPolygene;
 
 	IMPORT
 		Math, Stores,
-		GraphConjugateUV, GraphLogical, GraphNodes, GraphParamtrans, GraphRules, GraphScalar,
+		GraphConjugateUV, GraphLogical, GraphNodes, GraphRules, GraphScalar,
 		GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
@@ -66,17 +66,17 @@ MODULE GraphPolygene;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Mean) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Mean) ExternalizeLogical (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.mother, wr);
 		GraphNodes.Externalize(node.farther, wr);
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Mean) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Mean) InternalizeLogical (VAR rd: Stores.Reader);
 	BEGIN
 		node.mother := GraphNodes.Internalize(rd);
 		node.farther := GraphNodes.Internalize(rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Mean) InitLogical;
 	BEGIN
@@ -133,13 +133,13 @@ MODULE GraphPolygene;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left :=  - INF;
+		left := - INF;
 		right := INF
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() <  - eps THEN
+		IF node.tau.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -342,17 +342,6 @@ MODULE GraphPolygene;
 			node.mean := mean
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mean := GraphParamtrans.IdentTransform(p.mean);
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

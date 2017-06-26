@@ -17,7 +17,7 @@ MODULE GraphItermap;
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphVector.MetNode)
+		Node = POINTER TO RECORD(GraphVector.Node)
 			function, x, x0: GraphNodes.Node
 		END;
 
@@ -128,8 +128,7 @@ MODULE GraphItermap;
 			node.function := args.scalars[0];
 			node.x := args.scalars[1];
 			node.x0 := args.scalars[2];
-			node.x.SetProps(node.x.props + 
-			{GraphStochastic.nR, GraphStochastic.initialized, GraphNodes.hidden})
+			node.x.SetProps(node.x.props + {GraphStochastic.hidden, GraphStochastic.initialized})
 		END
 	END Set;
 

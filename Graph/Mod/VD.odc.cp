@@ -35,7 +35,7 @@ MODULE GraphVD;
 		size := LEN(block);
 		numHidden := 0;
 		WHILE i < size DO
-			IF GraphNodes.hidden IN block[i].props THEN INC(numHidden) END;
+			IF GraphStochastic.hidden IN block[i].props THEN INC(numHidden) END;
 			INC(i)
 		END;
 		numTheta := numHidden - numBeta;

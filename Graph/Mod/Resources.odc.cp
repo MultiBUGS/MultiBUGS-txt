@@ -12,7 +12,7 @@ MODULE GraphResources;
 	
 
 	IMPORT
-		GraphMessages, GraphCenTrunc;
+		GraphMessages;
 
 	VAR
 		loaded: BOOLEAN;
@@ -24,7 +24,6 @@ MODULE GraphResources;
 	BEGIN
 		IF ~loaded THEN
 			GraphMessages.Load;
-			GraphCenTrunc.Install;
 			loaded := TRUE
 		END;
 	END Load;
