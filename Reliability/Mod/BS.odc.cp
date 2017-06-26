@@ -21,7 +21,7 @@ MODULE ReliabilityBS;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -50,13 +50,13 @@ MODULE ReliabilityBS;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.value <  - eps THEN
+		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() <  - eps THEN
+		IF node.alpha.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.beta.Value() <  - eps THEN
+		IF node.beta.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -101,7 +101,7 @@ MODULE ReliabilityBS;
 		logAlpha := MathFunc.Ln(alpha);
 		beta := node.beta.Value();
 		logBeta := MathFunc.Ln(beta);
-		logLikelihood :=  - logAlpha - 0.5 * logBeta - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta) - 
+		logLikelihood := - logAlpha - 0.5 * logBeta - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta) - 
 		(1.0 / (2.0 * alpha * alpha)) * ((x / beta) + (beta / x) - 2) - 0.5 * log2Pi;
 		RETURN - 2.0 * logLikelihood
 	END DevianceUnivariate;
@@ -118,13 +118,13 @@ MODULE ReliabilityBS;
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
 			alpha := node.alpha.Value();
 			node.beta.ValDiff(x, beta, diffBeta);
-			diff := diffBeta * (- 1 / (2 * beta) + 1 / (val + beta) - 
+			diff := diffBeta * ( - 1 / (2 * beta) + 1 / (val + beta) - 
 			( - val / (beta * beta) + 1 / val) / (2 * alpha * alpha))
 		ELSE
 			node.alpha.ValDiff(x, alpha, diffAlpha);
 			node.beta.ValDiff(x, beta, diffBeta);
 			diff := diffAlpha * ((val / beta + beta / val - 2) / (alpha * alpha * alpha) - 1 / alpha) + 
-			diffBeta * (- 1 / (2 * beta) + 1 / (val + beta) - (- val / (beta * beta) + 1 / val) / (2 * alpha * alpha))
+			diffBeta * ( - 1 / (2 * beta) + 1 / (val + beta) - ( - val / (beta * beta) + 1 / val) / (2 * alpha * alpha))
 		END;
 		RETURN diff
 	END DiffLogLikelihood;
@@ -181,7 +181,7 @@ MODULE ReliabilityBS;
 		logAlpha := MathFunc.Ln(alpha);
 		beta := node.beta.Value();
 		logBeta := MathFunc.Ln(beta);
-		logLikelihood :=  - logAlpha - 0.5 * logBeta - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta) - 
+		logLikelihood := - logAlpha - 0.5 * logBeta - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta) - 
 		(1.0 / (2.0 * alpha * alpha)) * ((x / beta) + (beta / x) - 2);
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
@@ -193,7 +193,7 @@ MODULE ReliabilityBS;
 		x := node.value;
 		alpha := node.alpha.Value();
 		beta := node.beta.Value();
-		logPrior :=  - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta)
+		logPrior := - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta)
 		 - (1.0 / alpha * alpha) * ((x / beta) + (beta / x) - 2);
 		RETURN logPrior
 	END LogPrior;
@@ -239,17 +239,6 @@ MODULE ReliabilityBS;
 			node.beta := args.scalars[1]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.alpha := GraphParamtrans.LogTransform(p.alpha);
-		p.beta := GraphParamtrans.LogTransform(p.beta);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

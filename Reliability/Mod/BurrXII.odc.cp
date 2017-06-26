@@ -22,7 +22,7 @@ MODULE ReliabilityBurrXII;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -50,13 +50,13 @@ MODULE ReliabilityBurrXII;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.value <  - eps THEN
+		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() <  - eps THEN
+		IF node.alpha.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.beta.Value() <  - eps THEN
+		IF node.beta.Value() < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -249,17 +249,6 @@ MODULE ReliabilityBurrXII;
 			node.beta := args.scalars[1]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.alpha := GraphParamtrans.LogTransform(p.alpha);
-		p.beta := GraphParamtrans.LogTransform(p.beta);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

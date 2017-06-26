@@ -21,7 +21,7 @@ MODULE ReliabilityInvGauss;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -234,17 +234,6 @@ MODULE ReliabilityInvGauss;
 			node.lambda := args.scalars[1]
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.IdentTransform(p.mu);
-		p.lambda := GraphParamtrans.LogTransform(p.lambda);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

@@ -250,8 +250,8 @@ MODULE ReliabilitySystem;
 			list0 := node.components[start + i * step].Parents(all);
 			WHILE list0 # NIL DO
 				p := list0.node;
-				IF ~(GraphStochastic.blockMark IN p.props) THEN
-					p.SetProps(p.props + {GraphStochastic.blockMark});
+				IF ~(GraphStochastic.mark IN p.props) THEN
+					p.SetProps(p.props + {GraphStochastic.mark});
 					p.AddParent(list);
 				END;
 				list0 := list0.next
@@ -261,7 +261,7 @@ MODULE ReliabilitySystem;
 		list0 := list;
 		WHILE list0 # NIL DO
 			p := list0.node;
-			p.SetProps(p.props - {GraphStochastic.blockMark});
+			p.SetProps(p.props - {GraphStochastic.mark});
 			list0 := list0.next;
 		END;
 		GraphNodes.ClearList(list);
@@ -329,15 +329,6 @@ MODULE ReliabilitySystem;
 			END;
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

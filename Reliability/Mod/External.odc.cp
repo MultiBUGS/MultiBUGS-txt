@@ -1,11 +1,11 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-		  *)
+*)
 
 (*
 Grammar file for reliability distributions
@@ -24,7 +24,7 @@ MODULE ReliabilityExternal;
 
 		Density: PROCEDURE (IN name, install: ARRAY OF CHAR);
 		Function: PROCEDURE (IN name, install: ARRAY OF CHAR);
-		
+
 	PROCEDURE Load*;
 	BEGIN
 		Density("dbs", "ReliabilityBS.Install");
@@ -47,7 +47,7 @@ MODULE ReliabilityExternal;
 		Density("dlog.weib", "ReliabilityLogWeibull.Install");
 		Density("dweib.modified", "ReliabilityModifiedWeibull.Install");
 		Density("dSystem", "ReliabilitySystem.Install");
-		
+
 		(*	corresponding cumulative distribution where available functions	*)
 		Function("pbs", "GraphDensity.InstallCumulative(dbs)");
 		Function("pburrXII", "GraphDensity.InstallCumulative(dburrXII)");
@@ -68,7 +68,7 @@ MODULE ReliabilityExternal;
 		Function("plog.logis", "GraphDensity.InstallCumulative(dlog.logis)");
 		Function("plog.weib", "GraphDensity.InstallCumulative(dlog.weib)");
 		Function("pweib.modified", "GraphDensity.InstallCumulative(dweib.modified)");
-		
+
 		(*	corresponding pdf where available functions	*)
 		Function("dbs", "GraphDensity.InstallDensity(dbs)");
 		Function("dburrXII", "GraphDensity.InstallDensity(dburrXII)");
@@ -88,8 +88,8 @@ MODULE ReliabilityExternal;
 		Function("dlogistic.exp", "GraphDensity.InstallDensity(dlogistic.exp)");
 		Function("dlog.logis", "GraphDensity.InstallDensity(dlog.logis)");
 		Function("dlog.weib", "GraphDensity.InstallDensity(dlog.weib)");
-		Density("dweib.modified", "GraphDensity.InstallDensity(dweib.modified)");
-		
+		Function("dweib.modified", "GraphDensity.InstallDensity(dweib.modified)");
+
 	END Load;
 
 	PROCEDURE Maintainer;

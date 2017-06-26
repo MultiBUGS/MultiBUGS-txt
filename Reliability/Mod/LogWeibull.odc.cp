@@ -22,7 +22,7 @@ MODULE ReliabilityLogWeibull;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 
 	TYPE
@@ -234,17 +234,6 @@ MODULE ReliabilityLogWeibull;
 		node.SetValue(x);
 		res := {}
 	END Sample;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.mu := GraphParamtrans.LogTransform(p.mu);
-		p.sigma := GraphParamtrans.LogTransform(p.sigma);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

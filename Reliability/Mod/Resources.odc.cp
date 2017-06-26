@@ -1,11 +1,11 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-			*)
+*)
 
 MODULE ReliabilityResources;
 
