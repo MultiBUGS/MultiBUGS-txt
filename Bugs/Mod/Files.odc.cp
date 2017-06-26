@@ -30,7 +30,7 @@ CONST
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		PROCEDURE PathToFileSpec (IN path: ARRAY OF CHAR; VAR loc: Files.Locator;
+	PROCEDURE PathToFileSpec (IN path: ARRAY OF CHAR; VAR loc: Files.Locator;
 	OUT name: Files.Name);
 		VAR
 			i, j: INTEGER;

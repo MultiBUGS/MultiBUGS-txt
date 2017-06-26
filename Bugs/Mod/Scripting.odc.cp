@@ -19,7 +19,7 @@ MODULE BugsScripting;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		PROCEDURE ParseCommand (VAR s: BugsMappers.Scanner;
+	PROCEDURE ParseCommand (VAR s: BugsMappers.Scanner;
 	OUT command: ARRAY OF CHAR; OUT p: ARRAY OF ARRAY OF CHAR);
 		VAR
 			argNum, i, integer, res: INTEGER;
