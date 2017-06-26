@@ -16,6 +16,7 @@ MODULE BugsCPCompiler;
 	
 
 	IMPORT
+		CpcBeautifier,
 		Files, Kernel, Services, Stores, Strings, Views, 
 		BugsCPWrite, 
 		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486, 
@@ -92,7 +93,7 @@ MODULE BugsCPCompiler;
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		BugsCPWrite.WriteModule(args, numDynamic, f);
-		IF debug THEN Views.OpenAux(TextViews.dir.New(text), modName$) END;
+		IF debug THEN Views.OpenAux(TextViews.dir.New(text), modName$); CpcBeautifier.Beautify END;
 		rd := text.NewReader(NIL);
 		rd.SetPos(0);
 		Compile(rd, ok);

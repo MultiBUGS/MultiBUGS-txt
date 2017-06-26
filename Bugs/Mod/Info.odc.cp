@@ -13,8 +13,7 @@ MODULE BugsInfo;
 
 	IMPORT
 		Strings, Views,
-		BugsBlueDiamonds, BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
-		BugsParser,
+		BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg, BugsNames, BugsParser,
 		GraphLogical, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterAuxillary, UpdaterMultivariate, UpdaterParallel, UpdaterUpdaters,
 		TextMappers, TextModels;
@@ -334,7 +333,7 @@ MODULE BugsInfo;
 			IF node = NIL THEN
 				f.WriteString("NA")
 			ELSIF data THEN
-				IF (GraphNodes.data IN node.props) & ~(GraphLogical.logical IN node.props) THEN
+				IF (GraphNodes.data IN node.props) & ~(GraphStochastic.logical IN node.props) THEN
 					value := node.Value();
 					IF (node IS GraphStochastic.Node) & ~(GraphStochastic.integer IN node.props) THEN
 						WriteReal(value, f)
@@ -395,7 +394,7 @@ MODULE BugsInfo;
 		WHILE (i < size) & ~isStochastic DO
 			node := name.components[i];
 			IF (node # NIL) & (node IS GraphStochastic.Node) THEN
-				isStochastic := ({GraphNodes.data, GraphNodes.hidden} * node.props = {})
+				isStochastic := ({GraphNodes.data, GraphStochastic.hidden} * node.props = {})
 				 & (GraphStochastic.initialized IN node.props)
 			END;
 			INC(i)
@@ -468,7 +467,7 @@ MODULE BugsInfo;
 		WHILE (i < size) & ~isData DO
 			node := name.components[i];
 			IF node # NIL THEN
-				isData := (GraphNodes.data IN node.props) & ~(GraphLogical.logical IN node.props)
+				isData := (GraphNodes.data IN node.props) & ~(GraphStochastic.logical IN node.props)
 			END;
 			INC(i)
 		END;
@@ -708,7 +707,7 @@ MODULE BugsInfo;
 		numUpdaters := UpdaterActions.NumberUpdaters();
 		i := 0;
 		WHILE i < numUpdaters DO
-			updater := UpdaterActions.GetUpdater(chain, i);
+			updater := UpdaterActions.updaters[chain, i];
 			IF updater # NIL THEN
 				size := updater.Size();
 				depth := updater.Depth();
@@ -760,11 +759,10 @@ MODULE BugsInfo;
 			id: POINTER TO ARRAY OF INTEGER;
 			isAuxillary: BOOLEAN;
 			children: GraphStochastic.Vector;
-			blueDiamond: Views.View;
 		CONST
 			chain = 0;
 	BEGIN
-		UpdaterParallel.DistributeUpdaters(numProc, chain, updaters, id);
+		UpdaterParallel.DistributeUpdaters(numProc, chain, updaters, id); 
 		f.WriteTab;
 		f.WriteString("Number of processor: ");
 		f.WriteInt(numProc);
@@ -829,15 +827,11 @@ MODULE BugsInfo;
 									string := "aux_" + string
 								END;
 								f.WriteTab; 
-								blueDiamond := BugsBlueDiamonds.New(children, string, start, thin);
-								f.WriteView(blueDiamond);
 								f.WriteString(string);
 							END
 						ELSE
 							IF index = 0 THEN 
 								f.WriteTab; 
-								blueDiamond := BugsBlueDiamonds.New(children, string, start, thin);
-								f.WriteView(blueDiamond);
 							END; 
 							f.WriteString(string);
 						END

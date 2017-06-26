@@ -1442,9 +1442,9 @@ MODULE BugsParser;
 				IF descriptor = NIL THEN
 					IF s.string = "D" THEN
 						ParseDnotation(loops, s, derivative, dependent, independent);
-						ASSERT(s.char = "<");
+						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;
-						ASSERT(s.char = "-");
+						IF s.char # "-" THEN Error(38); RETURN END;
 						s.Scan;
 						expression := ParseExpression(loops, s);
 						IF expression = NIL THEN RETURN END;
@@ -1477,19 +1477,21 @@ MODULE BugsParser;
 							density.leftCen := NIL;
 							density.rightCen := NIL;
 							statement := BuildStochastic(independent, density);
-							statement.CopyToList(model); (*	put loops before statement	*)
+							statement.CopyToList(model); 
+							(*	put loops before statement	*)
 							IF loops # NIL THEN loops.MergeLists(model) END
 						END
 					ELSIF s.string = "F" THEN
 						ParseFnotation(loops, s, functionVar, independent);
-						ASSERT(s.char = "<");
+						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;
-						ASSERT(s.char = "-");
+						IF s.char # "-" THEN Error(38); RETURN END;
 						s.Scan;
 						expression := ParseExpression(loops, s);
 						IF expression = NIL THEN RETURN END;
 						statement := BuildLogical(functionVar, expression);
-						statement.CopyToList(model); (*	put loops before statement	*)
+						statement.CopyToList(model); 
+						(*	put loops before statement	*)
 						IF loops # NIL THEN loops.MergeLists(model) END;
 						(*	set up dummy relationship for independent variable	*)
 						NEW(density);
@@ -1498,7 +1500,8 @@ MODULE BugsParser;
 						density.leftCen := NIL;
 						density.rightCen := NIL;
 						statement := BuildStochastic(independent, density);
-						statement.CopyToList(model); (*	put loops before statement	*)
+						statement.CopyToList(model); 
+						(*	put loops before statement	*)
 						IF loops # NIL THEN loops.MergeLists(model) END
 					ELSE
 						Error(40); RETURN (*	unknown type of fogical function	*)
@@ -1532,11 +1535,10 @@ MODULE BugsParser;
 						statement := BuildLogical(variable, function);
 						statement.CopyToList(model);
 						IF (s.type = BugsMappers.char) & (s.char = ";") THEN s.Scan END;
-						IF loops # NIL THEN loops.MergeLists(model) END
 						(*	put loops before statement	*)
+						IF loops # NIL THEN loops.MergeLists(model) END
 					ELSE
-						Error(41); RETURN
-						(*	function is not a link function	*)
+						Error(41); RETURN (*	function is not a link function	*)
 					END
 				END
 			ELSIF (s.type = BugsMappers.char) & (s.char = "}") THEN

@@ -356,7 +356,7 @@ MODULE BugsEvaluate;
 			argL.Init;
 			numSlots := name.numSlots;
 			WHILE (i < numSlots) DO
-				IF variable.lower[i] = NIL THEN (*Error(4, name.string);*) RETURN NIL END;
+				IF variable.lower[i] = NIL THEN RETURN NIL END;
 				IF variable.lower[i] IS BugsParser.Variable THEN
 					node := RHScalar(variable.lower[i]);
 					IF node = NIL THEN RETURN NIL END;
@@ -387,7 +387,7 @@ MODULE BugsEvaluate;
 			IF numVarIndex = 0 THEN
 				offset := name.Offset(indices);
 				node := variable.name.components[offset];
-				IF node = NIL THEN (*Error(2, name.string);*) RETURN NIL END
+				IF node = NIL THEN RETURN NIL END
 			ELSE
 				argL.vectors[0] := GraphNodes.NewVector();
 				argL.vectors[0].components := name.components;
@@ -400,15 +400,12 @@ MODULE BugsEvaluate;
 		ELSIF tree IS BugsParser.Integer THEN
 			integer := tree(BugsParser.Integer);
 			node := GraphConstant.New(integer.integer);
-			node.SetProps(node.props + {GraphNodes.hidden})
 		ELSIF tree IS BugsParser.Real THEN
 			real := tree(BugsParser.Real);
 			node := GraphConstant.New(real.real);
-			node.SetProps(node.props + {GraphNodes.hidden})
 		ELSIF tree IS BugsParser.Index THEN
 			index := tree(BugsParser.Index);
 			node := GraphConstant.New(index.intVal);
-			node.SetProps(node.props + {GraphNodes.hidden})
 		ELSE
 			RETURN NIL
 		END;

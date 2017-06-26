@@ -47,7 +47,6 @@ MODULE BugsMaster;
 		terminate = 1;
 		getMonitors = 2;
 		getSamples = 3;
-		debug = FALSE;
 		
 	PROCEDURE DeleteFiles;
 		VAR
@@ -248,7 +247,7 @@ MODULE BugsMaster;
 	PROCEDURE (h: Hook) Distribute (mpiImplementation: ARRAY OF CHAR);
 		VAR
 			ok: BOOLEAN;
-			numStochastics, chain, numChains, numWorker, size, res, worker: INTEGER;
+			numStochastics, chain, numChains, numWorker, size, res, worker, len0, len1: INTEGER;
 			endTime, startTime: LONGINT;
 			cmd, path, string, executable, bugFile: ARRAY 1024 OF CHAR;
 			loc: Files.Locator;
@@ -276,13 +275,13 @@ MODULE BugsMaster;
 		bugFile := fileStemName + "_" + timeStamp;
 		f := Files.dir.New(restartLoc, Files.dontAsk);
 		startTime := Services.Ticks();
-		IF debug THEN BugsComponents.Debug(numChains) END;
 		BugsComponents.WriteModel(f, numChains, port, ok);
 		IF ~ok THEN
 			BugsInterface.SetDistributeHook(NIL);
 			BugsMsg.Store("unable to write graph file for worker");
 			RETURN
 		END;
+		len0 := StdLog.text.Length();
 		StdLog.Ln;
 		StdLog.String("port name:");
 		StdLog.Ln;
@@ -326,6 +325,8 @@ MODULE BugsMaster;
 		StdLog.Ln;
 		StdLog.String(cmd);
 		StdLog.Ln;
+		len1 := StdLog.text.Length();
+		IF ~BugsCPCompiler.debug THEN StdLog.text.Delete(len0, len1) END;
 		Dialog.RunExternal(cmd);
 		MPI.Comm_accept(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
 		MPI.Comm_remote_size(intercomm, size);

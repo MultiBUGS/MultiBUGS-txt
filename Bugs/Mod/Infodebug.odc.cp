@@ -14,8 +14,7 @@ MODULE BugsInfodebug;
 	IMPORT
 		SYSTEM,
 		Meta, Ports, Strings, Views,
-		BugsCmds, BugsEvaluate, BugsFiles, BugsInfo, BugsMsg, BugsNames,
-		BugsParser, 
+		BugsCmds, BugsEvaluate, BugsFiles, BugsIndex, BugsInfo, BugsMsg, BugsNames, BugsParser, 
 		GraphGrammar, GraphNodes, GraphStochastic,
 		TextMappers, TextModels,
 		UpdaterActions, UpdaterUpdaters;
@@ -45,9 +44,16 @@ MODULE BugsInfodebug;
 	BEGIN
 		numChains := UpdaterActions.NumberChains();
 		var := BugsParser.StringToVariable(variable);
-		IF var = NIL THEN RETURN END;
-		name := var.name;
-		offsets := BugsEvaluate.Offsets(var);
+		IF var = NIL THEN 
+			name := BugsIndex.Find(variable);
+			IF name = NIL THEN RETURN END;
+			size := LEN(name.components);
+			NEW(offsets, size);
+			i := 0; WHILE i < size DO  offsets[i] := i; INC(i) END
+		ELSE
+			name := var.name;
+			offsets := BugsEvaluate.Offsets(var);
+		END;
 		IF offsets = NIL THEN RETURN END;
 		Meta.Lookup("DevDebug", item);
 		ok := item.obj = Meta.modObj;
@@ -129,9 +135,16 @@ MODULE BugsInfodebug;
 			descriptor: GraphGrammar.External;
 	BEGIN
 		var := BugsParser.StringToVariable(variable);
-		IF var = NIL THEN RETURN END;
-		name := var.name;
-		offsets := BugsEvaluate.Offsets(var);
+		IF var = NIL THEN 
+			name := BugsIndex.Find(variable);
+			IF name = NIL THEN RETURN END;
+			size := LEN(name.components);
+			NEW(offsets, size);
+			i := 0; WHILE i < size DO  offsets[i] := i; INC(i) END
+		ELSE
+			name := var.name;
+			offsets := BugsEvaluate.Offsets(var);
+		END;
 		IF offsets = NIL THEN RETURN END;
 		Meta.Lookup("DevDebug", item);
 		ok := item.obj = Meta.modObj;
@@ -161,7 +174,11 @@ MODULE BugsInfodebug;
 				ELSE
 					Strings.Find(string, "_", 0, pos);
 					IF pos # -1 THEN 
-						string[pos] := 0X
+						string[pos] := 0X;
+						Strings.Find(string, "DynamicNode", 0, pos);
+						IF pos # -1 THEN
+							Strings.Replace(string, pos, LEN("DynamicNode"), "logical")
+						END
 					ELSE
 						Strings.Find(string, "GraphConstant", 0, pos);
 						IF pos # -1 THEN string := "const" END

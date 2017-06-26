@@ -7,11 +7,8 @@ copyright:	"Rsrc/About"
 
 *)
 
-(*	Each logical node of type GraphStack.Node is uniquely defined by the array of opertaors
-ops in the data type GraphStochastic.ArgsLogical. This module writes out Component Pascal code
-to represent this unique stack of operators. The CP code consists of a module defining a new type of
-GraphScalar.Node plus a factory object to create nodes of this new type. Only one new module is
-written for each new stack of operators.	*)
+(*	
+Each logical node is uniquely defined by the array of operators 'ops' in the data type GraphStochastic.ArgsLogical. This module writes out Component Pascal code to represent this unique stack of operators. The CP code consists of a module defining a new type of GraphScalar.Node plus a factory object to create nodes of this new type. Only one new module is written for each unique stack of operators.	*)
 
 MODULE BugsCPWrite;
 
@@ -20,22 +17,22 @@ MODULE BugsCPWrite;
 
 	IMPORT
 		Strings,
-		GraphGrammar,
-		GraphNodes, GraphStochastic,
-		TextMappers;
+		TextMappers,
+		GraphGrammar, GraphNodes,
+		GraphStochastic;
 
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		
+
 	PROCEDURE StackSize (args: GraphStochastic.ArgsLogical): INTEGER;
 		VAR
 			i, maxTop, op, top: INTEGER;
 	BEGIN
 		i := 0;
 		maxTop := 0;
-		top :=  - 1;
+		top := - 1;
 		WHILE i < args.numOps DO
 			op := args.ops[i];
 			CASE op OF
@@ -217,7 +214,7 @@ MODULE BugsCPWrite;
 
 		PROCEDURE WriteNonDiff1;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.uopF[class");
+			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.nonDiff1[class");
 			f.WriteInt(top); f.WriteString("];"); f.WriteLn
 		END WriteNonDiff1;
 
@@ -257,7 +254,7 @@ MODULE BugsCPWrite;
 			END;
 		END;
 		i := 0;
-		top :=  - 1;
+		top := - 1;
 		WHILE i < args.numOps DO
 			op := args.ops[i];
 			CASE op OF
@@ -283,11 +280,11 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteClassFunctionMethod;
 
-	PROCEDURE WriteExternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
+	PROCEDURE WriteExternalizeLogicalMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
-		f.WriteString("PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);"); f.WriteLn;
+		f.WriteString("PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
 		i := 0;
 		WHILE i < args.numConsts DO
@@ -304,9 +301,9 @@ MODULE BugsCPWrite;
 			f.WriteString("GraphNodes.Externalize(node.s"); f.WriteInt(i); f.WriteString(", wr);"); f.WriteLn;
 			INC(i)
 		END;
-		f.WriteString("END ExternalizeScalar;"); f.WriteLn;
+		f.WriteString("END ExternalizeLogical;"); f.WriteLn;
 		f.WriteLn;
-	END WriteExternalizeScalarMethod;
+	END WriteExternalizeLogicalMethod;
 
 	PROCEDURE WriteInitLogicalMethod (VAR f: TextMappers.Formatter);
 	BEGIN
@@ -325,12 +322,12 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteInstallMethod;
 
-	PROCEDURE WriteInternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical;
+	PROCEDURE WriteInternalizeLogicalMethod (IN args: GraphStochastic.ArgsLogical;
 	VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
-		f.WriteString("PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);"); f.WriteLn;
+		f.WriteString("PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);"); f.WriteLn;
 		f.WriteString("VAR"); f.WriteLn;
 		f.WriteString("p: GraphNodes.Node;"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
@@ -351,9 +348,9 @@ MODULE BugsCPWrite;
 			f.WriteString("node.s"); f.WriteInt(i); f.WriteString(" := p(GraphStochastic.Node);"); f.WriteLn;
 			INC(i)
 		END;
-		f.WriteString("END InternalizeScalar;"); f.WriteLn;
+		f.WriteString("END InternalizeLogical;"); f.WriteLn;
 		f.WriteLn;
-	END WriteInternalizeScalarMethod;
+	END WriteInternalizeLogicalMethod;
 
 	PROCEDURE WriteParentsMethod (IN args: GraphStochastic.ArgsLogical;
 	VAR f: TextMappers.Formatter);
@@ -508,7 +505,7 @@ MODULE BugsCPWrite;
 	BEGIN
 		(*	build tree representation of stack	*)
 		numC := 0;
-		top :=  - 1;
+		top := - 1;
 		i := 0;
 		stackSize := StackSize(args);
 		NEW(trees, stackSize);
@@ -711,7 +708,6 @@ MODULE BugsCPWrite;
 			Diff; String(" := "); Diff1; Else; Diff; String(" := "); String("0");
 			End; Ln;
 			End; Ln;
-			Active; String(" := "); Active; String(" OR "); Active1; String(";"); Ln
 		END WriteAdd;
 
 		PROCEDURE WriteSub;
@@ -720,14 +716,12 @@ MODULE BugsCPWrite;
 			Val; String(" := "); Val; String(" - "); Val1; String(";"); Comment("subtract"); Ln;
 			If; Active; Then; Ln;
 			If; Active1; Then;
-			Diff; String(" := "); Diff; String(" - "); Diff1; Else; Diff; String(" := "); Diff;
-			End; Ln;
+			Diff; String(" := "); Diff; String(" - "); Diff1; Else; Diff; String(" := "); Diff; End; Ln;
 			Else; Ln;
 			If; Active1; Then;
-			Diff; String(" := "); String(" -"); Diff1; Else; Diff; String(" := "); String("0");
+			Diff; String(" := "); String(" - "); Diff1; Else; Diff; String(" := "); String("0");
 			End; Ln;
 			End; Ln;
-			Active; String(" := "); Active; String(" OR "); Active1; String(";"); Ln
 		END WriteSub;
 
 		PROCEDURE WriteMult;
@@ -747,7 +741,6 @@ MODULE BugsCPWrite;
 			End; Ln;
 			End; Ln;
 			Val; String(" := "); Val; String(" * "); Val1; String(";"); Ln;
-			Active; String(" := "); Active; String(" OR "); Active1; String(";"); Ln;
 		END WriteMult;
 
 		PROCEDURE WriteDiv;
@@ -771,7 +764,6 @@ MODULE BugsCPWrite;
 			End; Ln;
 			End; Ln;
 			Val; String(" := "); Val; String(" / "); Val1; String(";"); Ln;
-			Active; String(" := "); Active; String(" OR "); Active1; String(";"); Ln;
 		END WriteDiv;
 
 		PROCEDURE WriteEquals;
@@ -1086,7 +1078,7 @@ MODULE BugsCPWrite;
 			END;
 		END;
 		i := 0;
-		top :=  - 1;
+		top := - 1;
 		numC := 0;
 		WHILE i < args.numOps DO
 			op := args.ops[i];
@@ -1129,6 +1121,14 @@ MODULE BugsCPWrite;
 			|GraphGrammar.arcsinh: WriteArcSinh
 			|GraphGrammar.arccosh: WriteArcCosh
 			|GraphGrammar.arctanh: WriteArcTanh
+			END;
+			IF i < args.numOps - 1 THEN
+				CASE op OF
+				|GraphGrammar.add, GraphGrammar.sub, GraphGrammar.mult, GraphGrammar.div,
+					GraphGrammar.pow:
+					Active; String(" := "); Active; String(" OR "); Active1; String(";"); Ln;
+				ELSE
+				END
 			END;
 			INC(i);
 		END;
@@ -1205,12 +1205,12 @@ MODULE BugsCPWrite;
 		WriteCheckMethod(f);
 		(*	write ClassFunction method	*)
 		WriteClassFunctionMethod(args, f);
-		(*	write ExternalizeScalar method	*)
-		WriteExternalizeScalarMethod(args, f);
+		(*	write ExternalizeLogical method	*)
+		WriteExternalizeLogicalMethod(args, f);
 		(*	write InitLogical method	*)
 		WriteInitLogicalMethod(f);
-		(*	write InternalizeScalar method	*)
-		WriteInternalizeScalarMethod(args, f);
+		(*	write InternalizeLogical method	*)
+		WriteInternalizeLogicalMethod(args, f);
 		(*	write Install method	*)
 		WriteInstallMethod("Dynamic" + fileName, f);
 		(*	write Parent method	*)

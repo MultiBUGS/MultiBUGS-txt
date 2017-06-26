@@ -55,9 +55,13 @@ MODULE BugsSerialize;
 
 	(*	immutable	*)
 	PROCEDURE ExternalizeGraph* (VAR wr: Stores.Writer);
+		VAR
+			num: INTEGER;
 	BEGIN
 		GraphNodes.BeginExternalize(wr);
 		UpdaterActions.ExternalizeParamPointers(wr);
+		num := BugsIndex.NumberNodes();
+		wr.WriteInt(num);
 		BugsIndex.ExternalizePointers(wr);
 		UpdaterActions.ExternalizeParamData(wr);
 		BugsIndex.ExternalizeData(wr);
@@ -77,6 +81,7 @@ MODULE BugsSerialize;
 		GraphNodes.BeginInternalize(rd);
 		rd.ReadInt(num); 
 		GraphNodes.InternalizePointers(num, rd);
+		rd.ReadInt(num);
 		BugsIndex.InternalizePointers(rd); 
 		GraphNodes.InternalizeNodeData(rd);
 		UpdaterActions.InternalizeUpdaterPointers(nChains, rd);
@@ -186,7 +191,6 @@ MODULE BugsSerialize;
 		f.Close;
 		f := NIL;
 		UpdaterActions.StoreStochastics;
-		(*BugsGraph.CreateDeviance;*)
 		Services.Collect
 	END Internalize;
 

@@ -12,7 +12,7 @@ MODULE BugsGraph;
 	
 
 	IMPORT
-		Strings, 
+		Strings,
 		BugsIndex, BugsMsg,
 		BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		GraphConjugateMV, GraphDeviance, GraphLogical, GraphNodes, GraphRules,
@@ -147,7 +147,7 @@ MODULE BugsGraph;
 		node := name.components[v.index];
 		IF node # NIL THEN
 			WITH node: GraphStochastic.Node DO
-				IF {GraphNodes.data, GraphStochastic.nR} * node.props = {} THEN
+				IF {GraphNodes.data, GraphStochastic.hidden} * node.props = {} THEN
 					node.ClassifyConditional;
 				END
 			ELSE
@@ -171,7 +171,7 @@ MODULE BugsGraph;
 			i, size: INTEGER;
 			comp: GraphStochastic.Vector;
 		CONST
-			noUpdater = {GraphNodes.data, GraphStochastic.nR};
+			noUpdater = {GraphNodes.data, GraphStochastic.hidden};
 	BEGIN
 		node := name.components[v.index];
 		IF node # NIL THEN
@@ -215,22 +215,14 @@ MODULE BugsGraph;
 		v.class := class;
 		v.list := NIL;
 		BugsIndex.Accept(v);
-		(*	reverse list to get alphabetical order and clear marks	*)
-		cursor := v.list;
-		list := NIL;
-		WHILE cursor # NIL DO
-			node := cursor.node;
-			node.SetProps(node.props - {GraphNodes.mark});
-			GraphStochastic.AddToList(node, list);
-			cursor := cursor.next;
-		END;
+		list := v.list;
 		vector := GraphStochastic.ListToVector(list);
 		RETURN vector
 	END ConditionalsOfClass;
 
 	PROCEDURE (v: CreateUpdaterByMethod) Do (name: BugsNames.Name);
 		CONST
-			noUpdater = {GraphNodes.data, GraphStochastic.update, GraphStochastic.nR};
+			noUpdater = {GraphNodes.data, GraphStochastic.update, GraphStochastic.hidden};
 		VAR
 			updater: UpdaterUpdaters.Updater;
 			factory: UpdaterUpdaters.Factory;
@@ -276,7 +268,7 @@ MODULE BugsGraph;
 
 	PROCEDURE (v: CreateUpdaterByNode) Do (name: BugsNames.Name);
 		CONST
-			noUpdater = {GraphNodes.data, GraphStochastic.update, GraphStochastic.nR};
+			noUpdater = {GraphNodes.data, GraphStochastic.update, GraphStochastic.hidden};
 		VAR
 			updater: UpdaterUpdaters.Updater;
 			factory: UpdaterUpdaters.Factory;
@@ -316,7 +308,7 @@ MODULE BugsGraph;
 
 	PROCEDURE (v: MissingUpdater) Do (name: BugsNames.Name);
 		CONST
-			noUpdater = {GraphNodes.data, GraphStochastic.update, GraphStochastic.nR};
+			noUpdater = {GraphNodes.data, GraphStochastic.update, GraphStochastic.hidden};
 		VAR
 			node: GraphNodes.Node;
 			stochastic: GraphStochastic.Node;
@@ -451,7 +443,6 @@ MODULE BugsGraph;
 	END CalculateLevels;
 
 	(*	Calculates level of logical parents of stochastic nodes, needed for mixture models	*)
-
 	PROCEDURE (v: CalculateLevel1) Do (name: BugsNames.Name);
 		VAR
 			list: GraphLogical.List;
@@ -461,7 +452,7 @@ MODULE BugsGraph;
 	BEGIN
 		node := name.components[v.index];
 		IF node # NIL THEN
-			IF (node IS GraphStochastic.Node) & ~(GraphStochastic.nR IN node.props) THEN
+			IF (node IS GraphStochastic.Node) & ~(GraphStochastic.hidden IN node.props) THEN
 				all := TRUE;
 				list := GraphLogical.Parents(node, all);
 				WHILE list # NIL DO
@@ -492,7 +483,7 @@ MODULE BugsGraph;
 	BEGIN
 		(*	what if chain graph ???	*)
 		node := name.components[v.index];
-		IF (node # NIL) & ~(GraphStochastic.nR IN node.props) THEN
+		IF (node # NIL) & ~(GraphStochastic.hidden IN node.props) THEN
 			WITH node: GraphStochastic.Node DO
 				all := TRUE;
 				list := GraphStochastic.Parents(node, all);
@@ -553,14 +544,14 @@ MODULE BugsGraph;
 		UpdaterActions.Clear;
 		BugsNodes.Allocate(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.CreateSentinels(model, ok); IF ~ok THEN RETURN END;
-		BugsNodes.CreateConstants(model, ok); 
-		BugsNodes.CreateStochastics(model, ok); IF ~ok THEN RETURN END; 
+		BugsNodes.CreateConstants(model, ok);
+		BugsNodes.CreateStochastics(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.CreateLogicals(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.WriteLogicals(model, ok); IF~ok THEN RETURN END;
 		BugsNodes.WriteStochastics(model, ok); IF ~ok THEN RETURN END;
 		CalculateLevels;
 		CalculateLevels1;
-		CalculateDepths; 
+		CalculateDepths;
 	END WriteGraph;
 
 	PROCEDURE CreateDeviance*;

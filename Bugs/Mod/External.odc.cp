@@ -31,9 +31,10 @@ MODULE BugsExternal;
 	PROCEDURE Load*;
 	BEGIN
 
-		(*	Univariate distributions	*)
-
+		(*	special place holder not user level distribution	*)
 		Density("dummy", "GraphDummy.Install");
+
+		(*	Univariate distributions	*)
 		
 		Density("dbern", "GraphBern.Install");
 		Density("dbeta", "GraphBeta.Install");
@@ -127,7 +128,7 @@ MODULE BugsExternal;
 		Function("pdf.par", "GraphDensity.DensityUVInstall(dpar)");
 		Function("pdf.pois", "GraphDensity.DensityUVInstall(dpois)");
 		Function("pdf.polygene", "GraphDensity.DensityUVInstall(dpolygene)");
-		(*	no stable pdf	*)
+		(*	no  pdf for stable	*)
 		Function("pdf.t", "GraphDensity.DensityUVInstall(dt)");
 		Function("pdf.trap", "GraphDensity.DensityUVInstall(dtrap)");
 		Function("pdf.triang", "GraphDensity.DensityUVInstall(dtriang)");
@@ -161,7 +162,7 @@ MODULE BugsExternal;
 		Function("deviance.par", "GraphDensity.DevianceUVInstall(dpar)");
 		Function("deviance.pois", "GraphDensity.DevianceUVInstall(dpois)");
 		Function("deviance.polygene", "GraphDensity.DevianceUVInstall(dpolygene)");
-		(*	no stable deviance.	*)
+		(*	no  deviance.for stable	*)
 		Function("deviance.t", "GraphDensity.DevianceUVInstall(dt)");
 		Function("deviance.trap", "GraphDensity.DevianceUVInstall(dtrap)");
 		Function("deviance.triang", "GraphDensity.DevianceUVInstall(dtriang)");
@@ -194,8 +195,7 @@ MODULE BugsExternal;
 		Function("deviance.mt", "GraphDensity.DevianceMVInstall(dmt)");
 		Function("deviance.wish", "GraphDensity.DevianceMVInstall(dwish)");
 
-
-		(*	multistage stuff	*)
+		(*	Multistage stuff	*)
 		Density("dlike.emp", "GraphSample.Install");
 		Density("dprior.emp", "GraphPriorNP.Install");
 
@@ -238,7 +238,8 @@ MODULE BugsExternal;
 		(*	Functionals	*)
 		Function("solution", "GraphAESolver.Install");
 		Function("integral", "GraphIntegrate.Install");
-
+		Function("iter.map", "GraphItermap.Install");
+		
 		(*	Link functions	*)
 		Function("log", "GraphLog.Install");
 		Function("logit", "GraphLogit.Install");
@@ -253,9 +254,6 @@ MODULE BugsExternal;
 		Function("interp.lin", "GraphTable.Install");
 		Function("pi", "GraphPi.Install");
 
-		(*	iterative function	*)
-		Function("iter.map", "GraphItermap.Install");
-
 		(*	Critisism functions	*)
 		Function("replicate.post", "GraphReplicate.ScalarPostInstall");
 		Function("replicate.prior", "GraphReplicate.ScalarPriorInstall");
@@ -264,7 +262,7 @@ MODULE BugsExternal;
 		Function("prior.p.value", "GraphPValue.ScalarPriorInstall");
 		Function("p.valueM", "GraphPValue.VectorPostInstall");
 
-		(*	exposed AD functions not for end user	*)
+		(*	Exposed AD functions not for end user	*)
 		Function("LC", "GraphValDiff.LogCondInstall");
 		Function("diffLC", "GraphValDiff.ADLogCondInstall");
 		Function("diffLCFD", "GraphValDiff.FDLogCondInstall");

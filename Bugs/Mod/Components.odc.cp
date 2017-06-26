@@ -238,7 +238,7 @@ MODULE BugsComponents;
 		numFact := LEN(UpdaterMethods.factories);
 		i := 0;
 		WHILE i < numUpdaters DO
-			updater := UpdaterActions.GetUpdater(0, i);
+			updater := UpdaterActions.updaters[0, i];
 			size := updater.Size();
 			prior := updater.Prior(0);
 			IF prior # NIL THEN
@@ -268,11 +268,11 @@ MODULE BugsComponents;
 						ASSERT(updater.Size() = size, 66);
 						j := 0;
 						WHILE j < numChains DO
-							updater := UpdaterActions.GetUpdater(j, i);
+							updater := UpdaterActions.updaters[j, i];
 							updater.LoadSample;
 							updater := UpdaterUpdaters.CopyFrom(newUpdater);
 							updater.StoreSample;
-							UpdaterActions.SetUpdater(j, i, updater);
+							UpdaterActions.updaters[j, i] :=  updater;
 							INC(j)
 						END
 					ELSE
@@ -353,4 +353,6 @@ MODULE BugsComponents;
 BEGIN
 	Maintainer
 END BugsComponents.
+
+"BugsComponents.Debug(1)"
 

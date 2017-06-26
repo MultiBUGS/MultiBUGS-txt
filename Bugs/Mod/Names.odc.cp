@@ -105,10 +105,15 @@ MODULE BugsNames;
 	PROCEDURE (name: Name) ExternalizePointers* (VAR wr: Stores.Writer), NEW;
 		VAR
 			i, len: INTEGER;
+			p: GraphNodes.Node;
 	BEGIN
 		IF name.components # NIL THEN len := LEN(name.components) ELSE len := 0 END;
 		i := 0;
-		WHILE i < len DO GraphNodes.ExternalizePointer(name.components[i], wr); INC(i) END
+		WHILE i < len DO 
+			p := name.components[i];
+			GraphNodes.ExternalizePointer(p, wr);
+			INC(i) 
+		END
 	END ExternalizePointers;
 
 	(*	externalizes the internal fields of each node of the graph associated with name	
@@ -124,8 +129,9 @@ MODULE BugsNames;
 		i := 0;
 		WHILE i < len DO
 			p := name.components[i];
-			IF (p # NIL) & (~(GraphStochastic.update IN p.props) OR (GraphStochastic.nR IN p.props)) THEN 
-				p.Externalize(wr) 
+			IF (p # NIL) 
+			& (~(GraphStochastic.update IN p.props) OR (GraphStochastic.hidden IN p.props)) THEN 
+				p.Externalize(wr)
 			END; 
 			INC(i)
 		END
@@ -151,7 +157,6 @@ MODULE BugsNames;
 		VAR
 			i, len: INTEGER;
 	BEGIN
-		(*rd.ReadInt(len);*)
 		len := name.Size();
 		IF len > 0 THEN NEW(name.components, len) ELSE name.components := NIL END;
 		i := 0;
@@ -183,7 +188,7 @@ MODULE BugsNames;
 	(*	are stochastic sampling type nodes in graph associated with name initialized	*)
 	PROCEDURE (name: Name) Initialized* (): BOOLEAN, NEW;
 		CONST
-			init = {GraphNodes.data, GraphStochastic.initialized, GraphStochastic.nR};
+			init = {GraphNodes.data, GraphStochastic.initialized, GraphStochastic.hidden};
 		VAR
 			initialized: BOOLEAN;
 			i, size: INTEGER;

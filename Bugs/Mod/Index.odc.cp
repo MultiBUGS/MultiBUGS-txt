@@ -13,9 +13,9 @@ MODULE BugsIndex;
 	
 
 	IMPORT SYSTEM,
-		Stores, Strings, 
+		Stores, Strings,
 		BugsNames,
-		GraphNodes;
+		GraphNodes, GraphStochastic;
 
 	TYPE
 		Index = POINTER TO LIMITED RECORD
@@ -69,9 +69,10 @@ MODULE BugsIndex;
 
 	PROCEDURE NumberNodes* (): INTEGER;
 		VAR
-			num: INTEGER;
+			len, num: INTEGER;
 			cursor: Index;
 			name: BugsNames.Name;
+			node: GraphNodes.Node;
 	BEGIN
 		num := 0;
 		cursor := index;
@@ -79,7 +80,8 @@ MODULE BugsIndex;
 			name := cursor.name;
 			IF name.components # NIL THEN
 				IF name.string # "deviance" THEN
-					INC(num, LEN(name.components))
+					len := LEN(name.components);
+					INC(num, len)
 				END
 			END;
 			cursor := cursor.next
@@ -118,10 +120,7 @@ MODULE BugsIndex;
 		VAR
 			cursor: Index;
 			name: BugsNames.Name;
-			num: INTEGER;
 	BEGIN
-		num := NumberNodes();
-		wr.WriteInt(num);
 		cursor := index;
 		WHILE cursor # NIL DO
 			name := cursor.name;
@@ -168,10 +167,7 @@ MODULE BugsIndex;
 		VAR
 			cursor: Index;
 			name: BugsNames.Name;
-			p: GraphNodes.Node;
-			num: INTEGER;
 	BEGIN
-		rd.ReadInt(num);
 		cursor := index;
 		WHILE cursor # NIL DO
 			name := cursor.name;

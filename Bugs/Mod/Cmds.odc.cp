@@ -312,7 +312,7 @@ MODULE BugsCmds;
 	PROCEDURE Compile*;
 		VAR
 			updaterByMethod, ok: BOOLEAN;
-			numChains: INTEGER;
+			numChains, len0, len1: INTEGER;
 			msg: ARRAY 1024 OF CHAR;
 			startTime, elapsedTime: LONGINT;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
@@ -323,7 +323,10 @@ MODULE BugsCmds;
 		numChains := specificationDialog.numChains;
 		updaterByMethod := compileDialog.updaterByMethod;
 		startTime := Services.Ticks();
+		len0 := StdLog.text.Length();
 		BugsGraph.Compile(numChains, updaterByMethod, ok);
+		len1 := StdLog.text.Length();
+		StdLog.text.Delete(len0, len1);
 		IF ok THEN
 			SetAdaptingStatus;
 			UpdaterSettings.MarkCompiled;
@@ -332,7 +335,6 @@ MODULE BugsCmds;
 			elapsedTime := Services.Ticks() - startTime;
 			elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 			Strings.IntToString(elapsedTime, p[0]);
-			StdLog.Ln;
 			BugsMsg.ShowParam("BugsCmds:OkCompile", p);
 		ELSE
 			BugsMsg.Show(BugsMsg.message);

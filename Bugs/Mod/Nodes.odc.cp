@@ -12,11 +12,11 @@ MODULE BugsNodes;
 
 	
 
-	IMPORT 
-		Meta, Strings, 
-		BugsCodegen, BugsCPCompiler, BugsEvaluate, BugsIndex, BugsMsg, BugsNames, 
-		BugsOptimize, BugsParser, 
-		GraphConstant, GraphGrammar, GraphLogical, GraphMultivariate, GraphNodes, 
+	IMPORT
+		Meta, Strings,
+		BugsCPCompiler, BugsCodegen, BugsEvaluate, BugsIndex, BugsMsg, BugsNames,
+		BugsOptimize, BugsParser,
+		GraphConstant, GraphGrammar, GraphLogical, GraphMultivariate, GraphNodes,
 		GraphSentinel, GraphStochastic, GraphVector;
 
 	TYPE
@@ -33,20 +33,18 @@ MODULE BugsNodes;
 
 		CreateStochastic = POINTER TO RECORD(BugsEvaluate.Visitor) END;
 
-		CreateConstant = POINTER TO RECORD(BugsEvaluate.Visitor) 
+		CreateConstant = POINTER TO RECORD(BugsEvaluate.Visitor)
 			repeat: BOOLEAN
 		END;
-		
-		WriteLogical = POINTER TO RECORD(BugsEvaluate.Visitor) END;
 
-		InitStochastic = POINTER TO RECORD(BugsEvaluate.Visitor) END;
+		WriteLogical = POINTER TO RECORD(BugsEvaluate.Visitor) END;
 
 		WriteStochastic = POINTER TO RECORD(BugsEvaluate.Visitor) END;
 
 		Check = POINTER TO RECORD(BugsNames.ElementVisitor)
 			ok: BOOLEAN
 		END;
-		
+
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -328,8 +326,8 @@ MODULE BugsNodes;
 						END;
 						stochastic.SetValue(vector.components[i].Value());
 						stochastic.SetProps(stochastic.props + {GraphNodes.data});
-						IF GraphLogical.logical IN vector.components[i].props THEN
-							stochastic.SetProps(stochastic.props + {GraphLogical.logical})
+						IF GraphStochastic.logical IN vector.components[i].props THEN
+							stochastic.SetProps(stochastic.props + {GraphStochastic.logical})
 						END;
 						vector.components[i] := stochastic
 					ELSE (*	multiple definitions of node	*)
@@ -386,13 +384,13 @@ MODULE BugsNodes;
 			vector := BugsEvaluate.LHVariable(variable);
 			i := vector.start;
 			IF vector.nElem # 1 THEN RETURN END; (*	can not fold vector valued constants	*)
-			IF (vector.components[i] # NIL) & (GraphNodes.data IN vector.components[i].props) THEN 
-				RETURN 
+			IF (vector.components[i] # NIL) & (GraphNodes.data IN vector.components[i].props) THEN
+				RETURN
 			END;
-			BugsOptimize.FoldConstants(expression);  
+			BugsOptimize.FoldConstants(expression);
 			IF expression.evaluated THEN
 				node := GraphConstant.New(expression.value);
-				node.SetProps(node.props + {GraphLogical.logical});
+				node.SetProps(node.props + {GraphStochastic.logical});
 				vector.components[i] := node;
 				visitor.repeat := TRUE
 			END;
@@ -460,7 +458,7 @@ MODULE BugsNodes;
 				args.scalars[0] := ref;
 				node.Set(args, res); ASSERT(res = {}, 88)
 			ELSE
-				BugsCodegen.WriteFunctionArgs(function, args); 
+				BugsCodegen.WriteFunctionArgs(function, args);
 				IF ~args.valid THEN ok := FALSE; Error(10, varName); RETURN END;
 				i := vector.start;
 				end := vector.start + vector.nElem;
@@ -543,56 +541,6 @@ MODULE BugsNodes;
 		NEW(visitor);
 		source.Accept(visitor, ok)
 	END WriteStochastics;
-	
-	PROCEDURE (visitor: InitStochastic) Node (statement: BugsParser.Statement; OUT ok: BOOLEAN);
-		VAR
-			multivariate: BOOLEAN;
-			i, end: INTEGER;
-			varName: ARRAY 120 OF CHAR;
-			density: BugsParser.Density;
-			variable: BugsParser.Variable;
-			name: BugsNames.Name;
-			node: GraphNodes.Node;
-			vector: GraphNodes.SubVector;
-			descriptor: GraphGrammar.External;
-			fact: GraphNodes.Factory;
-			props: SET;
-	BEGIN
-		ok := TRUE;
-		density := statement.density;
-		IF density = NIL THEN RETURN END;
-		variable := statement.variable;
-		descriptor := density.descriptor;
-		fact := descriptor.fact;
-		multivariate := fact IS GraphMultivariate.Factory;
-		vector := BugsEvaluate.LHVariable(variable);
-		IF vector = NIL THEN ok := FALSE; RETURN END;
-		name := variable.name;
-		name.Indices(vector.start, varName);
-		varName := name.string + varName;
-		IF vector.nElem = 1 THEN
-			IF multivariate THEN ok := FALSE; Error(14, varName); RETURN END
-		ELSE
-			IF ~multivariate THEN ok := FALSE; Error(15, varName); RETURN END
-		END;
-		i := vector.start;
-		end := vector.start + vector.nElem;
-		WHILE i < end DO
-			node := vector.components[i];
-			props := node.props;
-			node.Init;
-			node.SetProps(props);
-			INC(i)
-		END
-	END Node;
-
-	PROCEDURE InitStochastics* (source: BugsParser.Statement; OUT ok: BOOLEAN);
-		VAR
-			visitor: InitStochastic;
-	BEGIN
-		NEW(visitor);
-		source.Accept(visitor, ok)
-	END InitStochastics;
 
 	PROCEDURE (v: Check) Do (name: BugsNames.Name);
 		VAR
@@ -621,7 +569,7 @@ MODULE BugsNodes;
 		BugsIndex.Accept(v);
 		ok := v.ok
 	END Checks;
-	
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
