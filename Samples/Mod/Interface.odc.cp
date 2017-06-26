@@ -64,7 +64,7 @@ MODULE SamplesInterface;
 			index := offsets[i];
 			p := name.components[index];
 			IF ~monitor.IsMonitored(index) & (p # NIL) & 
-				({GraphNodes.data, GraphStochastic.nR} * p.props = {}) THEN
+				({GraphNodes.data, GraphStochastic.hidden} * p.props = {}) THEN
 				monitor.Set(index, beg);
 				INC(num)
 			END;
