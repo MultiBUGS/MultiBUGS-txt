@@ -11,13 +11,13 @@ MODULE ParallelDebug;
 	
 
 	IMPORT
-		SYSTEM, StdLog,
-		Dialog, Files, Meta, Ports, Stores, Views,
-		BugsDialog, BugsIndex, BugsMappers, BugsMsg, BugsSerialize, 
-		GraphNodes, GraphStochastic,
-		ParallelActions,
-		TextMappers, TextModels,
-		UpdaterActions, UpdaterParallel, UpdaterUpdaters;
+		SYSTEM, Dialog,
+		Meta, Ports, Views, 
+		TextMappers, TextModels, 
+		BugsDialog, BugsFiles, BugsIndex, BugsMsg, 
+		GraphNodes,
+		GraphStochastic, ParallelActions,
+		UpdaterParallel, UpdaterUpdaters;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
@@ -46,41 +46,14 @@ MODULE ParallelDebug;
 		Dialog.Update(dialog)
 	END Update;
 
-	PROCEDURE WriteGraph (numChains: INTEGER; VAR wr: Stores.Writer);
-	BEGIN
-		wr.WriteInt(numChains);
-		UpdaterActions.MarkDistributed;
-		UpdaterActions.UnMarkDistributed;
-		BugsSerialize.ExternalizeGraph(wr);
-		UpdaterActions.ExternalizeUpdaterData(wr)
-	END WriteGraph;
-
 	PROCEDURE ModifyModel (numProc, rank: INTEGER);
 		VAR
 			updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
 			deviances: POINTER TO ARRAY OF GraphStochastic.Vector;
 			id: POINTER TO ARRAY OF INTEGER;
-			f: Files.File;
-			loc: Files.Locator;
-			wr: Stores.Writer;
-			rd: Stores.Reader;
-			numChains: INTEGER;
 		CONST
 			chain = 0;
 	BEGIN
-		(*numChains := UpdaterActions.NumChains();
-		(*	test externalize / internalize	*)
-		loc := Files.dir.This("");
-		f := Files.dir.New(loc, Files.dontAsk);
-		wr.ConnectTo(f);
-		wr.SetPos(0);
-		WriteGraph(numChains, wr);
-		StdLog.String("File length is "); StdLog.Int(f.Length()); StdLog.Ln;
-		rd.ConnectTo(f);
-		rd.SetPos(0);
-		rd.ReadInt(numChains);
-		StdLog.String("Number of chains is "); StdLog.Int(numChains); StdLog.Ln;
-		UpdaterParallel.ReadGraph(0, rd);*)
 		UpdaterParallel.ModifyUpdaters(numProc, rank, chain, updaters, id, deviances);
 		ParallelActions.ConfigureModel(updaters, id, deviances, rank)
 	END ModifyModel;
@@ -176,7 +149,7 @@ MODULE ParallelDebug;
 		tabs[2] := 85 * Ports.mm;
 		tabs[3] := 95 * Ports.mm;
 		tabs[4] := 100 * Ports.mm;
-		(*f.WriteRuler(tabs);*)
+		BugsFiles.WriteRuler(tabs, f);
 		f.WriteTab;
 		f.WriteString("number processors: ");
 		f.WriteInt(dialog.numProc);
@@ -190,9 +163,7 @@ MODULE ParallelDebug;
 		f.WriteString("updater");
 		f.WriteLn;
 		MethodsState(dialog.numProc, dialog.rank, f);
-		(*IF f.lines > 1 THEN
-			f.Register("Updater types")
-		END*)
+		BugsFiles.Open("Methods", text)
 	END Methods;
 
 	PROCEDURE Maintainer;

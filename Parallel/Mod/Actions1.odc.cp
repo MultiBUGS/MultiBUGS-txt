@@ -6,33 +6,105 @@ copyright:	"Rsrc/About"
 
 *)
 
-MODULE ParallelActions;
+MODULE ParallelActions1;
 
 	
 
 	IMPORT
-		MPIworker,
-		Math, Stores,
-		GraphStochastic,
+		Files,
+		MPIworker, Math, Stores,
+		GraphNodes, GraphStochastic,
 		MonitorDeviance,
 		ParallelRandnum,
-		UpdaterParallel, UpdaterUpdaters;
+		UpdaterUpdaters;
 
 
 	VAR
-		distributedUpdaters: UpdaterUpdaters.Vector;
-		distributedId: POINTER TO ARRAY OF INTEGER;
-		distributedBlocks: POINTER TO ARRAY OF GraphStochastic.Vector;
-		distributedObservations: GraphStochastic.Vector;
+		updaters: UpdaterUpdaters.Vector;
+		id: POINTER TO ARRAY OF INTEGER;
+		observations: GraphStochastic.Vector;
+		stochastics: POINTER TO ARRAY OF GraphStochastic.Vector;
 		distributedDevMonitors: POINTER TO ARRAY OF MonitorDeviance.Monitor;
-		commSize: INTEGER;
 
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
+	PROCEDURE InternalizeId (VAR rd: Stores.Reader);
+		VAR
+			i, len: INTEGER;
+			id: POINTER TO ARRAY OF INTEGER;
+	BEGIN
+		i := 0;
+		rd.ReadInt(len);
+		IF len > 0 THEN NEW(id, len) END;
+		WHILE i < len DO
+			rd.ReadInt(id[i]);
+			INC(i)
+		END
+	END InternalizeId;
+
+	PROCEDURE InternalizeStochastics (VAR rd: Stores.Reader);
+		VAR
+			i, j, commSize, num: INTEGER;
+			p: GraphNodes.Node;
+	BEGIN
+		rd.ReadInt(commSize);
+		rd.ReadInt(num);
+		NEW(stochastics, commSize);
+		i := 0;
+		WHILE i < commSize DO
+			NEW(stochastics[i], num);
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < commSize DO
+			j := 0;
+			WHILE j < num DO
+				p := GraphNodes.InternalizePointer(rd);
+				stochastics[i, j] := p(GraphStochastic.Node);
+				INC(j)
+			END;
+			INC(i)
+		END
+	END InternalizeStochastics;
+
+	PROCEDURE Read* (f: Files.File);
+		VAR
+			rd: Stores.Reader;
+			maxSizeParams, i, len, num: INTEGER;
+			p: GraphNodes.Node;
+	BEGIN
+		rd.ConnectTo(f);
+		rd.SetPos(0);
+		rd.ReadInt(maxSizeParams);
+		InternalizeId(rd);
+		GraphNodes.BeginInternalize(rd);
+		InternalizeStochastics(rd);
+		rd.ReadInt(num);
+		i := 0; WHILE i < num DO p := GraphNodes.InternalizePointer(rd); INC(i) END;
+		rd.ReadInt(len);
+		NEW(observations, len);
+		i := 0;
+		WHILE i < len DO
+			p := GraphNodes.InternalizePointer(rd);
+			observations[i] := p(GraphStochastic.Node);
+			INC(i)
+		END;
+		GraphNodes.InternalizeNodeData(rd);
+		UpdaterUpdaters.BeginInternalize(rd);
+		rd.ReadInt(len);
+		NEW(updaters, len);
+		i := 0; WHILE i < len DO updaters[i] := UpdaterUpdaters.InternalizePointer(rd); INC(i) END;
+		rd.ReadInt(len);
+		i := 0; WHILE i < len DO UpdaterUpdaters.Internalize(updaters[i], rd); INC(i) END;
+		UpdaterUpdaters.EndInternalize(rd);
+		GraphNodes.EndInternalize(rd);
+		HALT(0);
+	END Read;
+
 	PROCEDURE NumUpdaters* (): INTEGER;
 	BEGIN
-		RETURN LEN(distributedUpdaters);
+		RETURN LEN(updaters);
 	END NumUpdaters;
 
 	PROCEDURE ExternalizeUpdaterData* (VAR wr: Stores.Writer);
@@ -40,13 +112,13 @@ MODULE ParallelActions;
 			j, numUpdaters, oldPos, pos, start: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 	BEGIN
-		numUpdaters := LEN(distributedUpdaters);
+		numUpdaters := LEN(updaters);
 		oldPos := wr.Pos();
 		wr.WriteInt( - 1);
 		j := 0;
 		start := wr.Pos();
 		WHILE j < numUpdaters DO
-			updater := distributedUpdaters[j];
+			updater := updaters[j];
 			UpdaterUpdaters.Externalize(updater, wr);
 			INC(j)
 		END;
@@ -56,14 +128,9 @@ MODULE ParallelActions;
 		wr.SetPos(pos)
 	END ExternalizeUpdaterData;
 
-	PROCEDURE GetBlock* (index: INTEGER): GraphStochastic.Vector;
-	BEGIN
-		RETURN distributedBlocks[index]
-	END GetBlock;
-
 	PROCEDURE GetUpdater* (index: INTEGER): UpdaterUpdaters.Updater;
 	BEGIN
-		RETURN distributedUpdaters[index]
+		RETURN updaters[index]
 	END GetUpdater;
 
 	PROCEDURE IsAdapting* (): BOOLEAN;
@@ -73,10 +140,10 @@ MODULE ParallelActions;
 			u: UpdaterUpdaters.Updater;
 	BEGIN
 		isAdapting := FALSE;
-		numUpdaters := LEN(distributedUpdaters);
+		numUpdaters := LEN(updaters);
 		i := 0;
 		WHILE (i < numUpdaters) & ~isAdapting DO
-			u := distributedUpdaters[i];
+			u := updaters[i];
 			isAdapting := u.IsAdapting();
 			INC(i)
 		END;
@@ -85,40 +152,48 @@ MODULE ParallelActions;
 
 	PROCEDURE Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			dataSize, i, j, len, rank, numUpdaters, offset: INTEGER;
+			i, j, len, num, rank, numUpdaters, offset, end, start, size: INTEGER;
 			values, globalValues: POINTER TO ARRAY OF REAL;
-			block: GraphStochastic.Vector;
 	BEGIN
 		res := {};
-		numUpdaters := LEN(distributedUpdaters);
+		numUpdaters := LEN(updaters);
+		values := MPIworker.values;
+		globalValues := MPIworker.globalValues;
 		i := 0;
-		IF distributedId # NIL THEN (*	chain is distributed	*)
+		end := 0;
+		IF id # NIL THEN (*	chain is distributed	*)
 			WHILE (i < numUpdaters) & (res = {}) DO
-				IF distributedId[i] = 0 THEN ParallelRandnum.UseSameStream; END;
-				distributedUpdaters[i].Sample(overRelax, res);
+				IF id[i] = 0 THEN ParallelRandnum.UseSameStream; END;
+				updaters[i].Sample(overRelax, res);
 				IF res # {} THEN
 					(*	handle error	*)HALT(0)
 				END;
-				block := distributedBlocks[i];
-				IF block # NIL THEN 
+				size := updaters[i].Size();
+				INC(end, size);
+				IF id[i] < 0 THEN
 					rank := MPIworker.rank;
-					values := MPIworker.values;
-					globalValues := MPIworker.globalValues;
-					len := LEN(block);
-					dataSize := len DIV MPIworker.commSize;
-					offset := rank * dataSize;
+					size := ABS(id[i]) * size;
+					start := end - size;
 					j := 0;
-					WHILE j < dataSize DO
-						values[j] := block[offset + j].value;
-						INC(j)
-					END; 
-					MPIworker.GatherValues(dataSize);
-					j := 0;
-					WHILE j < len DO
-						block[j].SetValue(globalValues[j]);
+					WHILE j < size DO
+						values[j] := stochastics[rank, start + j].value;
 						INC(j)
 					END;
-				ELSIF distributedId[i] = 0 THEN
+					MPIworker.GatherValues(size);
+					len := LEN(stochastics);
+					num := LEN(stochastics[0]);
+					i := 0;
+					WHILE i < len DO
+						IF i # rank THEN
+							j := 0;
+							WHILE j < size DO
+								stochastics[i, start + j].SetValue(globalValues[i * num + j]);
+								INC(j)
+							END
+						END;
+						INC(i)
+					END
+				ELSIF id[i] = 0 THEN
 					ParallelRandnum.UsePrivateStream;
 				END;
 				(*MPIworker.Barrier;*)
@@ -126,48 +201,12 @@ MODULE ParallelActions;
 			END;
 		ELSE
 			WHILE (i < numUpdaters) & (res = {}) DO
-				distributedUpdaters[i].Sample(overRelax, res);
+				updaters[i].Sample(overRelax, res);
 				INC(i)
 			END
 		END;
 		(*MPIworker.Barrier*)
 	END Sample;
-
-	PROCEDURE ConfigureModel* (updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
-	id: POINTER TO ARRAY OF INTEGER;
-	observations: POINTER TO ARRAY OF GraphStochastic.Vector;
-	rank: INTEGER);
-		VAR
-			i, numBlocks, numUpdaters: INTEGER;
-			block: GraphStochastic.Vector;
-	BEGIN
-		ASSERT(updaters # NIL, 20);
-		commSize := LEN(updaters);
-		ASSERT(updaters[0] # NIL, 22);
-		numUpdaters := LEN(updaters[0]);
-		distributedUpdaters := updaters[rank];
-		distributedObservations := observations[rank];
-		distributedId := id;
-		IF id # NIL THEN (*	chain is distributed	*)
-			NEW(distributedBlocks, numUpdaters);
-			i := 0;
-			numBlocks := 0;
-			WHILE i < numUpdaters DO
-				 IF ABS(distributedId[i]) = 1 THEN
-					INC(numBlocks);
-					block := UpdaterParallel.ParallelBlock(updaters, id, numBlocks);
-				END;
-				IF distributedId[i] < 0 THEN
-					distributedBlocks[i] := block
-				ELSE
-					distributedBlocks[i] := NIL
-				END;
-				INC(i)
-			END
-		ELSE
-			distributedBlocks := NIL
-		END
-	END ConfigureModel;
 
 	PROCEDURE Deviance* (): REAL;
 		VAR
@@ -175,14 +214,14 @@ MODULE ParallelActions;
 			deviance: REAL;
 	BEGIN
 		deviance := 0.0;
-		IF distributedObservations # NIL THEN
-			numObs := LEN(distributedObservations)
+		IF observations # NIL THEN
+			numObs := LEN(observations)
 		ELSE
 			numObs := 0
 		END;
 		i := 0;
 		WHILE i < numObs DO
-			deviance := deviance + distributedObservations[i].Deviance();
+			deviance := deviance + observations[i].Deviance();
 			INC(i)
 		END;
 		RETURN deviance
@@ -195,23 +234,23 @@ MODULE ParallelActions;
 			p: GraphStochastic.Node;
 			u: UpdaterUpdaters.Updater;
 	BEGIN
-		numUpdaters := LEN(distributedUpdaters);
-		numObs := LEN(distributedObservations);
+		numUpdaters := LEN(updaters);
+		numObs := LEN(observations);
 		jointPDF := 0.0;
 		i := 0;
 		WHILE i < numObs DO
-			jointPDF := jointPDF + distributedObservations[i].LogLikelihood();
+			jointPDF := jointPDF + observations[i].LogLikelihood();
 			INC(i)
 		END;
 		i := 0;
 		WHILE i < numUpdaters DO
-			u := distributedUpdaters[i];
+			u := updaters[i];
 			size := u.Size();
 			j := 0;
 			WHILE j < size DO
 				p := u.Prior(j);
 				IF (p # NIL) & (p = p.Representative()) THEN
-					IF (MPIworker.rank = 0) OR (distributedId[i] # 0) THEN
+					IF (MPIworker.rank = 0) OR (id[i] # 0) THEN
 						jointPDF := jointPDF + p.LogLikelihood()
 					END
 				END;
@@ -234,10 +273,10 @@ MODULE ParallelActions;
 			observation: GraphStochastic.Node;
 	BEGIN
 		i := 0;
-		numObs := LEN(distributedObservations);
-		NEW(distributedDevMonitors, numObs);
+		numObs := LEN(observations);
+		IF numObs # 0 THEN NEW(distributedDevMonitors, numObs) END;
 		WHILE i < numObs DO
-			observation := distributedObservations[i];
+			observation := observations[i];
 			monitor := MonitorDeviance.fact.New(observation);
 			distributedDevMonitors[i] := monitor;
 			INC(i)
@@ -247,7 +286,6 @@ MODULE ParallelActions;
 	PROCEDURE UpdateWAIC*;
 		VAR
 			i, numObs: INTEGER;
-			meanDensity, meanDeviance, meanDeviance2, variance: REAL;
 			monitor: MonitorDeviance.Monitor;
 	BEGIN
 		IF distributedDevMonitors = NIL THEN RETURN END;
@@ -290,14 +328,10 @@ MODULE ParallelActions;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		distributedId := NIL;
-		distributedUpdaters := NIL;
-		distributedBlocks := NIL;
-		distributedObservations := NIL;
-		distributedDevMonitors := NIL
+
 	END Init;
 
 BEGIN
 	Init
-END ParallelActions.
+END ParallelActions1.
 
