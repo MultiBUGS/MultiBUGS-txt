@@ -20,6 +20,12 @@ MODULE PKBugsNodes;
 	CONST
 		eps = 1.0E-40;
 
+		(* censoring and truncation of distribution *)
+		std = 0;
+		left = 1;
+		right = 2;
+		interval* = 3;
+
 	VAR
 		data, lower, upper: BugsNames.Name;
 		version-: INTEGER;
@@ -62,11 +68,11 @@ MODULE PKBugsNodes;
 		ELSE u := NIL
 		END;
 		IF l # NIL THEN
-			IF u # NIL THEN bounds := GraphStochastic.interval
-			ELSE bounds := GraphStochastic.left
+			IF u # NIL THEN bounds := interval
+			ELSE bounds := left
 			END
-		ELSIF u # NIL THEN bounds := GraphStochastic.right
-		ELSE bounds := GraphStochastic.std
+		ELSIF u # NIL THEN bounds := right
+		ELSE bounds := std
 		END
 	END GetBounds;
 
