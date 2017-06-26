@@ -11,7 +11,7 @@ DevCompiler.CompileThis
 MPI MPImslib MPImsimp MPIworker
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
-MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathLincon MathTT800 MathDiagmatrix MathBGR MathSmooth
+MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth
 
 BugsMsg BugsRegistry BugsMappers BugsFiles 
 
@@ -19,20 +19,21 @@ BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
-GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphLimits GraphScalar GraphLinkfunc GraphVector GraphParamtrans GraphWeight GraphUnivariate GraphConjugateUV GraphVD GraphCenTrunc GraphMultivariate GraphConjugateMV GraphChain GraphMRF GraphFunctional GraphMessages GraphResources GraphFlat
-GraphDeviance
+GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphVector GraphWeight GraphUnivariate  GraphConjugateUV GraphVD GraphMultivariate GraphConjugateMV GraphChain GraphMRF GraphUVMRF GraphFunctional GraphMessages GraphResources 
+
+GraphDummy GraphDeviance
 
 MonitorMonitors MonitorSamples MonitorSummary MonitorDeviance MonitorPlugin MonitorRanks MonitorModel
 
 UpdaterUpdaters UpdaterMethods UpdaterUnivariate UpdaterMultivariate UpdaterContinuous
 UpdaterConjugateUV UpdaterConjugateMV UpdaterMetropolisUV UpdaterMetropolisMV UpdaterRandWalkUV UpdaterAuxillary UpdaterEmpty UpdaterActions UpdaterParallel UpdaterMessages UpdaterExternal UpdaterResources
 
-GraphConstant GraphSentinel GraphPi  GraphHalf GraphMixture GraphDummy GraphGeneric GraphMAP  
+GraphConstant GraphSentinel GraphPi  GraphHalf GraphMixture GraphGeneric GraphFlat GraphMAP  
 
 DeviancePlugin
 
 BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData  BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects 
-BugsBlueDiamonds BugsInfo BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources BugsComponents
+BugsInfo BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources BugsComponents
 
 BugsRectData BugsSplusData
 
@@ -47,12 +48,12 @@ RanksMessages RanksResources
 ModelsMonitors ModelsIndex ModelsInterface ModelsFormatted 
 ModelsMessages ModelsResources
 
-DevianceMonitors DeviancePluginS DeviancePluginD DevianceParents 
+DevianceMonitors DeviancePluginS DevianceParents 
 DevianceIndex DevianceInterface DevianceFormatted DevianceMessages DevianceResources
 
 CorrelInterface CorrelFormatted CorrelMessages CorrelResources
 
-BugsMaster
+BugsParallel BugsMaster
 
 GraphAESolver GraphCloglog GraphCut GraphValDiff GraphDensity GraphEigenvals GraphGammap GraphInprod GraphIntegrate GraphInverse GraphKepler GraphLog GraphLogdet GraphLogit GraphProbit GraphProduct GraphRanks GraphSumation GraphTable GraphODEmath GraphODElang GraphODElangRK45 GraphPValue GraphReplicate GraphItermap GraphPiecewise GraphODEBlockL GraphODEBlockLRK45 GraphODEBlockM
 
@@ -64,7 +65,7 @@ GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphGEV GraphGPD GraphGamma Gr
 
 GraphSample GraphPriorNP
 
-GraphDirichlet GraphMVNormal GraphMVT GraphUVGMRF GraphRENormal GraphRandwalk GraphStochtrend GraphWishart GraphFlexWishart
+GraphDirichlet GraphMVNormal GraphMVT GraphRENormal GraphRandwalk GraphStochtrend GraphWishart GraphFlexWishart
 
 GraphCoSelection GraphSpline
 
@@ -79,8 +80,7 @@ UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial
 
 UpdaterICM
 
-UpdaterBeta UpdaterGriddy UpdaterGamma UpdaterMetover  UpdaterMetnormal UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterNaivemet UpdaterAMblock UpdaterChain UpdaterDEblock UpdaterDirichlet UpdaterDirichletprior UpdaterDirichletpriorRW UpdaterGLM UpdaterGMRF UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterWishart UpdaterMRFConstrain UpdaterHamiltonianglm UpdaterMAPproposal UpdaterDelayedDirectional1D
-UpdaterRandscan
+UpdaterBeta UpdaterGriddy UpdaterGamma UpdaterMetover  UpdaterMetnormal UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRejection UpdaterMALA1D UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterNaivemet UpdaterAMblock  UpdaterDEblock UpdaterDirichlet UpdaterDirichletprior UpdaterDirichletpriorRW UpdaterGLM UpdaterGMRF UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterWishart UpdaterMRFConstrain UpdaterHamiltonianglm UpdaterMAPproposal UpdaterDelayedDirectional1D
 
 UpdaterVD UpdaterVDMVN UpdaterVDMVNDescrete UpdaterVDMVNContinuous
 
