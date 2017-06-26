@@ -16,7 +16,7 @@ MODULE DevianceCmds;
 		Dialog, Ports,
 		BugsDialog, BugsIndex, BugsInterface, BugsFiles, BugsMsg, 
 		DevianceFormatted, DevianceIndex, DevianceInterface, DeviancePlugin,
-		DeviancePluginD, DeviancePluginS,
+		DeviancePluginS,
 		TextMappers, TextModels;
 
 	TYPE
@@ -31,15 +31,12 @@ MODULE DevianceCmds;
 		maintainer-: ARRAY 40 OF CHAR;
 
 	CONST
-		direct* = 0;
 		stochastic* = 1;
 		non* = 2;
 
 	PROCEDURE Notifier;
 	BEGIN
 		CASE dialog.parents OF
-		|direct:
-			DeviancePluginD.Install
 		|stochastic:
 			DeviancePluginS.Install
 		|non:
@@ -54,7 +51,7 @@ MODULE DevianceCmds;
 		IF ~BugsInterface.IsDistributed() THEN
 			plugin := DevianceIndex.Plugin();
 			IF plugin = NIL THEN
-				dialog.parents := direct;
+				dialog.parents := stochastic;
 			ELSE
 				dialog.parents := plugin.Type();
 			END
@@ -68,8 +65,8 @@ MODULE DevianceCmds;
 	BEGIN
 		DevianceInterface.Clear;
 		IF ~BugsInterface.IsDistributed() THEN
-			dialog.parents := direct;
-			DeviancePluginD.Install
+			dialog.parents := stochastic;
+			DeviancePluginS.Install
 		ELSE
 			dialog.parents := non
 		END;
