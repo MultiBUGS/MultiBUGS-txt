@@ -13,9 +13,9 @@ MODULE SpatialCARl1;
 	
 
 	IMPORT
-		Math,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, 
-		MathFunc,
+		Math, Stores,
+		GraphMultivariate,
+		GraphNodes, GraphRules, GraphStochastic, MathFunc,
 		SpatialUVCAR;
 
 
@@ -28,46 +28,71 @@ MODULE SpatialCARl1;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		start, step: INTEGER;
-		
+
+	PROCEDURE (node: Node) CheckUVCAR (): SET;
+		CONST
+			eps = 1.0E-3;
+		VAR
+			i, j, numNeigh, numNeigh1, index: INTEGER;
+			weight: REAL;
+			p: Node;
+	BEGIN
+		index := node.index;
+		IF index # - 1 THEN
+			IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
+			i := 0;
+			WHILE i < numNeigh DO
+				weight := node.weights[i];
+				p := node.components[node.neighs[i]](Node);
+				IF p.neighs # NIL THEN numNeigh1 := LEN(p.neighs) ELSE numNeigh1 := 0 END;
+				j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # index) DO INC(j) END;
+				IF ABS(p.weights[j] - weight) > eps THEN
+					RETURN {GraphNodes.arg3, GraphNodes.notSymmetric}
+				END;
+				INC(i)
+			END
+		END;
+		RETURN {}
+	END CheckUVCAR;
+
+	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF (parent: GraphStochastic.Node): INTEGER;
+	BEGIN
+		RETURN GraphRules.unif
+	END ClassifyLikelihoodUVMRF;
+
+	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
+	BEGIN
+		RETURN NIL
+	END ParentsUVMRF;
+
 	PROCEDURE LinearForm (node: Node): REAL;
 		VAR
-			i, j, len, size: INTEGER;
+			i, j,index,  len: INTEGER;
 			mu, value, linearForm: REAL;
 			com: GraphStochastic.Vector;
 	BEGIN
 		com := node.components;
-		i := start; 
-		size := LEN(com); 
 		linearForm := 0.0;
-		WHILE i < size DO
-			node := com[i](Node); value := node.value;
-			IF node.neighs # NIL THEN
-				len := LEN(node.neighs)
-			ELSE
-				len := 0
-			END;
-			j := 0;
-			WHILE j < len DO
-				mu := com[node.neighs[j]].value;
-				linearForm := linearForm + 0.5 * ABS(value - mu) * node.weights[j];
-				INC(j)
-			END;
-			INC(i, step)
+		value := node.value;
+		IF node.neighs # NIL THEN
+			len := LEN(node.neighs)
+		ELSE
+			len := 0
+		END;
+		j := 0;
+		WHILE j < len DO
+			index := node.neighs[j];
+			mu := com[index].value;
+			linearForm := linearForm + 0.5 * ABS(value - mu) * node.weights[j];
+			INC(j)
 		END;
 		RETURN linearForm
 	END LinearForm;
 
-	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
-		VAR
-			differential, diffTau, p0, p1, tau: REAL;
-			y: GraphNodes.Node;
+	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
-		node.LikelihoodForm(GraphRules.gamma, y, p0, p1);
-		node.tau.ValDiff(x, tau, diffTau);
-		differential := diffTau * (p0 / tau - p1);
-		RETURN differential
-	END DiffLogLikelihood;
+		RETURN GraphRules.logCon
+	END ClassifyPrior;
 
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
@@ -91,48 +116,45 @@ MODULE SpatialCARl1;
 		RETURN differential
 	END DiffLogPrior;
 
+	PROCEDURE (node: Node) ExternalizeChainUVCAR (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeChainUVCAR;
+
+	PROCEDURE (node: Node) InitStochasticUVCAR;
+	BEGIN
+	END InitStochasticUVCAR;
+
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "SpatialCARl1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
+	PROCEDURE (node: Node) InternalizeChainUVCAR (VAR rd: Stores.Reader);
 	BEGIN
-		RETURN GraphRules.logCon
-	END ClassifyPrior;
+	END InternalizeChainUVCAR;
 
 	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		ASSERT(likelihood.index = 0, 21);
-		p0 := likelihood.Size() - likelihood.numIslands;
+		p0 := 1 - likelihood.numIslands / likelihood.Size();
 		p1 := LinearForm(likelihood);
 		x := likelihood.tau
 	END LikelihoodForm;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
-			logLikelihood, logTau, p0, p1, tau: REAL;
+			as: INTEGER;
+			lambda, logLikelihood, logTau, r, tau: REAL;
 			x: GraphNodes.Node;
 	BEGIN
-		node.LikelihoodForm(GraphRules.gamma, x, p0, p1);
+		as := GraphRules.gamma;
+		node.LikelihoodForm(as, x, r, lambda);
 		tau := x.Value();
 		logTau := MathFunc.Ln(tau);
-		logLikelihood := logTau * p0 - tau * p1;
+		logLikelihood := r * logTau - tau * lambda;
 		RETURN logLikelihood
 	END LogLikelihood;
-
-	PROCEDURE (node: Node) LogMVPrior (): REAL;
-		VAR
-			logPrior, tau, p0, p1: REAL;
-			x: GraphNodes.Node;
-	BEGIN
-		node.LikelihoodForm(GraphRules.gamma, x, p0, p1);
-		tau := node.tau.Value();
-		logPrior :=  - tau * p1;
-		RETURN logPrior
-	END LogMVPrior;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -180,74 +202,39 @@ MODULE SpatialCARl1;
 		END
 	END MarkNeighs;
 
-	PROCEDURE (node: Node) MVSample (OUT res: SET);
-		VAR
-			i, size: INTEGER;
-			constraints: POINTER TO ARRAY OF ARRAY OF REAL;
-			sum: REAL;
-	BEGIN
-		i := 0;
-		size := node.Size();
-		res := {};
-		WHILE (i < size) & (res = {}) DO
-			node.components[i].Sample(res);
-			INC(i)
-		END;
-		NEW(constraints, 1, size);
-		node.Constraints(constraints);
-		i := 0;
-		sum := 0;
-		WHILE i < size DO
-			sum := sum + node.components[i].value * constraints[1, i];
-			INC(i)
-		END;
-		sum := sum / size;
-		i := 0;
-		WHILE i < size DO
-			node.components[i].SetValue(node.components[i].value - sum);
-			INC(i)
-		END
-	END MVSample;
-
 	PROCEDURE (node: Node) MatrixElements (OUT values: ARRAY OF REAL);
 	BEGIN
 		HALT(0)
 	END MatrixElements;
-	
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
+
+	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.TransformParams;
-		RETURN p
-	END Modify;
+		RETURN 1
+	END NumberConstraints;
 
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		HALT(126)
 	END PriorForm;
 
-	PROCEDURE (node: Node) Sample (OUT res: SET);
+	PROCEDURE (node: Node) SetUVCAR (IN args: GraphNodes.Args; OUT res: SET);
+		VAR
+			size: INTEGER;
 	BEGIN
-		HALT(126)
-	END Sample;
+		size := node.Size();
+		IF node.index = size - 1 THEN
+			node.RemoveSingletons;
+			node.CountIslands
+		END;
+		res := {}
+	END SetUVCAR;
 
-
-	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
-	BEGIN
-		start := first;
-		step := thin
-	END ThinLikelihood;
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
 			node: Node;
 	BEGIN
 		NEW(node);
 		node.Init;
-		start := 0;
-		step := 1;
 		RETURN node
 	END New;
 
@@ -273,9 +260,7 @@ MODULE SpatialCARl1;
 	BEGIN
 		Maintainer;
 		NEW(f);
-		fact := f;
-		start := 0;
-		step := 1
+		fact := f
 	END Init;
 
 BEGIN

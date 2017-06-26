@@ -14,16 +14,17 @@ MODULE SpatialUVCAR;
 
 	IMPORT
 		Stores,
-		GraphMRF, GraphNodes, GraphParamtrans, GraphRules, GraphStochastic;
+		GraphMRF, GraphUVMRF, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
-		Node* = POINTER TO ABSTRACT RECORD(GraphMRF.Node)
+		Node* = POINTER TO ABSTRACT RECORD(GraphUVMRF.Node)
 			neighs-: POINTER TO ARRAY OF INTEGER;
 			weights-: POINTER TO ARRAY OF REAL;
-			tau-: GraphNodes.Node;
 			numIslands-: INTEGER
 		END;
 
+		Normal* = POINTER TO ABSTRACT RECORD(Node) END;
+		
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -77,47 +78,32 @@ MODULE SpatialUVCAR;
 		RETURN numIslands
 	END NumIslands;
 
-	PROCEDURE (node: Node) Bounds* (OUT lower, upper: REAL);
-	BEGIN
-		lower :=  - INF;
-		upper := INF
-	END Bounds;
+	PROCEDURE (node: Node) CheckUVCAR- (): SET, NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) Check* (): SET;
+	PROCEDURE (node: Node) CheckUVMRF- (): SET;
 		CONST
 			eps = 1.0E-3;
 		VAR
-			i, j, len0, len1, n, nElem, thisArea: INTEGER;
-			res: SET;
-			constraint, tau, weight: REAL;
-			neigh: Node;
+			i, j, numNeigh, numNeigh1, nElem, index: INTEGER;
+			constraint: REAL;
+			p: Node;
 			constraints: POINTER TO ARRAY OF ARRAY OF REAL;
 	BEGIN
-		res := {};
-		IF node.index #  - 1 THEN (*	not special case of singleton islands	*)
-			thisArea := node.index;
+		index := node.index;
+		IF index #  - 1 THEN (*	not special case of singleton islands	*)
 			nElem := node.Size();
-			IF node.neighs # NIL THEN len0 := LEN(node.neighs) ELSE len0 := 0 END;
+			IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
 			i := 0;
-			WHILE i < len0 DO
-				weight := node.weights[i];
-				n := node.neighs[i];
-				neigh := node.components[n](Node);
-				IF neigh.neighs # NIL THEN len1 := LEN(neigh.neighs) ELSE len1 := 0 END;
-				j := 0; WHILE (j < len1) & (neigh.neighs[j] # thisArea) DO INC(j) END;
-				IF j = len1 THEN
+			WHILE i < numNeigh DO
+				p := node.components[node.neighs[i]](Node);
+				IF p.neighs # NIL THEN numNeigh1 := LEN(p.neighs) ELSE numNeigh1 := 0 END;
+				j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # index) DO INC(j) END;
+				IF j = numNeigh1 THEN
 					RETURN {GraphNodes.arg1, GraphNodes.notSymmetric}
-				END;
-				IF ABS(neigh.weights[j] - weight) > eps THEN
-					RETURN {GraphNodes.arg3, GraphNodes.notSymmetric}
 				END;
 				INC(i)
 			END;
-			tau := node.tau.Value();
-			IF tau < eps THEN
-				RETURN {GraphNodes.arg4, GraphNodes.invalidPosative}
-			END;
-			IF node = node.components[0] THEN
+			IF (node = node.components[0]) & (node.NumberConstraints() = 1) THEN
 				NEW(constraints, 1, nElem);
 				node.Constraints(constraints);
 				j := 0;
@@ -132,33 +118,12 @@ MODULE SpatialUVCAR;
 				END
 			END
 		END;
-		RETURN res
-	END Check;
+		RETURN node.CheckUVCAR()
+	END CheckUVMRF;
+	
+	PROCEDURE (node: Node) ExternalizeChainUVCAR- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) ClassifyLikelihood* (parent: GraphStochastic.Node): INTEGER;
-		VAR
-			density, f: INTEGER;
-	BEGIN
-		f := GraphStochastic.ClassFunction(node.tau, parent);
-		density := GraphRules.ClassifyPrecision(f);
-		RETURN density
-	END ClassifyLikelihood;
-
-	PROCEDURE (node: Node) Constraints* (OUT constraints: ARRAY OF ARRAY OF REAL);
-		VAR
-			i, nElem: INTEGER;
-	BEGIN
-		nElem := node.Size();
-		i := 0;
-		WHILE i < nElem DO constraints[0, i] := 1.0; INC(i) END;
-	END Constraints;
-
-	PROCEDURE (node: Node) Deviance* (): REAL;
-	BEGIN
-		RETURN 0.0
-	END Deviance;
-
-	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeChainUVMRF- (VAR wr: Stores.Writer);
 		VAR
 			j, numNeigh: INTEGER;
 	BEGIN
@@ -175,36 +140,38 @@ MODULE SpatialUVCAR;
 				wr.WriteReal(node.weights[j]);
 				INC(j)
 			END
-		END
-	END ExternalizeChain;
+		END;
+		node.ExternalizeChainUVCAR(wr)
+	END ExternalizeChainUVMRF;
+	
+	PROCEDURE (node: Node) InitStochasticUVCAR-, NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) InitStochastic-;
+	PROCEDURE (node: Node) InitStochasticUVMRF-;
 	BEGIN
-		node.tau := NIL;
 		node.neighs := NIL;
 		node.weights := NIL;
 		node.numIslands := 0;
-		node.SetProps(node.props + {GraphStochastic.noMean})
-	END InitStochastic;
+		node.SetProps(node.props + {GraphStochastic.noMean});
+		node.InitStochasticUVCAR
+	END InitStochasticUVMRF;
+	
+	PROCEDURE (node: Node) InternalizeChainUVCAR- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) InternalizeChain- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeChainUVMRF- (VAR rd: Stores.Reader);
 		VAR
 			j, numNeigh: INTEGER;
 			p: Node;
 	BEGIN
 		IF node.index = 0 THEN
-			node.tau := GraphNodes.Internalize(rd);
 			rd.ReadInt(node.numIslands);
 		END;
 		IF node.index =  - 1 THEN
 			node.Init;
 			node.SetComponent(NIL,  - 1);
-			node.SetProps({GraphStochastic.nR, GraphStochastic.initialized});
-			node.tau := NIL;
+			node.SetProps({GraphStochastic.hidden, GraphStochastic.initialized});
 			node.SetValue(0.0)
 		ELSE
 			p := node.components[0](Node);
-			node.tau := p.tau;
 			node.numIslands := p.numIslands;
 			rd.ReadInt(numNeigh);
 			NEW(node.neighs, numNeigh);
@@ -215,14 +182,9 @@ MODULE SpatialUVCAR;
 				rd.ReadReal(node.weights[j]);
 				INC(j)
 			END;
-		END
-	END InternalizeChain;
-
-	PROCEDURE (node: Node) Location* (): REAL;
-	BEGIN
-		HALT(0);
-		RETURN 0.0
-	END Location;
+		END;
+		node.InternalizeChainUVCAR(rd)
+	END InternalizeChainUVMRF;
 
 	PROCEDURE (node: Node) MatrixInfo* (OUT type, nElements: INTEGER);
 		VAR
@@ -254,7 +216,7 @@ MODULE SpatialUVCAR;
 		WHILE i < nElem DO
 			colPtr[i] := nnz;
 			p := node.components[i](Node);
-			numNeighs := LEN(p.neighs);
+			IF p.neighs # NIL THEN numNeighs := LEN(p.neighs) ELSE numNeighs := 0 END;
 			index := p.index;
 			rowInd[nnz] := index; INC(nnz);
 			j := 0;
@@ -267,11 +229,6 @@ MODULE SpatialUVCAR;
 		END
 	END MatrixMap;
 
-	PROCEDURE (node: Node) NumberConstraints* (): INTEGER;
-	BEGIN
-		RETURN 1
-	END NumberConstraints;
-
 	PROCEDURE (node: Node) NumberNeighbours* (): INTEGER;
 		VAR
 			num: INTEGER;
@@ -280,19 +237,9 @@ MODULE SpatialUVCAR;
 		RETURN num
 	END NumberNeighbours;
 
-	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
-		VAR
-			list: GraphNodes.List;
-	BEGIN
-		list := NIL;
-		IF (node.index = 0) OR (all & ~(GraphStochastic.nR IN node.props))THEN
-			node.tau.AddParent(list)
-		END;
-		GraphNodes.ClearList(list);
-		RETURN list
-	END Parents;
+	PROCEDURE (node: Node) SetUVCAR- (IN args: GraphNodes.Args; OUT res: SET), NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) Set* (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) SetUVMRF- (IN args: GraphNodes.Args; OUT res: SET);
 		CONST
 			eps = 1.0E-20;
 		VAR
@@ -304,14 +251,6 @@ MODULE SpatialUVCAR;
 	BEGIN
 		res := {};
 		index := node.index;
-		(*	if Set method called a second time then cut things short	*)
-		IF index =  - 1 THEN RETURN END;
-		IF node.tau # NIL THEN
-			WITH args: GraphStochastic.Args DO
-				node.tau := args.scalars[0]
-			END;
-			RETURN
-		END;
 		nElem := node.Size();
 		oldCom := node.components;
 		WITH args: GraphStochastic.Args DO
@@ -321,14 +260,12 @@ MODULE SpatialUVCAR;
 			ASSERT(args.vectors[1].nElem > 0, 21);
 			ASSERT(args.vectors[2].components # NIL, 21); ASSERT(args.vectors[2].start >= 0, 21);
 			ASSERT(args.vectors[2].nElem > 0, 21);
-			ASSERT(args.scalars[0] # NIL, 21);
 			IF args.vectors[0].nElem # args.vectors[1].nElem THEN
 				res := {GraphNodes.arg2, GraphNodes.length}; RETURN
 			END;
 			start2 := args.vectors[2].start;
 			numNeigh := SHORT(ENTIER(args.vectors[2].components[start2 + index].Value() + eps));
 			IF numNeigh > 0 THEN
-				node.tau := args.scalars[0];
 				NEW(node.neighs, numNeigh);
 				NEW(node.weights, numNeigh);
 				i := 0;
@@ -371,65 +308,84 @@ MODULE SpatialUVCAR;
 					node.weights[i] := p.Value();
 					INC(i)
 				END
-			ELSE
-				node.Init;
-				node.SetComponent(NIL,  - 1);
-				node.SetProps({GraphStochastic.nR, GraphStochastic.initialized});
-				node.tau := NIL;
-				node.SetValue(0.0)
 			END
 		END;
+		node.SetUVCAR(args, res)
+	END SetUVMRF;
+		
+	PROCEDURE (node: Node) CountIslands*, NEW;
+		VAR
+			nElem, i, index, numIslands: INTEGER;
+			car: Node;
+	BEGIN
+		index := node.index;
 		IF index = nElem - 1 THEN (*	this is the last region	*)
-			(*	count number of non singleton regions	*)
-			i := 0;
-			num := 0;
-			WHILE i < nElem DO
-				car := oldCom[i](Node);
-				IF car.neighs # NIL THEN INC(num) END;
-				INC(i)
-			END;
-			(*	remove singleton regions	*)
-			NEW(newCom, num);
-			i := 0;
-			num := 0;
-			WHILE i < nElem DO
-				car := oldCom[i](Node);
-				IF car.neighs # NIL THEN
-					newCom[num] := car;
-					car.SetComponent(newCom, num);
-					INC(num)
-				END;
-				INC(i)
-			END;
-			i := 0;
-			WHILE i < num DO
-				car := newCom[i](Node);
-				j := 0;
-				numNeigh := LEN(car.neighs);
-				j := 0;
-				WHILE j < numNeigh DO
-					car.neighs[j] := oldCom[car.neighs[j]](Node).index;
-					INC(j)
-				END;
-				INC(i)
-			END;
 			(*	count number of islands always at least 1 the whole map	*)
-			car := newCom[0](Node);
+			car := node.components[0](Node);
 			numIslands := NumIslands(car);
 			i := 0;
-			WHILE i < num DO
-				car := newCom[i](Node);
+			WHILE i < nElem DO
+				car := node.components[i](Node);
 				car.numIslands := numIslands;
 				car.SetProps(car.props - {GraphNodes.mark});
 				INC(i)
 			END
-		END
-	END Set;
-
-	PROCEDURE (node: Node) TransformParams*, NEW;
+		END;
+	END CountIslands;
+	
+	PROCEDURE (node: Node) RemoveSingletons*, NEW;
+		VAR
+			i, j, nElem, num, numNeigh: INTEGER;
+			newCom, oldCom: GraphStochastic.Vector;
+			car: Node;
 	BEGIN
-	 node.tau := GraphParamtrans.LogTransform(node.tau)
-	END TransformParams;
+		(*	count number of non singleton regions	*)
+		i := 0;
+		num := 0;
+		nElem := node.Size();
+		oldCom := node.components;
+		WHILE i < nElem DO
+			car := oldCom[i](Node);
+			IF car.neighs # NIL THEN INC(num) END;
+			INC(i)
+		END;
+		(*	remove singleton regions	*)
+		NEW(newCom, num);
+		i := 0;
+		num := 0;
+		WHILE i < nElem DO
+			car := oldCom[i](Node);
+			IF car.neighs # NIL THEN
+				newCom[num] := car;
+				car.SetComponent(newCom, num);
+				INC(num)
+			ELSE
+				car.Init;
+				car.SetComponent(NIL,  - 1);
+				car.SetProps({GraphStochastic.hidden, GraphStochastic.initialized, GraphStochastic.data});
+				car.SetValue(0.0)
+			END;
+			INC(i)
+		END;
+		(*	renumber the neighbours	*)
+		i := 0;
+		WHILE i < num DO
+			car := newCom[i](Node);
+			j := 0;
+			numNeigh := LEN(car.neighs);
+			j := 0;
+			WHILE j < numNeigh DO
+				car.neighs[j] := oldCom[car.neighs[j]](Node).index;
+				INC(j)
+			END;
+			INC(i)
+		END
+	END RemoveSingletons;
+	
+	PROCEDURE (node: Normal) ClassifyPrior* (): INTEGER;
+	BEGIN
+		RETURN GraphRules.normal
+	END ClassifyPrior;
 	
 	PROCEDURE Maintainer;
 	BEGIN

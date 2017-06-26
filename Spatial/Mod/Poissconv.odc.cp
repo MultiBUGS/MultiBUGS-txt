@@ -14,8 +14,8 @@ MODULE SpatialPoissconv;
 
 	IMPORT
 		Math, Stores,
-		GraphNodes, GraphParamtrans, GraphPoisson, GraphRules, GraphStochastic,
-		GraphSumation, GraphUnivariate, 
+		GraphNodes, GraphPoisson, GraphRules, GraphStochastic,
+		GraphSumation, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
@@ -69,6 +69,14 @@ MODULE SpatialPoissconv;
 	BEGIN
 	END InternalizeAuxillary;
 
+	PROCEDURE (multinomial: Multinomial) Node (index: INTEGER): GraphStochastic.Node;
+		VAR
+			node: Node;
+	BEGIN
+		node := multinomial.node(Node);
+		RETURN node.poissons[index]
+	END Node;
+
 	PROCEDURE (multinomial: Multinomial) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			i, start, n, nElem, step: INTEGER;
@@ -103,7 +111,7 @@ MODULE SpatialPoissconv;
 			INC(i)
 		END
 	END Sample;
-	
+
 	PROCEDURE (multinomial: Multinomial) Size (): INTEGER;
 		VAR
 			node: Node;
@@ -111,14 +119,6 @@ MODULE SpatialPoissconv;
 		node := multinomial.node(Node);
 		RETURN LEN(node.poissons)
 	END Size;
-	
-	PROCEDURE (multinomial: Multinomial) UpdatedBy (index: INTEGER): GraphStochastic.Node;
-		VAR
-			node: Node;
-	BEGIN
-		node := multinomial.node(Node);
-		RETURN node.poissons[index]
-	END UpdatedBy;
 
 	PROCEDURE (f: MultinomialFactory) GetDefaults;
 	BEGIN
@@ -159,11 +159,11 @@ MODULE SpatialPoissconv;
 		IF ABS(x - node.value) > eps THEN
 			RETURN {GraphNodes.lhs, GraphNodes.integer}
 		END;
-		IF x <  - eps THEN
+		IF x < - eps THEN
 			RETURN {GraphNodes.lhs, GraphNodes.invalidInteger}
 		END;
 		lambda := node.sumLambda.Value();
-		IF lambda <  - eps THEN
+		IF lambda < - eps THEN
 			RETURN {GraphNodes.arg1, GraphNodes.invalidValue}
 		END;
 		RETURN {}
@@ -232,7 +232,7 @@ MODULE SpatialPoissconv;
 	BEGIN
 		node.lambda := NIL;
 		node.poissons := NIL;
-		node.lambdaStart :=  - 1;
+		node.lambdaStart := - 1;
 		node.lambdaStep := 0;
 		node.sumLambda := NIL
 	END InitUnivariate;
@@ -287,7 +287,7 @@ MODULE SpatialPoissconv;
 			logLambda := Math.Ln(lambda);
 			logLikelihood := x * logLambda - lambda
 		ELSE
-			logLikelihood :=  - lambda
+			logLikelihood := - lambda
 		END;
 		IF ~(GraphNodes.data IN node.props) THEN
 			logLikelihood := logLikelihood - MathFunc.LogFactorial(SHORT(ENTIER(x + eps)))
@@ -366,7 +366,7 @@ MODULE SpatialPoissconv;
 					p.Init;
 					argsPoiss.scalars[0] := node.lambda[start + i * step];
 					p.Set(argsPoiss, res);
-					p.SetProps(p.props + {GraphNodes.data, GraphNodes.hidden});
+					p.SetProps(p.props + {GraphNodes.data, GraphStochastic.hidden});
 					p.BuildLikelihood;
 					IF ~zero THEN p.SetProps(p.props - {GraphNodes.data}) END;
 					p.SetValue(0.0);
@@ -383,18 +383,6 @@ MODULE SpatialPoissconv;
 			END
 		END
 	END SetUnivariate;
-
-	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.sumLambda := GraphParamtrans.LogTransform(p.sumLambda);
-		p.poissons := NIL;
-		p.lambda := NIL;
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

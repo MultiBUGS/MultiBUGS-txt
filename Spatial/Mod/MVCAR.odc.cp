@@ -36,7 +36,7 @@ MODULE SpatialMVCAR;
 		mean: POINTER TO ARRAY OF REAL;
 		prec, tau: POINTER TO ARRAY OF ARRAY OF REAL;
 		start, step: INTEGER;
-		
+
 	PROCEDURE MarkNeighs (node: Node);
 		VAR
 			i, numNeigh: INTEGER;
@@ -130,12 +130,6 @@ MODULE SpatialMVCAR;
 		END
 	END MVLikelihoodForm;
 
-	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
-	BEGIN
-		lower :=  - INF;
-		upper := INF
-	END Bounds;
-
 	PROCEDURE (node: Node) Check (): SET;
 		CONST
 			eps = 1.0E-10;
@@ -148,7 +142,7 @@ MODULE SpatialMVCAR;
 	BEGIN
 		res := {};
 		ASSERT(LEN(node.tau) = node.dim * node.dim, trap);
-		IF node.index #  - 1 THEN (*	not special case of singleton islands	*)
+		IF node.index # - 1 THEN (*	not special case of singleton islands	*)
 			nElem := node.Size();
 			numAreas := nElem DIV node.dim;
 			thisArea := node.index MOD numAreas;
@@ -291,7 +285,7 @@ MODULE SpatialMVCAR;
 			v.start := node.tauStart; v.nElem := dim * dim; v.step := node.tauStep;
 			GraphNodes.ExternalizeSubvector(v, wr);
 		END;
-		IF (node.index #  - 1) & (node.index MOD node.dim = 0) THEN
+		IF (node.index # - 1) & (node.index MOD node.dim = 0) THEN
 			numNeigh := LEN(node.neighs);
 			wr.WriteInt(numNeigh);
 			j := 0;
@@ -310,7 +304,7 @@ MODULE SpatialMVCAR;
 		node.neighs := NIL;
 		node.weights := NIL;
 		node.tau := NIL;
-		node.tauStart :=  - 1;
+		node.tauStart := - 1;
 		node.tauStep := 0;
 		node.SetProps(node.props + {GraphStochastic.noMean})
 	END InitStochastic;
@@ -335,13 +329,13 @@ MODULE SpatialMVCAR;
 			node.tauStart := v.start;
 			node.tauStep := v.step;
 		END;
-		IF node.index =  - 1 THEN
+		IF node.index = - 1 THEN
 			node.Init;
-			node.SetComponent(NIL,  - 1);
-			node.SetProps({GraphStochastic.nR});
+			node.SetComponent(NIL, - 1);
+			node.SetProps({GraphStochastic.hidden});
 			node.SetValue(0.0)
 		END;
-		IF node.index #  - 1 THEN
+		IF node.index # - 1 THEN
 			p := node.components[0](Node);
 			node.dim := p.dim;
 			node.numIslands := p.numIslands;
@@ -401,7 +395,7 @@ MODULE SpatialMVCAR;
 				size := SHORT(ENTIER(Math.Sqrt(size + eps)));
 				i := node.index DIV size;
 				j := node.index MOD size;
-				p0 :=  - 1;
+				p0 := - 1;
 				p1 := prec[i, j]
 			END
 		END
@@ -468,7 +462,7 @@ MODULE SpatialMVCAR;
 	BEGIN
 		node.PriorForm(GraphRules.normal, mu, tau);
 		x := node.value;
-		logPrior :=  - 0.5 * tau * (x - mu) * (x - mu);
+		logPrior := - 0.5 * tau * (x - mu) * (x - mu);
 		RETURN logPrior
 	END LogPrior;
 
@@ -497,7 +491,7 @@ MODULE SpatialMVCAR;
 			sumWeights := 0;
 			WHILE j < numNeighs DO
 				label := p.neighs[j] + shift;
-				IF label > i THEN values[nnz] :=  - p.weights[j] * tau; INC(nnz) END;
+				IF label > i THEN values[nnz] := - p.weights[j] * tau; INC(nnz) END;
 				sumWeights := sumWeights + p.weights[j];
 				INC(j)
 			END;
@@ -510,7 +504,7 @@ MODULE SpatialMVCAR;
 				INC(nnz);
 				k := 0;
 				WHILE k < numNeighs DO
-					values[nnz] :=  - p.weights[k] * tau;
+					values[nnz] := - p.weights[k] * tau;
 					INC(nnz);
 					INC(k)
 				END;
@@ -677,15 +671,6 @@ MODULE SpatialMVCAR;
 		END;
 	END MVSample;
 
-	PROCEDURE (node: Node) Modify (): GraphStochastic.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END Modify;
-
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN node.dim
@@ -706,7 +691,7 @@ MODULE SpatialMVCAR;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
-		IF (node.index = 0) OR (all & ~(GraphStochastic.nR IN node.props)) THEN
+		IF (node.index = 0) OR (all & ~(GraphStochastic.hidden IN node.props)) THEN
 			dim := node.dim;
 			tauStart := node.tauStart;
 			tauStep := node.tauStep;
@@ -761,7 +746,7 @@ MODULE SpatialMVCAR;
 			tauStart := node.tauStart;
 			tauStep := node.tauStep;
 			p1 := wSum * node.tau[tauStart + (row * dim + row) * tauStep].Value();
-			p0 :=  - p1 * mean[row];
+			p0 := - p1 * mean[row];
 			i := 0;
 			WHILE i < node.dim DO
 				IF i # row THEN
@@ -772,7 +757,7 @@ MODULE SpatialMVCAR;
 				END;
 				INC(i)
 			END;
-			p0 :=  - p0 / p1
+			p0 := - p0 / p1
 		ELSE
 			p0 := 0.0;
 			p1 := 0.0
@@ -894,8 +879,8 @@ MODULE SpatialMVCAR;
 				END
 			ELSE
 				node.Init;
-				node.SetComponent(NIL,  - 1);
-				node.SetProps({GraphStochastic.nR, GraphStochastic.initialized});
+				node.SetComponent(NIL, - 1);
+				node.SetProps({GraphStochastic.hidden, GraphStochastic.initialized});
 				node.SetValue(0.0)
 			END;
 			IF index = nElem - 1 THEN
@@ -943,12 +928,6 @@ MODULE SpatialMVCAR;
 			END
 		END
 	END Set;
-
-	PROCEDURE (prior: Node) ThinLikelihood (first, thin: INTEGER);
-	BEGIN
-		start := first;
-		step := thin
-	END ThinLikelihood;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

@@ -37,29 +37,43 @@ MODULE SpatialBound;
 		factMax-, factMin-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
-	PROCEDURE Value (IN c, m: ARRAY OF REAL; IN adj, cols: ARRAY OF INTEGER; num: INTEGER): REAL;
+		
+	PROCEDURE Value (IN c, m: ARRAY OF REAL; IN adj, num: ARRAY OF INTEGER; index: INTEGER): REAL;
 		VAR
-			row, j, k, len, n, col: INTEGER;
+			a: POINTER TO ARRAY OF ARRAY OF REAL; 
+			eigenValues: POINTER TO ARRAY OF REAL;
+			row, j, k, len, n, col: INTEGER; 
 			mRow, mCol: REAL;
-			eigenValues, mcm: POINTER TO ARRAY OF REAL;
 	BEGIN
-		len := LEN(c); n := LEN(cols);
-		NEW(mcm, len); NEW(eigenValues, n);
-		row := 0; j := 0;
+		len := LEN(c); 
+		n := LEN(num);
+		NEW(a, n, n);
+		NEW(eigenValues, n);
+		row := 0;
+		WHILE row < n DO
+			col := 0;
+			WHILE col < n DO
+				a[row, col] := 0.0;
+				INC(col)
+			END;
+			INC(row)
+		END;
+		row := 0; 
+		j := 0;
 		WHILE row < n DO
 			mRow := m[row];
-			k := j + cols[row];
+			k := j + num[row];
 			WHILE j < k DO
 				col := adj[j];
 				mCol := m[col];
-				mcm[j] := (1.0 / Math.Sqrt(mRow)) * c[j] * Math.Sqrt(mCol);
+				a[col, row] := c[j] * Math.Sqrt(mCol / mRow);
+				a[row, col] := a[col, row];
 				INC(j)
 			END;
 			INC(row)
 		END;
-		MathMatrix.SparseEigenvalues(adj, cols, mcm, n, eigenValues);
-		RETURN 1.0 / eigenValues[num]
+		MathMatrix.Jacobi(a, eigenValues, n);
+		RETURN 1.0 / eigenValues[index]
 	END Value;
 
 	PROCEDURE (node: Node) Check (): SET;
@@ -79,7 +93,7 @@ MODULE SpatialBound;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -95,9 +109,9 @@ MODULE SpatialBound;
 		len := LEN(node.m);
 		wr.WriteInt(len);
 		i := 0; WHILE i < len DO GraphNodes.Externalize(node.m[i], wr); INC(i) END;
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -113,7 +127,7 @@ MODULE SpatialBound;
 		len := LEN(node.m);
 		rd.ReadInt(len);
 		i := 0; WHILE i < len DO node.m[i] := GraphNodes.Internalize(rd); INC(i) END;
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN

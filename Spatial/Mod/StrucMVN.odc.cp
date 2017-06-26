@@ -15,7 +15,7 @@ MODULE SpatialStrucMVN;
 	IMPORT
 		Math, Stores,
 		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphMultivariate, GraphNodes,
-		GraphParamtrans, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathMatrix, MathRandnum;
 
 	CONST
@@ -72,7 +72,7 @@ MODULE SpatialStrucMVN;
 		vector, mu: POINTER TO ARRAY OF REAL;
 		sigma12, matrix: POINTER TO ARRAY OF ARRAY OF REAL;
 
-	PROCEDURE (kernel: SpatialKernel) Element- (x1, x2: Point; params: ARRAY OF REAL): REAL,
+		PROCEDURE (kernel: SpatialKernel) Element- (x1, x2: Point; params: ARRAY OF REAL): REAL,
 	NEW, ABSTRACT;
 
 	PROCEDURE (kernel: SpatialKernel) Install- (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
@@ -270,12 +270,12 @@ MODULE SpatialStrucMVN;
 			NEW(node.paramValues, node.numParams)
 		END
 	END Set;
-	
+
 	PROCEDURE (node: Node) SetKernel* (kernel: SpatialKernel), NEW, ABSTRACT;
 
 	PROCEDURE (node: StdNode) Bounds (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END Bounds;
 
@@ -529,7 +529,7 @@ MODULE SpatialStrucMVN;
 	BEGIN
 		tau := node.tau.Value();
 		IF node.state = dirty THEN Covariance(node) END;
-		logPrior :=  - tau * QuadraticForm(node);
+		logPrior := - tau * QuadraticForm(node);
 		RETURN logPrior
 	END LogMVPrior;
 
@@ -630,7 +630,7 @@ MODULE SpatialStrucMVN;
 			INC(i)
 		END;
 		p1 := prior.prec[index, index];
-		p0 :=  - p0 / p1;
+		p0 := - p0 / p1;
 		p1 := p1 * tau
 	END PriorForm;
 
@@ -656,39 +656,6 @@ MODULE SpatialStrucMVN;
 	BEGIN
 		node.kernel := kernel
 	END SetKernel;
-
-	PROCEDURE (node: StdNode) Modify (): GraphStochastic.Node;
-		VAR
-			i, nElem, numParams, start, step: INTEGER;
-			vector: GraphNodes.Vector;
-			p: StdNode;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		p.tau := GraphParamtrans.LogTransform(p.tau);
-		i := 0;
-		(*	deep copy of param vector and mu vector	*)
-		numParams := p.numParams;
-		NEW(vector, numParams);
-		WHILE i < numParams DO
-			vector[i] := GraphParamtrans.IdentTransform(p.params[i]);
-			INC(i)
-		END;
-		p.params := vector;
-		i := 0;
-		nElem := p.Size();
-		start := p.muStart;
-		step := p.muStep;
-		NEW(vector, nElem);
-		WHILE i < nElem DO
-			vector[i] := p.mu[start + i * step];
-			INC(i)
-		END;
-		p.mu := vector;
-		p.muStart := 0;
-		p.muStep := 1;
-		RETURN p
-	END Modify;
 
 	PROCEDURE CopyPred (pred: PredMultiNode);
 		VAR
@@ -769,7 +736,7 @@ MODULE SpatialStrucMVN;
 
 	PROCEDURE (pred: PredMultiNode) BoundsConjugateMV (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF;
 	END BoundsConjugateMV;
 
@@ -847,7 +814,7 @@ MODULE SpatialStrucMVN;
 		pred.points := NIL;
 		pred.s := NIL;
 		pred.mu := NIL;
-		pred.muStart :=  - 1;
+		pred.muStart := - 1;
 		pred.muStep := 0
 	END InitConjugateMV;
 
@@ -1095,19 +1062,9 @@ MODULE SpatialStrucMVN;
 		END
 	END SetConjugateMV;
 
-	PROCEDURE (pred: PredMultiNode) Modify (): GraphStochastic.Node;
-		VAR
-			p: PredMultiNode;
-	BEGIN
-		NEW(p);
-		p^ := pred^;
-		HALT(126);
-		RETURN p
-	END Modify;
-
 	PROCEDURE (pred: PredUniNode) BoundsUnivariate (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
+		lower := - INF;
 		upper := INF
 	END BoundsUnivariate;
 
@@ -1319,16 +1276,6 @@ MODULE SpatialStrucMVN;
 			NEW(sigma12, len, nElem)
 		END
 	END SetUnivariate;
-
-	PROCEDURE (pred: PredUniNode) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: PredUniNode;
-	BEGIN
-		NEW(p);
-		p^ := pred^; ;
-		HALT(126);
-		RETURN p
-	END ModifyUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
