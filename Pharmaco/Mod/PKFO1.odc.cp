@@ -17,12 +17,10 @@ MODULE PharmacoPKFO1;
 
 	TYPE
 		Node = POINTER TO RECORD (PharmacoModel.Node) END;
-		MemNode = POINTER TO RECORD (PharmacoModel.MetNode) END;
 		Factory = POINTER TO RECORD (GraphScalar.Factory) END;
-		MemFactory = POINTER TO RECORD (GraphScalar.Factory) END;
 
 	VAR
-		fact-, memFact-: GraphScalar.Factory;
+		fact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -62,21 +60,6 @@ MODULE PharmacoPKFO1;
 		RETURN Value(node.params, node.scalars)
 	END Value;
 
-	PROCEDURE (node: MemNode) GetNumArgs (OUT numParams, numScalars: INTEGER);
-	BEGIN
-		GetNumArgs(numParams, numScalars)
-	END GetNumArgs;
-
-	PROCEDURE (node: MemNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "PharmacoPKFO1.MemInstall"
-	END Install;
-
-	PROCEDURE (node: MemNode) Evaluate (OUT value: REAL);
-	BEGIN
-		value := Value(node.params, node.scalars)
-	END Evaluate;
-
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
 			node: Node;
@@ -89,27 +72,10 @@ MODULE PharmacoPKFO1;
 		signature := "vss"
 	END Signature;
 
-	PROCEDURE (f: MemFactory) New (): GraphScalar.Node;
-		VAR
-			node: MemNode;
-	BEGIN
-		NEW(node); node.Init; RETURN node
-	END New;
-
-	PROCEDURE (f: MemFactory) Signature (OUT signature: ARRAY OF CHAR);
-	BEGIN
-		signature := "vss"
-	END Signature;
-
 	PROCEDURE Install*;
 	BEGIN
 		GraphNodes.SetFactory(fact)
 	END Install;
-
-	PROCEDURE MemInstall*;
-	BEGIN
-		GraphNodes.SetFactory(memFact)
-	END MemInstall;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -120,11 +86,9 @@ MODULE PharmacoPKFO1;
 	PROCEDURE Init;
 		VAR
 			f: Factory;
-			fM: MemFactory;
 	BEGIN
 		Maintainer;
 		NEW(f); fact := f;
-		NEW(fM); memFact := fM
 	END Init;
 
 BEGIN

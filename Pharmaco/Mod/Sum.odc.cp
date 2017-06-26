@@ -14,7 +14,7 @@ MODULE PharmacoSum;
 	IMPORT
 		Math, Meta, Stores, Strings,
 		BugsMsg,
-		GraphConstant, GraphLogical, GraphNodes,
+		GraphConstant, GraphNodes,
 		GraphRules, GraphScalar, GraphStochastic, PharmacoInputs;
 
 	CONST
@@ -23,7 +23,7 @@ MODULE PharmacoSum;
 	TYPE
 		Node = POINTER TO ABSTRACT RECORD (GraphScalar.Node)
 			model, bio: GraphNodes.Vector;
-			baseIV, memory: BOOLEAN
+			baseIV: BOOLEAN
 		END;
 
 		MemNode = POINTER TO ABSTRACT RECORD(Node) END;
@@ -31,20 +31,15 @@ MODULE PharmacoSum;
 		SumNode = POINTER TO RECORD (Node) END;
 		LogNode = POINTER TO RECORD (Node) END;
 
-		SumMemNode = POINTER TO RECORD (MemNode) END;
-		LogMemNode = POINTER TO RECORD (MemNode) END;
-
 		SumFactory = POINTER TO RECORD (GraphScalar.Factory) END;
 		LogFactory = POINTER TO RECORD (GraphScalar.Factory) END;
-		SumMemFactory = POINTER TO RECORD (GraphScalar.Factory) END;
-		LogMemFactory = POINTER TO RECORD (GraphScalar.Factory) END;
 
 	VAR
 		factS-, factL-, factSM-, factLM-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -60,11 +55,10 @@ MODULE PharmacoSum;
 		WHILE i < len DO
 			GraphNodes.Externalize(node.bio[i], wr); INC(i)
 		END;
-		wr.WriteBool(node.baseIV);
-		wr.WriteBool(node.memory)
-	END ExternalizeScalar;
+		wr.WriteBool(node.baseIV)
+	END ExternalizeLogical;
 
-	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -80,9 +74,8 @@ MODULE PharmacoSum;
 		WHILE i < len DO
 			node.bio[i] := GraphNodes.Internalize(rd); INC(i)
 		END;
-		rd.ReadBool(node.baseIV);
-		rd.ReadBool(node.memory)
-	END InternalizeScalar;
+		rd.ReadBool(node.baseIV)
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
@@ -111,8 +104,7 @@ MODULE PharmacoSum;
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
 		node.model := NIL; node.bio := NIL;
-		node.baseIV := TRUE;
-		node.memory := FALSE
+		node.baseIV := TRUE
 	END InitLogical;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
@@ -246,7 +238,6 @@ MODULE PharmacoSum;
 		PROCEDURE AddDose (IN install: ARRAY OF CHAR; IN argsL: GraphStochastic.ArgsLogical);
 			VAR
 				index: INTEGER;
-				ok: BOOLEAN;
 				item: Meta.Item;
 		BEGIN
 			res := {};
@@ -346,7 +337,6 @@ MODULE PharmacoSum;
 				t := hist.components[off + PharmacoInputs.time].Value(); ASSERT(time >= t, trap);
 				inpVar := PharmacoInputs.IdToInput(inpInt, summary[levInt - first]); ASSERT(inpVar # NIL, trap);
 				install0 := prefix + inpVar.name + nString; install1 := install0 + ".Install";
-				IF node.memory THEN install1 := "Mem" + install1 END;
 				argsL0.scalars[0] := GraphConstant.New(time - t);
 				PharmacoInputs.SetErrorOff(off + PharmacoInputs.amount);
 				p := hist.components[off + PharmacoInputs.amount];
@@ -375,7 +365,6 @@ MODULE PharmacoSum;
 				END;
 				AddOmega; IF res # {} THEN RETURN END;
 				install0 := install0 + ".Install";
-				IF node.memory THEN install0 := "Mem" + install0 END;
 				AddConstants; IF res # {} THEN RETURN END;
 				theta := GraphNodes.NewVector();
 				theta.start := 0; theta.nElem := nDisp + inpVar.nPar; theta.step := 1;
@@ -463,63 +452,12 @@ MODULE PharmacoSum;
 		IF sum > eps THEN RETURN Math.Ln(sum) ELSE RETURN logZero END
 	END Value;
 
-	PROCEDURE (node: SumMemNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "PharmacoSum.SumMemInstall"
-	END Install;
-
-	PROCEDURE (node: SumMemNode) Value (): REAL;
-		VAR
-			len, i: INTEGER; sum, contrib, exp, F: REAL;
-	BEGIN
-		len := LEN(node.model);
-		i := 0; sum := 0;
-		WHILE i < len DO
-			contrib := node.model[i].Value();
-			IF node.bio[i] # NIL THEN
-				exp := Math.Exp(node.bio[i].Value());
-				IF node.baseIV THEN F := exp / (1 + exp) ELSE F := exp END;
-				contrib := contrib * F
-			END;
-			sum := sum + contrib;
-			INC(i)
-		END;
-		RETURN sum
-	END Value;
-
-	PROCEDURE (node: LogMemNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "PharmacoSum.LogMemInstall"
-	END Install;
-
-	PROCEDURE (node: LogMemNode) Value (): REAL;
-		CONST
-			eps = 1.0E-40; logZero = -1.0E+10;
-		VAR
-			len, i: INTEGER; sum, contrib, exp, F: REAL;
-	BEGIN
-		len := LEN(node.model);
-		i := 0; sum := 0;
-		WHILE i < len DO
-			contrib := node.model[i].Value();
-			IF node.bio[i] # NIL THEN
-				exp := Math.Exp(node.bio[i].Value());
-				IF node.baseIV THEN F := exp / (1 + exp) ELSE F := exp END;
-				contrib := contrib * F
-			END;
-			sum := sum + contrib;
-			INC(i)
-		END;
-		IF sum > eps THEN RETURN Math.Ln(sum) ELSE RETURN logZero END
-	END Value;
-
 	PROCEDURE (f: SumFactory) New (): GraphScalar.Node;
 		VAR
 			node: SumNode;
 	BEGIN
 		NEW(node);
 		node.Init;
-		node.memory := FALSE;
 		RETURN node
 	END New;
 
@@ -534,41 +472,10 @@ MODULE PharmacoSum;
 	BEGIN
 		NEW(node);
 		node.Init;
-		node.memory := FALSE;
 		RETURN node
 	END New;
 
 	PROCEDURE (f: LogFactory) Signature (OUT signature: ARRAY OF CHAR);
-	BEGIN
-		signature := "svsvs"
-	END Signature;
-
-	PROCEDURE (f: SumMemFactory) New (): GraphScalar.Node;
-		VAR
-			node: SumMemNode;
-	BEGIN
-		NEW(node);
-		node.Init;
-		node.memory := TRUE;
-		RETURN node
-	END New;
-
-	PROCEDURE (f: SumMemFactory) Signature (OUT signature: ARRAY OF CHAR);
-	BEGIN
-		signature := "svsvs"
-	END Signature;
-
-	PROCEDURE (f: LogMemFactory) New (): GraphScalar.Node;
-		VAR
-			node: LogMemNode;
-	BEGIN
-		NEW(node);
-		node.Init;
-		node.memory := TRUE;
-		RETURN node
-	END New;
-
-	PROCEDURE (f: LogMemFactory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
 		signature := "svsvs"
 	END Signature;
@@ -583,16 +490,6 @@ MODULE PharmacoSum;
 		GraphNodes.SetFactory(factL)
 	END LogInstall;
 
-	PROCEDURE SumMemInstall*;
-	BEGIN
-		GraphNodes.SetFactory(factSM)
-	END SumMemInstall;
-
-	PROCEDURE LogMemInstall*;
-	BEGIN
-		GraphNodes.SetFactory(factLM)
-	END LogMemInstall;
-
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
@@ -603,14 +500,10 @@ MODULE PharmacoSum;
 		VAR
 			fS: SumFactory;
 			fL: LogFactory;
-			fSM: SumMemFactory;
-			fLM: LogMemFactory;
 	BEGIN
 		Maintainer;
 		NEW(fS); factS := fS;
-		NEW(fL); factL := fL;
-		NEW(fSM); factSM := fSM;
-		NEW(fLM); factLM := fLM
+		NEW(fL); factL := fL
 	END Init;
 
 BEGIN

@@ -24,10 +24,6 @@ MODULE PharmacoModel;
 			params-, scalars-: GraphNodes.Vector
 		END;
 
-		MetNode* = POINTER TO ABSTRACT RECORD (GraphScalar.MetNode)
-			params-, scalars-: GraphNodes.Vector
-		END;
-
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -146,18 +142,18 @@ MODULE PharmacoModel;
 		RETURN ClassFunction(node.params, node.scalars, parent)
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
 	BEGIN
 		ExternalizeScalar(node.params, node.scalars, wr)
-	END ExternalizeScalar;
+	END ExternalizeLogical;
 
 	PROCEDURE (node: Node) GetNumArgs- (OUT numParams, numScalars: INTEGER),
 	NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
 	BEGIN
 		InternalizeScalar(node.params, node.scalars, rd)
-	END InternalizeScalar;
+	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
@@ -182,54 +178,6 @@ MODULE PharmacoModel;
 	BEGIN
 		HALT(126)
 	END ValDiff;
-
-	PROCEDURE (node: MetNode) Check* (): SET;
-	BEGIN
-		RETURN {}
-	END Check;
-
-	PROCEDURE (node: MetNode) ClassFunction* (parent: GraphNodes.Node): INTEGER;
-	BEGIN
-		RETURN ClassFunction(node.params, node.scalars, parent)
-	END ClassFunction;
-
-	PROCEDURE (node: MetNode) ExternalizeScalar- (VAR wr: Stores.Writer);
-	BEGIN
-		ExternalizeScalar(node.params, node.scalars, wr)
-	END ExternalizeScalar;
-
-	PROCEDURE (node: MetNode) GetNumArgs- (OUT numParams, numScalars: INTEGER),
-	NEW, ABSTRACT;
-
-	PROCEDURE (node: MetNode) InternalizeScalar- (VAR rd: Stores.Reader);
-	BEGIN
-		InternalizeScalar(node.params, node.scalars, rd)
-	END InternalizeScalar;
-
-	PROCEDURE (node: MetNode) InitLogical-;
-	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
-		node.params := NIL; node.scalars := NIL
-	END InitLogical;
-
-	PROCEDURE (node: MetNode) Parents* (all: BOOLEAN): GraphNodes.List;
-	BEGIN
-		RETURN Parents(node.params, node.scalars, all)
-	END Parents;
-
-	PROCEDURE (node: MetNode) Set* (IN args: GraphNodes.Args; OUT res: SET);
-		VAR
-			numParams, numScalars: INTEGER;
-	BEGIN
-		res := {};
-		node.GetNumArgs(numParams, numScalars);
-		Set(args, numParams, numScalars, node.params, node.scalars, res)
-	END Set;
-
-	PROCEDURE (node: MetNode) EvaluateVD- (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
 
 	PROCEDURE Maintainer;
 	BEGIN
