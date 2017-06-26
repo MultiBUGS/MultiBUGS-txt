@@ -43,7 +43,7 @@ MODULE MathODE;
 
 
 	PROCEDURE (solver: Solver) TrialStep* (IN theta, x0, scale: ARRAY OF REAL;
-		numEq: INTEGER; t0, step, tol: REAL; OUT actualStep, predStep: REAL;
+	numEq: INTEGER; t0, step, tol: REAL; OUT actualStep, predStep: REAL;
 	OUT x1: ARRAY OF REAL), NEW, ABSTRACT;
 
 	PROCEDURE (solver: Solver) AccurateStep* (IN theta, x0: ARRAY OF REAL;

@@ -40,7 +40,7 @@ MODULE MathSparsematrix;
 
 	PROCEDURE (m: Matrix) AddDiagonals- (IN diags: ARRAY OF REAL; size: INTEGER), NEW, ABSTRACT;
 
-		PROCEDURE (m: Matrix) Multiply- (IN x: ARRAY OF REAL; size: INTEGER;
+	PROCEDURE (m: Matrix) Multiply- (IN x: ARRAY OF REAL; size: INTEGER;
 	OUT y: ARRAY OF REAL), NEW, ABSTRACT;
 
 	PROCEDURE (m: Matrix) SetMap- (IN rowInd, colPtr: ARRAY OF INTEGER), NEW, ABSTRACT;
@@ -65,7 +65,7 @@ MODULE MathSparsematrix;
 
 	PROCEDURE (m: LLT) LogDet- (): REAL, NEW, ABSTRACT;
 
-		PROCEDURE (m: LLT) Multiply- (IN x: ARRAY OF REAL; size: INTEGER;
+	PROCEDURE (m: LLT) Multiply- (IN x: ARRAY OF REAL; size: INTEGER;
 	OUT y: ARRAY OF REAL), NEW, ABSTRACT;
 
 	PROCEDURE (m: LLT) NumElements- (): INTEGER, NEW, ABSTRACT;

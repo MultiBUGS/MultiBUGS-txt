@@ -16,9 +16,9 @@ MODULE MathTaucsImp;
 		MathSparsematrix, MathTaucsLib;
 
 	CONST
-		lower = MathTaucsLib.lower;
-		symmetric = MathTaucsLib.symmetric;
-		double = MathTaucsLib.double;
+		lower = 0;
+		symmetric = 3;
+		double = 11;
 
 	TYPE
 		Matrix = POINTER TO RECORD(MathSparsematrix.Matrix)
@@ -46,29 +46,16 @@ MODULE MathTaucsImp;
 
 	PROCEDURE (m: Matrix) AddDiagonals (IN diags: ARRAY OF REAL; size: INTEGER);
 		VAR
-			i: INTEGER;
+			col, i: INTEGER;
 	BEGIN
 		size := m.taucsMatrix.n;
 		i := 0;
 		WHILE i < size DO
-			m.taucsMatrix.values[m.taucsMatrix.colptr[i]] := m.taucsMatrix.values[m.taucsMatrix.colptr[i]] + diags[i];
+			col := m.taucsMatrix.colptr[i];
+			m.taucsMatrix.values[col] := m.taucsMatrix.values[col] + diags[i];
 			INC(i)
 		END;
 	END AddDiagonals;
-
-	(*PROCEDURE (m: Matrix) LLTFactor (): MathSparsematrix.LLT;
-	VAR
-	supernodalFactor: ANYPTR;
-	mFactor: LLT;
-	BEGIN
-	supernodalFactor := MathTaucsLib.SupernodalFactorLLT(m.taucsMatrix);
-	ASSERT(supernodalFactor # NIL, 100);
-	NEW(mFactor);
-	mFactor.taucsMatrix := MathTaucsLib.SupernodalToCCS(supernodalFactor);
-	ASSERT(mFactor.taucsMatrix # NIL, 100);
-	MathTaucsLib.FreeSupernodalFactor(supernodalFactor);
-	RETURN mFactor
-	END LLTFactor;*)
 
 	PROCEDURE (m: Matrix) LLTFactor (): MathSparsematrix.LLT;
 		VAR
@@ -76,7 +63,7 @@ MODULE MathTaucsImp;
 	BEGIN
 		NEW(mFactor);
 		mFactor.taucsMatrix := MathTaucsLib.FactorLLT(m.taucsMatrix, 0, 0);
-		ASSERT(mFactor.taucsMatrix # NIL, 100);
+		ASSERT(mFactor.taucsMatrix # NIL, 60);
 		RETURN mFactor
 	END LLTFactor;
 

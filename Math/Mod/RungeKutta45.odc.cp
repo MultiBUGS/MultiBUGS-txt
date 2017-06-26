@@ -125,10 +125,8 @@ MODULE MathRungeKutta45;
 		END
 	END Step;
 
-	PROCEDURE (solver: Solver) TrialStep (IN theta, x0, scale: ARRAY OF REAL;
-	numEq: INTEGER; t0, step, tol: REAL;
-	OUT actualStep, predStep: REAL;
-	OUT x1: ARRAY OF REAL);
+	PROCEDURE (solver: Solver) TrialStep (IN theta, x0, scale: ARRAY OF REAL; numEq: INTEGER;
+	t0, step, tol: REAL; OUT actualStep, predStep: REAL; OUT x1: ARRAY OF REAL);
 		CONST
 			safe = 0.9;
 		VAR

@@ -123,6 +123,18 @@ MODULE MathTT800;
 		wr.WriteLong(g.count)
 	END Externalize;
 
+	PROCEDURE (g: Generator) GetState (OUT state: ARRAY OF INTEGER);
+		VAR
+			i: INTEGER;
+	BEGIN
+		i := 0;
+		WHILE (i < N) & (i < LEN(state)) DO
+			state[i] := ORD(g.x[i]);
+			INC(i)
+		END;
+		state[N] := g.k
+	END GetState;
+
 	PROCEDURE (g: Generator) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "MathTT800.Install"
@@ -136,18 +148,6 @@ MODULE MathTT800;
 		rd.ReadInt(g.k);
 		rd.ReadLong(g.count)
 	END Internalize;
-
-	PROCEDURE (g: Generator) GetState (OUT state: ARRAY OF INTEGER);
-		VAR
-			i: INTEGER;
-	BEGIN
-		i := 0;
-		WHILE (i < N) & (i < LEN(state)) DO
-			state[i] := ORD(g.x[i]);
-			INC(i)
-		END;
-		state[N] := g.k
-	END GetState;
 
 	PROCEDURE (g: Generator) NumCalls (OUT num: LONGINT);
 	BEGIN
@@ -187,13 +187,9 @@ MODULE MathTT800;
 			g.k := 0
 		END;
 		y := g.x[g.k];
-		(*StdLog.Int(SetToLongInt(y));*)
 		y := y / (SYSTEM.LSH(y, s) * b);
-		(*StdLog.Int(SetToLongInt(y));*)
 		y := y / (SYSTEM.LSH(y, t) * c);
-		(*StdLog.Int(SetToLongInt(y));*)
 		y := y / SYSTEM.LSH(y,  - 16);
-		(*StdLog.Int(SetToLongInt(y));*)
 		INC(g.k);
 		IF MAX(SET) IN y THEN
 			EXCL(y, MAX(SET));
@@ -203,11 +199,6 @@ MODULE MathTT800;
 		END;
 		RETURN int / MAXCARD
 	END Rand;
-
-	PROCEDURE (g: Generator) SetCalls (num: LONGINT);
-	BEGIN
-		g.count := num
-	END SetCalls;
 
 	PROCEDURE (g: Generator) StateSize (): INTEGER;
 	BEGIN

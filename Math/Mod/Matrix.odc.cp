@@ -25,14 +25,15 @@ MODULE MathMatrix;
 		http://en.wikipedia.org/wiki/Triangular_matrix#Forward_and_back_substitution
 		The x variable plays the role of "b" on input and of the solution "x" on output.   *)
 
-		PROCEDURE ForwardSub* (IN a: ARRAY OF ARRAY OF REAL;
+	PROCEDURE ForwardSub* (IN a: ARRAY OF ARRAY OF REAL;
 	VAR x: ARRAY OF REAL; size: INTEGER);
 		VAR
 			i, j: INTEGER;
 			sum: REAL;
 	BEGIN
-		ASSERT((LEN(a, 0) >= size) & (LEN(a, 1) >= size), 20);
-		ASSERT(LEN(x) >= size, 20);
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
+		ASSERT(LEN(x) >= size, 22);
 		i := 0;
 		WHILE i < size DO
 			sum := x[i];
@@ -56,8 +57,9 @@ MODULE MathMatrix;
 			i, j: INTEGER;
 			sum: REAL;
 	BEGIN
-		ASSERT((LEN(a, 0) >= size) & (LEN(a, 1) >= size), 20);
-		ASSERT(LEN(x) >= size, 20);
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
+		ASSERT(LEN(x) >= size, 22);
 		i := size - 1;
 		WHILE i >= 0 DO
 			sum := x[i];
@@ -82,7 +84,8 @@ MODULE MathMatrix;
 			i, j, k: INTEGER;
 			sum: REAL;
 	BEGIN
-		ASSERT((LEN(a, 0) >= size) & (LEN(a, 1) >= size), 20);
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
 		i := 0;
 		WHILE i < size DO
 			j := 0;
@@ -117,7 +120,8 @@ MODULE MathMatrix;
 		VAR
 			i, j: INTEGER;
 	BEGIN
-		ASSERT((LEN(a, 0) >= size) & (LEN(a, 1) >= size), 20);
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
 		IF LEN(z) < size THEN NEW(z, size) END;
 		IF LEN(workMatrix, 0) < size THEN NEW(workMatrix, size, size) END;
 		Cholesky(a, size);
@@ -161,7 +165,8 @@ MODULE MathMatrix;
 			i: INTEGER;
 			log: REAL;
 	BEGIN
-		ASSERT((LEN(a, 0) >= size) & (LEN(a, 1) >= size), 20);
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
 		Cholesky(a, size);
 		log := 0.0;
 		i := 0;
@@ -188,14 +193,14 @@ MODULE MathMatrix;
 	p, q: INTEGER;
 	VAR c, s: REAL): REAL;
 		VAR
-			Apq, App, Aqq, tau, t, c1: REAL;
+			apq, app, aqq, tau, t, c1: REAL;
 	BEGIN
-		Apq := a[p][q];
+		apq := a[p][q];
 
-		IF Apq # 0.0 THEN
-			App := a[p][p];
-			Aqq := a[q][q];
-			tau := (Aqq - App) / (2.0 * Apq);
+		IF apq # 0.0 THEN
+			app := a[p][p];
+			aqq := a[q][q];
+			tau := (aqq - app) / (2.0 * apq);
 			IF tau >= 0.0 THEN
 				t := 1.0 / (tau + Hypot(1.0, tau));
 			ELSE
@@ -208,41 +213,37 @@ MODULE MathMatrix;
 			c := 1.0;
 			s := 0.0;
 		END;
-		RETURN ABS(Apq);
+		RETURN ABS(apq);
 	END SymsChur2;
 
-	PROCEDURE Apply_jacobi_L (VAR a: ARRAY OF ARRAY OF REAL;
-	p, q: INTEGER;
-	c, s: REAL;
-	size: INTEGER);
+	PROCEDURE Apply_jacobi_L (VAR a: ARRAY OF ARRAY OF REAL; p, q: INTEGER;
+	c, s: REAL; size: INTEGER);
 		VAR
 			j: INTEGER;
-			Apj, Aqj: REAL;
+			apj, aqj: REAL;
 	BEGIN
 		j := 0;
 		WHILE j < size DO
-			Apj := a[p][j];
-			Aqj := a[q][j];
-			a[p][j] := Apj * c - Aqj * s;
-			a[q][j] := Apj * s + Aqj * c;
+			apj := a[p][j];
+			aqj := a[q][j];
+			a[p][j] := apj * c - aqj * s;
+			a[q][j] := apj * s + aqj * c;
 			INC(j);
 		END;
 	END Apply_jacobi_L;
 
-	PROCEDURE Apply_jacobi_R (VAR a: ARRAY OF ARRAY OF REAL;
-	p, q: INTEGER;
-	c, s: REAL;
-	size: INTEGER);
+	PROCEDURE Apply_jacobi_R (VAR a: ARRAY OF ARRAY OF REAL; p, q: INTEGER;
+	c, s: REAL; size: INTEGER);
 		VAR
 			i: INTEGER;
-			Aip, Aiq: REAL;
+			aip, aiq: REAL;
 	BEGIN
 		i := 0;
 		WHILE i < size DO
-			Aip := a[i][p];
-			Aiq := a[i][q];
-			a[i][p] := Aip * c - Aiq * s;
-			a[i][q] := Aip * s + Aiq * c;
+			aip := a[i][p];
+			aiq := a[i][q];
+			a[i][p] := aip * c - aiq * s;
+			a[i][q] := aip * s + aiq * c;
 			INC(i);
 		END;
 	END Apply_jacobi_R;
@@ -277,9 +278,7 @@ MODULE MathMatrix;
 		RETURN sum;
 	END Norm;
 
-	(*
-	Output is eigenvalues only.
-	*)
+	(*	Output is eigenvalues only	*)
 
 	PROCEDURE Jacobi* (VAR a: ARRAY OF ARRAY OF REAL;
 	OUT ev: ARRAY OF REAL; size: INTEGER);
@@ -289,6 +288,9 @@ MODULE MathMatrix;
 			i, p, q: INTEGER;
 			red, redsum, nrm, c, s, ep: REAL;
 	BEGIN
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
+		ASSERT(LEN(ev) >= size, 22);
 		(* initialise the array to store eigenvalues *)
 		i := 0;
 		WHILE i < size DO
@@ -325,7 +327,8 @@ MODULE MathMatrix;
 		MathSort.HeapSort(ev, size);
 	END Jacobi;
 
-	PROCEDURE SVD* (IN w: ARRAY OF ARRAY OF REAL; OUT svdMatrix: ARRAY OF ARRAY OF REAL; OUT svdVector: ARRAY OF REAL);
+	PROCEDURE SVD* (IN w: ARRAY OF ARRAY OF REAL; 
+	OUT svdMatrix: ARRAY OF ARRAY OF REAL; OUT svdVector: ARRAY OF REAL);
 		VAR
 			i, ii, j, k, estColRank, rotCount, sweepCount, slimit, nRow, nCol, dim0, dim1: INTEGER;
 			eps, e2, tol, vt, p, x0, y0, q, r, c0, s0, d1, d2: REAL;
@@ -424,56 +427,6 @@ MODULE MathMatrix;
 			svdVector[i] := Math.Sqrt(svdVector[i]);
 		END
 	END SVD;
-
-	PROCEDURE SparseMultiply* (IN adj, cols: ARRAY OF INTEGER; IN elements, x: ARRAY OF REAL;
-	size: INTEGER; OUT y: ARRAY OF REAL);
-		VAR
-			i, j, k: INTEGER;
-	BEGIN
-		ASSERT(LEN(x) >= size, 20);
-		ASSERT(LEN(y) >= size, 21);
-		ASSERT(LEN(cols) >= size, 22);
-		i := 0;
-		WHILE i < size DO y[i] := 0.0; INC(i) END;
-		i := 0;
-		j := 0;
-		WHILE i < size DO
-			k := j + cols[i];
-			WHILE j < k DO y[i] := y[i] + elements[j] * x[adj[j]]; INC(j) END;
-			INC(i)
-		END
-	END SparseMultiply;
-
-	PROCEDURE SparseEigenvalues* (IN adj, cols: ARRAY OF INTEGER; IN weights: ARRAY OF REAL;
-	size: INTEGER; OUT eigenvalues: ARRAY OF REAL);
-		VAR
-			col, i, j, k: INTEGER;
-			a: POINTER TO ARRAY OF ARRAY OF REAL;
-	BEGIN
-		NEW(a, size, size);
-		i := 0;
-		WHILE i < size DO
-			j := 0;
-			WHILE j < size DO
-				a[i, j] := 0;
-				INC(j)
-			END;
-			INC(i)
-		END;
-		i := 0;
-		k := 0;
-		WHILE i < size DO
-			j := 0;
-			WHILE j < cols[i] DO
-				col := adj[k];
-				a[i, col] := weights[k];
-				INC(k);
-				INC(j)
-			END;
-			INC(i)
-		END;
-		Jacobi(a, eigenvalues, size)
-	END SparseEigenvalues;
 
 	PROCEDURE Maintainer;
 	BEGIN

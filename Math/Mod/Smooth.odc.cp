@@ -110,7 +110,8 @@ MODULE MathSmooth;
 		delta := bandWidth / m;
 		minVal := Min(sample, sampleSize);
 		maxVal := Max(sample, sampleSize);
-		numBins := SHORT(ENTIER((maxVal - minVal) / delta)) + 2 * (m + 1 + SHORT(ENTIER(Math.Ceiling(0.1 * m))));
+		numBins := SHORT(ENTIER((maxVal - minVal) / delta)) 
+				+ 2 * (m + 1 + SHORT(ENTIER(Math.Ceiling(0.1 * m))));
 		start := minVal - bandWidth - 0.1 * delta;
 		min := (SHORT(ENTIER(start / delta)) - 0.5) * delta
 	END BinInfo;

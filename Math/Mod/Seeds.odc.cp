@@ -62,9 +62,9 @@ MODULE MathSeeds;
 				INC(k);
 				INC(count, 25)
 			END;
-			StdLog.String("SEED NUMBER "); StdLog.Int(j + 1); StdLog.Ln;
 			i := 0;
 			WHILE i < N DO
+				StdLog.String("x["); StdLog.Int(j+1); StdLog.String(" , "); StdLog.Int(i); StdLog.String("] := ");
 				StdLog.Set(x[i]); StdLog.Ln;
 				INC(i)
 			END;
@@ -76,40 +76,6 @@ MODULE MathSeeds;
 			INC(j)
 		END
 	END Generate;
-
-	PROCEDURE Write*;
-		VAR
-			i, j, k: INTEGER;
-			s: TextMappers.Scanner;
-			text: TextModels.Model;
-			c: TextControllers.Controller;
-	BEGIN
-		i := 0;
-		c := TextControllers.Focus();
-		IF c # NIL THEN
-			text := c.text;
-			s.ConnectTo(text);
-			s.SetPos(0);
-			s.SetOpts({TextMappers.interpretSets});
-			s.Scan;
-			WHILE ~s.rider.eot DO
-				IF s.type = TextMappers.set THEN
-				j := i DIV N;
-					k := i MOD 25;
-					StdLog.String("x[");
-					StdLog.Int(j);
-					StdLog.Char(",");
-					StdLog.Int(k);
-					StdLog.String("] := ");
-					StdLog.Set(s.set);
-					StdLog.Char(";");
-					StdLog.Ln;
-					INC(i)
-				END;
-				s.Scan
-			END;
-		END
-	END Write;
 
 
 	PROCEDURE Maintainer;

@@ -26,8 +26,7 @@ MODULE MathRandnum;
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 20 OF CHAR;
-		root2Pi: REAL;
-		rootE: REAL;
+		root2Pi, rootE: REAL;
 		generator: Generator;
 		fact: Factory;
 		matrix: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -50,8 +49,6 @@ MODULE MathRandnum;
 	PROCEDURE (g: Generator) Period- (): REAL, NEW, ABSTRACT;
 
 	PROCEDURE (g: Generator) Rand- (): REAL, NEW, ABSTRACT;
-
-	PROCEDURE (g: Generator) SetCalls- (num: LONGINT), NEW, ABSTRACT;
 
 	PROCEDURE (g: Generator) SetState- (IN state: ARRAY OF INTEGER), NEW, ABSTRACT;
 
@@ -103,27 +100,10 @@ MODULE MathRandnum;
 		generator.Init(index)
 	END InitState;
 
-	PROCEDURE NumCalls* (OUT num: ARRAY OF INTEGER);
-		VAR
-			calls: LONGINT;
-	BEGIN
-		generator.NumCalls(calls);
-		num[0] := SHORT(calls DIV MAX(INTEGER));
-		num[1] := SHORT(calls MOD MAX(INTEGER))
-	END NumCalls;
-
 	PROCEDURE Period* (): REAL;
 	BEGIN
 		RETURN generator.Period()
 	END Period;
-
-	PROCEDURE SetCalls* (IN num: ARRAY OF INTEGER);
-		VAR
-			calls: LONGINT;
-	BEGIN
-		calls := MAX(INTEGER) * num[0] + num[1];
-		generator.SetCalls(calls)
-	END SetCalls;
 
 	PROCEDURE SetState* (IN state: ARRAY OF INTEGER);
 	BEGIN
@@ -1776,24 +1756,23 @@ MODULE MathRandnum;
 		RETURN gamma + z * delta
 	END Stable;
 
+	(*	POLAR GENERATION OF RANDOM VARIATES WITH THE t-DISTRIBUTION 
+		   RALPH W. BAILEY  *)
 	PROCEDURE Tdist* (nu: REAL): REAL;
 		VAR
-			x, u, u1, v: REAL;
+			x, u, u2, v, w, c2, r2: REAL;
 	BEGIN
 		REPEAT
 			u := generator.Rand();
-			u1 := generator.Rand();
-			IF u < 0.50 THEN
-				x := 1.0 / (4.0 * u - 1.0);
-				v := u / (x * x)
-			ELSE
-				x := 4.0 * u - 3.0;
-				v := u1
-			END;
-			IF v <= 1.0 - 0.50 * ABS(x) THEN
-				RETURN x
-			END
-		UNTIL v < Math.Power(1.0 + x * x / nu, - 0.50 * (nu + 1.0));
+			v := generator.Rand();
+			u := 2 * u - 1;
+			v := 2 * v - 1;
+			u2 := u * u;
+			w := u2 + v * v;
+		UNTIL w < 1;
+		c2 := u2 / w;
+		r2 := nu * (Math.Power(w, - 2 / nu) - 1);
+		x := Math.Sqrt(c2 * r2);
 		RETURN x
 	END Tdist;
 
