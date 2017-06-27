@@ -17,7 +17,7 @@ MODULE ParallelWorker;
 	IMPORT
 		Files, Kernel, MPIworker, Services, Stores, Strings,
 		BugsRandnum,
-		GraphCenTrunc, GraphNodes, GraphStochastic,
+		GraphNodes, GraphStochastic,
 		MonitorMonitors,
 		ParallelActions, ParallelRandnum, ParallelTraphandler,
 		UpdaterActions, UpdaterParallel, UpdaterUpdaters;
@@ -160,7 +160,6 @@ MODULE ParallelWorker;
 		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
 		Strings.IntToString(MPIworker.worldRank, worldRank);
 		ParallelTraphandler.SetTrapViewer(fileStemName + worldRank + "_" + timeStamp);
-		GraphCenTrunc.Install;
 		restartLoc := Files.dir.This("Restart");
 		startTime := Services.Ticks();
 		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
