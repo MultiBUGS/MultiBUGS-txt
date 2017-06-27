@@ -20,6 +20,7 @@ MODULE SummaryFormatted;
 		
 	CONST
 		skewOpt* = 0; exKurtOpt* = 1; medianOpt* = 2; quant0Opt* = 3; quant1Opt* = 4;
+		bold = 770;
 		
 	VAR
 		version-: INTEGER;
@@ -95,7 +96,7 @@ MODULE SummaryFormatted;
 			newAttr, oldAttr: TextModels.Attributes;
 	BEGIN
 		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		newAttr := TextModels.NewWeight(oldAttr, bold);
 		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteTab;

@@ -170,7 +170,7 @@ MODULE SummaryMonitors;
 			WHILE i < size DO
 				node := name.components[i];
 				IF (node # NIL) & ~(GraphNodes.data IN node.props)
-					 & ~(GraphStochastic.nR IN node.props) THEN
+					 & ~(GraphStochastic.hidden IN node.props) THEN
 					monitor.summaries[i] := MonitorSummary.fact.New(node);
 					set := TRUE
 				ELSE
