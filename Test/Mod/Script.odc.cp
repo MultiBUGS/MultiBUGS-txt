@@ -14,7 +14,7 @@ MODULE TestScript;
 	IMPORT
 		Dialog, Services,
 		StdLog,
-		BugsCmds, BugsMappers,
+		BugsCmds, BugsFiles,
 		MapsCmds,
 		SamplesCmds, SamplesDensity, SamplesDiagnostics,
 		SummaryCmds;
@@ -1313,7 +1313,7 @@ MODULE TestScript;
 			oldWhereOut: INTEGER;
 	BEGIN
 		startTime := Services.Ticks();
-		oldWhereOut := BugsMappers.whereOut;
+		oldWhereOut := BugsFiles.whereOut;
 		StdLog.Clear;
 		Air; Aligators; Asia; Beetles;
 		Biopsies; BiRats; Blockers; Bones;
@@ -1332,7 +1332,7 @@ MODULE TestScript;
 		StdLog.String("Tests took "); StdLog.Int(timeInterval DIV Services.resolution);
 		StdLog.String("s"); StdLog.Ln;
 		BugsCmds.SaveLog("Test/AllModels");
-		BugsMappers.SetDest(oldWhereOut)
+		BugsFiles.SetDest(oldWhereOut)
 	END AllModels;
 
 	PROCEDURE AllGeo*;
@@ -1341,7 +1341,7 @@ MODULE TestScript;
 			oldWhereOut: INTEGER;
 	BEGIN
 		startTime := Services.Ticks();
-		oldWhereOut := BugsMappers.whereOut;
+		oldWhereOut := BugsFiles.whereOut;
 		StdLog.Clear;
 		Elevation; Forest; LHA; Huddersfield;
 		MVCAR; MVCARCon; Pollution; Rongelap;
@@ -1351,7 +1351,7 @@ MODULE TestScript;
 		StdLog.String("Tests took "); StdLog.Int(timeInterval DIV Services.resolution);
 		StdLog.String("s"); StdLog.Ln;
 		BugsCmds.SaveLog("Test/GeoModels");
-		BugsMappers.SetDest(oldWhereOut)
+		BugsFiles.SetDest(oldWhereOut)
 	END AllGeo;
 
 	PROCEDURE AllEco*;
@@ -1360,7 +1360,7 @@ MODULE TestScript;
 			oldWhereOut: INTEGER;
 	BEGIN
 		startTime := Services.Ticks();
-		oldWhereOut := BugsMappers.whereOut;
+		oldWhereOut := BugsFiles.whereOut;
 		StdLog.Clear;
 		Eco2Agg; Eco2Indiv; Eco2AggIndiv; Eco3AggIndiv;
 		timeInterval := Services.Ticks() - startTime;
@@ -1368,7 +1368,7 @@ MODULE TestScript;
 		StdLog.String("Tests took "); StdLog.Int(timeInterval DIV Services.resolution);
 		StdLog.String("s"); StdLog.Ln;
 		BugsCmds.SaveLog("Test/EcoModels");
-		BugsMappers.SetDest(oldWhereOut)
+		BugsFiles.SetDest(oldWhereOut)
 	END AllEco;
 
 	PROCEDURE EveryThing*;
