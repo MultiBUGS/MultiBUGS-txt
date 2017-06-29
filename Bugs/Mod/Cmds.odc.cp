@@ -575,6 +575,7 @@ MODULE BugsCmds;
 		VAR
 			res: INTEGER;
 	BEGIN
+		res := 0;
 		IF IsUpdating() OR a.s.eot  THEN
 			(*	if updating wait, do not read next script command	*)
 		ELSE
@@ -583,7 +584,7 @@ MODULE BugsCmds;
 		IF res  = 0 THEN 
 			Services.DoLater(a, Services.now) 
 		ELSE
-			BugsMsg.Show("script failed")
+			BugsMsg.Show("script failed") 
 		END
 	END Do;
 

@@ -250,7 +250,7 @@ MODULE BugsScripts;
 
 		(*	displays summary statistics for sample monitor s	*)
 		StoreKey("samplesStats(s)",
-		"SamplesCmds.SetVariable('^0'); SamplesCmds.SetGuard; SamplesCmds.Stats");
+		"SamplesCmds.SetVariable('^0'); SamplesCmds.StatsGuard; SamplesCmds.Stats");
 
 		(*	displays CODA output for sample monitor s, disabled on non-Windows OS	*)
 		StoreKey("samplesCoda(s)",

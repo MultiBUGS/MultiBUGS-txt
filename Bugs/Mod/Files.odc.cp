@@ -35,13 +35,12 @@ CONST
 		VAR
 			i, j: INTEGER;
 			ch: CHAR;
-			fullPath: ARRAY 4096 OF CHAR;
 	BEGIN
 		i := 0;
 		j := 0;
-		IF loc = NIL THEN RETURN END;
-		WHILE (loc.res = 0) & (i < LEN(fullPath) - 1) & (j < LEN(name) - 1) & (fullPath[i] # 0X) DO
-			ch := fullPath[i];
+		IF loc = NIL THEN name := ""; RETURN END;
+		WHILE (loc.res = 0) & (i < LEN(path) - 1) & (j < LEN(name) - 1) & (path[i] # 0X) DO
+			ch := path[i];
 			INC(i);
 			IF (j > 0) & (ch = "/") THEN
 				name[j] := 0X;
@@ -58,7 +57,7 @@ CONST
 				INC(j)
 			END
 		END;
-		IF fullPath[i] = 0X THEN
+		IF path[i] = 0X THEN
 			name[j] := 0X;
 		ELSE
 			loc.res := 1;

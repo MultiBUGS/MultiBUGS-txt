@@ -12,7 +12,7 @@ MODULE BugsScripting;
 	
 
 	IMPORT 
-		Strings,
+		Strings, StdLog,
 		BugsInterpreter, BugsMappers, BugsMsg, BugsScripts;
 
 	VAR
@@ -110,7 +110,8 @@ MODULE BugsScripting;
 				END;
 				INC(i)
 			END;
-			BugsInterpreter.CmdInterpreter(pascalCommand, res);
+			StdLog.Ln;StdLog.String(pascalCommand); StdLog.Ln;
+			BugsInterpreter.CmdInterpreter(pascalCommand, res); 
 		ELSE
 			BugsMsg.Show("BugsScript6");
 		END
