@@ -22,7 +22,7 @@ MODULE UpdaterSlice;
 		batch = 25;
 
 		(*	internal states of sampling algorithm	*)
-		left = 0; right = 1; sample = 2; 
+		left = 0; right = 1; sample = 2;
 
 		leftBounds = {GraphStochastic.leftNatural, GraphStochastic.leftImposed};
 		rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
@@ -42,6 +42,8 @@ MODULE UpdaterSlice;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+		count: INTEGER;
+	
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
 			u: Updater;
@@ -118,6 +120,7 @@ MODULE UpdaterSlice;
 		logLike := updater.LogLikelihood();
 		IF GraphStochastic.distributed IN prior.props THEN MPIworker.SumReal(logLike) END;
 		logCond := prior.LogPrior() + logLike;
+		INC(count);
 		RETURN logCond
 	END LogCond;
 
@@ -166,6 +169,7 @@ MODULE UpdaterSlice;
 			IF logCond < updater.h THEN
 				state := right;
 				updater.left := prior.value;
+				prior.SetValue(updater.oldX);
 				attempts := 0
 			END
 		|right:
@@ -176,7 +180,7 @@ MODULE UpdaterSlice;
 			END
 		|sample:
 			IF logCond > updater.h THEN (*	have new MCMC sample	*)
-				state := -state;
+				state := - state;
 				INC(updater.iteration);
 				IF updater.unimodal OR (updater.iteration < fact. adaptivePhase) THEN
 					updater.meanStep := updater.meanStep + ABS(prior.value - updater.oldX);
@@ -265,23 +269,25 @@ MODULE UpdaterSlice;
 					INC(updater.iteration);
 					lower := updater.Solve(updater.left, updater.oldX, tol);
 					upper := updater.Solve(updater.oldX, updater.right, tol);
-					x :=  upper + lower - updater.oldX; 
+					x := upper + lower - updater.oldX;
 					prior.SetValue(x);
 					IF ~updater.unimodal & (updater.LogCond() < updater.h) THEN
 						prior.SetValue(updater.oldX)
-					END; 
+					END;
 					EXIT
 				END;
 				INC(attempts);
 				IF attempts > fact.iterations THEN
-					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
+					res := {GraphNodes.lhs, GraphNodes.tooManyIts}; 
 					EXIT
 				END;
+				ASSERT(updater.left < updater.oldX, 66);
+				ASSERT(updater.right > updater.oldX, 77);
 				x := MathRandnum.Uniform(updater.left, updater.right);
 				prior.SetValue(x);
 				logCond := updater.LogCond();
 				updater.State(logCond, state, attempts);
-				IF state = -sample THEN EXIT END
+				IF state = - sample THEN EXIT END
 			END
 		END
 	END Sample;
@@ -361,6 +367,7 @@ MODULE UpdaterSlice;
 		END;
 		f.GetDefaults;
 		fact := f;
+		count := 0;
 	END Init;
 
 BEGIN
