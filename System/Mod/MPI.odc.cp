@@ -53,115 +53,122 @@ MODULE MPI;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		comm: Comm;
-
-		PROCEDURE (h: Hook) Allgather- (
-		sendbuf: Address;
-		sendCount: INTEGER;
-		sendType: Datatype;
-		recvbuf: Address;
-		recvCount: INTEGER;
-		recvType: Datatype;
+		
+	PROCEDURE (h: Hook) Abort- (comm: Comm; error: INTEGER), NEW, ABSTRACT;
+	
+	PROCEDURE (h: Hook) Allgather- (
+	sendbuf: Address;
+	sendCount: INTEGER;
+	sendType: Datatype;
+	recvbuf: Address;
+	recvCount: INTEGER;
+	recvType: Datatype;
 	comm: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Allreduce- (
-		operand: Address;
-		result: Address;
-		count: INTEGER;
-		dataType: Datatype;
-		operator: Op;
+	PROCEDURE (h: Hook) Allreduce- (
+	operand: Address;
+	result: Address;
+	count: INTEGER;
+	dataType: Datatype;
+	operator: Op;
 	comm: Comm), NEW, ABSTRACT;
 
 	PROCEDURE (h: Hook) Barrier- (comm: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Bcast- (
-		buf: Address;
-		count: INTEGER;
-		dataType: Datatype;
-		root: INTEGER;
+	PROCEDURE (h: Hook) Bcast- (
+	buf: Address;
+	count: INTEGER;
+	dataType: Datatype;
+	root: INTEGER;
 	comm: Comm), NEW, ABSTRACT;
 
 	PROCEDURE (h: Hook) Close_port- (port: Address), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_accept- (
-		port: Address;
-		info: Info;
-		root: INTEGER;
-		comm: Comm;
+	PROCEDURE (h: Hook) Comm_accept- (
+	port: Address;
+	info: Info;
+	root: INTEGER;
+	comm: Comm;
 	VAR intercom: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_connect- (
-		port: Address;
-		info: Info;
-		root: INTEGER;
-		comm: Comm;
+	PROCEDURE (h: Hook) Comm_connect- (
+	port: Address;
+	info: Info;
+	root: INTEGER;
+	comm: Comm;
 	VAR intercom: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_disconnect- (
+	PROCEDURE (h: Hook) Comm_disconnect- (
 	VAR intercom: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_get_parent- (
+	PROCEDURE (h: Hook) Comm_get_parent- (
 	VAR parent: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_rank- (
+	PROCEDURE (h: Hook) Comm_rank- (
 	comm: Comm; VAR rank: INTEGER), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_remote_size- (
+	PROCEDURE (h: Hook) Comm_remote_size- (
 	parent: Comm; VAR size: INTEGER), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_size- (
+	PROCEDURE (h: Hook) Comm_size- (
 	comm: Comm; VAR numProc: INTEGER), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Comm_split- (
-		oldComm: Comm;
-		colour: INTEGER;
-		rankKey: INTEGER;
+	PROCEDURE (h: Hook) Comm_split- (
+	oldComm: Comm;
+	colour: INTEGER;
+	rankKey: INTEGER;
 	VAR newCom: Comm), NEW, ABSTRACT;
 
 	PROCEDURE (h: Hook) Finalize-, NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Gather- (
-		sendBuf: Address;
-		sendCount: INTEGER;
-		sendType: Datatype;
-		recBuf: Address;
-		recCount: INTEGER;
-		recType: Datatype;
-		root: INTEGER;
+	PROCEDURE (h: Hook) Gather- (
+	sendBuf: Address;
+	sendCount: INTEGER;
+	sendType: Datatype;
+	recBuf: Address;
+	recCount: INTEGER;
+	recType: Datatype;
+	root: INTEGER;
 	comm: Comm), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Init- (
-		VAR nargs: INTEGER;
+	PROCEDURE (h: Hook) Init- (
+	VAR nargs: INTEGER;
 	VAR args: POINTER TO ARRAY[untagged] OF SHORTCHAR), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Open_port- (
+	PROCEDURE (h: Hook) Open_port- (
 	info: Info; port: Address), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Recv- (
-		buff: Address;
-		count: INTEGER;
-		datatype: Datatype;
-		source: INTEGER;
-		tag: INTEGER;
-		comm: Comm;
+	PROCEDURE (h: Hook) Recv- (
+	buff: Address;
+	count: INTEGER;
+	datatype: Datatype;
+	source: INTEGER;
+	tag: INTEGER;
+	comm: Comm;
 	status: Status), NEW, ABSTRACT;
 
-		PROCEDURE (h: Hook) Send- (
-		buff: Address;
-		count: INTEGER;
-		datatype: Datatype;
-		dest: INTEGER;
-		tag: INTEGER;
+	PROCEDURE (h: Hook) Send- (
+	buff: Address;
+	count: INTEGER;
+	datatype: Datatype;
+	dest: INTEGER;
+	tag: INTEGER;
 	comm: Comm), NEW, ABSTRACT;
 
 	PROCEDURE (h: Hook) Wtime- (): REAL, NEW, ABSTRACT;
 
-		PROCEDURE Allgather* (
-		sendbuf: Address;
-		sendCount: INTEGER;
-		sendType: Datatype;
-		recvbuf: Address;
-		recvCount: INTEGER;
-		recvType: Datatype;
+	PROCEDURE Abort* (comm: Comm; error: INTEGER);
+	BEGIN
+		hook.Abort(comm, error)
+	END Abort;
+
+	PROCEDURE Allgather* (
+	sendbuf: Address;
+	sendCount: INTEGER;
+	sendType: Datatype;
+	recvbuf: Address;
+	recvCount: INTEGER;
+	recvType: Datatype;
 	comm: Comm);
 	BEGIN
 		hook.Allgather(sendbuf, sendCount, sendType, recvbuf, recvCount, recvType, comm)

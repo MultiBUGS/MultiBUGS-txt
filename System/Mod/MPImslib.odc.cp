@@ -9,6 +9,8 @@ MODULE MPImslib["msmpi"];
 	IMPORT
 		MPI;
 			
+	PROCEDURE Abort*["MPI_Abort"] (comm: MPI.Comm; error: INTEGER);
+			
 	PROCEDURE Allgather*["MPI_Allgather"] (
 	sendbuf: MPI.Address;
 	sendCount: INTEGER;

@@ -31,6 +31,21 @@ MODULE MPIworker;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
+	PROCEDURE RankToChain (rank, numChains, numProc: INTEGER): INTEGER;
+		VAR
+			c: INTEGER;
+	BEGIN
+		c := rank DIV (numProc DIV numChains);
+		RETURN c
+	END RankToChain;
+
+	PROCEDURE Abort*;
+		CONST
+			error = 0;
+	BEGIN
+		MPI.Abort(comm, error)
+	END Abort;
+	
 	PROCEDURE AllocateStorage* (maxSizeParams, blockSize, numStochastics: INTEGER);
 	BEGIN
 		NEW(xIn, maxSizeParams);
@@ -60,22 +75,13 @@ MODULE MPIworker;
 		END
 	END ReadPort;
 
-	PROCEDURE RankToChain (rank, numChains, numProc: INTEGER): INTEGER;
-		VAR
-			c: INTEGER;
-	BEGIN
-		(*c := rank MOD numChains*)
-		c := rank DIV (numProc DIV numChains);
-		RETURN c
-	END RankToChain;
-
 	PROCEDURE ConnectToMaster*;
 		VAR
 			size: INTEGER;
 	BEGIN
 		MPI.Comm_connect(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
 		MPI.Comm_remote_size(intercomm, size);
-		ASSERT(size = 1, 88);
+		ASSERT(size = 1, 60);
 	END ConnectToMaster;
 
 	PROCEDURE InitMPI*;
@@ -195,7 +201,7 @@ MODULE MPIworker;
 
 	PROCEDURE GatherValues* (nElem: INTEGER);
 	BEGIN
-		MPI.Allgather(valuesA, nElem, MPI.DOUBLE, globalValuesA, nElem, MPI.DOUBLE, comm)
+		MPI.Allgather(valuesA, nElem, MPI.DOUBLE, globalValuesA, nElem, MPI.DOUBLE, comm);
 	END GatherValues;
 
 	PROCEDURE ReceiveMonitors* (numMonitors: INTEGER);

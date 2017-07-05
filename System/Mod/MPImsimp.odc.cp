@@ -29,6 +29,11 @@ MODULE MPImsimp;
 			MPIlib.Allgather(sendbuf, sendCount, sendType, recvbuf, recvCount, recvType, comm)
 		END Allgather;
 		
+		PROCEDURE (h: Hook) Abort (comm: MPI.Comm; error: INTEGER);
+		BEGIN
+			MPIlib.Abort(comm, error)
+		END Abort;
+		
 		PROCEDURE (h: Hook) Allreduce (
 		operand: MPI.Address;
 		result: MPI.Address;
