@@ -42,7 +42,7 @@ MODULE UpdaterSlice;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		count: INTEGER;
+		count, countS: INTEGER;
 	
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
@@ -185,7 +185,7 @@ MODULE UpdaterSlice;
 				IF updater.unimodal OR (updater.iteration < fact. adaptivePhase) THEN
 					updater.meanStep := updater.meanStep + ABS(prior.value - updater.oldX);
 					IF updater.iteration MOD batch = 0 THEN
-						updater.step := 2.0 * updater.meanStep / batch;
+						updater.step := 3.25 * updater.meanStep / batch;
 						updater.meanStep := 0.0
 					END
 				END
@@ -238,6 +238,7 @@ MODULE UpdaterSlice;
 				IF (leftBounds * prior.props # {}) & (x < updater.leftBound) THEN
 					updater.left := updater.leftBound;
 					state := right;
+					prior.SetValue(updater.oldX);
 					attempts := 0
 				ELSE
 					prior.SetValue(x);
@@ -276,6 +277,7 @@ MODULE UpdaterSlice;
 					END;
 					EXIT
 				END;
+				INC(countS);
 				INC(attempts);
 				IF attempts > fact.iterations THEN
 					res := {GraphNodes.lhs, GraphNodes.tooManyIts}; 
@@ -368,6 +370,7 @@ MODULE UpdaterSlice;
 		f.GetDefaults;
 		fact := f;
 		count := 0;
+		countS := 0
 	END Init;
 
 BEGIN

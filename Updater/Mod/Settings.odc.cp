@@ -162,6 +162,28 @@ MODULE UpdaterSettings;
 		RETURN index
 	END FindActiveFactory;
 
+	PROCEDURE FindFactory (): INTEGER;
+		VAR
+			name, name1: Dialog.String;
+			i, index,  len: INTEGER;
+	BEGIN
+		dialog.methods.GetItem(dialog.methods.index, name);
+		i := 0;
+		index := -1;
+		IF UpdaterMethods.factories # NIL THEN
+			len := LEN(UpdaterMethods.factories)
+		ELSE
+			len := 0
+		END;
+		WHILE (i < len) & (index = -1) DO
+			UpdaterMethods.factories[i].Install(name1);
+			BugsMsg.Lookup(name1, name1);
+			IF name = name1 THEN index := i END;
+			INC(i)
+		END;
+		RETURN index
+	END FindFactory;
+
 	PROCEDURE SetProperty (fact: UpdaterUpdaters.Factory; value, property: INTEGER);
 	BEGIN
 		IF property IN fact.props THEN
@@ -315,8 +337,10 @@ MODULE UpdaterSettings;
 			ok: BOOLEAN;
 			s: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			index: INTEGER;
 	BEGIN
-		BugsInterface.ChangeSampler(dialog.node, dialog.methods.index, ok);
+		index := FindFactory(); 
+		BugsInterface.ChangeSampler(dialog.node, index , ok);
 		IF ~ok THEN
 			p[0] := dialog.node$;
 			BugsMsg.ShowParam("BugsEmbed:couldNotChangeUpdater", p);
