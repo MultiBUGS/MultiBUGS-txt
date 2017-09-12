@@ -1,2 +1,0 @@
-list(nDate = 37, theta.max = 10000, theta.min = 0)
-
