@@ -12,7 +12,6 @@ MODULE SamplesFormatted;
 	
 
 	IMPORT
-		Fonts,
 		BugsFiles, BugsIndex, BugsNames, BugsParser,
 		SamplesIndex, SamplesInterface, SamplesMonitors,
 		TextMappers, TextModels;
@@ -24,7 +23,7 @@ MODULE SamplesFormatted;
 		quant0Opt* = 5; quant1Opt* = 6; quant2Opt* = 7; quant3Opt* = 8;
 		quant4Opt* = 9; quant5Opt* = 10; quant6Opt* = 11; quant7Opt* = 12;
 		hpd0Opt* = 13; hpd1Opt* = 14; 
-		bold = Fonts.bold;
+		bold = 700;
 		
 	VAR
 		version-: INTEGER;
@@ -177,10 +176,9 @@ MODULE SamplesFormatted;
 	END StatsSummary;
 
 	PROCEDURE FormatCODA (IN variable: ARRAY OF CHAR; beg, end, thin, firstChain, lastChain: INTEGER;
-	VAR f: ARRAY OF TextMappers.Formatter);
+	VAR f: ARRAY OF TextMappers.Formatter; VAR line: INTEGER);
 		VAR
-			chain, i, iteration, j, k, num, line,
-			numChains, sampleSize: INTEGER;
+			chain, i, iteration, j, k, num, numChains, sampleSize: INTEGER;
 			sample: POINTER TO ARRAY OF ARRAY OF REAL;
 			label: ARRAY 128 OF CHAR;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -191,7 +189,6 @@ MODULE SamplesFormatted;
 		SamplesInterface.Offsets(variable, beg, end, thin, offsets);
 		numChains := lastChain - firstChain + 1;
 		i := 0;
-(*		line := f[1].lines;*)
 		WHILE i < num DO
 			BugsIndex.MakeLabel(variable, offsets[i], label);
 			sampleSize := SamplesInterface.SampleSize(label, beg, end, thin, firstChain, lastChain);
@@ -227,9 +224,10 @@ MODULE SamplesFormatted;
 	PROCEDURE CODA* (variable: ARRAY OF CHAR; beg, end, thin, firstChain, lastChain: INTEGER;
 	VAR f: ARRAY OF TextMappers.Formatter);
 		VAR
-			i, len: INTEGER;
+			i, len, line: INTEGER;
 			monitors: POINTER TO ARRAY OF SamplesMonitors.Monitor;
 	BEGIN
+		line := 0;
 		IF SamplesInterface.IsStar(variable) THEN
 			monitors := SamplesIndex.GetMonitors();
 			IF monitors = NIL THEN RETURN END;
@@ -237,11 +235,11 @@ MODULE SamplesFormatted;
 			len := LEN(monitors);
 			WHILE i < len DO
 				variable := monitors[i].Name().string$;
-				FormatCODA(variable, beg, end, thin, firstChain, lastChain, f);
+				FormatCODA(variable, beg, end, thin, firstChain, lastChain, f, line);
 				INC(i)
 			END
 		ELSE
-			FormatCODA(variable, beg, end, thin, firstChain, lastChain, f)
+			FormatCODA(variable, beg, end, thin, firstChain, lastChain, f, line)
 		END
 	END CODA;
 
