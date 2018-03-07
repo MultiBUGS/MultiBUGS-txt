@@ -319,7 +319,7 @@ MODULE BugsMaster;
 		executable := executable + '"';
 		path := '"' + path;
 		cmd := cmd + " " + path + "\" + executable;
-		HostDialog.hideExtRunWindow := TRUE; 
+		(*HostDialog.hideExtRunWindow := TRUE; *)
 		StdLog.Ln;
 		StdLog.String("mpi command:");
 		StdLog.Ln;
