@@ -12,7 +12,7 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		Controllers, Converters, Dialog, Files, Meta, Models, Ports, Services, Strings, Views,
+		Controllers, Converters, Dialog, Files, Meta, Models, Ports, Services, Strings, Views, Windows,
 		StdLog,
 		BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface, BugsLatexprinter,
 		BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser, BugsPrettyprinter,
@@ -184,13 +184,21 @@ MODULE BugsCmds;
 			m: Models.Model;
 			text: TextModels.Model;
 			v: Views.View;
-			name: Files.Name;
-			loc: Files.Locator;
-			conv: Converters.Converter;
-			pos: INTEGER;
+			w: Windows.Window;
 	BEGIN
 		IF filePath # "" THEN
 			text := BugsFiles.FileToText(filePath)
+		ELSIF Dialog.platform = Dialog.linux THEN
+			w := Windows.dir.First();
+			WHILE (w # NIL) & ~(w.doc.ThisView() IS TextViews.View) DO
+				w := Windows.dir.Next(w)
+			END;
+			IF w # NIL THEN
+				v := w.doc.ThisView();
+				text := v(TextViews.View).ThisModel()
+			ELSE
+				text := NIL
+			END
 		ELSE
 			m := Controllers.FocusModel();
 			IF m # NIL THEN
