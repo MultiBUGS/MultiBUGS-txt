@@ -22,9 +22,6 @@ MENU "Info"
 END
 
 MENU "Model" 
-	"Check model"	""	"BugsCmds.Parse"	""
-	"Load data"	""	"BugsCmds.LoadData"	""
-	"Load inits"	""	"BugsCmds.LoadInits"	""
 	"Specification..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool')"	""
 	SEPARATOR
 	"PK Specification..."	""	"StdCmds.OpenToolDialog('PKBugs/Rsrc/SpecificationDialog', 'PK Specification Tool')"	""
