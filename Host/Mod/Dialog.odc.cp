@@ -628,8 +628,19 @@ RunDialog
 	END OpenExternal;
 
 	PROCEDURE (h: ExtCallHook) RunExternal* (IN exeName: ARRAY OF CHAR);
+		VAR
+			i, len, res: INTEGER;
+			shortString: POINTER TO ARRAY OF SHORTCHAR;
 	BEGIN
-		
+		len := LEN(exeName$);
+		NEW(shortString, len + 1);
+		i := 0;
+		WHILE i < len DO
+			shortString[i] := SHORT(exeName[i]); INC(i)
+		END;
+		res := LinLibc.execv(SYSTEM.VAL(LinLibc.PtrSTR, shortString), NIL);
+		res := LinLibc.__errno_location();
+		HALT(0);
 	END RunExternal;
 
 	PROCEDURE Init;
