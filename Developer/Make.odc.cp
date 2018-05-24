@@ -8,6 +8,10 @@ List of OpenBUGS modules:
 
 DevCompiler.CompileThis 
 
+Dev2LnkBase Dev2LnkLoad Dev2LnkWritePe Dev2LnkWriteElf Dev2LnkWriteElfStatic Dev2LnkChmod Dev2Linker1
+
+HostDialog
+
 MPI MPImslib MPImsimp MPIworker
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
