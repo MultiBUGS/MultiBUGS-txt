@@ -4,7 +4,7 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 *)
 
-MODULE MPImslib["msmpi"];
+MODULE MPImslib["libmpich.so.12"];
 
 	IMPORT
 		MPI;
