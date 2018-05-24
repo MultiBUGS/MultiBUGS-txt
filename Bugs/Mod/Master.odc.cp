@@ -14,7 +14,7 @@ MODULE BugsMaster;
 	IMPORT 
 		MPI, SYSTEM, Dialog, Files, Kernel, Meta, Services, Stores, Strings, StdLog,
 		BugsCPCompiler, BugsComponents, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
-		DevCommanders, DevLinker, 
+		DevCommanders, Dev2Linker1,
 		DevianceInterface,
 		GraphNodes, GraphStochastic, 
 		HostDialog, HostFiles,
@@ -160,7 +160,7 @@ MODULE BugsMaster;
 		modules := BugsComponents.Modules(mpiImplementation);
 		text := TextModels.dir.New();
 		wr := text.NewWriter(NIL);
-		WriteString(wr, exeFile); WriteString(wr, " := "); wr.WriteChar(TextModels.line);
+		WriteString(wr, "Linux "); WriteString(wr, exeFile); WriteString(wr, " := "); wr.WriteChar(TextModels.line);
 		i := 0; len := LEN(modules);
 		WHILE i < len DO
 			WriteString(wr, modules[i]); wr.WriteChar(" "); INC(i);
@@ -170,7 +170,7 @@ MODULE BugsMaster;
 		DevCommanders.par.text := text;
 		DevCommanders.par.beg := 0;
 		DevCommanders.par.end := text.Length();
-		DevLinker.LinkExe;
+		Dev2Linker1.LinkElfExe;
 		DevCommanders.par := NIL;
 		RETURN modules
 	END LinkModules;
@@ -300,13 +300,14 @@ MODULE BugsMaster;
 		ASSERT(res = 0, 77);
 		startTime := endTime;
 		h.modules := LinkModules(executable, mpiImplementation);
+
 		endTime := Services.Ticks();
 		h.linkTime := SHORT(endTime - startTime);
 		Strings.IntToString(numWorker, string);
 		cmd := "mpiexec -n " + string; 
 		loc := Files.dir.This("");
 		fileList := Files.dir.FileList(loc);
-		WHILE (fileList # NIL) & (fileList.name #  executable + ".exe") DO
+		WHILE (fileList # NIL) & (fileList.name #  executable) DO
 			fileList := fileList.next 
 		END;
 		IF fileList = NIL THEN
@@ -318,7 +319,7 @@ MODULE BugsMaster;
 		(*	need quotes round command line for case of space in file path	*)
 		executable := executable + '"';
 		path := '"' + path;
-		cmd := cmd + " " + path + "\" + executable;
+		cmd := cmd + " " + path + "/" + executable;
 		(*HostDialog.hideExtRunWindow := TRUE; *)
 		StdLog.Ln;
 		StdLog.String("mpi command:");
@@ -326,8 +327,11 @@ MODULE BugsMaster;
 		StdLog.String(cmd);
 		StdLog.Ln;
 		len1 := StdLog.text.Length();
-		IF ~BugsCPCompiler.debug THEN StdLog.text.Delete(len0, len1) END;
+	(*	IF ~BugsCPCompiler.debug THEN StdLog.text.Delete(len0, len1) END; *)
+
+		(*cmd := "/home/multibugs/execvtest/exec";*)
 		Dialog.RunExternal(cmd);
+		HALT(0);
 		MPI.Comm_accept(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
 		MPI.Comm_remote_size(intercomm, size);
 		ASSERT(size = numWorker, 66);
