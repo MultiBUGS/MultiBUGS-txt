@@ -405,10 +405,10 @@ MODULE BugsDistribute;
 
 		IF copyBinary THEN
 			(*	Windows specific  files	*)
-			CopyFile("OpenBUGS.exe", dest);
-			CopyFile("OpenBUGS.exe.manifest", dest);
+			CopyFile("MultiBUGS.exe", dest);
+			CopyFile("MultiBUGS.exe.manifest", dest);
 			CopyFile("WorkerBUGS.exe", dest);
-			CopyFile("libOpenBUGS.dll", dest);
+			CopyFile("libMultiBUGS.dll", dest);
 
 			CopyFile("libtaucs.dll", dest);
 			CopyFile("BackBUGS.lnk", dest);
@@ -469,6 +469,9 @@ MODULE BugsDistribute;
 			(*	if config and startup files exist overwrite standard BB files	*)
 			CopyFile("Code/Config.ocf", dest + "/System");
 			CopyFile("Code/Startup.ocf", dest + "/System");
+			CopyFile("Code/MPI.ocf", dest + "/System");
+			CopyFile("Code/MPImsmpi.ocf", dest + "/System");
+			CopyFile("Code/MPIworker.ocf", dest + "/System");
 		END;
 
 		IF copyDocu THEN
@@ -547,7 +550,7 @@ MODULE BugsDistribute;
 		CopyFile("Docu/BB-Open-Source-License.odc", dest);
 		CopyFile("Docu/BB-Licensing-Policy.odc", dest);
 		CopyFile("Docu/BB-License.odc", dest);
-		CopyFile("Docu/OpenBUGS-License.odc", dest);
+		CopyFile("Docu/MultiBUGS-License.odc", dest);
 
 		(*	Required for source code license compliance	*)
 		CopyFile("Rsrc/About.odc", dest);
@@ -633,7 +636,7 @@ MODULE BugsDistribute;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		dest := "C:/OpenBUGS";
+		dest := "C:/MultiBUGS";
 		copyBinary := TRUE;
 		copyDocu := FALSE;
 		copySource := FALSE;

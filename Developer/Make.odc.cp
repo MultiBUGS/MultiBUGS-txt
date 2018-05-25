@@ -1,10 +1,10 @@
- Compiling OpenBUGS
+ Compiling MultiBUGS
 
-This document contains a list of source code modules which constitute the OpenBUGS software.
+This document contains a list of source code modules which constitute the MultiBUGS software.
 
-To produce an executable version of OpenBUGS the compiled form of some of these modules must be linked with certain compiled modules of Oberonmicrosystems BlackBox software. See the Linking document for details.
+To produce an executable version of MultiBUGS the compiled form of some of these modules must be linked with certain compiled modules of Oberonmicrosystems BlackBox software. See the Linking document for details.
 
-List of OpenBUGS modules:
+List of MultiBUGS modules:
 
 DevCompiler.CompileThis 
 
