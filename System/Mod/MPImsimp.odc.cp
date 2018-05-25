@@ -91,6 +91,12 @@ MODULE MPImsimp;
 			MPIlib.Comm_disconnect(intercom)
 		END Comm_disconnect;
 		
+		PROCEDURE (h: Hook) Comm_free(
+		VAR intercom: MPI.Comm);
+		BEGIN
+			MPIlib.Comm_free(intercom)
+		END Comm_free;
+		
 		PROCEDURE (h: Hook) Comm_get_parent (
 		VAR parent: MPI.Comm);
 		BEGIN

@@ -56,6 +56,9 @@ MODULE MPImslib["msmpi"];
 	PROCEDURE Comm_disconnect*["MPI_Comm_disconnect"] (
 	VAR intercom: MPI.Comm);
 
+	PROCEDURE Comm_free*["MPI_Comm_free"] (
+	VAR intercom: MPI.Comm);
+
 	PROCEDURE Comm_get_parent*["MPI_Comm_get_parent"] (
 	VAR parent: MPI.Comm);
 

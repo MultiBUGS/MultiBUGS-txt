@@ -219,9 +219,16 @@ MODULE MPIworker;
 		IF commSize > 1 THEN MPI.Barrier(comm) END;
 	END Barrier;
 
-	PROCEDURE Close*;
+(*	PROCEDURE Close*;
 	BEGIN
 		MPI.Comm_disconnect(intercomm);
+		MPI.Finalize
+	END Close;*)
+
+	PROCEDURE Close*;
+	BEGIN
+		MPI.Comm_free(intercomm);
+		MPI.Close_port(SYSTEM.ADR(port[0]));
 		MPI.Finalize
 	END Close;
 

@@ -101,6 +101,9 @@ MODULE MPI;
 	PROCEDURE (h: Hook) Comm_disconnect- (
 	VAR intercom: Comm), NEW, ABSTRACT;
 
+	PROCEDURE (h: Hook) Comm_free- (
+	VAR intercom: Comm), NEW, ABSTRACT;
+
 	PROCEDURE (h: Hook) Comm_get_parent- (
 	VAR parent: Comm), NEW, ABSTRACT;
 
@@ -230,6 +233,12 @@ MODULE MPI;
 	BEGIN
 		hook.Comm_disconnect(intercom)
 	END Comm_disconnect;
+
+	PROCEDURE Comm_free* (
+	VAR intercom: Comm);
+	BEGIN
+		hook.Comm_free(intercom)
+	END Comm_free;
 
 	PROCEDURE Comm_get_parent* (
 	VAR parent: Comm);
