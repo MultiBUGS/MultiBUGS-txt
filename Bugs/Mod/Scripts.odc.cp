@@ -109,11 +109,11 @@ MODULE BugsScripts;
 
 		(*	generate initial values	*)
 		StoreKey("modelGenInits()",
-		"BugsCmds.GenerateInitsGuard; BugsCmds.GenerateInits");
+		"BugsCmds.GenerateInits");
 
 		(*	generate initial values	*)
 		StoreKey("modelGenInits(s)",
-		"BugsCmds.GenerateInitsGuard;BugsCmds.specificationDialog.fixFounder = ^0; BugsCmds.GenerateInits");
+		"BugsCmds.specificationDialog.fixFounder = ^0; BugsCmds.GenerateInits");
 
 		(*	distribute model using i cores	*)
 		StoreKey("modelDistribute(i)",
@@ -139,15 +139,15 @@ MODULE BugsScripts;
 
 		(*	update model i iteration with over-relaxation s	*)
 		StoreKey("modelUpdate(is)",
-		"BugsParallel.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.overRelax := ^1; BugsCmds.Update");
+		"BugsDistribute.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.overRelax := ^1; BugsCmds.Update");
 
 		(*	update model i0 iteration with prospective thin of i1 and over-relaxation s	*)
 		StoreKey("modelUpdate(iis)",
-		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsParallel.Update");
+		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsDistribute.Update");
 
 		(*	update model i iterations	*)
 		StoreKey("modelUpdateNI(iis)",
-		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0;BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsParallel.UpdateNI");
+		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0;BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsDistribute.UpdateNI");
 
 		(*	externalizes the model to file s .bug	*)
 		StoreKey("modelExternalize(s)",
@@ -354,7 +354,7 @@ MODULE BugsScripts;
 
 		(*	clears monitor for DIC	*)
 		StoreKey("dicClear()",
-		"DevianceCmds.StatsGuard ; DevianceCmds.Clear");
+		"DevianceCmds.StatsGuard; DevianceCmds.Clear");
 
 		(*___________________________________________________________________________________________
 

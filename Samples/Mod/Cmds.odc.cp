@@ -197,7 +197,7 @@ MODULE SamplesCmds;
 		END
 	END CODA;
 
-	PROCEDURE CODAFiles* (stemName: ARRAY OF CHAR);
+(*	PROCEDURE CODAFiles* (stemName: ARRAY OF CHAR);
 		VAR
 			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
 			numAsString: ARRAY 8 OF CHAR;
@@ -231,6 +231,46 @@ MODULE SamplesCmds;
 			WHILE i <= numChains DO
 				Strings.IntToString(i + firstChain - 1, numAsString);
 				BugsFiles.Save("CODAchain " + numAsString, text[i]);
+				INC(i)
+			END;
+			BugsMsg.Show("SamplesCmds:CODAFilesWritten")
+		END
+	END CODAFiles;*)
+
+	PROCEDURE CODAFiles* (stemName: ARRAY OF CHAR);
+		VAR
+			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
+			numAsString: ARRAY 8 OF CHAR;
+			string: Dialog.String;
+			f: POINTER TO ARRAY OF TextMappers.Formatter;
+			text: POINTER TO ARRAY OF TextModels.Model;
+	BEGIN
+		oldWhereOut := BugsCmds.displayDialog.whereOut;
+		BugsFiles.SetDest(BugsFiles.window);
+		string := dialog.node.item;
+		beg := dialog.beg - 1;
+		end := dialog.end;
+		thin := dialog.thin;
+		firstChain := dialog.firstChain;
+		lastChain := dialog.lastChain;
+		numChains := lastChain - firstChain + 1;
+		NEW(f, numChains + 1);
+		NEW(text, numChains + 1);
+		i := 0;
+		WHILE i <= numChains DO
+			text[i] := TextModels.dir.New();
+			f[i].ConnectTo(text[i]);
+			f[i].SetPos(0);
+			INC(i)
+		END;
+		pos := f[0].Pos();
+		SamplesFormatted.CODA(string, beg, end, thin, firstChain, lastChain, f);
+		IF f[0].Pos() > pos THEN
+			BugsFiles.Save(stemName + "CODAindex.txt", text[0]);
+			i := 1;
+			WHILE i <= numChains DO
+				Strings.IntToString(i + firstChain - 1, numAsString);
+				BugsFiles.Save(stemName + "CODAchain" + numAsString + ".txt", text[i]);
 				INC(i)
 			END;
 			BugsMsg.Show("SamplesCmds:CODAFilesWritten")

@@ -13,8 +13,7 @@ MODULE BugsFiles;
 	
 
 	IMPORT
-		Containers, Converters, Documents, Files, Fonts, Ports, Strings, Views,
-		StdLog,
+		Containers, Converters, Documents, Files, Fonts, Log, Ports, Strings, Views,
 		TextMappers, TextModels, TextRulers, TextViews;
 
 CONST
@@ -127,9 +126,9 @@ CONST
 			v := TextViews.dir.New(text);
 			OpenView(v, title, w, h)
 		|log:
-			StdLog.String(title);
-			StdLog.Ln;
-			StdLog.text.Append(text)
+			Log.String(title);
+			Log.Ln;
+			(*Log.text.Append(text)*)
 		|file:
 			v := TextViews.dir.New(text);
 			loc := tempLoc;
@@ -173,7 +172,7 @@ CONST
 		PathToFileSpec(name, loc, name0);
 		Strings.Find(name0, ".txt", 0, pos);
 		IF pos =  - 1 THEN
-			Converters.Export(loc, name0, conv, NIL)
+			Converters.Export(loc, name0, NIL, v)
 		ELSE
 			Converters.Export(loc, name0, conv, v)
 		END
