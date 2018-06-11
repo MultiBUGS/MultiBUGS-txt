@@ -478,7 +478,7 @@ MODULE BugsCPWrite;
 			|GraphGrammar.logfact:
 				String("MathFunc.LogFactorial(SHORT(ENTIER("); Write(t.left); String(" + eps)))")
 			|GraphGrammar.loggam: String("MathFunc.LogGammaFunc("); Write(t.left); String(")")
-			|GraphGrammar.logit: String("MathFunc.Logit("); Write(t.left); String(");")
+			|GraphGrammar.logit: String("MathFunc.Logit("); Write(t.left); String(")")
 			|GraphGrammar.ilogit: String("MathFunc.ILogit("); Write(t.left); String(")")
 			|GraphGrammar.max: String("MAX("); Write(t.left); String(", "); Write(t.right); String(")")
 			|GraphGrammar.min: String("MIN("); Write(t.left); String(", "); Write(t.right); String(")")
