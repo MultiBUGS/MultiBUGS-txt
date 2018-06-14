@@ -493,7 +493,7 @@ MODULE GraphODEBlockM;
 
 	PROCEDURE Maintainer ();
 	BEGIN
-		maintainer := "S. Miller";
+		maintainer := "   ";
 		version := 500;
 	END Maintainer;
 

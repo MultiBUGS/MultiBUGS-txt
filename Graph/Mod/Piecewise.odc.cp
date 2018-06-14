@@ -196,7 +196,7 @@ MODULE GraphPiecewise;
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
-		maintainer := "S. Miller";
+		maintainer := "   ";
 	END Maintainer;
 
 	PROCEDURE Init;
