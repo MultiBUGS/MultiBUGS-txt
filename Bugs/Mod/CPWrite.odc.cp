@@ -214,7 +214,7 @@ MODULE BugsCPWrite;
 
 		PROCEDURE WriteNonDiff1;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.nonDiff1[class");
+			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.nonDiff1F[class");
 			f.WriteInt(top); f.WriteString("];"); f.WriteLn
 		END WriteNonDiff1;
 

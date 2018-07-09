@@ -127,14 +127,18 @@ MODULE UpdaterParallel;
 						size := u.Size();
 						WHILE j < size DO
 							p := u.Prior(j);
-							thinned := p.Children();
-							thinned := ThinChildren(thinned);
-							p.SetChildren(thinned);
+							IF p = p.Representative() THEN
+								thinned := p.Children();
+								thinned := ThinChildren(thinned);
+								p.SetChildren(thinned)
+							END;
 							INC(j)
 						END
 					ELSE
 						p := u.Prior(0);
-						p.SetChildren(thinned)
+						IF p = p.Representative() THEN
+							p.SetChildren(thinned)
+						END
 					END;
 					UnMarkChildren(children)
 				END
@@ -1116,8 +1120,9 @@ MODULE UpdaterParallel;
 		colPtr := NIL;
 		rowInd := NIL
 	END Init;
-
+	
 BEGIN
 	Init
 END UpdaterParallel.
+
 
