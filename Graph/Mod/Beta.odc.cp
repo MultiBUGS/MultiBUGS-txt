@@ -205,13 +205,15 @@ MODULE GraphBeta;
 	PROCEDURE (node: Node) ExternalizeUnivariate (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.a, wr);
-		GraphNodes.Externalize(node.b, wr)
+		GraphNodes.Externalize(node.b, wr);
+		wr.WriteBool(node.normalize)
 	END ExternalizeUnivariate;
 
 	PROCEDURE (node: Node) InternalizeUnivariate (VAR rd: Stores.Reader);
 	BEGIN
 		node.a := GraphNodes.Internalize(rd);
-		node.b := GraphNodes.Internalize(rd)
+		node.b := GraphNodes.Internalize(rd);
+		rd.ReadBool(node.normalize)
 	END InternalizeUnivariate;
 
 	PROCEDURE (node: Node) InitUnivariate;
