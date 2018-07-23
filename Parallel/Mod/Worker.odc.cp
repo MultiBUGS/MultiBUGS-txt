@@ -225,7 +225,6 @@ MODULE ParallelWorker;
 					END
 				END
 			|terminate:
-				WriteMutable(timeStamp, worldRank);
 				EXIT
 			|update:
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
@@ -243,6 +242,7 @@ MODULE ParallelWorker;
 				END;
 			END
 		END;
+		MPIworker.Barrier;
 		MPIworker.Close
 	END Init;
 

@@ -76,6 +76,17 @@ MODULE MPImslib["msmpi"];
 	colour: INTEGER;
 	rankKey: INTEGER;
 	VAR newCom: MPI.Comm);
+	
+	PROCEDURE Comm_spawn*["MPI_Comm_spawn"] (
+	worker: MPI.Address;
+	argv: MPI.Address;
+	maxproc: INTEGER;
+	info: MPI.Info;
+	root: INTEGER;
+	comm: MPI.Comm;
+	VAR intercomm: MPI.Comm;
+	errors: MPI.Address
+	);
 
 	PROCEDURE Finalize*["MPI_Finalize"];
 

@@ -79,7 +79,10 @@ MODULE MPIworker;
 		VAR
 			size: INTEGER;
 	BEGIN
+	(*
 		MPI.Comm_connect(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
+	*)
+		MPI.Comm_get_parent(intercomm);
 		MPI.Comm_remote_size(intercomm, size);
 		ASSERT(size = 1, 60);
 	END ConnectToMaster;
@@ -219,16 +222,10 @@ MODULE MPIworker;
 		IF commSize > 1 THEN MPI.Barrier(comm) END;
 	END Barrier;
 
-(*	PROCEDURE Close*;
-	BEGIN
-		MPI.Comm_disconnect(intercomm);
-		MPI.Finalize
-	END Close;*)
-
 	PROCEDURE Close*;
 	BEGIN
-		MPI.Comm_free(intercomm);
-		MPI.Close_port(SYSTEM.ADR(port[0]));
+		MPI.Comm_disconnect(intercomm);
+		(*MPI.Close_port(SYSTEM.ADR(port[0]));*)
 		MPI.Finalize
 	END Close;
 

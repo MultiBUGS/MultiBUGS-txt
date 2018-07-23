@@ -130,6 +130,20 @@ MODULE MPImsimp;
 			MPIlib.Comm_split(oldComm, colour, rankKey, newCom)
 		END Comm_split;
 		
+		PROCEDURE (h: Hook) Comm_spawn- (
+		worker: MPI.Address;
+		argv: MPI.Address;
+		maxproc: INTEGER;
+		info: MPI.Info;
+		root: INTEGER;
+		comm: MPI.Comm;
+		VAR intercomm: MPI.Comm;
+		errors: MPI.Address
+		);
+		BEGIN
+			MPIlib.Comm_spawn(worker, argv, maxproc, info, root, comm, intercomm, errors)
+		END Comm_spawn;
+		
 		PROCEDURE (h: Hook) Finalize;
 		BEGIN
 			MPIlib.Finalize

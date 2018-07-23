@@ -121,6 +121,17 @@ MODULE MPI;
 	colour: INTEGER;
 	rankKey: INTEGER;
 	VAR newCom: Comm), NEW, ABSTRACT;
+	
+	PROCEDURE (h: Hook) Comm_spawn- (
+	worker: Address;
+	argv: Address;
+	maxproc: INTEGER;
+	info: Info;
+	root: INTEGER;
+	comm: Comm;
+	VAR intercomm: Comm;
+	errors: Address
+	), NEW, ABSTRACT;
 
 	PROCEDURE (h: Hook) Finalize-, NEW, ABSTRACT;
 
@@ -272,7 +283,21 @@ MODULE MPI;
 	BEGIN
 		hook.Comm_split(oldComm, colour, rankKey, newCom)
 	END Comm_split;
-
+	
+	PROCEDURE Comm_spawn* (
+	worker: Address;
+	argv: Address;
+	maxproc: INTEGER;
+	info: Info;
+	root: INTEGER;
+	comm: Comm;
+	VAR intercomm: Comm;
+	errors: Address
+	);
+	BEGIN
+		hook.Comm_spawn(worker, argv, maxproc, info, root, comm, intercomm, errors)
+	END Comm_spawn;
+	
 	PROCEDURE Finalize*;
 	BEGIN
 		hook.Finalize

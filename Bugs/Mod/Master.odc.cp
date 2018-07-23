@@ -220,7 +220,8 @@ MODULE BugsMaster;
 		command[2] :=  - 1;
 		command[3] :=  - 1;
 		command[4] := -1;
-		BugsInterface.SendCommand(command)
+		BugsInterface.SendCommand(command);
+		MPI.Comm_disconnect(intercomm);
 	END TerminateWorkers;
 
 	PROCEDURE (h: Hook) Deviance (chain: INTEGER): REAL;
@@ -247,15 +248,19 @@ MODULE BugsMaster;
 	PROCEDURE (h: Hook) Distribute (mpiImplementation: ARRAY OF CHAR);
 		VAR
 			ok: BOOLEAN;
-			numStochastics, chain, numChains, numWorker, size, res, worker, len0, len1: INTEGER;
+			numStochastics, chain, numChains, numWorker, size, res, worker, len0, len1, len, root: INTEGER;
 			endTime, startTime: LONGINT;
 			cmd, path, string, executable, bugFile: ARRAY 1024 OF CHAR;
+			shortName: POINTER TO ARRAY OF SHORTCHAR;
 			loc: Files.Locator;
 			fileList: Files.FileInfo;
 			f: Files.File;
 			resultParams: ARRAY 3 OF INTEGER;
 			deviance: GraphNodes.Node;
 			name: BugsNames.Name;
+			w, argv, errors: MPI.Address;
+			info: MPI.Info;
+			comm: MPI.Comm;
 	BEGIN
 		numStochastics := GraphStochastic.numStochastics;
 		NEW(values, numStochastics);
@@ -289,7 +294,11 @@ MODULE BugsMaster;
 		StdLog.Ln;
 		(*	find deviance and mark it as distributed if it exists	*)
 		name := BugsIndex.Find("deviance");
-		deviance := name.components[0];
+		IF name # NIL THEN
+			deviance := name.components[0]
+		ELSE
+			deviance := NIL
+		END;
 		IF deviance # NIL THEN
 			deviance.SetProps(deviance.props + {GraphStochastic.distributed});
 		END;
@@ -316,9 +325,10 @@ MODULE BugsMaster;
 		END;
 		path := loc(HostFiles.Locator).path$;
 		(*	need quotes round command line for case of space in file path	*)
-		executable := executable + '"';
-		path := '"' + path;
-		cmd := cmd + " " + path + "\" + executable;
+		executable := executable (*+ '"'*);
+		path := (*'"' +*) path + "\" + executable;
+		(*cmd := cmd + " " + path;*)
+		cmd := path;
 		HostDialog.hideExtRunWindow := TRUE; 
 		StdLog.Ln;
 		StdLog.String("mpi command:");
@@ -327,8 +337,20 @@ MODULE BugsMaster;
 		StdLog.Ln;
 		len1 := StdLog.text.Length();
 		IF ~BugsCPCompiler.debug THEN StdLog.text.Delete(len0, len1) END;
+		(*
 		Dialog.RunExternal(cmd);
 		MPI.Comm_accept(portA, MPI.INFO_NULL, 0, MPI.COMM_WORLD, intercomm);
+		*)
+		 len := LEN(cmd$);
+		NEW(shortName, len + 1);
+		shortName^ := SHORT(cmd);
+		w := SYSTEM.ADR(shortName[0]);
+		argv := MPI.ARGV_NULL;
+		info := MPI.INFO_NULL;
+		root := 0;
+		comm := MPI.COMM_WORLD;
+		errors := MPI.ERRCODES_IGNORE; 
+		MPI.Comm_spawn(w, argv, numWorker, info, root, comm, intercomm, errors); 
 		MPI.Comm_remote_size(intercomm, size);
 		ASSERT(size = numWorker, 66);
 		worker := 0;
@@ -444,8 +466,8 @@ MODULE BugsMaster;
 			(*	load this mpi implementation for use by master	*)
 			Meta.Lookup(mpiImplementation, mod);
 			MPI.Init(nargs, args);
-			portA := SYSTEM.ADR(port[0]);
-			MPI.Open_port(MPI.INFO_NULL, portA)
+			(*portA := SYSTEM.ADR(port[0]);
+			MPI.Open_port(MPI.INFO_NULL, portA)*)
 		END;
 		NEW(h);
 		h.monitorChanged := FALSE;
@@ -474,7 +496,6 @@ MODULE BugsMaster;
 	BEGIN
 		BugsInterface.Clear;
 		IF mpiInit THEN
-			MPI.Close_port(portA);
 			MPI.Finalize
 		END;
 		(*	see if exe file left over from previous model	*)
