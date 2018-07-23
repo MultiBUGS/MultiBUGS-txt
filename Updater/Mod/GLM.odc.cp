@@ -106,7 +106,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		size := updater.Size();
 		children := updater.Children();
-		num := LEN(children);
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		j := 0;
 		WHILE j < size DO
 			i := 0;
@@ -130,7 +130,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		size := updater.Size();
 		children := updater.Children();
-		num := LEN(children);
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		
 		j := 0;
 		WHILE j < size DO
@@ -233,7 +233,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		size := updater.Size();
 		children := updater.Children();
-		numLike := LEN(children);
+		IF children # NIL THEN numLike := LEN(children) ELSE numLike := 0 END;
 		NEW(updater.predictors, numLike);
 		i := 0;
 		WHILE i < numLike DO
@@ -425,7 +425,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		i := 0;
 		children := updater.Children();
-		num := LEN(children);
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		WHILE i < num DO
 			predictor := updater.predictors[i].Value();
 			mu[i] := n[i] / (1.0 + Math.Exp( - predictor));
