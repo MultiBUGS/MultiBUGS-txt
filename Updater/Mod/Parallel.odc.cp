@@ -34,7 +34,7 @@ MODULE UpdaterParallel;
 		colPtr, rowInd: POINTER TO ARRAY OF INTEGER;
 		globalStochs: POINTER TO ARRAY OF GraphStochastic.Vector;
 
-	PROCEDURE MarkChildren* (children: GraphStochastic.Vector; numProc, rank: INTEGER);
+(*	PROCEDURE MarkChildren* (children: GraphStochastic.Vector; numProc, rank: INTEGER);
 		VAR
 			node: GraphStochastic.Node;
 			i, j, num: INTEGER;
@@ -62,6 +62,22 @@ MODULE UpdaterParallel;
 				node := children[j];
 				node.SetProps(node.props + {GraphStochastic.mark});
 			END
+		END
+	END MarkChildren;*)
+
+	PROCEDURE MarkChildren* (children: GraphStochastic.Vector; numProc, rank: INTEGER);
+		VAR
+			node: GraphStochastic.Node;
+			i, num: INTEGER;
+	BEGIN
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		IF rank < num THEN
+			i := rank;
+			WHILE i < num DO
+				node := children[i];
+				node.SetProps(node.props + {GraphStochastic.mark});
+				INC(i, numProc)
+			END	
 		END
 	END MarkChildren;
 
