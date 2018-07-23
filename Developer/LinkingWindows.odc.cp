@@ -25,4 +25,18 @@ MultiBUGS.exe := Kernel$ + Files HostFiles  HostPackedFiles StdLoader
 6 folderimg.ico 7 openimg.ico 8 leafimg.ico
 1 Move.cur 2 Copy.cur 3 Link.cur 4 Pick.cur 5 Stop.cur 6 Hand.cur 7 Table.cur 
 
+ DevPacker.PackThis MultiBUGS.exe :=
+Bugs/Rsrc/Menus.odc
+Doodle/Rsrc/Menus.odc
+Maps/Rsrc/Menus.odc
+Graph/Sym/Logical.osf
+Graph/Sym/Nodes.osf
+Graph/Sym/Rules.osf
+Graph/Sym/Scalar.osf
+Graph/Sym/Stochastic.osf
+Math/Sym/Func.osf
+System/Sym/Math.osf
+System/Sym/Stores.osf
+
+
  BugsDistribute.CopyBugs
