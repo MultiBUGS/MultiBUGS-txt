@@ -149,7 +149,7 @@ MODULE GraphFlat;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := ""
+		signature := "T"
 	END Signature;
 
 	PROCEDURE Install*;
