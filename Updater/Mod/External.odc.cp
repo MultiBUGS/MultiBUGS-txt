@@ -133,7 +133,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterMALA1D.Install");
 
 		(*	updater for generic distribution with support on whole of real line	*)
-		UpdaterMethods.LoadUpdater("UpdaterSCAAR.InstallDRC");
+		UpdaterMethods.LoadUpdater("UpdaterSCAAR.InstallMH");
 
 		(*	updater for generic distribution with support on whole of real line	*)
 		UpdaterMethods.LoadUpdater("UpdaterMetnormal.InstallMH");
