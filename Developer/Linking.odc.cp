@@ -20,14 +20,14 @@ How to link MultiBUGS
 To create the MultiBUGS.exe file click in the round .blob containing an ! mark with the mouse
 
 DevLinker.Link
-MultiBUGS.exe := Kernel$ + Files HostFiles  HostPackedFiles StdLoader
+OpenBUGS.exe := Kernel$ + Files HostFiles  HostPackedFiles StdLoader
 1 Bugslogo.ico 2 Doclogo.ico 3 SFLogo.ico 4 CFLogo.ico 5 DtyLogo.ico
 6 folderimg.ico 7 openimg.ico 8 leafimg.ico
 1 Move.cur 2 Copy.cur 3 Link.cur 4 Pick.cur 5 Stop.cur 6 Hand.cur 7 Table.cur 
 
 To bind the licence file, menu files and about box into the executable click in the round .blob containing an ! mark with the mouse.
 
- DevPacker.PackThis MultiBUGS.exe :=
+ DevPacker.PackThis OpenBUGS.exe :=
 Bugs/Rsrc/Menus.odc
 Doodle/Rsrc/Menus.odc
 Maps/Rsrc/Menus.odc

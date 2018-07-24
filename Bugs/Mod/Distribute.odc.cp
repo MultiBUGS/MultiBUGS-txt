@@ -405,6 +405,7 @@ MODULE BugsDistribute;
 
 		IF copyBinary THEN
 			(*	Windows specific  files	*)
+			CopyFile("OpenBUGS.exe", dest);
 			CopyFile("MultiBUGS.exe", dest);
 			CopyFile("MultiBUGS.exe.manifest", dest);
 			CopyFile("WorkerBUGS.exe", dest);
@@ -638,9 +639,9 @@ MODULE BugsDistribute;
 		Maintainer;
 		dest := "C:/MultiBUGS";
 		copyBinary := TRUE;
-		copyDocu := FALSE;
+		copyDocu := TRUE;
 		copySource := FALSE;
-		copyExamples := FALSE;
+		copyExamples := TRUE;
 		produceHTML := FALSE
 	END Init;
 
