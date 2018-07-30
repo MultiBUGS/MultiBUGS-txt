@@ -1,16 +1,20 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-	*)
+*)
 
 MODULE BugsDialog;
 
 
 	
+
+	IMPORT
+		BugsMsg, Dialog,
+		Log;
 
 	TYPE
 		DialogBox* = POINTER TO ABSTRACT RECORD
@@ -53,6 +57,24 @@ MODULE BugsDialog;
 		dialog.next := dialogBoxes;
 		dialogBoxes := dialog
 	END AddDialog;
+
+	PROCEDURE ShowMsg* (IN key: ARRAY OF CHAR);
+		VAR
+			msg: ARRAY 1024 OF CHAR;
+	BEGIN
+		BugsMsg.Lookup(key, msg);
+		Dialog.ShowStatus(msg);
+		Log.String(msg); Log.Ln
+	END ShowMsg;
+
+	PROCEDURE ShowParamMsg* (key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR);
+		VAR
+			msg: ARRAY 1024 OF CHAR;
+	BEGIN
+		BugsMsg.LookupParam(key, p, msg);
+		Dialog.ShowStatus(msg);
+		Log.String(msg); Log.Ln
+	END ShowParamMsg;
 
 	PROCEDURE Maintainer;
 	BEGIN
