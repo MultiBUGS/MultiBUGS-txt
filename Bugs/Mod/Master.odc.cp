@@ -13,7 +13,7 @@ MODULE BugsMaster;
 
 	IMPORT 
 		MPI, SYSTEM, Dialog, Files, Kernel, Meta, Services, Stores, Strings, StdLog,
-		BugsCPCompiler, BugsComponents, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
+		BugsCPCompiler, BugsComponents, BugsGraph, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
 		DevCommanders, DevLinker, 
 		DevianceInterface,
 		GraphNodes, GraphStochastic, 
@@ -395,8 +395,10 @@ MODULE BugsMaster;
 			MPI.Recv(valuesA, len, MPI.DOUBLE, leader[chain], 2, intercomm, MPI.STATUS_IGNORE);
 			GraphStochastic.ReadSample(values);
 			UpdaterActions.StoreSamples(chain);
-			MPI.Recv(SYSTEM.ADR(devianceValues[chain]), 1, MPI.DOUBLE, leader[chain],
-			2, intercomm, MPI.STATUS_IGNORE);
+			IF BugsGraph.devianceExists THEN
+				MPI.Recv(SYSTEM.ADR(devianceValues[chain]), 1, MPI.DOUBLE, leader[chain],
+				2, intercomm, MPI.STATUS_IGNORE);
+			END;
 			IF DevianceInterface.state = DevianceInterface.setDistributed THEN
 				MPI.Recv(SYSTEM.ADR(buffer), 4, MPI.DOUBLE, leader[chain],
 				2, intercomm, MPI.STATUS_IGNORE);

@@ -59,6 +59,7 @@ MODULE BugsGraph;
 		Hints = POINTER TO RECORD(BugsNames.ElementVisitor) END;
 
 	VAR
+		devianceExists-: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -561,10 +562,13 @@ MODULE BugsGraph;
 	BEGIN
 		dev := GraphDeviance.fact.New();
 		IF (dev # NIL) & (GraphDeviance.DevianceTerms(dev) # NIL) THEN
+			devianceExists := TRUE;
 			name := BugsNames.New("deviance", 0);
 			name.AllocateNodes;
 			name.components[0] := dev;
 			BugsIndex.Store(name)
+		ELSE
+			devianceExists := FALSE
 		END
 	END CreateDeviance;
 

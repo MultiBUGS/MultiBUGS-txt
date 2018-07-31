@@ -13,7 +13,7 @@ MODULE BugsComponents;
 
 	IMPORT
 		Files, Kernel, Meta, Services, Stores, Strings,
-		BugsIndex, BugsMsg, BugsRandnum, BugsSerialize,
+		BugsGraph, BugsIndex, BugsMsg, BugsRandnum, BugsSerialize,
 		GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterMethods, UpdaterParallel, UpdaterUpdaters;
 
@@ -305,6 +305,7 @@ MODULE BugsComponents;
 		WHILE i < len DO
 			wr.WriteSChar(portName[i]); INC(i)
 		END;
+		wr.WriteBool(BugsGraph.devianceExists);
 		BugsRandnum.ExternalizeRNGenerators(wr);
 		wr.WriteInt(numChains);
 		UpdaterActions.MarkDistributed;

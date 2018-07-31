@@ -36,7 +36,7 @@ MODULE ParallelWorker;
 	VAR
 		restartLoc: Files.Locator;
 		numMonitored, sampleSize: INTEGER;
-		devianceMonitored, waicSet: BOOLEAN;
+		devianceExists, devianceMonitored, waicSet: BOOLEAN;
 		informationCriteria: ARRAY 2 OF REAL;
 		deviance, meanDeviance, meanDeviance2: REAL;
 
@@ -168,6 +168,7 @@ MODULE ParallelWorker;
 		rd.ConnectTo(f);
 		rd.SetPos(0);
 		MPIworker.ReadPort(rd);
+		rd.ReadBool(devianceExists);
 		BugsRandnum.InternalizeRNGenerators(rd);
 		rd.ReadInt(numChains);
 		MPIworker.SetUpMPI(numChains);
@@ -203,7 +204,7 @@ MODULE ParallelWorker;
 				overRelax := command[4] = 1;
 				Update(thin, iteration, overRelax, endOfAdapting);
 			|sendMCMCState:
-				IF ~devianceMonitored & ~waicSet THEN
+				IF devianceExists & ~devianceMonitored & ~waicSet THEN
 					(*	deviance not calculated in Update so calculate it	*)
 					deviance := ParallelActions.Deviance();
 					MPIworker.SumReal(deviance);
@@ -215,7 +216,7 @@ MODULE ParallelWorker;
 				IF MPIworker.rank = 0 THEN
 					GraphStochastic.WriteSample(MPIworker.samples);
 					MPIworker.SendSamples(GraphStochastic.numStochastics);
-					MPIworker.SendReal(deviance);
+					IF devianceExists THEN MPIworker.SendReal(deviance) END;
 					IF waicSet THEN
 						buffer[0] := informationCriteria[0];
 						buffer[1] := informationCriteria[1];
