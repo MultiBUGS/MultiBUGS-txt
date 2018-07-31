@@ -16,7 +16,7 @@ MODULE BugsRandnum;
 		MathRandnum;
 
 	VAR
-
+		offset-: INTEGER;
 		numberChains-: INTEGER;
 		generators-: POINTER TO ARRAY OF MathRandnum.Generator;
 		version-: INTEGER;
@@ -24,6 +24,7 @@ MODULE BugsRandnum;
 
 	PROCEDURE Clear*;
 	BEGIN
+		offset := 0;
 		numberChains := 1;
 		generators := NIL
 	END Clear;
@@ -36,7 +37,7 @@ MODULE BugsRandnum;
 		NEW(generators, numChains);
 		i := 0;
 		WHILE i < numChains DO
-			generators[i] := MathRandnum.NewGenerator(i);
+			generators[i] := MathRandnum.NewGenerator(i + offset);
 			INC(i)
 		END;
 	END CreateGenerators;
@@ -49,6 +50,7 @@ MODULE BugsRandnum;
 		present := generators # NIL;
 		wr.WriteBool(present);
 		IF present THEN
+			wr.WriteInt(offset);
 			wr.WriteInt(numberChains);
 			i := 0;
 			WHILE i < numberChains DO
@@ -65,6 +67,7 @@ MODULE BugsRandnum;
 	BEGIN
 		rd.ReadBool(present);
 		IF present THEN
+			rd.ReadInt(offset);
 			rd.ReadInt(numberChains);
 			NEW(generators, numberChains);
 			i := 0;
@@ -76,6 +79,11 @@ MODULE BugsRandnum;
 		END
 	END InternalizeRNGenerators;
 
+	PROCEDURE SetShift* (shift: INTEGER);
+	BEGIN
+		offset := shift
+	END SetShift;
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
@@ -85,8 +93,7 @@ MODULE BugsRandnum;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		generators := NIL;
-		numberChains := 1
+		Clear
 	END Init;
 
 BEGIN

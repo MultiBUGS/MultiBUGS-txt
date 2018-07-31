@@ -41,10 +41,12 @@ MODULE MathRandnum;
 	PROCEDURE (g: Generator) GetState- (OUT state: ARRAY OF INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE (g: Generator) Init* (index: INTEGER), NEW, ABSTRACT;
-	
+
 	PROCEDURE (g: Generator) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	PROCEDURE (g: Generator) NumCalls- (OUT num: LONGINT), NEW, ABSTRACT;
+	PROCEDURE (g: Generator) NumCalls- (): LONGINT, NEW, ABSTRACT;
+
+	PROCEDURE (g: Generator) NumPresets- (): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (g: Generator) Period- (): REAL, NEW, ABSTRACT;
 
@@ -61,7 +63,7 @@ MODULE MathRandnum;
 			install: ARRAY 256 OF CHAR;
 	BEGIN
 		g.Install(install);
-		wr.WriteString(install); 
+		wr.WriteString(install);
 		g.Externalize(wr)
 	END Externalize;
 
@@ -69,7 +71,7 @@ MODULE MathRandnum;
 		VAR
 			install: ARRAY 256 OF CHAR;
 			item: Meta.Item;
-			g: Generator; 
+			g: Generator;
 			ok: BOOLEAN;
 	BEGIN
 		rd.ReadString(install);
@@ -86,7 +88,7 @@ MODULE MathRandnum;
 		VAR
 			num: LONGINT;
 	BEGIN
-		generator.NumCalls(num);
+		num := generator.NumCalls();
 		RETURN num / generator.Period()
 	END Coverage;
 
@@ -97,8 +99,14 @@ MODULE MathRandnum;
 
 	PROCEDURE InitState* (index: INTEGER);
 	BEGIN
+		index := index MOD generator.NumPresets();
 		generator.Init(index)
 	END InitState;
+
+	PROCEDURE NumPresets* (g: Generator): INTEGER;
+	BEGIN
+		RETURN g.NumPresets()
+	END NumPresets;
 
 	PROCEDURE Period* (): REAL;
 	BEGIN
@@ -1633,7 +1641,7 @@ MODULE MathRandnum;
 			accuracy = 1.0E-6;
 	BEGIN
 		u := Rand();
-		
+
 		lowerBraket := lower;
 		upperBraket := MIN(Math.Exp( - u / beta), - u / lambda);
 		RETURN Solve(alpha, beta, lambda, u, lowerBraket, upperBraket, accuracy)
@@ -1646,7 +1654,7 @@ MODULE MathRandnum;
 			accuracy = 1.0E-6;
 	BEGIN
 		u := Rand();
-		
+
 		lowerBraket := 1.0E-10;
 		upperBraket := upper;
 		RETURN Solve(alpha, beta, lambda, u, lowerBraket, upperBraket, accuracy)
@@ -1659,7 +1667,7 @@ MODULE MathRandnum;
 			accuracy = 1.0E-6;
 	BEGIN
 		u := Rand();
-		
+
 		lowerBraket := lower;
 		upperBraket := upper;
 		RETURN Solve(alpha, beta, lambda, u, lowerBraket, upperBraket, accuracy)
@@ -1756,8 +1764,8 @@ MODULE MathRandnum;
 		RETURN gamma + z * delta
 	END Stable;
 
-	(*	POLAR GENERATION OF RANDOM VARIATES WITH THE t-DISTRIBUTION 
-		   RALPH W. BAILEY  *)
+	(*	POLAR GENERATION OF RANDOM VARIATES WITH THE t-DISTRIBUTION
+	RALPH W. BAILEY  *)
 	PROCEDURE Tdist* (nu: REAL): REAL;
 		VAR
 			x, u, u2, v, w, c2, r2: REAL;

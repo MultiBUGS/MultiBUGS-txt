@@ -150,10 +150,15 @@ MODULE MathTT800;
 		rd.ReadLong(g.count)
 	END Internalize;
 
-	PROCEDURE (g: Generator) NumCalls (OUT num: LONGINT);
+	PROCEDURE (g: Generator) NumCalls (): LONGINT;
 	BEGIN
-		num := g.count
+		RETURN g.count
 	END NumCalls;
+
+	PROCEDURE (g: Generator) NumPresets (): INTEGER;
+	BEGIN
+		RETURN LEN(x, 0)
+	END NumPresets;
 
 	PROCEDURE (g: Generator) Period (): REAL;
 	BEGIN
@@ -234,6 +239,7 @@ MODULE MathTT800;
 			g: Generator;
 	BEGIN
 		NEW(g);
+		index := index MOD LEN(x, 0);
 		g.Init(index);
 		RETURN g
 	END New;

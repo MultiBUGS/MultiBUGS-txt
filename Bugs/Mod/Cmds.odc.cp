@@ -93,6 +93,7 @@ MODULE BugsCmds;
 
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		numberPresets: INTEGER;
 
 	PROCEDURE SetDisplay* (option: ARRAY OF CHAR);
 	BEGIN
@@ -110,15 +111,17 @@ MODULE BugsCmds;
 	END SetDisplay;
 
 	PROCEDURE SetRNState* (preSet: INTEGER);
-		CONST
-			numberPresetStates = 14;
 	BEGIN
+		IF (BugsRandnum.generators # NIL) & (BugsRandnum.generators[0] # NIL) THEN
+			numberPresets := MathRandnum.NumPresets(BugsRandnum.generators[0])
+		END;
 		IF preSet < 1 THEN
 			preSet := 1
-		ELSIF preSet > numberPresetStates THEN
-			preSet := numberPresetStates
+		ELSIF preSet > numberPresets THEN
+			preSet := numberPresets
 		END;
-		MathRandnum.InitState(preSet - 1);
+		BugsRandnum.SetShift(preSet - 1);
+		BugsRandnum.CreateGenerators(BugsRandnum.numberChains);
 		rnDialog.preSet := preSet;
 		Dialog.Update(rnDialog)
 	END SetRNState;
@@ -1263,15 +1266,14 @@ MODULE BugsCmds;
 	END Init;
 
 	PROCEDURE SetRNNotifier* (op, from, to: INTEGER);
-		CONST
-			numberPresetStates = 14;
 	BEGIN
-		IF rnDialog.preSet < 1 THEN
-			rnDialog.preSet := 1
-		ELSIF rnDialog.preSet > numberPresetStates THEN
-			rnDialog.preSet := numberPresetStates
+		IF (BugsRandnum.generators # NIL) & (BugsRandnum.generators[0] # NIL) THEN
+			numberPresets := MathRandnum.NumPresets(BugsRandnum.generators[0])
 		END;
-		MathRandnum.InitState(rnDialog.preSet - 1);
+		rnDialog.preSet := MAX(1, rnDialog.preSet);
+		rnDialog.preSet := MIN(numberPresets, rnDialog.preSet);
+		BugsRandnum.SetShift(rnDialog.preSet - 1);
+		BugsRandnum.CreateGenerators(BugsRandnum.numberChains);
 		Dialog.Update(rnDialog)
 	END SetRNNotifier;
 
@@ -1378,7 +1380,7 @@ MODULE BugsCmds;
 
 	PROCEDURE SetRNGuardWin* (VAR par: Dialog.Par);
 	BEGIN
-		par.readOnly := ~BugsInterface.IsCompiled() OR (UpdaterActions.iteration # 0)
+		par.readOnly := ~BugsInterface.IsCompiled() OR BugsInterface.IsInitialized()
 	END SetRNGuardWin;
 
 	PROCEDURE MAPGuardWin* (VAR par: Dialog.Par);
@@ -1494,7 +1496,7 @@ MODULE BugsCmds;
 		VAR
 			s: ARRAY 1024 OF CHAR;
 	BEGIN
-		ok := BugsInterface.IsInitialized() & (UpdaterActions.iteration = 0);
+		ok := BugsInterface.IsCompiled() & ~BugsInterface.IsInitialized();
 		IF ~ok THEN
 			s := "model must have been compiled but not initialized to be able to change RN generator";
 			BugsDialog.ShowMsg(s)
@@ -1544,6 +1546,7 @@ MODULE BugsCmds;
 			mod: Meta.Item;
 	BEGIN
 		Maintainer;
+		numberPresets := 1;
 		NEW(action);
 		NEW(scriptAction);
 		NEW(compileDialog);
