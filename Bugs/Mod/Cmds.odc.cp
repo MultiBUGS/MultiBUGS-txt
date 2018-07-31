@@ -692,6 +692,25 @@ MODULE BugsCmds;
 		BugsFiles.Open("Updater types", text)
 	END UpdatersByDepth;
 
+	PROCEDURE MapValues*;
+		VAR
+			tabs: ARRAY 5 OF INTEGER;
+			f: TextMappers.Formatter;
+			text: TextModels.Model;
+	BEGIN
+		text := TextModels.dir.New();
+		f.ConnectTo(text);
+		f.SetPos(0);
+		tabs[0] := 0;
+		tabs[1] := 30 * Ports.mm;
+		tabs[2] := 60 * Ports.mm;
+		tabs[3] := 90 * Ports.mm;
+		tabs[4] := 110 * Ports.mm;
+		BugsFiles.WriteRuler(tabs, f);
+		(*BugsInfo.MapValues(f);*)
+		BugsFiles.Open("Mapped values", text)
+	END MapValues;
+
 	PROCEDURE ShowDistribution*;
 		VAR
 			tabs: POINTER TO ARRAY OF INTEGER;
