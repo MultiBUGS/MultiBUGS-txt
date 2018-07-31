@@ -342,9 +342,11 @@ MODULE BugsInterface;
 	BEGIN
 		IF hook # NIL THEN
 			name := BugsIndex.Find("deviance");
-			node := name.components[0];
-			value := hook.Deviance(chain);
-			GraphDeviance.SetValue(node, value)
+			IF name # NIL THEN
+				node := name.components[0];
+				value := hook.Deviance(chain);
+				GraphDeviance.SetValue(node, value)
+			END
 		END
 	END LoadDeviance;
 
