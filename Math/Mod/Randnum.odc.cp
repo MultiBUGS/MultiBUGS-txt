@@ -2258,6 +2258,49 @@ MODULE MathRandnum;
 		END
 	END MNormal;
 
+	(*	multivariate normal deviate precision parameterization	*)
+	PROCEDURE MNormalPrec* (IN tau: ARRAY OF ARRAY OF REAL; size: INTEGER;
+	OUT x: ARRAY OF REAL);
+		VAR
+			i: INTEGER;
+	BEGIN
+		ASSERT((LEN(tau, 0) >= size) & (LEN(tau, 1) >= size), 20);
+		ASSERT(LEN(x) >= size, 22);
+		i := 0;
+		WHILE i < size DO
+			x[i] := StandardNormal();
+			INC(i)
+		END;
+		MathMatrix.BackSub(tau, x, size);
+	END MNormalPrec;
+
+	(*	multivariate normal deviate covariance parameterization	*)
+	PROCEDURE MNormalCovar* (IN covar: ARRAY OF ARRAY OF REAL; size: INTEGER;
+	OUT x: ARRAY OF REAL);
+		VAR
+			i, j: INTEGER;
+			sum: REAL;
+	BEGIN
+		ASSERT((LEN(covar, 0) >= size) & (LEN(covar, 1) >= size), 20);
+		ASSERT(LEN(x) >= size, 22);
+		i := 0;
+		WHILE i < size DO
+			x[i] := StandardNormal();
+			INC(i)
+		END;
+		i := size - 1;
+		WHILE i >= 0 DO
+			sum := 0.0;
+			j := 0;
+			WHILE j <= i DO
+				sum := sum + covar[i, j] * x[j];
+				INC(j)
+			END;
+			x[i] := sum;
+			DEC(i)
+		END
+	END MNormalCovar;
+
 	PROCEDURE RelaxedMNormal* (IN tau: ARRAY OF ARRAY OF REAL;
 	IN mu, z: ARRAY OF REAL; size: INTEGER; alpha: REAL; OUT x: ARRAY OF REAL);
 		VAR
