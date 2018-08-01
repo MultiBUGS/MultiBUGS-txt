@@ -15,8 +15,8 @@ MODULE PlotsAxis;
 	IMPORT
 		SYSTEM, 
 		Fonts, Math, Meta, Stores, Views, 
-		HostPorts, 
-		WinApi;
+		HostPorts(* LINUX,
+		WinApi*);
 
 	TYPE
 		Axis* = POINTER TO ABSTRACT RECORD
@@ -150,7 +150,7 @@ MODULE PlotsAxis;
 		a := New(type);
 		a.InternalizeData(rd)
 	END Internalize;
-
+(* LINUX
 	PROCEDURE SetClipRegion (frame: Views.Frame; OUT noWindow: BOOLEAN): INTEGER;
 		VAR
 			dc, res, rl, rt, rr, rb: INTEGER;
@@ -203,7 +203,7 @@ MODULE PlotsAxis;
 		oldAlign := WinApi.SetTextAlign(dc, oldAlign);
 		IF noWindow THEN res := WinApi.RestoreDC(dc, - 1) END
 	END DrawVertString;
-
+*)
 (*	PROCEDURE DrawVertString* (f: Views.Frame; txt: ARRAY OF CHAR; xl, yl, colour: INTEGER;
 	font: Fonts.Font);
 	BEGIN
