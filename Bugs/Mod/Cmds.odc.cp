@@ -12,7 +12,7 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		Controllers, Converters, Dialog, Files, Meta, Models, Ports, Services, Strings, Views,
+		Controllers, Converters, Dialog, Files, Meta, Models, Ports, Services, Strings, Views, Windows,
 		StdLog,
 		BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface, BugsLatexprinter,
 		BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser, BugsPrettyprinter,
@@ -182,27 +182,27 @@ MODULE BugsCmds;
 
 	PROCEDURE GetText (): TextModels.Model;
 		VAR
-			m: Models.Model;
 			text: TextModels.Model;
+			c: TextControllers.Controller;
+			w: Windows.Window;
 			v: Views.View;
-			name: Files.Name;
-			loc: Files.Locator;
-			conv: Converters.Converter;
-			pos: INTEGER;
 	BEGIN
 		IF filePath # "" THEN
 			text := BugsFiles.FileToText(filePath)
-		ELSE
-			m := Controllers.FocusModel();
-			IF m # NIL THEN
-				IF m IS TextModels.Model THEN
-					text := m(TextModels.Model)
-				ELSE
-					text := NIL
-				END
+		ELSIF Dialog.platform = Dialog.linux THEN (*	work round bug in Linux version of BB	*)
+			w := Windows.dir.First();
+			WHILE (w # NIL) & ~(w.doc.ThisView() IS TextViews.View) DO
+				w := Windows.dir.Next(w)
+			END;
+			IF w # NIL THEN
+				v := w.doc.ThisView();
+				text := v(TextViews.View).ThisModel()
 			ELSE
 				text := NIL
 			END
+		ELSE
+			c := TextControllers.Focus();
+			IF c # NIL THEN text := c.text ELSE text := NIL END
 		END;
 		RETURN text
 	END GetText;
