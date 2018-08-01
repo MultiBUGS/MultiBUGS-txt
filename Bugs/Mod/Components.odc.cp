@@ -179,7 +179,8 @@ MODULE BugsComponents;
 		AddModule("DynamicTime_" + timeStamp, modList);
 				
 		(*	add mpi implementation to linker script but do not load	*)
-		AddModule(mpiImplementation$, modList);
+		(* LINUX
+		AddModule(mpiImplementation$, modList); *)
 
 		(*	get used Updater modules	*)
 		index := 0;
