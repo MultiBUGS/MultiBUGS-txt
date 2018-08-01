@@ -13,9 +13,9 @@ MODULE Config;
 	
 
 	IMPORT
-		Converters, Dialog, Files, Meta,
+		Converters, Dialog, Files, Meta (* LINUX, *)
 		(*WinConsole,*)
-		OleData;
+		(* LINUX OleData *);
 
 	VAR
 		version-: INTEGER;
@@ -50,6 +50,7 @@ MODULE Config;
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "R", {});
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "tex", {});
 
+(* LINUX
 		OleData.Register("OleData.ImportInfo", "OleData.ExportInfo", "BlackBox Info", "", {OleData.info});
 		OleData.Register("OleData.ImportNative", "OleData.ExportNative", "BlackBox Data", "", {});
 		OleData.Register("", "HostTextConv.ExportDRichText", "Rich Text Format", "TextViews.View", {});
@@ -65,7 +66,7 @@ MODULE Config;
 		OleData.Register("HostPictures.ImportDPict", "HostPictures.ExportDPict", "METAFILEPICT",
 		"HostPictures.View", {});
 		OleData.Register("", "OleData.ExportPicture", "METAFILEPICT", "", {});
-
+*)
 		Dialog.metricSystem := TRUE;
 
 		(*	initialize subsystems in no particular order! problem for registry	*)
