@@ -14,7 +14,7 @@ MODULE BugsMaster;
 	IMPORT 
 		MPI, SYSTEM, Dialog, Files, Kernel, Meta, Services, Stores, Strings, StdLog,
 		BugsCPCompiler, BugsComponents, BugsGraph, BugsIndex, BugsInterface, BugsMsg, BugsNames, 
-		DevCommanders, DevLinker, 
+		DevCommanders, (* LINUX DevLinker, *) Dev2Linker1,
 		DevianceInterface,
 		GraphNodes, GraphStochastic, 
 		HostDialog, HostFiles,
@@ -160,7 +160,10 @@ MODULE BugsMaster;
 		modules := BugsComponents.Modules(mpiImplementation);
 		text := TextModels.dir.New();
 		wr := text.NewWriter(NIL);
-		WriteString(wr, exeFile); WriteString(wr, " := "); wr.WriteChar(TextModels.line);
+		
+		(* LINUX WriteString(wr, exeFile); WriteString(wr, " := "); wr.WriteChar(TextModels.line);*)
+		WriteString(wr, "Linux "); WriteString(wr, exeFile); WriteString(wr, " := "); wr.WriteChar(TextModels.line);
+		
 		i := 0; len := LEN(modules);
 		WHILE i < len DO
 			WriteString(wr, modules[i]); wr.WriteChar(" "); INC(i);
@@ -170,7 +173,8 @@ MODULE BugsMaster;
 		DevCommanders.par.text := text;
 		DevCommanders.par.beg := 0;
 		DevCommanders.par.end := text.Length();
-		DevLinker.LinkExe;
+		(* LINUX DevLinker.LinkExe; *)
+		Dev2Linker1.LinkElfExe;
 		DevCommanders.par := NIL;
 		RETURN modules
 	END LinkModules;
@@ -315,7 +319,10 @@ MODULE BugsMaster;
 		cmd := "mpiexec -n " + string; 
 		loc := Files.dir.This("");
 		fileList := Files.dir.FileList(loc);
-		WHILE (fileList # NIL) & (fileList.name #  executable + ".exe") DO
+		
+		(* LINUX WHILE (fileList # NIL) & (fileList.name #  executable + ".exe") DO *)
+		WHILE (fileList # NIL) & (fileList.name #  executable) DO
+		
 			fileList := fileList.next 
 		END;
 		IF fileList = NIL THEN
@@ -326,10 +333,11 @@ MODULE BugsMaster;
 		path := loc(HostFiles.Locator).path$;
 		(*	need quotes round command line for case of space in file path	*)
 		executable := executable (*+ '"'*);
-		path := (*'"' +*) path + "\" + executable;
+		(* LINUX path := (*'"' +*) path + "\" + executable; *)
+		path := (*'"' +*) path + "/" + executable;
 		(*cmd := cmd + " " + path;*)
 		cmd := path;
-		HostDialog.hideExtRunWindow := TRUE; 
+		(* LINUX HostDialog.hideExtRunWindow := TRUE; *)
 		StdLog.Ln;
 		StdLog.String("mpi command:");
 		StdLog.Ln;
