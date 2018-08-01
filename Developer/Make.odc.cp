@@ -8,7 +8,9 @@ List of MultiBUGS modules:
 
 DevCompiler.CompileThis 
 
-MPI MPImslib MPImsimp MPIworker
+Dev2LnkBase Dev2LnkLoad Dev2LnkWritePe Dev2LnkWriteElf Dev2LnkWriteElfStatic Dev2LnkChmod Dev2Linker1
+
+MPI MPIworker
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth
