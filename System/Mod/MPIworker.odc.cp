@@ -27,6 +27,8 @@ MODULE MPIworker;
 		port: ARRAY MPI.MAX_PORT_NAME OF SHORTCHAR;
 		buffer: ARRAY 10 OF INTEGER;
 		bufferReal: ARRAY 100 OF REAL;
+		args: POINTER TO ARRAY[untagged] OF SHORTCHAR;
+		nargs: INTEGER;
 
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
@@ -88,9 +90,6 @@ MODULE MPIworker;
 	END ConnectToMaster;
 
 	PROCEDURE InitMPI*;
-		VAR
-			args: POINTER TO ARRAY[untagged] OF SHORTCHAR;
-			nargs: INTEGER;
 	BEGIN
 		MPI.Init(nargs, args);
 		MPI.Comm_rank(MPI.COMM_WORLD, worldRank);
