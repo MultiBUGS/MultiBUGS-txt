@@ -97,7 +97,7 @@ MODULE PlotsNomaxis;
 		space := font.StringWidth(axis.title);
 		font.GetBounds(asc, dsc, ww);
 		position := MathFunc.Round(h - b - alphaY);
-		(* LINUX PlotsAxis.DrawVertString(f, axis.title, l - asc - 2 * dsc, position, col, font); *)
+		PlotsAxis.DrawVertString(f, axis.title, l - asc - 2 * dsc, position, col, font);
 		y := MathFunc.Round(axis.spacing); bot := h;
 		WHILE y <= MathFunc.Round(axis.max) DO
 			s := axis.labels[y - 1]$;
@@ -105,7 +105,7 @@ MODULE PlotsNomaxis;
 			position := MathFunc.Round(h - b - alphaY - deltaY * (y - 0.5));
 			IF ((position - space DIV 2 > 0) & (position + space DIV 2 < bot)) THEN
 				f.DrawLine(l, position, l + Ports.mm, position, Ports.mm DIV 4, Ports.black);
-				(* LINUX PlotsAxis.DrawVertString(f, s, l - dsc, position, col, font); *)
+				PlotsAxis.DrawVertString(f, s, l - dsc, position, col, font);
 				bot := position - space DIV 2 - extra
 			END;
 			y := y + MathFunc.Round(axis.spacing)

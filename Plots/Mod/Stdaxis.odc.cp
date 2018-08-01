@@ -124,7 +124,7 @@ MODULE PlotsStdaxis;
 		deltaY := (h - b - t) / (stretchY * (axis.max - axis.min));
 		font.GetBounds(asc, dsc, ww);
 		position := MathFunc.Round(h - b - alphaY - deltaY * (nTicks * axis.spacing / 2));
-		(* LINUX PlotsAxis.DrawVertString(f, axis.title, l - asc - 2 * dsc, position, col, font); *)
+		PlotsAxis.DrawVertString(f, axis.title, l - asc - 2 * dsc, position, col, font);
 		y := axis.min;
 		i := 0;
 		bot := h;
@@ -134,7 +134,7 @@ MODULE PlotsStdaxis;
 			position := MathFunc.Round(h - b - alphaY - deltaY * (y - axis.min));
 			f.DrawLine(l + thick DIV 2, position, l + Ports.mm, position, thick, Ports.black);
 			IF (position + space DIV 2 < bot) & (position - space DIV 2 > 0) THEN
-				(* LINUX PlotsAxis.DrawVertString(f, s, l - dsc, position, col, font); *)
+				PlotsAxis.DrawVertString(f, s, l - dsc, position, col, font);
 				bot := position - space DIV 2 - extra;
 			END;
 			INC(i);
