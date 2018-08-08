@@ -14,7 +14,7 @@ MODULE TestScript;
 	IMPORT
 		Dialog, Services,
 		StdLog,
-		BugsCmds, BugsFiles,
+		BugsCmds, BugsFiles, BugsMaster,
 		MapsCmds,
 		SamplesCmds, SamplesDensity, SamplesDiagnostics,
 		SummaryCmds;
@@ -42,7 +42,10 @@ MODULE TestScript;
 		BugsCmds.SetFilePath("Examples/" + model + "inits1");
 		BugsCmds.LoadInits;
 		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END
+		IF ~par.disabled THEN BugsCmds.GenerateInits END;
+		BugsCmds.specificationDialog.numProc := 4;
+		BugsMaster.Install('MPImsimp');
+		BugsCmds.Distribute('MPImsimp')
 	END Compile;
 
 	PROCEDURE CompileGeo (model: ARRAY OF CHAR);
@@ -101,11 +104,12 @@ MODULE TestScript;
 
 	PROCEDURE Restore;
 	BEGIN
+	(*
 		BugsCmds.ExternalizeModel("junk");
 		BugsCmds.Clear;
 		BugsCmds.InternalizeModel("junk");
 		SamplesCmds.SetVariable('*'); SamplesCmds.Stats;
-		StdLog.Ln;
+		StdLog.Ln;*)
 	END Restore;
 
 	PROCEDURE Air*;
