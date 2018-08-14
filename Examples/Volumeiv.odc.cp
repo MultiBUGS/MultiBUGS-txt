@@ -12,12 +12,7 @@
 	Beetles: differential evolution and MLEs
 	
 	Surgical: a multistage approach	
-	
-	Hald: a reversible jump approach to covariate 
-	selection
-	
-	Curves: a reversible jump approach to curve fitting
-	
+
 	Beetles: probit regression and censoring	
 
 	Lotka-Volterra: a simple ODE model
