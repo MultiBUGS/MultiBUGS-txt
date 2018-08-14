@@ -111,33 +111,25 @@ MENU "Examples"
 	"Examples Vol III"	""	"StdCmds1.OpenBrowser('Examples/VolumeIII', 'Examples Volume III')"	""	
 	"Examples Vol IV"	""	"StdCmds1.OpenBrowser('Examples/VolumeIV', 'Examples Volume IV')"	""	
 	SEPARATOR
-	"GeoBUGS Examples"	""	"StdCmds1.OpenBrowser('GeoBUGS/Examples/Examples', 'GeoBUGS Examples')"	""	
 	"Ecology Examples"	""	"StdCmds1.OpenBrowser('Examples/VolumeEco', 'Ecology Examples')"	""	
-	"Reliability Examples"	""	"StdCmds1.OpenBrowser('Reliability/Examples/Vol', 'Reliability Examples')"	""	
 	"PK Examples"	""	"StdCmds1.OpenBrowser('PKBugs/Examples/Examples', 'PK Examples')"	""	
 	SEPARATOR
 	"Print Examples Vol I"	""	"BugsDocu.PrintExamplesVolI"	""
 	"Print Examples Vol II"	""	"BugsDocu.PrintExamplesVolII"	""
 	"Print Examples Vol III"	""	"BugsDocu.PrintExamplesVolIII"	""
 	"Print Examples Vol IV"	""	"BugsDocu.PrintExamplesVolIV"	""
-	"Print GeoBUGS Examples"	""	"BugsDocu.PrintExamplesGeoBUGS"	""
 	"Print Ecology Examples"	""	"BugsDocu.PrintExamplesEcology"	""
-	"Print Reliability Examples"	""	"BugsDocu.PrintReliabilityManual"	""
 END
 
 MENU "Manuals"
 	"Getting started"	""	"StdCmds1.OpenBrowser('Manuals/Manual', 'Getting started')"	""
 	SEPARATOR
 	"MultiBUGS User Manual"	"F1"	"StdCmds1.OpenBrowser('Manuals/Contents', 'MultiBUGS User Manual Contents')"	""
-	"DoodleBUGS User Manual"	""	"StdCmds1.OpenBrowser('Manuals/DoodleBUGS', 'DoodleBUGS User Manual')"	""
-	"GeoBUGS User Manual"	""	"StdCmds1.OpenBrowser('GeoBUGS/Manuals/Manual', 'GeoBUGS User Manual')"	""		
-	"ReliaBUGS User Manual"	""	"StdCmds1.OpenBrowser('Reliability/Manuals/Contents', 'ReliaBUGS User Manual')"	""	
+	"DoodleBUGS User Manual"	""	"StdCmds1.OpenBrowser('Manuals/DoodleBUGS', 'DoodleBUGS User Manual')"	""	
 	"PKBUGS User Manual"	""	"StdCmds1.OpenBrowser('PKBugs/Manuals/Manual', 'PKBUGS User Manual')"	""	
 	"OpenBUGS Developer Manual"	""	"StdCmds1.OpenBrowser('Developer/Manual','OpenBUGS Developer Manual')" ""
 	SEPARATOR
 	"Print MultiBUGS User Manual"	""	"BugsDocu.PrintUserManual"	""
-	"Print GeoBUGS User Manual"	""	"BugsDocu.PrintGeoBUGSManual"	""
-	"Print ReliaBUGS User Manual"	""	"BugsDocu.PrintReliabilityManual"	""
 	"Print MultiBUGS Developer Manual"	""	"BugsDocu.PrintDeveloperManual"	""
 END
 
