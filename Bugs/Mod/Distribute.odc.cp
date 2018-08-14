@@ -477,8 +477,8 @@ MODULE BugsDistribute;
 
 		IF copyDocu THEN
 			CopyLoc("Manuals", dest);
-			CopyLoc("GeoBUGS", dest);
-			CopyLoc("GeoBUGS/Manuals", dest);
+			(* CopyLoc("GeoBUGS", dest);
+			CopyLoc("GeoBUGS/Manuals", dest);*)
 			CopyLoc("PKBugs/Manuals", dest);
 			(* CopyLoc("Reliability", dest); *)
 			(* CopyLoc("Reliability/Manuals", dest); *)
@@ -487,8 +487,8 @@ MODULE BugsDistribute;
 		END;
 		
 		IF copyExamples THEN
-			CopyLoc("GeoBUGS/Examples", dest);
-			CopyExamplesLocToAscii("GeoBUGS/Examples", dest);
+			(*CopyLoc("GeoBUGS/Examples", dest);
+			CopyExamplesLocToAscii("GeoBUGS/Examples", dest);*)
 			CopyLoc("PKBugs/Examples", dest);
 			CopyExamplesLocToAscii("PKBugs/Examples", dest);
 			(* CopyLoc("Reliability/Examples", dest); *)
@@ -597,9 +597,9 @@ MODULE BugsDistribute;
 
 		IF produceHTML THEN
 			CopyLocToHtml("Manuals", dest);
-			CopyLocToHtml("GeoBUGS", dest);
+			(*CopyLocToHtml("GeoBUGS", dest);
 			CopyLocToHtml("GeoBUGS/Manuals", dest);
-			CopyLocToHtml("GeoBUGS/Examples", dest);
+			CopyLocToHtml("GeoBUGS/Examples", dest);*)
 			CopyLocToHtml("PKBugs", dest);
 			CopyLocToHtml("PKBugs/Manuals", dest);
 			CopyLocToHtml("PKBugs/Examples", dest);
