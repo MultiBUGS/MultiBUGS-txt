@@ -440,7 +440,7 @@ MODULE BugsDistribute;
 			CopyLoc("PKBugs/Code", dest);
 			CopyLoc("Plots/Code", dest);
 			CopyLoc("Ranks/Code", dest);
-			CopyLoc("Reliability/Code", dest);
+			(* CopyLoc("Reliability/Code", dest); *)
 			CopyLoc("Samples/Code", dest);
 			CopyLoc("Spatial/Code", dest);
 			CopyLoc("Summary/Code", dest);
@@ -480,8 +480,8 @@ MODULE BugsDistribute;
 			CopyLoc("GeoBUGS", dest);
 			CopyLoc("GeoBUGS/Manuals", dest);
 			CopyLoc("PKBugs/Manuals", dest);
-			CopyLoc("Reliability", dest);
-			CopyLoc("Reliability/Manuals", dest);
+			(* CopyLoc("Reliability", dest); *)
+			(* CopyLoc("Reliability/Manuals", dest); *)
 			(*	script file that can be used for validating installation	*)
 			CopyFile("Script.txt", dest);
 		END;
@@ -491,8 +491,8 @@ MODULE BugsDistribute;
 			CopyExamplesLocToAscii("GeoBUGS/Examples", dest);
 			CopyLoc("PKBugs/Examples", dest);
 			CopyExamplesLocToAscii("PKBugs/Examples", dest);
-			CopyLoc("Reliability/Examples", dest);
-			CopyExamplesLocToAscii("Reliability/Examples", dest);
+			(* CopyLoc("Reliability/Examples", dest); *)
+			(* CopyExamplesLocToAscii("Reliability/Examples", dest); *)
 			CopyLoc("Examples", dest);
 			CopyExamplesLocToAscii("Examples", dest);
 		END;
@@ -514,7 +514,7 @@ MODULE BugsDistribute;
 			CopyLoc("PKBugs/Rsrc", dest);
 			CopyLoc("Plots/Rsrc", dest);
 			CopyLoc("Ranks/Rsrc", dest);
-			CopyLoc("Reliability/Rsrc", dest);
+			(* CopyLoc("Reliability/Rsrc", dest); *)
 			CopyLoc("Samples/Rsrc", dest);
 			CopyLoc("Spatial/Rsrc", dest);
 			CopyLoc("Summary/Rsrc", dest);
@@ -578,7 +578,7 @@ MODULE BugsDistribute;
 			CopyLoc("PKBugs/Mod", dest);
 			CopyLoc("Plots/Mod", dest);
 			CopyLoc("Ranks/Mod", dest);
-			CopyLoc("Reliability/Mod", dest);
+			(* CopyLoc("Reliability/Mod", dest); *)
 			CopyLoc("Samples/Mod", dest);
 			CopyLoc("Spatial/Mod", dest);
 			CopyLoc("Summary/Mod", dest);
@@ -603,9 +603,9 @@ MODULE BugsDistribute;
 			CopyLocToHtml("PKBugs", dest);
 			CopyLocToHtml("PKBugs/Manuals", dest);
 			CopyLocToHtml("PKBugs/Examples", dest);
-			CopyLocToHtml("Reliability", dest);
-			CopyLocToHtml("Reliability/Manuals", dest);
-			CopyLocToHtml("Reliability/Examples", dest);
+			(* CopyLocToHtml("Reliability", dest); *)
+			(* CopyLocToHtml("Reliability/Manuals", dest); *)
+			(* CopyLocToHtml("Reliability/Examples", dest); *)
 			CopyLocToHtml("Examples", dest);
 			CopyLocToHtml("Developer", dest);
 		END;
