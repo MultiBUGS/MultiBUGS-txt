@@ -322,13 +322,11 @@ MODULE GraphODEBlockL;
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
-		node.solver := NIL;
 		node.linked := FALSE;
 		node.tol := 0.0;
 		node.atol := 0.0;
 		node.x0 := NIL;
 		node.x1 := NIL;
-		node.solver := NIL;
 		node.t := NIL;
 		node.block := NIL;
 		node.origins := NIL;
