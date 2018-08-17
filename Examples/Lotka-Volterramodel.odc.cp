@@ -1,7 +1,6 @@
-
-	model 
+model 
 	{
-		solution[1:ngrid, 1:ndim] <- ode(init[1:ndim], tgrid[1:ngrid], D(C[1:ndim], t), 
+		solution[1:ngrid, 1:ndim] <- ode.solution(init[1:ndim], tgrid[1:ngrid], D(C[1:ndim], t), 
                               origin, tol) 
 
 		alpha <- exp(log.alpha)
@@ -13,8 +12,8 @@
 		log.gamma ~ dnorm(0.0, 0.0001) 
 		log.delta ~ dnorm(0.0, 0.0001) 
 
-		D(C[1], t) <-  C[1 ]* (alpha - beta * C[2])
-		D(C[2], t) <- -C[2]  *(gamma - delta * C[1])
+		D(C[1], t) <-  C[1 ] * (alpha - beta * C[2])
+		D(C[2], t) <- -C[2]  * (gamma - delta * C[1])
 		
 		for (i in 1:ngrid)
 		{
@@ -27,4 +26,3 @@
 		tau.x ~ dgamma(a, b)
 		tau.y ~ dgamma(a, b) 
 	}
-
