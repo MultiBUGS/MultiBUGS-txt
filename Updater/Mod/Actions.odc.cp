@@ -14,9 +14,9 @@ MODULE UpdaterActions;
 	
 
 	IMPORT
+		GraphLogical,
+		GraphMRF, GraphNodes, GraphStochastic, MathSort,
 		Stores,
-		GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
-		MathSort,
 		UpdaterAuxillary, UpdaterUpdaters;
 
 	TYPE
@@ -55,23 +55,30 @@ MODULE UpdaterActions;
 		VAR
 			updater: UpdaterUpdaters.Updater;
 			children: GraphStochastic.Vector;
-			i, numUpdaters, numChildren, totalChildren: INTEGER;
+			i, numUpdaters, numChildren, totalChildren, num: INTEGER;
 	BEGIN
-		numUpdaters := NumberUpdaters();
+		(* remove forward sampling nodes from mean calculation *)
 		i := 0;
+		numUpdaters := NumberUpdaters();
 		totalChildren := 0;
+		num := 0;
 		WHILE i < numUpdaters DO
 			updater := updaters[0, i];
 			IF updater # NIL THEN
 				children := updater.Children();
 				IF children # NIL THEN
 					numChildren := LEN(children);
-					INC(totalChildren, numChildren)
+					INC(totalChildren, numChildren);
+					INC(num)
 				END
 			END;
 			INC(i)
 		END;
-		RETURN totalChildren DIV numUpdaters
+		IF totalChildren = 0 THEN
+			RETURN 0
+		ELSE
+			RETURN totalChildren DIV num
+		END
 	END MeanNumChildren;
 
 	PROCEDURE MedianNumChildren* (): INTEGER;
@@ -357,7 +364,7 @@ MODULE UpdaterActions;
 		IF found THEN
 			chain := i - 1; index := j - 1
 		ELSE
-			chain := - 1; index := - 1
+			chain :=  - 1; index :=  - 1
 		END
 	END FindUpdater;
 
@@ -730,7 +737,7 @@ MODULE UpdaterActions;
 			INC(depth)
 		END;
 		(*	forward sampling for prediction nodes	*)
-		depth := - 1;
+		depth :=  - 1;
 		WHILE (depth >= min) & (res = {}) DO
 			StartFinish(depth, start, finish);
 			i := start;
