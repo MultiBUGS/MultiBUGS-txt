@@ -12,18 +12,18 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		Controllers, Converters, Dialog, Files, Meta, Models, Ports, Services, Strings, Views,
-		StdLog,
-		BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface, BugsLatexprinter,
-		BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser, BugsPrettyprinter,
-		BugsRandnum, BugsScripting, BugsSerialize, BugsVersion,
-		DevDebug,
-		GraphNodes, GraphRules, GraphStochastic,
-		HostMenus,
-		MathRandnum,
-		MonitorMonitors,
-		TextCmds, TextControllers, TextMappers, TextModels, TextViews,
-		UpdaterActions, UpdaterMethods, UpdaterSettings;
+		BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface, BugsLatexprinter, BugsMAP, BugsMappers, BugsMsg,
+		BugsNames, BugsParser, BugsPrettyprinter,
+		BugsRandnum, BugsScripting, BugsSerialize, BugsVersion, Controllers, Converters, DevDebug,
+		Dialog, Files, GraphNodes, GraphRules, GraphStochastic, HostMenus,
+		MathRandnum, Meta, Models, MonitorMonitors,
+		Ports,
+		Services, StdCmds, StdLog,
+		Strings,
+		TextCmds,
+		TextControllers,
+		TextMappers, TextModels, TextViews, UpdaterActions, UpdaterMethods,
+		UpdaterSettings, Views, WinApi;
 
 	TYPE
 		Action = POINTER TO RECORD (Services.Action)
@@ -105,7 +105,7 @@ MODULE BugsCmds;
 			displayDialog.whereOut := BugsFiles.window;
 			BugsFiles.SetDest(BugsFiles.window)
 		ELSIF option = "file" THEN
-			displayDialog.whereOut := - 1;
+			displayDialog.whereOut :=  - 1;
 			BugsFiles.SetDest(BugsFiles.file)
 		END
 	END SetDisplay;
@@ -439,7 +439,7 @@ MODULE BugsCmds;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
 		CONST
-			space = 35 * Ports.mm;
+			space = 35* Ports.mm;
 	BEGIN
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
@@ -1008,7 +1008,7 @@ MODULE BugsCmds;
 		WHILE fileList # NIL DO
 			IF fileList.type = "bug" THEN
 				Strings.Find(fileList.name, "bug_", 0, pos);
-				IF pos = - 1 THEN INC(num) END
+				IF pos =  - 1 THEN INC(num) END
 			END;
 			fileList := fileList.next
 		END;
@@ -1034,7 +1034,7 @@ MODULE BugsCmds;
 		WHILE fileList # NIL DO
 			IF fileList.type = "bug" THEN
 				Strings.Find(fileList.name, "bug_", 0, pos);
-				IF pos = - 1 THEN
+				IF pos =  - 1 THEN
 					bugFileNames[i] := fileList.name$;
 					len := LEN(fileList.name$);
 					bugFileNames[i, len - 4] := 0X;
@@ -1247,6 +1247,43 @@ MODULE BugsCmds;
 	BEGIN
 		Dialog.Update(dialogBox)
 	END Update;
+
+	(* From https://community.blackboxframework.org/viewtopic.php?f=16&t=102&p=520&hilit=environment#p520 *)
+	PROCEDURE EnvVarValue (IN pName: ARRAY OF CHAR): POINTER TO ARRAY OF CHAR;
+		(* Returns the value of the environment variable named pName, e.g. EnvVarValue('HOMEPATH') *)
+		VAR arrOut: POINTER TO ARRAY OF CHAR;
+			envVarName, envVarValue: WinApi.PtrWSTR;
+			lenValue: INTEGER;
+	BEGIN
+		envVarName := pName;
+		NEW(arrOut, 80); envVarValue := arrOut^;
+		lenValue := WinApi.GetEnvironmentVariableW(envVarName, envVarValue, LEN(arrOut));
+		IF lenValue = 0 THEN
+			(* There is no such environment variable; or error *)
+			envVarValue := ""
+		ELSIF lenValue > LEN(arrOut) THEN
+			(* The out array is not large enough to store the value of the environment variable. Now, the out array will be allocated with the exact size. *)
+			NEW(arrOut, lenValue); envVarValue := arrOut^;
+			lenValue := WinApi.GetEnvironmentVariableW(envVarName, envVarValue, LEN(arrOut));
+			ASSERT(lenValue <= LEN(arrOut), 60)
+		END;
+		arrOut^ := envVarValue$;
+		RETURN arrOut;
+	END EnvVarValue;
+
+	PROCEDURE OpenSpecificationDialog*;
+		VAR
+			sizeMPI: POINTER TO ARRAY OF CHAR;
+	BEGIN
+		sizeMPI := EnvVarValue("PMI_SIZE");
+		IF sizeMPI$ = "" THEN
+			(* Not run under MPI *)
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
+		ELSE
+			(* Is run under MPI *)
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool');
+		END;
+	END OpenSpecificationDialog;
 
 	PROCEDURE (dialogBox: UpdateDialog) Update-;
 	BEGIN

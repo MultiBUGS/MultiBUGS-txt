@@ -22,7 +22,7 @@ MENU "Info"
 END
 
 MENU "Model" 
-	"Specification..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool')"	""
+	"Specification..."	""	"BugsCmds.OpenSpecificationDialog"	""
 	SEPARATOR
 	"PK Specification..."	""	"StdCmds.OpenToolDialog('PKBugs/Rsrc/SpecificationDialog', 'PK Specification Tool')"	""
 	SEPARATOR
