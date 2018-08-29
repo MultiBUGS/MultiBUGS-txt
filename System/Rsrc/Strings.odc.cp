@@ -190,7 +190,7 @@ Stores.Reader.ReadStore.106	file format corrupted or not a Stores.Store in file
 
 title1	MultiBUGS
 copyright1	MRC Biostatistics Unit, University of Cambridge 2018
-version	version 0.9.0 rev 000
-release	2018-05-26
+version	version 1.0.0 rev 000
+release	2018-08-30
 title2	MultiBUGS
 
