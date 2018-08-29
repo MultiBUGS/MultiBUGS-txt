@@ -25,8 +25,6 @@
 	Schools: muliivariate hierarchical model of 
 		examination results
 	
-	Ice: non-parametric smoothing in an age-cohort model
-	
 	Beetles: logistic, probit and extreme value models
 	
 	Alli: multinomial logistic model
