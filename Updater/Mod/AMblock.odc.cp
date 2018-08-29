@@ -237,7 +237,7 @@ MODULE UpdaterAMblock;
 	BEGIN
 		Maintainer;
 		NEW(fNL);
-		fNL.SetProps({(*UpdaterUpdaters.enabled*)});
+		fNL.SetProps({UpdaterUpdaters.enabled});
 		fNL.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)
