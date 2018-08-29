@@ -676,8 +676,8 @@ MODULE UpdaterParallel;
 		commSize := LEN(updaters);
 		NEW(observations, commSize);
 		NEW(numData, commSize);
-		WHILE j < commSize DO numData[j] := 0; INC(j) END;
-		ok := DevianceDo(count);
+		 j := 0; WHILE j < commSize DO numData[j] := 0; INC(j) END;
+		ok := DevianceDo(count); 
 		j := 0;
 		WHILE j < commSize DO
 			IF numData[j] > 0 THEN
