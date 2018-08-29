@@ -44,7 +44,7 @@
 	
 	Leuk: survival analysis using Cox regression
 	
-		Cox regression with frailties
+	LeukFr: Cox regression with frailties
 
 	
 	References: 	
