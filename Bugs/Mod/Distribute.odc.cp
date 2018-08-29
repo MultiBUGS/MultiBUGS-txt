@@ -416,6 +416,7 @@ MODULE BugsDistribute;
 			CopyFile("Script.odc", dest);
 			CopyFile("Win/Code/Console.ocf", dest);
 			CopyFile("Code/Console.ocf", dest);
+			CopyFile("Code/Init.ocf", dest);
 			CopyFile("Code/MPI.ocf", dest);
 			CopyFile("Code/MPImsimp.ocf", dest);
 			CopyFile("Lin/Code/Console.ocf", dest);
