@@ -27,8 +27,6 @@
 	
 	Beetles: logistic, probit and extreme value models
 	
-	Alli: multinomial logistic model
-	
 	Endo: conditional inference in case-control studies
 	
 	Stagnant: a change point problem
