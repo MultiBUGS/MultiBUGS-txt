@@ -99,6 +99,7 @@ MODULE UpdaterRejection;
 	PROCEDURE (updater: Updater) Mode (VAR mode, left, right: REAL; OUT res: SET), NEW;
 		CONST
 			eps = 1.0E-6;
+			eps1 = 1.0E-9;
 		VAR
 			leftB, rightB: BOOLEAN;
 			iter: INTEGER;
@@ -127,7 +128,6 @@ MODULE UpdaterRejection;
 		res := {};
 		LOOP (*	braket mode	*)
 			updater.Derivatives(mode, deriv, deriv2);
-			IF ABS(deriv) < eps THEN RETURN END;
 			IF deriv > 0 THEN
 				left := mode;
 				leftB := TRUE
@@ -151,7 +151,7 @@ MODULE UpdaterRejection;
 				right := mode
 			END;
 			interval := right - left;
-			IF (ABS(deriv) < eps) & (interval < eps) THEN EXIT END;
+			IF (ABS(deriv) < eps) OR (interval < eps1) THEN EXIT END;
 			DEC(iter);
 			IF iter = 0 THEN
 				res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT
@@ -586,7 +586,7 @@ MODULE UpdaterRejection;
 			ASSERT(isRegistered, 55)
 		ELSE
 			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteInt(name + ".iterations", 500);
+			BugsRegistry.WriteInt(name + ".iterations", 5000);
 			BugsRegistry.WriteInt(name + ".overRelaxation", 8);
 			BugsRegistry.WriteSet(name + ".props", fLogit.props)
 		END;
@@ -601,7 +601,7 @@ MODULE UpdaterRejection;
 			ASSERT(isRegistered, 55)
 		ELSE
 			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteInt(name + ".iterations", 500);
+			BugsRegistry.WriteInt(name + ".iterations", 5000);
 			BugsRegistry.WriteInt(name + ".overRelaxation", 8);
 			BugsRegistry.WriteSet(name + ".props", fLoglin.props)
 		END;
