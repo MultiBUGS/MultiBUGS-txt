@@ -46,15 +46,12 @@ MODULE UpdaterStage1;
 
 	PROCEDURE (updater: Updater) ExternalizeUnivariate (VAR wr: Stores.Writer);
 	BEGIN
-		GraphNodes.Externalize(updater.stage1, wr)
 	END ExternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InternalizeUnivariate (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		p := GraphNodes.Internalize(rd);
-		updater.stage1 := p(GraphMultivariate.Node)
 	END InternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;

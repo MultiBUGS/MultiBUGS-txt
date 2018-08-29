@@ -14,10 +14,10 @@ MODULE GraphSample;
 
 	IMPORT
 		Stores,
-		GraphChain, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
+		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphChain.Node)
+		Node = POINTER TO RECORD(GraphConjugateMV.Node)
 			theta: GraphStochastic.Node
 		END;
 
@@ -28,33 +28,20 @@ MODULE GraphSample;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE Externalize (node: Node; VAR wr: Stores.Writer);
-	BEGIN
-		GraphNodes.Externalize(node.theta, wr);
-	END Externalize;
-
-	PROCEDURE Internalize (node: Node; VAR rd: Stores.Reader);
-		VAR
-			p: GraphNodes.Node;
-	BEGIN
-		p := GraphNodes.Internalize(rd);
-		node.theta := p(GraphStochastic.Node);
-	END Internalize;
-
-	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
+	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
 	BEGIN
 		lower := - INF;
 		upper := INF
-	END Bounds;
+	END BoundsConjugateMV;
 
-	PROCEDURE (node: Node) Check (): SET;
+	PROCEDURE (node: Node) CheckConjugateMV (): SET;
 	BEGIN
 		IF GraphNodes.data IN node.props THEN
 			RETURN {}
 		ELSE
 			RETURN {GraphNodes.lhs, GraphNodes.notData}
 		END
-	END Check;
+	END CheckConjugateMV;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 		VAR
@@ -117,15 +104,16 @@ MODULE GraphSample;
 		RETURN GraphRules.general
 	END ClassifyPrior;
 
-	PROCEDURE (node: Node) Constraints (OUT constraints: ARRAY OF ARRAY OF REAL);
-	BEGIN
-	END Constraints;
-
 	PROCEDURE (node: Node) Deviance (): REAL;
 	BEGIN
 		RETURN 0.0
 	END Deviance;
-
+	
+	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
+	BEGIN
+		RETURN 0.0	
+	END DiffLogConditionalMap;
+	
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
 		HALT(126);
@@ -138,35 +126,50 @@ MODULE GraphSample;
 		RETURN 0.0
 	END DiffLogPrior;
 
-	PROCEDURE (node: Node) ExternalizeChain (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeConjugateMV (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteInt(node.index);
 		IF node.index = 0 THEN
-			Externalize(node, wr)
+			GraphNodes.Externalize(node.theta, wr)
 		END
-	END ExternalizeChain;
+	END ExternalizeConjugateMV;
 
-	PROCEDURE (node: Node) InitStochastic;
+	PROCEDURE (node: Node) InitConjugateMV;
 	BEGIN
 		node.SetProps(node.props + {GraphStochastic.noPDF, GraphStochastic.noCDF,
 		GraphStochastic.noMean});
 		node.theta := NIL;
-	END InitStochastic;
-
-	PROCEDURE (node: Node) InternalizeChain (VAR rd: Stores.Reader);
-		VAR
-			index: INTEGER;
-	BEGIN
-		rd.ReadInt(index);
-		IF index = 0 THEN
-			Internalize(node, rd)
-		END
-	END InternalizeChain;
+	END InitConjugateMV;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphSample.Install"
 	END Install;
+
+	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
+		VAR
+			i, index, size: INTEGER;
+			p: Node;
+			theta: GraphNodes.Node;
+	BEGIN
+		rd.ReadInt(index);
+		IF index = 0 THEN
+			theta := GraphNodes.Internalize(rd);
+			node.theta := theta(GraphStochastic.Node);
+			i := 1;
+			size := node.Size();
+			WHILE i < size DO
+				p := node.components[i](Node);
+				p.theta := node.theta;
+				INC(i)
+			END
+		END
+	END InternalizeConjugateMV;
+
+	PROCEDURE (node: Node) InvMap (y: REAL);
+	BEGIN
+		node.SetValue(y)
+	END InvMap;
 
 	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
@@ -179,6 +182,11 @@ MODULE GraphSample;
 		HALT(0);
 		RETURN 0.0
 	END Location;
+
+	PROCEDURE (node: Node) LogJacobian (): REAL;
+	BEGIN
+		RETURN 0
+	END LogJacobian;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 	BEGIN
@@ -197,18 +205,29 @@ MODULE GraphSample;
 		RETURN 0.0
 	END LogPrior;
 
+	PROCEDURE (node: Node) Map (): REAL;
+	BEGIN
+		RETURN node.value
+	END Map;
+
+	PROCEDURE (node: Node) MVLikelihoodForm (as: INTEGER; OUT x: GraphNodes.Vector;
+	OUT start, step: INTEGER; OUT p0: ARRAY OF REAL; OUT p1: ARRAY OF ARRAY OF REAL);
+	BEGIN
+		HALT(126)
+	END MVLikelihoodForm;
+
+	PROCEDURE (node: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	OUT p1: ARRAY OF ARRAY OF REAL);
+	BEGIN
+	END MVPriorForm;
+
 	PROCEDURE (node: Node) MVSample (OUT res: SET);
 	BEGIN
 		HALT(126);
 		res := {};
 	END MVSample;
 
-	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
-	BEGIN
-		RETURN 0
-	END NumberConstraints;
-
-	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
 	BEGIN
@@ -218,7 +237,7 @@ MODULE GraphSample;
 		END;
 		GraphNodes.ClearList(list);
 		RETURN list
-	END Parents;
+	END ParentsConjugateMV;
 
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
@@ -230,7 +249,7 @@ MODULE GraphSample;
 		HALT(126)
 	END Sample;
 
-	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			i, size: INTEGER;
 	BEGIN
@@ -249,7 +268,7 @@ MODULE GraphSample;
 				res := {GraphNodes.lhs, GraphNodes.notData}
 			END
 		END
-	END Set;
+	END SetConjugateMV;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
