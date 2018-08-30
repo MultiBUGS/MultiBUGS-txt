@@ -11,7 +11,7 @@
 	
 	Beetles: differential evolution and MLEs
 	
-	Surgical: a multistage approach	
+	Preeclampsia: a multistage approach	
 
 	Beetles: probit regression and censoring	
 
