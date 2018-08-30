@@ -16,14 +16,14 @@ MODULE BugsCmds;
 		BugsNames, BugsParser, BugsPrettyprinter,
 		BugsRandnum, BugsScripting, BugsSerialize, BugsVersion, Controllers, Converters, DevDebug,
 		Dialog, Files, GraphNodes, GraphRules, GraphStochastic, HostMenus,
-		MathRandnum, Meta, Models, MonitorMonitors,
+		MathRandnum, Meta, Models, MonitorMonitors, MPI,
 		Ports,
 		Services, StdCmds, StdLog,
 		Strings,
 		TextCmds,
 		TextControllers,
 		TextMappers, TextModels, TextViews, UpdaterActions, UpdaterMethods,
-		UpdaterSettings, Views, WinApi;
+		UpdaterSettings, Views;
 
 	TYPE
 		Action = POINTER TO RECORD (Services.Action)
@@ -1248,40 +1248,12 @@ MODULE BugsCmds;
 		Dialog.Update(dialogBox)
 	END Update;
 
-	(* From https://community.blackboxframework.org/viewtopic.php?f=16&t=102&p=520&hilit=environment#p520 *)
-	PROCEDURE EnvVarValue (IN pName: ARRAY OF CHAR): POINTER TO ARRAY OF CHAR;
-		(* Returns the value of the environment variable named pName, e.g. EnvVarValue('HOMEPATH') *)
-		VAR arrOut: POINTER TO ARRAY OF CHAR;
-			envVarName, envVarValue: WinApi.PtrWSTR;
-			lenValue: INTEGER;
-	BEGIN
-		envVarName := pName;
-		NEW(arrOut, 80); envVarValue := arrOut^;
-		lenValue := WinApi.GetEnvironmentVariableW(envVarName, envVarValue, LEN(arrOut));
-		IF lenValue = 0 THEN
-			(* There is no such environment variable; or error *)
-			envVarValue := ""
-		ELSIF lenValue > LEN(arrOut) THEN
-			(* The out array is not large enough to store the value of the environment variable. Now, the out array will be allocated with the exact size. *)
-			NEW(arrOut, lenValue); envVarValue := arrOut^;
-			lenValue := WinApi.GetEnvironmentVariableW(envVarName, envVarValue, LEN(arrOut));
-			ASSERT(lenValue <= LEN(arrOut), 60)
-		END;
-		arrOut^ := envVarValue$;
-		RETURN arrOut;
-	END EnvVarValue;
-
 	PROCEDURE OpenSpecificationDialog*;
-		VAR
-			sizeMPI: POINTER TO ARRAY OF CHAR;
 	BEGIN
-		sizeMPI := EnvVarValue("PMI_SIZE");
-		IF sizeMPI$ = "" THEN
-			(* Not run under MPI *)
-			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
-		ELSE
-			(* Is run under MPI *)
+		IF MPI.RunningUnderMPI() THEN
 			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool');
+		ELSE
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
 		END;
 	END OpenSpecificationDialog;
 
