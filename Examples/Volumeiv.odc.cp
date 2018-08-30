@@ -23,6 +23,9 @@
 	
 	Pollution: an autoregressive time series model
 	
+	Methadone: A large e-health random effects model	
+
+	
 	References: 	
 	Sorry - an on-line version of the references is currently unavailable. 
 	Please refer to the existing Examples documentation available from
