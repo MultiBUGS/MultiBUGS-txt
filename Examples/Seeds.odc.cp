@@ -35,9 +35,9 @@ BUGS language for seeds example
 		{
 			for( i in 1 : N ) {
 				r[i] ~ dbin(p[i],n[i])
-				b[i] ~ dnorm(0.0,tau)
+				beta[i] ~ dnorm(0.0,tau)
 				logit(p[i]) <- alpha0 + alpha1 * x1[i] + alpha2 * x2[i] + 
-					alpha12 * x1[i] * x2[i] + b[i]
+					alpha12 * x1[i] * x2[i] + beta[i]
 			}
 			alpha0 ~ dnorm(0.0,1.0E-6)
 			alpha1 ~ dnorm(0.0,1.0E-6)
@@ -88,10 +88,10 @@ The graphical model is shown below
 	model
 	{
 		for( i in 1 : N ) {
-			beta[i] ~ dnorm(mu[i], tau)
+			b[i] ~ dnorm(mu[i], tau)
 			r[i] ~ dbin(p[i], n[i])
 			mu[i] <- alpha0 + alpha1 * x1[i] + alpha2 * x2[i] + alpha12 * x1[i] * x2[i]
-			logit(p[i]) <- beta[i]
+			logit(p[i]) <- b[i]
 		}
 		alpha0 ~ dnorm(0.0, 1.0E-6)
 		alpha1 ~ dnorm(0.0, 1.0E-6)
