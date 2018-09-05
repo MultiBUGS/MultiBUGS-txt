@@ -110,7 +110,7 @@ DiffChangePoints DiffHPS_V2_FB
 
 MapsMessages MapsResources
 
-BugsStartup 
+BugsStartup Init
 
 BugsDialog
 
