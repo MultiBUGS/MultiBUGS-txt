@@ -66,9 +66,6 @@ The translations between commands in the script language and the underlying Comp
 
 
 	Script_command_description		Menu_/_dialog_box_equivalent
-	
-	modelGetWD()		None
-	Returns the default path for file name input
 
 	modelSetWD(string)		None
 	- string = Full default path for file name input
@@ -87,32 +84,24 @@ The translations between commands in the script language and the underlying Comp
 	- int = for chain (default=1)
 	The initial values for each chain must be in separate files.
 			
-	modelGenInits()		Model > Specification... >	
+	modelGenInits(string)		Model > Specification... >	
+	- string = "T" or "F" for fix founders
 
+	modelDistribute(int)		Model > Specification... >	
+	- int = number of cores to distribute the computation over
 	_____________________________________________________________________
-	
+
 	modelUpdate(int0, int1, int2, string)		Model > Update...> 
 	- int0 = updates
 	- int1 = thin.  Thinning in this way will discard the samples (c.f. the samplesThin() command)
 	- int2 = frequency of refreshing the display in the Windows interface
 	- string = "T" or "F" for over relax
 	_____________________________________________________________________
-
-	modelSaveState(string)		Model > Save State
-	- string = fileStem
-	Note that the string must be specified for Linux execution.
-	_____________________________________________________________________
-
-	modelGetRN()		Model > RN generator...
-	Returns the starting (preset) state of the random number generator
 	
 	modelSetRN(int)		Model > RN generator...
 	Set the starting (preset) state of the random number generator to 'int'.  This must be an 
-	integer from 1 to 14 inclusive. 
+	integer from 1 to 256 inclusive. 
 	_____________________________________________________________________
-		
-	modelDisplay(string)		Model > Input/Output options...
-	- string = 'window' or 'log'
 	
 	modelPrecision(int)		Model > Input/Output options...
 	- int = number of significant digits for output
@@ -135,7 +124,17 @@ The translations between commands in the script language and the underlying Comp
 	modelSetOR(string, int)		Model > Updater options...
 	- string = name of sampler
 	- int = number of samples to generate for over-relaxed MCMC
-	_____________________________________________________________________			
+
+	modelSetParam(string, int, int, int)		Model > Updater options...
+	- string = name of sampler
+	- int = Adaptive phase
+	- int = Iterations
+	- int = Over-relaxation
+
+	modelChangeSampler(string, int)		Model > Updater options...
+	- string = name of node
+	- string = name of sampler													_____________________________________________________________________
+
 	modelExternalize(string)		Model > Externalize
 	- string = file name, including the extension.  The extension is conventionally ".bug" for externalized BUGS models.
 	
@@ -228,6 +227,12 @@ The translations between commands in the script language and the underlying Comp
 	
 	dicSet()		Inference > DIC... >
 	Start calculating DIC and related statistics
+
+	dicSetD()		Inference > DIC... >
+	Start calculating DIC and related statistics with direct parents
+
+	dicSetS()		Inference > DIC... >
+	Start calculating DIC and related statistics with stochastic parents
 	
 	dicClear()		Inference > DIC... > 
 	Clear DIC calculations from memory
@@ -262,7 +267,9 @@ The translations between commands in the script language and the underlying Comp
 	
 	infoModules()		Info > Modules
 	Displays all the modules (dynamic link libraries) in use. 
-		
+
+	infoDistribution()		Info > Distribution info
+	Displays the computation schedule used for distribution of computation across cores
 
 
 Example
