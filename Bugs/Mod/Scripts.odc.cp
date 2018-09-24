@@ -143,11 +143,11 @@ MODULE BugsScripts;
 
 		(*	update model i0 iteration with prospective thin of i1 and over-relaxation s	*)
 		StoreKey("modelUpdate(iis)",
-		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsDistribute.Update");
+		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsCmds.Update");
 
 		(*	update model i iterations	*)
 		StoreKey("modelUpdateNI(iis)",
-		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0;BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsDistribute.UpdateNI");
+		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0;BugsCmds.updateDialog.thin := ^1; BugsCmds.updateDialog.overRelax := ^2; BugsCmds.UpdateNI");
 
 		(*	externalizes the model to file s .bug	*)
 		StoreKey("modelExternalize(s)",
