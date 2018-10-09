@@ -288,6 +288,9 @@ modelCompile(1)
 # Load inital values for first chain
 modelInits('C:/Program Files/BUGS/Examples/Ratsinits.txt',1)
 
+# Distribute the model to 2 processes
+modelDistribute(2)
+
 # Start with 1000 update burn-in
 modelUpdate(1000)
 
