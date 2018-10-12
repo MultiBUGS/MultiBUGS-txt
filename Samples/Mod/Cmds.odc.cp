@@ -12,9 +12,8 @@ MODULE SamplesCmds;
 	
 
 	IMPORT
-		Dialog, Files, Ports, Strings,
-		BugsCmds,
-		BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
+		Dialog, Ports, Strings,
+		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
 		SamplesFormatted,
 		SamplesIndex, SamplesInterface, SamplesMonitors, SamplesPlots, TextModels,
 		UpdaterActions,
@@ -121,14 +120,15 @@ MODULE SamplesCmds;
 	BEGIN
 		string := dialog.node.item$;
 		IF SamplesInterface.IsStar(string) THEN
-			Dialog.GetOK("This will delete all set monitors", "", "", "", {Dialog.ok, Dialog.cancel}, res);
+			BugsMsg.Lookup("SamplesCmds:DeleteAll", msg);
+			Dialog.GetOK(msg, "", "", "", {Dialog.ok, Dialog.cancel}, res);
 			IF res # Dialog.ok THEN RETURN END;
 		END;
 		SamplesInterface.Clear(string, ok);
 		IF ~ok THEN
 			p[0] := string$;
-			msg := BugsMsg.message$;
-			BugsMsg.ShowParam(msg, p);
+			BugsMsg.LookupParam(BugsMsg.message, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -147,8 +147,8 @@ MODULE SamplesCmds;
 		SamplesInterface.Clear(string, ok);
 		IF ~ok THEN
 			p[0] := string$;
-			msg := BugsMsg.message$;
-			BugsMsg.ShowParam(msg, p);
+			BugsMsg.LookupParam(BugsMsg.message, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -161,6 +161,7 @@ MODULE SamplesCmds;
 			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
 			numAsString: ARRAY 8 OF CHAR;
 			string: Dialog.String;
+			msg: ARRAY 1024 OF CHAR;
 			f: POINTER TO ARRAY OF TextMappers.Formatter;
 			text: POINTER TO ARRAY OF TextModels.Model;
 	BEGIN
@@ -193,55 +194,17 @@ MODULE SamplesCmds;
 				INC(i)
 			END;
 			BugsCmds.displayDialog.whereOut := oldWhereOut;
-			BugsMsg.Show("SamplesCmds:CODAFilesWritten")
+			BugsMsg.Lookup("SamplesCmds:CODAFilesWritten", msg);
+			BugsFiles.ShowStatus(msg)
 		END
 	END CODA;
-
-(*	PROCEDURE CODAFiles* (stemName: ARRAY OF CHAR);
-		VAR
-			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
-			numAsString: ARRAY 8 OF CHAR;
-			string: Dialog.String;
-			f: POINTER TO ARRAY OF TextMappers.Formatter;
-			text: POINTER TO ARRAY OF TextModels.Model;
-	BEGIN
-		oldWhereOut := BugsCmds.displayDialog.whereOut;
-		BugsFiles.SetDest(BugsFiles.window);
-		string := dialog.node.item;
-		beg := dialog.beg - 1;
-		end := dialog.end;
-		thin := dialog.thin;
-		firstChain := dialog.firstChain;
-		lastChain := dialog.lastChain;
-		numChains := lastChain - firstChain + 1;
-		NEW(f, numChains + 1);
-		NEW(text, numChains + 1);
-		i := 0;
-		WHILE i <= numChains DO
-			text[i] := TextModels.dir.New();
-			f[i].ConnectTo(text[i]);
-			f[i].SetPos(0);
-			INC(i)
-		END;
-		pos := f[0].Pos();
-		SamplesFormatted.CODA(string, beg, end, thin, firstChain, lastChain, f);
-		IF f[0].Pos() > pos THEN
-			BugsFiles.Save("CODAindex", text[0]);
-			i := 1;
-			WHILE i <= numChains DO
-				Strings.IntToString(i + firstChain - 1, numAsString);
-				BugsFiles.Save("CODAchain " + numAsString, text[i]);
-				INC(i)
-			END;
-			BugsMsg.Show("SamplesCmds:CODAFilesWritten")
-		END
-	END CODAFiles;*)
 
 	PROCEDURE CODAFiles* (stemName: ARRAY OF CHAR);
 		VAR
 			beg, end, firstChain, i, lastChain, numChains, oldWhereOut, thin, pos: INTEGER;
 			numAsString: ARRAY 8 OF CHAR;
 			string: Dialog.String;
+			msg: ARRAY 1024 OF CHAR;
 			f: POINTER TO ARRAY OF TextMappers.Formatter;
 			text: POINTER TO ARRAY OF TextModels.Model;
 	BEGIN
@@ -266,14 +229,15 @@ MODULE SamplesCmds;
 		pos := f[0].Pos();
 		SamplesFormatted.CODA(string, beg, end, thin, firstChain, lastChain, f);
 		IF f[0].Pos() > pos THEN
-			BugsFiles.Save(stemName + "CODAindex.txt", text[0]);
+			BugsFiles.Save("CODAindex_" + stemName, text[0]);
 			i := 1;
 			WHILE i <= numChains DO
 				Strings.IntToString(i + firstChain - 1, numAsString);
-				BugsFiles.Save(stemName + "CODAchain" + numAsString + ".txt", text[i]);
+				BugsFiles.Save("CODAchain" + numAsString + "_" + stemName, text[i]);
 				INC(i)
 			END;
-			BugsMsg.Show("SamplesCmds:CODAFilesWritten")
+			BugsMsg.Lookup("SamplesCmds:CODAFilesWritten", msg);
+			BugsFiles.ShowStatus(msg)
 		END
 	END CODAFiles;
 
@@ -346,8 +310,8 @@ MODULE SamplesCmds;
 		SamplesInterface.Set(string, beg, numChains, ok);
 		IF ~ok THEN
 			p[0] := string$;
-			msg := BugsMsg.message$;
-			BugsMsg.ShowParam(msg, p);
+			BugsMsg.LookupParam(BugsMsg.message, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -408,122 +372,18 @@ MODULE SamplesCmds;
 		dialog.node.item := var$
 	END SetVariable;
 
-	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
-		VAR
-			i: INTEGER;
-			msg: ARRAY 1024 OF CHAR;
-			var: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("SamplesCmds:NotInitialized");
-		ELSE
-			var := dialog.node.item;
-			i := 0;
-			WHILE (var[i] # 0X) & (var[i] # "[") DO
-				INC(i)
-			END;
-			var[i] := 0X;
-			ok := BugsIndex.Find(var) # NIL;
-			IF ~ok THEN
-				p[0] := var$;
-				BugsMsg.ShowParam("SamplesCmds:NotVariable", p);
-			END
-		END
-	END SetGuard;
-
-	PROCEDURE StatsGuard* (OUT ok: BOOLEAN);
-		VAR
-			i, numMonitors: INTEGER;
-			msg: ARRAY 1024 OF CHAR;
-			var: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("SamplesCmds:NotInitialized");
-		ELSE
-			ok := ~BugsInterface.IsAdapting();
-			IF ~ok THEN
-				BugsMsg.Show("SamplesCmds:Adapting");
-			ELSE
-				var := dialog.node.item;
-				IF~SamplesInterface.IsStar(var) THEN
-					i := 0;
-					WHILE (var[i] # 0X) & (var[i] # "[") DO
-						INC(i)
-					END;
-					var[i] := 0X;
-					ok := SamplesIndex.Find(var) # NIL;
-					IF ~ok THEN
-						p[0] := var$;
-						BugsMsg.ShowParam("SamplesCmds:NotSet", p);
-					END
-				ELSE
-					numMonitors := SamplesIndex.NumberOfMonitors();
-					ok := numMonitors # 0;
-					IF ~ok THEN
-						BugsMsg.Show("SamplesCmds:NoMonitors");
-					END
-				END
-			END
-		END
-	END StatsGuard;
-
-	PROCEDURE BGRGuard* (OUT ok: BOOLEAN);
-		VAR
-			msg: ARRAY 1024 OF CHAR;
-	BEGIN
-		IF BugsCmds.specificationDialog.numChains = 1 THEN
-			ok := FALSE;
-			BugsMsg.Show("SamplesCmds:OnlyOneChain");
-		ELSE
-			StatsGuard(ok)
-		END
-	END BGRGuard;
-
-	PROCEDURE HistoryGuard* (OUT ok: BOOLEAN);
-		VAR
-			i, numMonitors: INTEGER;
-			msg: ARRAY 1024 OF CHAR;
-			var: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("SamplesCmds:NotInitialized");
-		ELSE
-			var := dialog.node.item;
-			IF~SamplesInterface.IsStar(var) THEN
-				i := 0;
-				WHILE (var[i] # 0X) & (var[i] # "[") DO
-					INC(i)
-				END;
-				var[i] := 0X;
-				ok := SamplesIndex.Find(var) # NIL;
-				IF ~ok THEN
-					p[0] := var$;
-					BugsMsg.ShowParam("SamplesCmds:NotSet", p);
-				END
-			ELSE
-				numMonitors := SamplesIndex.NumberOfMonitors();
-				ok := numMonitors # 0;
-				IF ~ok THEN
-					BugsMsg.Show("SamplesCmds:NoMonitors");
-				END
-			END
-		END
-	END HistoryGuard;
-
-	PROCEDURE SetGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE SetGuard* (VAR par: Dialog.Par);
 		VAR
 			i: INTEGER;
 			var: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := FALSE;
 		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN
+				BugsMsg.Lookup("SamplesCmds:NotInitialized", par.label);
+			END;
 		ELSE
 			var := dialog.node.item;
 			i := 0;
@@ -532,22 +392,33 @@ MODULE SamplesCmds;
 			END;
 			var[i] := 0X;
 			IF BugsIndex.Find(var) = NIL THEN
-				par.disabled := TRUE
+				par.disabled := TRUE;
+				IF BugsCmds.script THEN 
+					p[0] := var$;
+					BugsMsg.LookupParam("SamplesCmds:NotVariable", p, par.label);
+				END
 			END
 		END
-	END SetGuardWin;
+	END SetGuard;
 
-	PROCEDURE StatsGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE StatsGuard* (VAR par: Dialog.Par);
 		VAR
 			i, numMonitors: INTEGER;
 			var: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := dialog.lastChain < dialog.firstChain;
 		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN 
+				BugsMsg.Lookup("SamplesCmds:NotInitialized", par.label);
+			END
 		ELSE
 			IF BugsInterface.IsAdapting() THEN
-				par.disabled := TRUE
+				par.disabled := TRUE;
+				IF BugsCmds.script THEN 
+					BugsMsg.Lookup("SamplesCmds:Adapting", par.label);
+				END
 			ELSE
 				var := dialog.node.item;
 				IF~SamplesInterface.IsStar(var) THEN
@@ -557,34 +428,42 @@ MODULE SamplesCmds;
 					END;
 					var[i] := 0X;
 					IF SamplesIndex.Find(var) = NIL THEN
-						par.disabled := TRUE
+						par.disabled := TRUE;
+						IF BugsCmds.script THEN 
+							p[0] := var$;
+							BugsMsg.LookupParam("SamplesCmds:NotVariable", p, par.label);
+						END
 					END
 				ELSE
 					numMonitors := SamplesIndex.NumberOfMonitors();
 					IF numMonitors = 0 THEN
-						par.disabled := TRUE
+						par.disabled := TRUE;
+						IF BugsCmds.script THEN 
+							BugsMsg.Lookup("SamplesCmds:NoMonitors", par.label);
+						END
 					END
 				END
 			END
 		END
-	END StatsGuardWin;
+	END StatsGuard;
 
-	PROCEDURE BGRGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE BGRGuard* (VAR par: Dialog.Par);
 	BEGIN
-		IF BugsCmds.specificationDialog.numChains = 1 THEN
-			par.disabled := TRUE
-		ELSE
-			par.disabled := dialog.lastChain <= dialog.firstChain;
-			IF ~par.disabled THEN
-				StatsGuardWin(par)
+		IF (BugsCmds.specificationDialog.numChains = 1) OR (dialog.lastChain <= dialog.firstChain)  THEN
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN
+				BugsMsg.Lookup("SamplesCmds:OnlyOneChain", par.label);
 			END
+		ELSE
+			StatsGuard(par)
 		END
-	END BGRGuardWin;
+	END BGRGuard;
 
-	PROCEDURE HistoryGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE HistoryGuard* (VAR par: Dialog.Par);
 		VAR
 			i, numMonitors: INTEGER;
 			var: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := dialog.lastChain < dialog.firstChain;
 		IF ~BugsInterface.IsInitialized() THEN
@@ -598,16 +477,23 @@ MODULE SamplesCmds;
 				END;
 				var[i] := 0X;
 				IF SamplesIndex.Find(var) = NIL THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN 
+						p[0] := var$;
+						BugsMsg.LookupParam("SamplesCmds:NotVariable", p, par.label);
+					END
 				END
 			ELSE
 				numMonitors := SamplesIndex.NumberOfMonitors();
 				IF numMonitors = 0 THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN 
+						BugsMsg.Lookup("SamplesCmds:NoMonitors", par.label);
+					END
 				END
 			END
 		END
-	END HistoryGuardWin;
+	END HistoryGuard;
 
 	PROCEDURE FirstNotifier* (op, from, to: INTEGER);
 	BEGIN

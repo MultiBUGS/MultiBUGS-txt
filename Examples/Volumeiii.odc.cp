@@ -27,8 +27,6 @@
 	
 	St Veit: radio carbon dating with stratification
 	
-	Data cloning and maximum likelihood
-	
 	
 	References: 	
 	Sorry - an on-line version of the references is currently unavailable. 

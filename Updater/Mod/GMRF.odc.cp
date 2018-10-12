@@ -17,8 +17,8 @@ MODULE UpdaterGMRF;
 	IMPORT
 		Math, Meta, Stores,
 		BugsRegistry,
-		GraphMRF, GraphRules, GraphStochastic, MathDiagmatrix,
-		MathMatrix, MathRandnum, MathSparsematrix,
+		GraphMRF, GraphMultivariate, GraphRules, GraphStochastic, 
+		MathDiagmatrix, MathMatrix, MathRandnum, MathSparsematrix,
 		UpdaterMetropolisMV, UpdaterRejection, UpdaterUnivariate, UpdaterUpdaters;
 
 	TYPE
@@ -77,7 +77,7 @@ MODULE UpdaterGMRF;
 			WHILE i < size DO
 				class := block[i].ClassifyPrior();
 				IF (class # GraphRules.normal) & (class # GraphRules.mVN) THEN RETURN NIL END;
-				IF block[i].likelihood # NIL THEN
+				IF block[i].children # NIL THEN
 					IF class1 = GraphRules.unif THEN
 						class1 := block[i].classConditional
 					ELSIF class1 # block[i].classConditional THEN
@@ -116,10 +116,11 @@ MODULE UpdaterGMRF;
 			children: GraphStochastic.Vector;
 			derivFirst, derivSecond, eta0, f, fMinus, fPlus: REAL;
 			i, j, k, numConstraints, size: INTEGER;
-			p1: REAL;
+			p1: ARRAY 1 OF ARRAY 1 OF REAL;
 	BEGIN
 		updater.SetValue(value);
 		prior := updater.prior;
+		mRF := prior[0](GraphMRF.Node);
 		size := updater.Size();
 		(*	iterative weighted least squares algorithm	*)
 		WHILE iteration > 0 DO
@@ -127,7 +128,7 @@ MODULE UpdaterGMRF;
 			i := 0;
 			WHILE i < size DO
 				node := prior[i];
-				children := node.Children();
+				children := node.children;
 				eta0 := node.value;
 				f := LogLikelihood(children);
 				node.SetValue(eta0 + delta);
@@ -157,12 +158,11 @@ MODULE UpdaterGMRF;
 		END;
 		ASSERT(updater.choleskyDecomp # NIL, 120);
 		updater.SetValue(value);
-		(*	add in mean of GMRF	*)
 		numConstraints := updater.numConstraints;
+		(*	add in mean of GMRF	*)
+		prior[0](GraphMultivariate.Node).MVPriorForm(mean, p1);
 		i := 0;
 		WHILE i < size DO
-			mRF := updater.prior[i](GraphMRF.Node);
-			mRF.PriorForm(GraphRules.mVN, mean[i], p1);
 			updater.mu[i] := mean[i] + a[i];
 			INC(i)
 		END;
@@ -442,7 +442,7 @@ MODULE UpdaterGMRF;
 		mrf := updater.prior[0](GraphMRF.Node);
 		prior := updater.prior;
 		IF (updater.iteration MOD batch # 0) & (updater.iteration > 100) THEN
-			updater.StoreOldValue;
+			updater.GetValue(updater.oldVals);
 			modeIts := factGeneral.iterations;
 			modeIts := MAX(1, modeIts);
 			mrf.MatrixElements(updater.elements);

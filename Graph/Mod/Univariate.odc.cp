@@ -22,7 +22,7 @@ MODULE GraphUnivariate;
 		both* = 3;
 
 	TYPE
-		Limits* = POINTER TO ABSTRACT RECORD END;
+		Limits = POINTER TO ABSTRACT RECORD END;
 
 		Node* = POINTER TO ABSTRACT RECORD(GraphStochastic.Node)
 			censor, truncator: Limits
@@ -49,28 +49,27 @@ MODULE GraphUnivariate;
 		maintainer-: ARRAY 40 OF CHAR;
 		noboundsL: NoBounds;
 
-		(*  Abstract methods for the Limits base class, required to be implemented
+		(*  abstract methods for the Limits base class, required to be implemented
 		by all concrete Limits classes. *)
 
-	PROCEDURE (limits: Limits) Bounds* (OUT left, right: REAL), NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Bounds (OUT left, right: REAL), NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) Externalize* (VAR wr: Stores.Writer), NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Externalize (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) Init* (), NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Init (), NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) Internalize* (VAR rd: Stores.Reader), NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Internalize (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-		PROCEDURE (limits: Limits) NormalizingConstant* (node: Node): REAL,
+	PROCEDURE (limits: Limits) NormalizingConstant (node: Node): REAL,
 	NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) Parents* (OUT left, right: GraphNodes.Node), NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Parents (OUT left, right: GraphNodes.Node), NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) Set* (Ieft, right: GraphNodes.Node), NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Set (Ieft, right: GraphNodes.Node), NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) Type* (): INTEGER, NEW, ABSTRACT;
+	PROCEDURE (limits: Limits) Type (): INTEGER, NEW, ABSTRACT;
 
-
-	PROCEDURE NewLimits* (option: INTEGER): Limits;
+	PROCEDURE NewLimits (option: INTEGER): Limits;
 		VAR
 			limits: Limits;
 			leftL: LeftBound;
@@ -94,11 +93,13 @@ MODULE GraphUnivariate;
 		RETURN limits
 	END NewLimits;
 
+		(*	abstract methods the node calss	*)
+
 	PROCEDURE (node: Node) BoundsUnivariate- (OUT lower, upper: REAL), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) CheckUnivariate- (): SET, NEW, ABSTRACT;
 
-		PROCEDURE (node: Node) ClassifyLikelihoodUnivariate- (parent: GraphStochastic.Node): INTEGER,
+	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate- (parent: GraphStochastic.Node): INTEGER,
 	NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) Cumulative* (x: REAL): REAL, NEW, ABSTRACT;
@@ -117,24 +118,7 @@ MODULE GraphUnivariate;
 
 	PROCEDURE (node: Node) SetUnivariate- (IN args: GraphNodes.Args; OUT res: SET), NEW, ABSTRACT;
 
-		(*PROCEDURE (node: Node) ModifyUnivariate- (): Node, NEW, ABSTRACT;*)
-
-	PROCEDURE (node: Node) AddLikelihoodTerm- (offspring: GraphStochastic.Node);
-		VAR
-			likelihood: GraphStochastic.Likelihood;
-	BEGIN
-		likelihood := node.likelihood;
-		offspring.AddToLikelihood(likelihood);
-		node.SetLikelihood(likelihood)
-	END AddLikelihoodTerm;
-
-	PROCEDURE (node: Node) AllocateLikelihood*;
-		VAR
-			likelihood: GraphStochastic.Likelihood;
-	BEGIN
-		likelihood := GraphStochastic.AllocateLikelihood(node.likelihood);
-		node.SetLikelihood(likelihood)
-	END AllocateLikelihood;
+		(*	concrete node methods	*)
 
 	PROCEDURE (node: Node) Bounds* (OUT lower, upper: REAL);
 		VAR
@@ -149,10 +133,10 @@ MODULE GraphUnivariate;
 		upper := MIN(upper, u)
 	END Bounds;
 
-	PROCEDURE (node: Node) CanEvaluate* (): BOOLEAN;
+	PROCEDURE (node: Node) CanSample* (multVar: BOOLEAN): BOOLEAN;
 	BEGIN
 		RETURN node.ParentsInitialized()
-	END CanEvaluate;
+	END CanSample;
 
 	PROCEDURE (node: Node) Check* (): SET;
 		VAR
@@ -180,7 +164,7 @@ MODULE GraphUnivariate;
 				IF leftC < leftT THEN RETURN {GraphNodes.leftBound, GraphNodes.lhs} END;
 				IF rightC > rightT THEN RETURN {GraphNodes.rightBound, GraphNodes.lhs} END
 			END;
-			IF (type # non) & (node.likelihood # NIL) THEN
+			IF (type # non) & (node.children # NIL) THEN
 				RETURN {GraphNodes.lhs, GraphNodes.invalidCensoring}
 			END
 		END;
@@ -189,10 +173,9 @@ MODULE GraphUnivariate;
 
 	PROCEDURE (node: Node) ClassifyLikelihood* (parents: GraphStochastic.Node): INTEGER;
 		VAR
-			class, type: INTEGER;
+			class: INTEGER;
 	BEGIN
-		type := node.truncator.Type();
-		IF type # non THEN
+		IF GraphStochastic.truncated IN node.props THEN
 			(*	normalizing constant depends on parents	*)
 			class := GraphRules.other
 		ELSE
@@ -218,48 +201,12 @@ MODULE GraphUnivariate;
 		RETURN deviance
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditionalMap* (): REAL;
-		VAR
-			dxdy, diffLogCond, diffLogJacobian, lower, upper, val: REAL;
-			i, num: INTEGER;
-			children: GraphStochastic.Vector;
-	BEGIN
-		val := node.value;
-		IF {GraphStochastic.rightNatural, GraphStochastic.rightImposed} * node.props # {} THEN
-			node.Bounds(lower, upper);
-			IF {GraphStochastic.leftNatural, GraphStochastic.rightImposed} * node.props # {} THEN
-				diffLogJacobian := (upper + lower - 2 * val) / (upper - lower);
-				dxdy := (val - lower) * (upper - val) / (upper - lower)
-			ELSE
-				diffLogJacobian := - 1.0;
-				dxdy := upper - val
-			END
-		ELSIF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
-			node.Bounds(lower, upper);
-			diffLogJacobian := 1.0;
-			dxdy := val - lower
-		ELSE
-			diffLogJacobian := 0.0;
-			dxdy := 1.0
-		END;
-		diffLogCond := node.DiffLogPrior();
-		children := node.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
-			INC(i)
-		END;
-		diffLogCond := dxdy * diffLogCond + diffLogJacobian;
-		RETURN diffLogCond
-	END DiffLogConditionalMap;
-
 	(*	writes internal base fields of univariate node to store	*)
 	PROCEDURE (node: Node) ExternalizeStochastic- (VAR wr: Stores.Writer);
 		VAR
 			type: INTEGER;
 	BEGIN
-		GraphStochastic.ExternalizeLikelihood(node.likelihood, wr);
+		GraphStochastic.ExternalizeVector(node.children, wr);
 		type := node.censor.Type();
 		wr.WriteInt(type);
 		node.censor.Externalize(wr);
@@ -279,11 +226,11 @@ MODULE GraphUnivariate;
 	(*	read internal base fields of stochastic node from store	*)
 	PROCEDURE (node: Node) InternalizeStochastic- (VAR rd: Stores.Reader);
 		VAR
-			likelihood: GraphStochastic.Likelihood;
+			children: GraphStochastic.Vector;
 			type: INTEGER;
 	BEGIN
-		likelihood := GraphStochastic.InternalizeLikelihood(rd);
-		node.SetLikelihood(likelihood);
+		children := GraphStochastic.InternalizeVector(rd);
+		node.SetChildren(children);
 		rd.ReadInt(type);
 		node.censor := NewLimits(type);
 		node.censor.Internalize(rd);
@@ -316,15 +263,15 @@ MODULE GraphUnivariate;
 
 	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
 		CONST
-			observed = {GraphNodes.data, GraphStochastic.censored};
+			informative = {GraphNodes.data, GraphStochastic.censored, GraphStochastic.hasLikelihood};
 		VAR
 			isLikelihoodTerm: BOOLEAN;
 	BEGIN
-		isLikelihoodTerm := (observed * node.props # {}) OR (node.likelihood # NIL);
+		isLikelihoodTerm := informative * node.props # {};
 		RETURN isLikelihoodTerm
 	END IsLikelihoodTerm;
 
-	PROCEDURE (node: Node) LogJacobian* (): REAL;
+	PROCEDURE (node: Node) LogDetJacobian* (): REAL;
 		VAR
 			jacobian, lower, upper, val: REAL;
 	BEGIN
@@ -343,14 +290,14 @@ MODULE GraphUnivariate;
 			jacobian := 0.0
 		END;
 		RETURN jacobian
-	END LogJacobian;
+	END LogDetJacobian;
 
 	PROCEDURE (node: Node) LogLikelihood* (): REAL;
 		VAR
 			logLikelihood, normalizingConstant: REAL;
 	BEGIN
 		logLikelihood := node.LogLikelihoodUnivariate();
-		IF GraphStochastic.truncated IN node.props THEN
+		IF (GraphStochastic.truncated IN node.props) & (node.depth > 1) THEN
 			normalizingConstant := node.truncator.NormalizingConstant(node);
 			logLikelihood := logLikelihood - Math.Ln(normalizingConstant)
 		END;
@@ -410,17 +357,9 @@ MODULE GraphUnivariate;
 	BEGIN
 		WITH args: GraphStochastic.Args DO
 			IF args.leftCen = NIL THEN
-				IF args.rightCen = NIL THEN
-					type := non
-				ELSE
-					type := right
-				END
+				IF args.rightCen = NIL THEN type := non ELSE type := right END
 			ELSE
-				IF args.rightCen = NIL THEN
-					type := left
-				ELSE
-					type := both
-				END
+				IF args.rightCen = NIL THEN type := left ELSE type := both END
 			END;
 			(*	if node is data ignore censoring	*)
 			IF GraphNodes.data IN node.props THEN type := non END;
@@ -437,28 +376,24 @@ MODULE GraphUnivariate;
 				node.censor.Set(args.leftCen, args.rightCen)
 			END;
 			IF args.leftTrunc = NIL THEN
-				IF args.rightTrunc = NIL THEN
-					type := non
-				ELSE
-					type := right;
-					node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.rightImposed})
-				END
+				IF args.rightTrunc = NIL THEN type := non ELSE type := right END
 			ELSE
-				IF args.rightTrunc = NIL THEN
-					type := left;
-					node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed})
-				ELSE
-					type := both;
-					node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed,
-					GraphStochastic.rightImposed})
-				END
+				IF args.rightTrunc = NIL THEN type := left ELSE type := both END 
+			END;
+			IF type = left THEN
+				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed})
+			ELSIF type = right THEN
+				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.rightImposed})
+			ELSIF type = both THEN
+				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed,
+				GraphStochastic.rightImposed})
 			END;
 			IF (node.truncator = NIL) OR (type # non) THEN
 				node.truncator := NewLimits(type);
 				node.truncator.Set(args.leftTrunc, args.rightTrunc)
 			END
 		END;
-		node.SetUnivariate(args, res)		
+		node.SetUnivariate(args, res)
 	END Set;
 
 	PROCEDURE (node: Node) Size* (): INTEGER;
@@ -469,11 +404,7 @@ MODULE GraphUnivariate;
 	(*	narrow return type of factory	*)
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
 
-	PROCEDURE (limit: NoBounds) Parents (OUT left, right: GraphNodes.Node);
-	BEGIN
-		left := NIL;
-		right := NIL
-	END Parents;
+	(*	concrete types of bounds	*)
 
 	PROCEDURE (limits: NoBounds) Bounds (OUT left, right: REAL);
 	BEGIN
@@ -481,13 +412,13 @@ MODULE GraphUnivariate;
 		right := + INF
 	END Bounds;
 
-	PROCEDURE (limits: NoBounds) Init;
-	BEGIN
-	END Init;
-
 	PROCEDURE (limits: NoBounds) Externalize (VAR wr: Stores.Writer);
 	BEGIN
 	END Externalize;
+
+	PROCEDURE (limits: NoBounds) Init;
+	BEGIN
+	END Init;
 
 	PROCEDURE (limits: NoBounds) Internalize (VAR rd: Stores.Reader);
 	BEGIN
@@ -498,6 +429,12 @@ MODULE GraphUnivariate;
 		RETURN 1
 	END NormalizingConstant;
 
+	PROCEDURE (limit: NoBounds) Parents (OUT left, right: GraphNodes.Node);
+	BEGIN
+		left := NIL;
+		right := NIL
+	END Parents;
+
 	PROCEDURE (limits: NoBounds) Set (left, right: GraphNodes.Node);
 	BEGIN
 	END Set;
@@ -507,27 +444,21 @@ MODULE GraphUnivariate;
 		RETURN non
 	END Type;
 
-	PROCEDURE (limits: LeftBound) Parents (OUT left, right: GraphNodes.Node);
-	BEGIN
-		left := limits.left;
-		right := NIL
-	END Parents;
-
 	PROCEDURE (limits: LeftBound) Bounds (OUT left, right: REAL);
 	BEGIN
 		left := limits.left.Value();
 		right := + INF
 	END Bounds;
 
-	PROCEDURE (limits: LeftBound) Init;
-	BEGIN
-		limits.left := NIL
-	END Init;
-
 	PROCEDURE (limits: LeftBound) Externalize (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(limits.left, wr)
 	END Externalize;
+
+	PROCEDURE (limits: LeftBound) Init;
+	BEGIN
+		limits.left := NIL
+	END Init;
 
 	PROCEDURE (limits: LeftBound) Internalize (VAR rd: Stores.Reader);
 	BEGIN
@@ -543,6 +474,12 @@ MODULE GraphUnivariate;
 		RETURN norm
 	END NormalizingConstant;
 
+	PROCEDURE (limits: LeftBound) Parents (OUT left, right: GraphNodes.Node);
+	BEGIN
+		left := limits.left;
+		right := NIL
+	END Parents;
+
 	PROCEDURE (limits: LeftBound) Set (left, right: GraphNodes.Node);
 	BEGIN
 		limits.left := left
@@ -553,27 +490,21 @@ MODULE GraphUnivariate;
 		RETURN left
 	END Type;
 
-	PROCEDURE (limits: RightBound) Parents (OUT left, right: GraphNodes.Node);
-	BEGIN
-		left := NIL;
-		right := limits.right
-	END Parents;
-
 	PROCEDURE (limits: RightBound) Bounds (OUT left, right: REAL);
 	BEGIN
 		left := - INF;
 		right := limits.right.Value()
 	END Bounds;
 
-	PROCEDURE (limits: RightBound) Init;
-	BEGIN
-		limits.right := NIL
-	END Init;
-
 	PROCEDURE (limits: RightBound) Externalize (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(limits.right, wr)
 	END Externalize;
+
+	PROCEDURE (limits: RightBound) Init;
+	BEGIN
+		limits.right := NIL
+	END Init;
 
 	PROCEDURE (limits: RightBound) Internalize (VAR rd: Stores.Reader);
 	BEGIN
@@ -589,6 +520,12 @@ MODULE GraphUnivariate;
 		RETURN norm
 	END NormalizingConstant;
 
+	PROCEDURE (limits: RightBound) Parents (OUT left, right: GraphNodes.Node);
+	BEGIN
+		left := NIL;
+		right := limits.right
+	END Parents;
+
 	PROCEDURE (limits: RightBound) Set (left, right: GraphNodes.Node);
 	BEGIN
 		limits.right := right
@@ -599,29 +536,23 @@ MODULE GraphUnivariate;
 		RETURN right
 	END Type;
 
-	PROCEDURE (limits: IntervalBounds) Parents (OUT left, right: GraphNodes.Node);
-	BEGIN
-		left := limits.left;
-		right := limits.right
-	END Parents;
-
 	PROCEDURE (limits: IntervalBounds) Bounds (OUT left, right: REAL);
 	BEGIN
 		left := limits.left.Value();
 		right := limits.right.Value()
 	END Bounds;
 
-	PROCEDURE (limits: IntervalBounds) Init;
-	BEGIN
-		limits.left := NIL;
-		limits.right := NIL
-	END Init;
-
 	PROCEDURE (limits: IntervalBounds) Externalize (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(limits.left, wr);
 		GraphNodes.Externalize(limits.right, wr)
 	END Externalize;
+
+	PROCEDURE (limits: IntervalBounds) Init;
+	BEGIN
+		limits.left := NIL;
+		limits.right := NIL
+	END Init;
 
 	PROCEDURE (limits: IntervalBounds) Internalize (VAR rd: Stores.Reader);
 	BEGIN
@@ -638,6 +569,12 @@ MODULE GraphUnivariate;
 		norm := node.Cumulative(right) - node.Cumulative(left);
 		RETURN norm
 	END NormalizingConstant;
+
+	PROCEDURE (limits: IntervalBounds) Parents (OUT left, right: GraphNodes.Node);
+	BEGIN
+		left := limits.left;
+		right := limits.right
+	END Parents;
 
 	PROCEDURE (limits: IntervalBounds) Set (left, right: GraphNodes.Node);
 	BEGIN
@@ -661,7 +598,7 @@ MODULE GraphUnivariate;
 		Maintainer;
 		NEW(noboundsL)
 	END Init;
-	
+
 BEGIN
 	Init
 END GraphUnivariate.

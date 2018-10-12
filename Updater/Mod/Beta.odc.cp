@@ -31,6 +31,38 @@ MODULE UpdaterBeta;
 		maintainer-: ARRAY 40 OF CHAR;
 		values: POINTER TO ARRAY OF REAL;
 
+	PROCEDURE BetaLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
+		VAR
+			as, i, num: INTEGER;
+			m, n, val, weight: REAL;
+			node: GraphNodes.Node;
+			children: GraphStochastic.Vector;
+			stoch: GraphConjugateUV.Node;
+	BEGIN
+		as := GraphRules.beta;
+		p[0] := 0.0;
+		p[1] := 0.0;
+		children := prior.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE i < num DO
+			stoch := children[i](GraphConjugateUV.Node);
+			stoch.LikelihoodForm(as, node, m, n);
+			IF node = prior THEN
+				p[0] := p[0] + m;
+				p[1] := p[1] + n
+			ELSE
+				node.ValDiff(prior, val, weight);
+				p[0] := p[0] + m * weight;
+				p[1] := p[1] + n * weight
+			END;
+			INC(i)
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			MPIworker.SumReals(p)
+		END
+	END BetaLikelihood;
+
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
 			u: Updater;
@@ -65,36 +97,6 @@ MODULE UpdaterBeta;
 		RETURN FALSE
 	END IsAdapting;
 
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL), NEW;
-		VAR
-			as, i, num: INTEGER;
-			m, n, val, weight: REAL;
-			node: GraphNodes.Node;
-			children: GraphStochastic.Vector;
-			stoch: GraphConjugateUV.Node;
-			prior: GraphStochastic.Node;
-	BEGIN
-		as := GraphRules.beta;
-		prior := updater.prior;
-		p[0] := 0.0;
-		p[1] := 0.0;
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			stoch := children[i](GraphConjugateUV.Node);
-			stoch.LikelihoodForm(as, node, m, n);
-			IF node = prior THEN
-				p[0] := p[0] + m; p[1] := p[1] + n
-			ELSE
-				node.ValDiff(prior, val, weight);
-				p[0] := p[0] + m * weight;
-				p[1] := p[1] + n * weight
-			END;
-			INC(i)
-		END
-	END LikelihoodForm;
-
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		CONST
 			minParam = 0.005;
@@ -109,10 +111,7 @@ MODULE UpdaterBeta;
 		prior := updater.prior(GraphConjugateUV.Node);
 		oldValue := prior.value;
 		as := GraphRules.beta;
-		updater.LikelihoodForm(p);
-		IF GraphStochastic.distributed IN prior.props THEN	
-			MPIworker.SumReals(p)
-		END;
+		BetaLikelihood(prior, p);
 		prior.PriorForm(as, a, b);
 		a := p[0] + a;
 		b := p[1] + b;

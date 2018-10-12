@@ -11,160 +11,154 @@ MODULE ParallelDebug;
 	
 
 	IMPORT
-		SYSTEM, Dialog,
-		Meta, Ports, Views, 
-		TextMappers, TextModels, 
-		BugsDialog, BugsFiles, BugsIndex, BugsMsg, 
-		GraphNodes,
-		GraphStochastic, ParallelActions,
-		UpdaterParallel, UpdaterUpdaters;
+		SYSTEM,
+		Dialog, Files, Ports, Stores, Strings, Views,
+		TextMappers, TextModels,
+		BugsComponents, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsParallel,
+		BugsRandnum,
+		DevDebug,
+		GraphStochastic,
+		ParallelActions;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
-			numProc*, rank*: INTEGER;
+			workersPerChain*, rank*: INTEGER
 		END;
 
 	VAR
+		allThis: BOOLEAN;
 		dialog*: DialogBox;
-
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	PROCEDURE InitDialog;
+	PROCEDURE (dialog: DialogBox) Init-;
 	BEGIN
-		dialog.numProc := 2;
-		dialog.rank := 0
-	END InitDialog;
-
-	PROCEDURE (dialogBox: DialogBox) Init-;
-	BEGIN
-		InitDialog
+		dialog.workersPerChain := 2; dialog.rank := 0
 	END Init;
 
-	PROCEDURE (dialogBox: DialogBox) Update-;
+	PROCEDURE (dialog: DialogBox) Update-;
 	BEGIN
 		Dialog.Update(dialog)
 	END Update;
 
-	PROCEDURE ModifyModel (numProc, rank: INTEGER);
+	PROCEDURE MapGraphAddress (adr: INTEGER; OUT label: ARRAY OF CHAR);
 		VAR
-			updaters: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
-			deviances: POINTER TO ARRAY OF GraphStochastic.Vector;
-			id: POINTER TO ARRAY OF INTEGER;
+			a, row, col: INTEGER;
+			p: GraphStochastic.Node;
+			label0: ARRAY 128 OF CHAR;
+	BEGIN
+		ParallelActions.FindStochasticPointer(adr, row, col);
+		IF row >= 0 THEN
+			p := BugsParallel.Stochastic(col, row);
+			a := SYSTEM.VAL(INTEGER, p);
+			BugsIndex.MapGraphAddress(a, label0);
+			IF label0[0] = "[" THEN (*	maybe auxillary variable	*)
+				IF p.children # NIL THEN (*	try and get some more information	*)
+					a := SYSTEM.VAL(INTEGER, p.children[0]);
+					BugsIndex.MapGraphAddress(a, label0); 
+					label0[0] := "_"; label0[LEN(label0$) - 1] := ">";
+					label0 := "<aux" + label0
+				END
+			END
+		ELSE
+			a := ParallelActions.MapNamedPointer(adr);
+			BugsIndex.MapGraphAddress(a, label0)
+		END;
+		label := label0$
+	END MapGraphAddress;
+
+	PROCEDURE Distribute* (rank, workersPerChain: INTEGER);
+		VAR
+			f: Files.File;
+			restartLoc: Files.Locator;
+			adr, i, j, numRows: INTEGER;
+			ok, devianceExists: BOOLEAN;
+			rd: Stores.Reader;
+			pos: POINTER TO ARRAY OF INTEGER;
+			p: GraphStochastic.Node;
+			v: Views.View;
+			label: ARRAY 64 OF CHAR;
+			form: TextMappers.Formatter;
+			text: TextModels.Model;
+			tabs: POINTER TO ARRAY OF INTEGER;
+			newAttr, oldAttr: TextModels.Attributes;
 		CONST
+			space = 35 * Ports.mm;
+			numChains = 1;
 			chain = 0;
 	BEGIN
-		UpdaterParallel.ModifyUpdaters(numProc, rank, chain, updaters, id, deviances);
-		ParallelActions.ConfigureModel(updaters, id, deviances, rank)
-	END ModifyModel;
-
-	PROCEDURE MethodsState (numProc, rank: INTEGER; VAR f: TextMappers.Formatter);
-		VAR
-			adr, i, j, len, numUpdaters, size: INTEGER;
-			label, string: ARRAY 128 OF CHAR;
-			p: GraphNodes.Node;
-			block: GraphStochastic.Vector;
-			v: Views.View;
-			item, item0: Meta.Item;
-			ok: BOOLEAN;
-			heapRefView: RECORD(Meta.Value)
-				Do: PROCEDURE (adr: INTEGER; name: ARRAY OF CHAR): Views.View
+		restartLoc := Files.dir.This("Restart");
+		f := Files.dir.New(restartLoc, Files.dontAsk);
+		(*	set the debug flag so that pointer name info is written in the .bug file	*)
+		BugsParallel.debug := TRUE;
+		BugsComponents.WriteModel(f, workersPerChain, numChains, ok);
+		BugsParallel.debug := FALSE;
+		ASSERT(ok, 55);
+		rd.ConnectTo(f);
+		rd.SetPos(0);
+		rd.ReadBool(devianceExists);
+		BugsRandnum.InternalizeRNGenerators(rd);
+		rd.ReadBool(allThis);
+		NEW(pos, workersPerChain);
+		i := 0; WHILE i < workersPerChain DO rd.ReadInt(pos[i]); INC(i) END;
+		rd.SetPos(pos[rank]);
+		ParallelActions.Read(chain, rd);
+		rd.ConnectTo(NIL);
+		f.Close;
+		f := NIL;
+		NEW(tabs, 2 + workersPerChain);
+		tabs[0] := 0;
+		tabs[1] := 5 * Ports.mm;
+		i := 2; WHILE i < LEN(tabs) DO tabs[i] := tabs[i - 1] + space; INC(i) END;
+		IF ParallelActions.globalStochs # NIL THEN
+			numRows := LEN(ParallelActions.globalStochs[0]);
+			text := TextModels.dir.New();
+			form.ConnectTo(text);
+			form.SetPos(0);
+			BugsFiles.WriteRuler(tabs, form);
+			oldAttr := form.rider.attr;
+			newAttr := TextModels.NewColor(oldAttr, Ports.grey25);
+			i := 0;
+			WHILE i < numRows DO
+				j := 0;
+				form.WriteTab;
+				WHILE j < workersPerChain DO
+					p := ParallelActions.globalStochs[j, i];
+					adr := SYSTEM.VAL(INTEGER, p);
+					MapGraphAddress(adr, label);
+					v := DevDebug.HeapRefView(adr, label);
+					IF label[0] = "[" THEN
+						label := "aux"
+					ELSE
+						label[0] := " "; label[LEN(label$) - 1] := 0X
+					END;
+					form.WriteTab; form.WriteView(v);
+					IF (j # rank) & ~(GraphStochastic.distributed IN p.props) THEN form.rider.SetAttr(newAttr) END;
+					form.WriteString(label);
+					IF (j # rank) & ~(GraphStochastic.distributed IN p.props) THEN form.rider.SetAttr(oldAttr) END;
+					INC(j)
+				END;
+				form.WriteLn;
+				INC(i)
 			END;
-			updater: UpdaterUpdaters.Updater;
-	BEGIN
-		Meta.Lookup("DevDebug", item);
-		ok := item.obj = Meta.modObj;
-		IF ok THEN
-			item.Lookup("HeapRefView", item0);
-			IF item0.obj = Meta.procObj THEN
-				item0.GetVal(heapRefView, ok)
-			END
+			Strings.IntToString(rank, label);
+			BugsFiles.Open("Distribution info for worker " + label, text)
 		END;
-		IF ~ok THEN RETURN END;
-		ModifyModel(numProc, rank);
-		numUpdaters := ParallelActions.NumUpdaters();
-		i := 0;
-		WHILE i < numUpdaters DO
-			f.WriteTab;
-			updater := ParallelActions.GetUpdater(i);
-			block := ParallelActions.GetBlock(i);
-			p := updater.Prior(0);
-			IF p # NIL THEN
-				BugsIndex.FindGraphNode(p, label);
-				len := LEN(label$);
-				IF label[len - 1] = ">" THEN label[len - 1] := 0X END;
-				IF label[0] = "<" THEN label[0] := " " END;
-				IF GraphStochastic.distributed IN p.props THEN
-					label := label + "$"
-				END;
-			ELSE
-				label := " -"
-			END;
-			f.WriteString(label);
-			f.WriteTab;
-			updater := ParallelActions.GetUpdater(i);
-			updater.Install(string);
-			BugsMsg.Lookup(string, string);
-			f.WriteString(string);
-			adr := SYSTEM.VAL(INTEGER, updater);
-			v := heapRefView.Do(adr, label);
-			f.WriteTab;
-			f.WriteView(v);
-			IF block # NIL THEN
-				adr := SYSTEM.VAL(INTEGER, block);
-				v := heapRefView.Do(adr, label + " block");
-				f.WriteTab;
-				f.WriteView(v);
-			END;
-			f.WriteLn;
-			size := updater.Size();
-			j := 1;
-			WHILE j < size DO
-				p := updater.Prior(j);
-				BugsIndex.FindGraphNode(p, label);
-				len := LEN(label$);
-				IF label[len - 1] = ">" THEN label[len - 1] := 0X END;
-				IF label[0] = "<" THEN label[0] := " " END;
-				IF GraphStochastic.distributed IN p.props THEN
-					label := label + "$"
-				END;
-				f.WriteTab; f.WriteString(" " + label); f.WriteLn;
-				INC(j)
-			END;
-			INC(i);
-		END
-	END MethodsState;
+	END Distribute;
 
-	PROCEDURE Methods*;
+	PROCEDURE ShowDistribution*;
 		VAR
-			tabs: ARRAY 5 OF INTEGER;
-			f: TextMappers.Formatter;
-			text: TextModels.Model;
+			rank, workersPerChain: INTEGER;
 	BEGIN
-		text := TextModels.dir.New();
-		f.ConnectTo(text);
-		f.SetPos(0);
-		tabs[0] := 5 * Ports.mm;
-		tabs[1] := 35 * Ports.mm;
-		tabs[2] := 85 * Ports.mm;
-		tabs[3] := 95 * Ports.mm;
-		tabs[4] := 100 * Ports.mm;
-		BugsFiles.WriteRuler(tabs, f);
-		f.WriteTab;
-		f.WriteString("number processors: ");
-		f.WriteInt(dialog.numProc);
-		f.WriteString(" rank: ");
-		f.WriteInt(dialog.rank);
-		f.WriteLn;
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString(" node");
-		f.WriteTab;
-		f.WriteString("updater");
-		f.WriteLn;
-		MethodsState(dialog.numProc, dialog.rank, f);
-		BugsFiles.Open("Methods", text)
-	END Methods;
+		workersPerChain := dialog.workersPerChain;
+		rank := dialog.rank;
+		Distribute(rank, workersPerChain)
+	END ShowDistribution;
+
+	PROCEDURE Guard* (VAR par: Dialog.Par);
+	BEGIN
+		par.disabled := ~BugsInterface.IsInitialized()
+	END Guard;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -175,11 +169,15 @@ MODULE ParallelDebug;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
+		DevDebug.MapHex := MapGraphAddress;
 		NEW(dialog);
-		InitDialog;
-		BugsDialog.AddDialog(dialog)
+		dialog.workersPerChain := 2;
+		dialog.rank := 0;
+		BugsDialog.AddDialog(dialog);
+		BugsDialog.UpdateDialogs
 	END Init;
 
 BEGIN
 	Init
 END ParallelDebug.
+

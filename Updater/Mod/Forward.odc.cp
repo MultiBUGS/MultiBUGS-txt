@@ -51,10 +51,12 @@ MODULE UpdaterForward;
 	PROCEDURE (updater: UpdaterUV) GenerateInit (fixFounder: BOOLEAN; OUT res: SET);
 		VAR
 			prior: GraphStochastic.Node;
+		CONST
+			univariate = FALSE;
 	BEGIN
 		prior := updater.prior;
 		IF GraphStochastic.initialized IN prior.props THEN RETURN END;
-		ASSERT(prior.CanEvaluate(), 21);
+		ASSERT(prior.CanSample(univariate), 21);
 		prior.Sample(res);
 		IF res # {} THEN RETURN END;
 		prior.SetProps(prior.props + {GraphStochastic.initialized})
@@ -140,7 +142,7 @@ MODULE UpdaterForward;
 
 	PROCEDURE (f: FactoryUV) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
-		IF prior.likelihood # NIL THEN RETURN FALSE END;
+		IF prior.children # NIL THEN RETURN FALSE END;
 		IF prior IS GraphMultivariate.Node THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
@@ -174,12 +176,12 @@ MODULE UpdaterForward;
 			components: GraphStochastic.Vector;
 			i, size: INTEGER;
 	BEGIN
-		IF prior.likelihood # NIL THEN RETURN FALSE END;
+		IF prior.children # NIL THEN RETURN FALSE END;
 		IF prior IS GraphUnivariate.Node THEN RETURN FALSE END;
 		i := 0;
 		size := prior.Size();
 		components := prior(GraphMultivariate.Node).components;
-		WHILE (i < size) & (components[i].likelihood = NIL) & ~(GraphNodes.data IN components[i].props) DO
+		WHILE (i < size) & (components[i].children = NIL) & ~(GraphNodes.data IN components[i].props) DO
 			INC(i)
 		END;
 		IF i # size THEN RETURN FALSE END;

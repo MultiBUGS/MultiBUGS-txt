@@ -13,7 +13,7 @@ MODULE UpdaterAM;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		Math, Stores, 
 		GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMetropolisMV, UpdaterUpdaters;
@@ -24,17 +24,18 @@ MODULE UpdaterAM;
 		Vector = POINTER TO ARRAY OF REAL;
 
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMetropolisMV.Updater)
-			means: Vector;
-			means2, precision: Matrix;
+			means, mapVals: Vector;
+			means2, cov: Matrix;
 			scale: REAL;
 			delayedRejection: BOOLEAN
 		END;
 
 	VAR
-		delta, y, zero: Vector;
-		cov: Matrix;
+		delta, y: Vector;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+
+	PROCEDURE (updater: Updater) IndSize- (): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE AdaptProposal (updater: Updater);
 		VAR
@@ -43,98 +44,78 @@ MODULE UpdaterAM;
 	BEGIN
 		n := updater.iteration;
 		prior := updater.prior;
-		size := updater.Size();
+		size := updater.IndSize();
+		i := 0; WHILE i < size DO updater.mapVals[i] := prior[i].Map(); INC(i) END;
 		i := 0;
 		WHILE i < size DO
-			updater.means[i] := updater.means[i] + (prior[i].value - updater.means[i]) / n;
+			updater.means[i] := updater.means[i] + (updater.mapVals[i] - updater.means[i]) / n;
 			j := 0;
 			WHILE j < size DO
-				updater.means2[i, j] := updater.means2[i, j] 
-							+ (prior[i].value * prior[j].value - updater.means2[i, j]) / n;
+				updater.means2[i, j] := updater.means2[i, j]
+				 + (updater.mapVals[i] * updater.mapVals[j] - updater.means2[i, j]) / n;
 				INC(j)
 			END;
 			INC(i)
 		END
 	END AdaptProposal;
 
-	PROCEDURE CalculatePrecision (updater: Updater);
+	PROCEDURE CalculateCov (updater: Updater);
 		CONST
 			minVar = 1.0E-4;
 		VAR
 			i, j, size: INTEGER;
 	BEGIN
-		size := updater.Size();
+		size := updater.IndSize();
 		i := 0;
 		WHILE i < size DO
 			j := 0;
 			WHILE j < size DO
-				cov[i, j] := updater.scale * (updater.means2[i, j] - updater.means[i] * updater.means[j]);
+				updater.cov[i, j] := updater.means2[i, j] - updater.means[i] * updater.means[j];
 				INC(j)
 			END;
-			cov[i, i] := cov[i, i] + minVar;
+			updater.cov[i, i] := updater.cov[i, i] + minVar;
 			INC(i)
 		END;
-		MathMatrix.Cholesky(cov, size);
-		i := 0;
-		WHILE i < size DO
-			j := 0;
-			WHILE j < size DO
-				y[j] := 0.0;
-				INC(j)
-			END;
-			y[i] := 1.0;
-			MathMatrix.ForwardSub(cov, y, size);
-			MathMatrix.BackSub(cov, y, size);
-			j := 0;
-			WHILE j < size DO
-				updater.precision[j, i] := y[j];
-				INC(j)
-			END;
-			INC(i)
-		END;
-		MathMatrix.Cholesky(updater.precision, size)
-	END CalculatePrecision;
+		MathMatrix.Cholesky(updater.cov, size)
+	END CalculateCov;
 
-	PROCEDURE (updater: Updater) CopyFromAM- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT
-	;
 	PROCEDURE (updater: Updater) CopyFromMetropolisMV- (source: UpdaterUpdaters.Updater);
 		VAR
 			s: Updater;
 			i, j, size: INTEGER;
 	BEGIN
 		s := source(Updater);
-		size := updater.Size();
+		size := updater.IndSize();
 		NEW(updater.means, size);
+		NEW(updater.mapVals, size);
 		NEW(updater.means2, size, size);
-		NEW(updater.precision, size, size);
+		NEW(updater.cov, size, size);
 		i := 0;
 		WHILE i < size DO
 			updater.means[i] := s.means[i];
+			updater.mapVals[i] := s.mapVals[i];
 			j := 0;
 			WHILE j < size DO
-				updater.precision[i, j] := s.precision[i, j];
+				updater.cov[i, j] := s.cov[i, j];
 				updater.means2[i, j] := s.means2[i, j];
 				INC(j)
 			END;
 			INC(i)
 		END;
 		updater.scale := s.scale;
-		updater.delayedRejection := s.delayedRejection;
-		updater.CopyFromAM(source)
+		updater.delayedRejection := s.delayedRejection
 	END CopyFromMetropolisMV;
-	
+
 	PROCEDURE (updater: Updater) DelayedRejection* (delayed: BOOLEAN), NEW;
 	BEGIN
 		updater.delayedRejection := delayed
 	END DelayedRejection;
 
-	PROCEDURE (updater: Updater) ExternalizeAM- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
 	PROCEDURE (updater: Updater) ExternalizeMetropolisMV- (VAR wr: Stores.Writer);
 		VAR
 			i, j, size: INTEGER;
 	BEGIN
-		size := updater.Size();
+		size := updater.IndSize();
 		i := 0;
 		WHILE i < size DO
 			wr.WriteReal(updater.means[i]);
@@ -150,23 +131,21 @@ MODULE UpdaterAM;
 			INC(i)
 		END;
 		wr.WriteReal(updater.scale);
-		wr.WriteBool(updater.delayedRejection);
-		updater.ExternalizeAM(wr)
+		wr.WriteBool(updater.delayedRejection)
 	END ExternalizeMetropolisMV;
-
-	PROCEDURE (updater: Updater) InitializeAM-, NEW, ABSTRACT;
-
+	
 	PROCEDURE (updater: Updater) InitializeMetropolisMV-;
 		VAR
 			i, j, size: INTEGER;
 	BEGIN
 		i := 0;
-		size := LEN(updater.prior);
+		size := updater.IndSize();
 		NEW(updater.means, size);
+		NEW(updater.mapVals, size);
 		NEW(updater.means2, size, size);
-		NEW(updater.precision, size, size);
+		NEW(updater.cov, size, size);
 		updater.rejectCount := 0;
-		updater.scale := 2.4 * 2.4 / size;
+		updater.scale := 2.4 / Math.Sqrt(size);
 		i := 0;
 		WHILE i < size DO
 			updater.means[i] := 0.0;
@@ -177,27 +156,17 @@ MODULE UpdaterAM;
 			END;
 			INC(i)
 		END;
-		IF size > LEN(cov, 0) THEN
+		IF size > LEN(y, 0) THEN
 			NEW(y, size);
 			NEW(delta, size);
-			NEW(zero, size);
-			i := 0;
-			WHILE i < size DO
-				zero[i] := 0.0;
-				INC(i)
-			END;
-			NEW(cov, size, size);
-		END;
-		updater.InitializeAM
+		END
 	END InitializeMetropolisMV;
-	
-	PROCEDURE (updater: Updater) InternalizeAM-(VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (updater: Updater) InternalizeMetropolisMV- (VAR rd: Stores.Reader);
 		VAR
 			i, j, size: INTEGER;
 	BEGIN
-		size := updater.Size();
+		size := updater.IndSize();
 		i := 0;
 		WHILE i < size DO
 			rd.ReadReal(updater.means[i]);
@@ -213,8 +182,7 @@ MODULE UpdaterAM;
 			INC(i)
 		END;
 		rd.ReadReal(updater.scale);
-		rd.ReadBool(updater.delayedRejection);
-		updater.InternalizeAM(rd)
+		rd.ReadBool(updater.delayedRejection)
 	END InternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) IsAdapting* (): BOOLEAN;
@@ -229,11 +197,9 @@ MODULE UpdaterAM;
 
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			deltaLogLike, deltaLogPrior, logAlpha, newLogLike, new1LogLike, newLogPrior,
-			new1LogPrior, oldLogLike, oldLogPrior, psiBarLogLike, psiBarLogPrior: REAL;
-			deltaLC: ARRAY 2 OF REAL;
+			logAlpha, newLogCond, new1LogCond, oldLogCond, psiBarLogCond, delta0, delta1: REAL;
 			i, size: INTEGER;
-			prior: GraphStochastic.Node;
+			prior: GraphStochastic.Vector;
 			reject: BOOLEAN;
 			acceptanceRate, deltaRate: REAL;
 		CONST
@@ -242,58 +208,36 @@ MODULE UpdaterAM;
 			optRate = 0.234;
 	BEGIN
 		res := {};
-		prior := updater.Prior(0);
-		size := updater.Size();
-		updater.StoreOldValue;
-		oldLogPrior := updater.LogPrior();
-		oldLogLike := updater.LogLikelihood();
-		INC(updater.iteration);
-		AdaptProposal(updater);
-		CalculatePrecision(updater);
-		MathRandnum.MNormal(updater.precision, zero, size, delta);
+		prior := updater.prior;
+		size := updater.IndSize();
+		updater.GetValue(updater.oldVals);
+		oldLogCond := updater.LogConditional() + updater.LogDetJacobian();
+		CalculateCov(updater);
+		MathRandnum.MNormalCovar(updater.cov, size, delta);
 		i := 0;
 		WHILE i < size DO
-			y[i] := updater.oldVals[i] + delta[i];
+			updater.mapVals[i] := updater.prior[i].Map();
+			delta[i] := delta[i] * updater.scale;
+			y[i] := updater.mapVals[i] + delta[i]; 
 			INC(i)
 		END;
-		updater.SetValue(y);
-		newLogPrior := updater.LogPrior();
-		newLogLike := updater.LogLikelihood();
-		deltaLogPrior := newLogPrior - oldLogPrior;
-		deltaLogLike := newLogLike - oldLogLike;
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReal(deltaLogLike)
-		END;
-		logAlpha := deltaLogPrior + deltaLogLike;
+		i := 0; WHILE i < size DO prior[i].InvMap(y[i]); INC(i) END;
+		newLogCond := updater.LogConditional() + updater.LogDetJacobian();
+		logAlpha := newLogCond - oldLogCond;
 		reject := logAlpha < Math.Ln(MathRandnum.Rand());
 		IF reject THEN
 			IF updater.delayedRejection THEN
-				i := 0;
-				WHILE i < size DO
-					y[i] := updater.oldVals[i] - 2 * delta[i];
-					INC(i)
-				END;
-				updater.SetValue(y);
-				psiBarLogPrior := updater.LogPrior();
-				psiBarLogLike := updater.LogLikelihood();
-				i := 0;
-				WHILE i < size DO
-					y[i] := updater.oldVals[i] - delta[i];
-					INC(i)
-				END;
-				updater.SetValue(y);
-				new1LogPrior := updater.LogPrior();
-				new1LogLike := updater.LogLikelihood();
-				deltaLC[0] := new1LogLike - oldLogLike;
-				deltaLC[1] := psiBarLogLike - new1LogLike;
-				IF GraphStochastic.distributed IN prior.props THEN
-					MPIworker.SumReals(deltaLC)
-				END;
-				deltaLC[0] := new1LogPrior - oldLogPrior + deltaLC[0];
-				deltaLC[1] := psiBarLogPrior - new1LogPrior + deltaLC[1];
-				reject := deltaLC[1] > 0.0;
+				i := 0; WHILE i < size DO y[i] := updater.mapVals[i] - 2 * delta[i]; INC(i) END;
+				i := 0; WHILE i < size DO prior[i].InvMap(y[i]); INC(i) END;
+				psiBarLogCond := updater.LogConditional() + updater.LogDetJacobian();
+				i := 0; WHILE i < size DO y[i] := updater.mapVals[i] - delta[i]; INC(i) END;
+				i := 0; WHILE i < size DO prior[i].InvMap(y[i]); INC(i) END;
+				new1LogCond:= updater.LogConditional() + updater.LogDetJacobian();
+				delta0 := new1LogCond - oldLogCond;
+				delta1 := psiBarLogCond - new1LogCond;
+				reject := delta1 > 0.0;
 				IF ~reject THEN
-					logAlpha := deltaLC[0] + Math.Ln(1 - Math.Exp(deltaLC[1])) - Math.Ln(1 - Math.Exp(logAlpha));
+					logAlpha := delta0 + Math.Ln(1 - Math.Exp(delta1)) - Math.Ln(1 - Math.Exp(logAlpha));
 					reject := logAlpha < Math.Ln(MathRandnum.Rand());
 				END
 			END;
@@ -305,13 +249,15 @@ MODULE UpdaterAM;
 		IF updater.iteration MOD batch = 0 THEN
 			acceptanceRate := 1 - updater.rejectCount / batch;
 			updater.rejectCount := 0;
-			deltaRate := 2 * MIN(deltaMax, 1.0 / Math.Sqrt(updater.iteration DIV batch));
+			deltaRate := MIN(deltaMax, 1.0 / Math.Sqrt(updater.iteration DIV batch));
 			IF acceptanceRate > optRate THEN
-				updater.scale :=  updater.scale * Math.Exp(deltaRate)
+				updater.scale := updater.scale * Math.Exp(deltaRate)
 			ELSE
-				updater.scale :=  updater.scale * Math.Exp(-deltaRate)
+				updater.scale := updater.scale * Math.Exp( - deltaRate)
 			END
-		END
+		END;
+		INC(updater.iteration);
+		AdaptProposal(updater)
 	END Sample;
 
 	PROCEDURE Maintainer;
@@ -328,14 +274,7 @@ MODULE UpdaterAM;
 	BEGIN
 		Maintainer;
 		NEW(y, size);
-		NEW(delta, size);
-		NEW(zero, size);
-		i := 0;
-		WHILE i < size DO
-			zero[i] := 0.0;
-			INC(i)
-		END;
-		NEW(cov, size, size);
+		NEW(delta, size)
 	END Init;
 
 BEGIN

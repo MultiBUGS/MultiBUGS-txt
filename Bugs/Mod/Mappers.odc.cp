@@ -37,16 +37,16 @@ MODULE BugsMappers;
 		Reader = POINTER TO ABSTRACT RECORD
 			eot: BOOLEAN (*	true if end of input strean reached	*)
 		END;
-	
-		StringReader = POINTER TO RECORD(Reader) 
+
+		StringReader = POINTER TO RECORD(Reader)
 			string: POINTER TO ARRAY OF CHAR;
 			len, pos: INTEGER
 		END;
-	
-		TextReader = POINTER TO RECORD(Reader) 
+
+		TextReader = POINTER TO RECORD(Reader)
 			textRd: TextModels.Reader
 		END;
-		
+
 		(*	class for scanning tokens	*)
 		Scanner* = RECORD
 			char*: CHAR; (*	value of character scanned	*)
@@ -64,14 +64,14 @@ MODULE BugsMappers;
 	VAR
 		version-: INTEGER; (*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; (*	person maintaining module	*)
-		
-	(*	reads a character from input stream	*)
+
+		(*	reads a character from input stream	*)
 	PROCEDURE (rd: Reader) ReadChar (OUT ch: CHAR), NEW, ABSTRACT;
 
-	(*	position in input stream	*)
+		(*	position in input stream	*)
 	PROCEDURE (rd: Reader) Pos (): INTEGER, NEW, ABSTRACT;
 
-	(*	get position in input stream	*)
+		(*	get position in input stream	*)
 	PROCEDURE (rd: Reader) SetPos (pos: INTEGER), NEW, ABSTRACT;
 
 
@@ -152,7 +152,7 @@ MODULE BugsMappers;
 	PROCEDURE (VAR s: Scanner) Scan*, NEW;
 		VAR
 			ch, quoteChar: CHAR;
-			l, res: INTEGER;
+			l, pos, res: INTEGER;
 
 		PROCEDURE ReadFractionPart;
 		BEGIN
@@ -211,9 +211,32 @@ MODULE BugsMappers;
 			END;
 			s.string[l] := 0X;
 			s.len := l;
-			s.type := string;
-			IF ch = "(" THEN
-				s.type := function
+			IF (s.string[l - 1] = ".") OR (s.string[l - 1] = "_") THEN
+				s.type := inval
+			ELSE
+				Strings.Find(s.string, "..", 0, pos);
+				IF pos # - 1 THEN
+					s.type := inval
+				ELSE
+					Strings.Find(s.string, "__", 0, pos);
+					IF pos # - 1 THEN
+						s.type := inval
+					ELSE
+						Strings.Find(s.string, "._", 0, pos);
+						IF pos # - 1 THEN
+							s.type := inval
+						ELSE
+							Strings.Find(s.string, "_.", 0, pos);
+							IF pos # - 1 THEN
+								s.type := inval
+							ELSIF ch = "(" THEN
+								s.type := function
+							ELSE
+								s.type := string
+							END
+						END
+					END
+				END
 			END
 		|"'", '"':
 			quoteChar := ch;
@@ -287,9 +310,9 @@ MODULE BugsMappers;
 	END SetPos;
 
 	PROCEDURE (VAR s: Scanner) ConnectToString* (IN string: ARRAY OF CHAR), NEW;
-	VAR
-		i: INTEGER;
-		rd: StringReader;
+		VAR
+			i: INTEGER;
+			rd: StringReader;
 	BEGIN
 		i := 0;
 		WHILE string[i] # 0X DO INC(i) END;

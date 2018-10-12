@@ -25,7 +25,7 @@ MODULE GraphHalfT;
 	TYPE
 		Node = POINTER TO RECORD(GraphConjugateUV.Node)
 			k, tau: GraphNodes.Node;
-			y: GraphUnivariate.Node
+			y: GraphStochastic.Node
 		END;
 
 		Auxillary = POINTER TO RECORD(UpdaterAuxillary.UpdaterUV) END;
@@ -40,7 +40,7 @@ MODULE GraphHalfT;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (updater: Auxillary) Clone (): Auxillary;
+	PROCEDURE (auxillary: Auxillary) Clone (): Auxillary;
 		VAR
 			u: Auxillary;
 	BEGIN
@@ -48,9 +48,14 @@ MODULE GraphHalfT;
 		RETURN u
 	END Clone;
 
-	PROCEDURE (updater: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
+	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
+	
+	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).y)
+	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -84,7 +89,7 @@ MODULE GraphHalfT;
 		lambda1 := k * x;
 		r2 := 0.5;
 		lambda2 := k / tau;
-		IF node.likelihood # NIL THEN
+		IF node.children # NIL THEN
 			y := MathRandnum.Gamma(r1 + r2, lambda1 + lambda2)
 		ELSE
 			y := MathRandnum.Gamma(r2, lambda2)
@@ -276,7 +281,7 @@ MODULE GraphHalfT;
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			auxillary: UpdaterUpdaters.Updater;
-			y: GraphUnivariate.Node;
+			y: GraphStochastic.Node;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.Args DO
@@ -285,6 +290,7 @@ MODULE GraphHalfT;
 			node.tau := args.scalars[0];
 			node.k := args.scalars[1];
 			y := GraphDummy.fact.New();
+			GraphStochastic.RegisterAuxillary(y);
 			(*	need to set y	*)
 			y.Set(args, res);
 			node.y := y;

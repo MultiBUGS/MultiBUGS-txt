@@ -1,7 +1,7 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
@@ -30,6 +30,9 @@ MODULE MathFunctional;
 	BEGIN
 		f.function := function
 	END Init;
+
+	PROCEDURE (f: Functional) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
+
 
 	PROCEDURE (f: Functional) Value* (x0, x1, tol: REAL; IN theta: ARRAY OF REAL): REAL, NEW, ABSTRACT;
 

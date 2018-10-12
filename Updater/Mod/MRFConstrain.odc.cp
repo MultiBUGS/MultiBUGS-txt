@@ -13,12 +13,13 @@ MODULE UpdaterMRFConstrain;
 	
 
 	IMPORT
-		Stores,
-		GraphMRF, GraphNodes, GraphStochastic,
+		Stores, 
+		GraphMRF, GraphMultivariate, GraphNodes, GraphStochastic,
 		UpdaterUpdaters;
 
 	TYPE
 		Updater = POINTER TO RECORD(UpdaterUpdaters.Updater)
+			numConstraints: INTEGER;
 			constraints: POINTER TO ARRAY OF ARRAY OF REAL;
 			mrf: GraphMRF.Node
 		END;
@@ -34,7 +35,7 @@ MODULE UpdaterMRFConstrain;
 	BEGIN
 		RETURN NIL
 	END Children;
-	
+
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
 			u: Updater;
@@ -42,6 +43,11 @@ MODULE UpdaterMRFConstrain;
 		NEW(u);
 		RETURN u
 	END Clone;
+	
+	PROCEDURE (updater: Updater) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN 0
+	END DiffLogConditional;
 
 	PROCEDURE (updater: Updater) CopyFrom (source: UpdaterUpdaters.Updater);
 		VAR
@@ -55,14 +61,14 @@ MODULE UpdaterMRFConstrain;
 	PROCEDURE (updater: Updater) Depth (): INTEGER;
 		VAR
 			depth: INTEGER;
-			mrf: GraphMRF.Node;
+			mRF: GraphMRF.Node;
 	BEGIN
-		mrf := updater.mrf;
-		depth := mrf.depth;
-		IF mrf.Children() = NIL THEN depth := -depth END;
+		mRF := updater.mrf;
+		depth := mRF.depth;
+		IF mRF.children = NIL THEN depth := - depth END;
 		RETURN depth
 	END Depth;
-	
+
 	PROCEDURE (updater: Updater) Externalize (VAR wr: Stores.Writer);
 	BEGIN
 	END Externalize;
@@ -71,32 +77,42 @@ MODULE UpdaterMRFConstrain;
 	BEGIN
 		GraphNodes.Externalize(updater.mrf, wr)
 	END ExternalizePrior;
-	
+
 	PROCEDURE (updater: Updater) GenerateInit (fixFounder: BOOLEAN; OUT res: SET);
-		CONST
-			overRelax = FALSE;
+		VAR
+			mRF: GraphMRF.Node;
+			p: GraphStochastic.Node;
+			i, size: INTEGER;
 	BEGIN
-		updater.Sample(overRelax, res);
-		res := {}
+		mRF := updater.mrf;
+		mRF.MVSample(res);
+		i := 0;
+		size := mRF.Size();
+		WHILE i < size DO 
+			p := mRF.components[i];
+			p.SetProps(p.props + {GraphStochastic.initialized});
+			INC(i)
+		END
 	END GenerateInit;
-	
+
 	PROCEDURE (updater: Updater) Initialize;
 		VAR
-			constraint: POINTER TO ARRAY OF ARRAY OF REAL;
-			num, size: INTEGER;
-			mrf: GraphMRF.Node;
+			nElements, type, num, size: INTEGER;
+			mRF: GraphMRF.Node;
+			colPtr, rowInd: POINTER TO ARRAY OF INTEGER;
 	BEGIN
-		mrf := updater.mrf;
-		size := mrf.Size();
-		num := mrf.NumberConstraints();
+		mRF := updater.mrf;
+		size := mRF.Size();
+		updater.numConstraints := mRF.NumberConstraints();
+		num := updater.numConstraints;
 		IF num > 0 THEN
 			NEW(updater.constraints, num, size);
-			updater.mrf.Constraints(updater.constraints)
+			updater.mrf.Constraints(updater.constraints);
 		ELSE
 			updater.constraints := NIL
 		END
 	END Initialize;
-	
+
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "UpdaterMRFConstrain.Install"
@@ -109,8 +125,16 @@ MODULE UpdaterMRFConstrain;
 	PROCEDURE (updater: Updater) InternalizePrior (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
+			mV: GraphMultivariate.Node;
+			i: INTEGER;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
+		mV := p(GraphMultivariate.Node);
+		i := 0;
+		REPEAT
+			p := mV.components[i];
+			INC(i)
+		UNTIL p IS GraphMRF.Node;
 		updater.mrf := p(GraphMRF.Node)
 	END InternalizePrior;
 
@@ -127,88 +151,81 @@ MODULE UpdaterMRFConstrain;
 	PROCEDURE (updater: Updater) LoadSample;
 	BEGIN
 	END LoadSample;
-	
+
 	PROCEDURE (updater: Updater) LogConditional (): REAL;
 	BEGIN
 		RETURN 0.0
 	END LogConditional;
-	
+
 	PROCEDURE (updater: Updater) LogLikelihood (): REAL;
 	BEGIN
 		RETURN 0.0
 	END LogLikelihood;
-	
+
+	PROCEDURE (updater: Updater) LogPrior (): REAL;
+	BEGIN
+		RETURN 0.0
+	END LogPrior;
+
 	PROCEDURE (updater: Updater) Node (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		RETURN updater.mrf
 	END Node;
-	
+
 	PROCEDURE (updater: Updater) Prior (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		RETURN updater.mrf.components[index]
 	END Prior;
-	
+
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			mrf: GraphMRF.Node;
-			components: GraphStochastic.Vector;
-			i, j, numConstraints, size: INTEGER;
-			numNonZero, sum, value: REAL;
+			i, size: INTEGER;
+			sum, mean, num, val, sum1: REAL;
+			mRF: GraphMRF.Node;
+			com: GraphStochastic.Vector;
 	BEGIN
 		res := {};
-		mrf := updater.mrf;
-		components := mrf.components;
-		size := mrf.Size();
-		IF updater.constraints # NIL THEN
-			numConstraints := LEN(updater.constraints);
-			mrf.Constraints(updater.constraints);
-			j := 0;
-			WHILE j < numConstraints DO
-				i := 0;
-				sum := 0.0;
-				numNonZero := 0;
-				WHILE i < size DO
-					sum := sum + updater.constraints[j, i] * components[i].value;
-					numNonZero := numNonZero + updater.constraints[j, i];
-					INC(i)
-				END;
-				sum := sum / numNonZero;
-				i := 0;
-				WHILE i < size DO
-					IF updater.constraints[j, i] > 0.5 THEN
-						value := components[i].value - sum;
-						components[i].SetValue(value)
-					END;
-					INC(i)
-				END;
-				INC(j)
-			END
+		mRF := updater.mrf;
+		com := mRF.components;
+		size := mRF.Size();
+		sum := 0.0;
+		num := 0.0;
+		i := 0;
+		WHILE i < size DO
+			sum := sum + updater.constraints[0, i] * com[i].value;
+			num := num + updater.constraints[0, i];
+			INC(i)
+		END;
+		mean := sum / num;
+		sum1 := 0.0;
+		i := 0;
+		WHILE i < size DO
+			val := com[i].value - mean;
+			sum1 := sum1 + val;
+			com[i].SetValue(val);
+			INC(i)
 		END
 	END Sample;
 
-	PROCEDURE (updater: Updater) SetChildren (children: GraphStochastic.Vector);
-	BEGIN
-	END SetChildren;
-	
 	PROCEDURE (updater: Updater) SetPrior (prior: GraphStochastic.Node);
 		VAR
-			mrf: GraphMRF.Node;
+			mRF: GraphMRF.Node;
 			p: GraphStochastic.Node;
 	BEGIN
-		mrf := prior(GraphMRF.Node);
-		p := mrf.components[0];
+		mRF := prior(GraphMRF.Node);
+		p := mRF.components[0];
 		updater.mrf := p(GraphMRF.Node)
 	END SetPrior;
-	
+
 	PROCEDURE (updater: Updater) Size (): INTEGER;
 	BEGIN
 		RETURN 0
 	END Size;
-	
+
 	PROCEDURE (updater: Updater) StoreSample;
 	BEGIN
 	END StoreSample;
-	
+
 	PROCEDURE (f: Factory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "UpdaterMRFConstrain.Install"
@@ -234,7 +251,7 @@ MODULE UpdaterMRFConstrain;
 	PROCEDURE (f: Factory) GetDefaults;
 	BEGIN
 	END GetDefaults;
-	
+
 	PROCEDURE Install*;
 	BEGIN
 		UpdaterUpdaters.SetFactory(fact)

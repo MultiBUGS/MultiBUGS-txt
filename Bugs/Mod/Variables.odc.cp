@@ -34,7 +34,7 @@ MODULE BugsVariables;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("BugsVariables" + numToString, errorMes);
-		BugsMsg.Store(errorMes)
+		BugsMsg.StoreError(errorMes)
 	END Error;
 
 	PROCEDURE IsLoopIndex (IN name: ARRAY OF CHAR): BOOLEAN;

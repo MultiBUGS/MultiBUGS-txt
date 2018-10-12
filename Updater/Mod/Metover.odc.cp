@@ -101,10 +101,10 @@ MODULE UpdaterMetover;
 		oldVal := prior.value;
 		oldP := updater.p;
 		delta := Math.Sqrt(1 / updater.precision);
-		oldDen := prior.LogConditional();
+		oldDen := updater.LogConditional();
 		newVal := oldVal + delta * oldP;
 		prior.SetValue(newVal);
-		newDen := prior.LogConditional();
+		newDen := updater.LogConditional();
 		newP :=  - oldP;
 		alpha := newDen - oldDen;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
@@ -134,7 +134,7 @@ MODULE UpdaterMetover;
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

@@ -22,7 +22,6 @@ MODULE GraphBeta;
 	TYPE
 		Node = POINTER TO RECORD(GraphConjugateUV.Node)
 			a, b: GraphNodes.Node;
-			normalize: BOOLEAN
 		END;
 
 		Factory = POINTER TO RECORD(GraphUnivariate.Factory) END;
@@ -131,7 +130,7 @@ MODULE GraphBeta;
 		a := node.a.Value();
 		b := node.b.Value();
 		logLikelihood := (a - 1) * Math.Ln(p) + (b - 1) * Math.Ln(1 - p);
-		IF node.normalize THEN
+		IF ~(GraphNodes.data IN node.a.props) OR ~(GraphNodes.data IN node.b.props) THEN
 			logLikelihood := logLikelihood + MathFunc.LogGammaFunc(a + b)
 			 - MathFunc.LogGammaFunc(a) - MathFunc.LogGammaFunc(b)
 		END;
@@ -173,8 +172,7 @@ MODULE GraphBeta;
 			node.a := args.scalars[0];
 			ASSERT(args.scalars[1] # NIL, 21);
 			node.b := args.scalars[1];
-		END;
-		node.normalize := ~(GraphNodes.data IN node.a.props) OR ~(GraphNodes.data IN node.b.props)
+		END
 	END SetUnivariate;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
@@ -206,14 +204,12 @@ MODULE GraphBeta;
 	BEGIN
 		GraphNodes.Externalize(node.a, wr);
 		GraphNodes.Externalize(node.b, wr);
-		wr.WriteBool(node.normalize)
 	END ExternalizeUnivariate;
 
 	PROCEDURE (node: Node) InternalizeUnivariate (VAR rd: Stores.Reader);
 	BEGIN
 		node.a := GraphNodes.Internalize(rd);
 		node.b := GraphNodes.Internalize(rd);
-		rd.ReadBool(node.normalize)
 	END InternalizeUnivariate;
 
 	PROCEDURE (node: Node) InitUnivariate;

@@ -11,17 +11,15 @@ MODULE GraphCoSelection;
 
 	IMPORT
 		Stores,
-		GraphBern, GraphLogical, GraphNodes, GraphNormal,
-		GraphRules, GraphScalar, GraphStochastic, GraphUnivariate, GraphVD, GraphVector;
+		GraphConstant, GraphLogical, GraphNodes, GraphNormal,
+		GraphRules, GraphScalar, GraphStochastic, GraphUnivariate, GraphVDDescrete, GraphVector;
 
 	TYPE
 
-		Node = POINTER TO RECORD(GraphVD.Node)
+		Node = POINTER TO RECORD(GraphVDDescrete.Node)
 			z: GraphNodes.Vector;
+			zVals: POINTER TO ARRAY OF SHORTREAL;
 			zSize, zStart, zStep: INTEGER;
-			k: GraphStochastic.Node;
-			prec: GraphNodes.Node;
-			beta, theta: GraphStochastic.Vector
 		END;
 
 		ModelNode = POINTER TO RECORD(GraphVector.Node)
@@ -31,6 +29,7 @@ MODULE GraphCoSelection;
 		PredictorNode = POINTER TO RECORD(GraphScalar.Node)
 			node: GraphNodes.Node;
 			z: GraphNodes.Vector;
+			zVals: POINTER TO ARRAY OF SHORTREAL;
 			zSize, zStart, zStep: INTEGER
 		END;
 
@@ -48,130 +47,15 @@ MODULE GraphCoSelection;
 
 		(*	methods for Node class	*)
 
-	PROCEDURE CopyNode (node: Node);
+	PROCEDURE (node: Node) ActiveNumBeta (): INTEGER;
 		VAR
-			p: Node;
+			k: INTEGER;
 	BEGIN
-		p := node.components[0](Node);
-		node.z := p.z;
-		node.zSize := p.zSize;
-		node.zStart := p.zStart;
-		node.zStep := p.zStep;
-		node.k := p.k;
-		node.prec := p.prec;
-		node.beta := p.beta;
-		node.theta := p.theta
-	END CopyNode;
+		k := SHORT(ENTIER(node.k.value + 0.5));
+		RETURN k + 1
+	END ActiveNumBeta;
 
-	PROCEDURE ExternalizeNode (node: Node; VAR wr: Stores.Writer);
-		VAR
-			v: GraphNodes.SubVector;
-			i, numBeta, numTheta: INTEGER;
-	BEGIN
-		v := GraphNodes.NewVector();
-		v.components := node.z;
-		v.start := node.zStart; v.nElem := node.zSize; v.step := node.zStep;
-		GraphNodes.ExternalizeSubvector(v, wr);
-		GraphNodes.Externalize(node.k, wr);
-		GraphNodes.Externalize(node.prec, wr);
-		numBeta := LEN(node.beta);
-		wr.WriteInt(numBeta);
-		i := 0;
-		WHILE i < numBeta DO
-			GraphNodes.Externalize(node.beta[i], wr);
-			INC(i)
-		END;
-		numTheta := LEN(node.theta);
-		wr.WriteInt(numTheta);
-		i := 0;
-		WHILE i < numTheta DO
-			GraphNodes.Externalize(node.theta[i], wr);
-			INC(i)
-		END
-	END ExternalizeNode;
-
-	PROCEDURE InternalizeNode (node: Node; VAR rd: Stores.Reader);
-		VAR
-			v: GraphNodes.SubVector;
-			i, numBeta, numTheta: INTEGER;
-			p: GraphNodes.Node;
-	BEGIN
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.z := v.components;
-		node.zSize := v.nElem;
-		node.zStart := v.start;
-		node.zStep := v.step;
-		p := GraphNodes.Internalize(rd);
-		node.k := p(GraphStochastic.Node);
-		node.prec := GraphNodes.Internalize(rd);
-		rd.ReadInt(numBeta);
-		NEW(node.beta, numBeta);
-		i := 0;
-		WHILE i < numBeta DO
-			p := GraphNodes.Internalize(rd);
-			node.beta[i] := p(GraphStochastic.Node);
-			INC(i)
-		END;
-		rd.ReadInt(numTheta);
-		NEW(node.theta, numTheta);
-		i := 0;
-		WHILE i < numTheta DO
-			p := GraphNodes.Internalize(rd);
-			node.theta[i] := p(GraphStochastic.Node);
-			INC(i)
-		END
-	END InternalizeNode;
-
-	PROCEDURE (node: Node) Block (): GraphStochastic.Vector;
-		VAR
-			block: GraphStochastic.Vector;
-			prec: GraphNodes.Node;
-			cursor, list: GraphStochastic.List;
-			i, len, start: INTEGER;
-		CONST
-			all = TRUE;
-	BEGIN
-		len := 1 + LEN(node.beta) + LEN(node.theta);
-		prec := node.prec;
-		(*	make list of precision or parents of precision (if precision logical node) to  add to end of block	*)
-		list := NIL;
-		IF ~(GraphNodes.data IN prec.props) THEN
-			IF prec IS GraphStochastic.Node THEN
-				GraphStochastic.AddToList(prec(GraphStochastic.Node), list)
-			ELSE
-				list := GraphStochastic.Parents(prec, TRUE)
-			END
-		END;
-		cursor := list;
-		WHILE cursor # NIL DO INC(len); cursor := cursor.next END;
-		NEW(block, len);
-		block[0] := node.k(GraphStochastic.Node); 	(*	number of active covariates	*)
-		i := 0;
-		len := LEN(node.beta);
-		start := 1;
-		WHILE i < len DO
-			block[i + start] := node.beta[i]; 	(*	coeff of covariate	*)
-			INC(i)
-		END;
-		i := 0;
-		len := LEN(node.theta);
-		start := 1 + LEN(node.beta);
-		WHILE i < len DO
-			block[i + start] := node.theta[i]; 	(*	is covariate active	*)
-			INC(i)
-		END;
-		(*	add precision stuff to end of block	*)
-		cursor := list;
-		len := LEN(block);
-		WHILE cursor # NIL DO
-			DEC(len);
-			block[len] := cursor.node;
-			cursor := cursor.next
-		END;
-		RETURN block
-	END Block;
-
-	PROCEDURE (node: Node) Check (): SET;
+	PROCEDURE (node: Node) Check (): SET;	(*	check for normality?	*)
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -200,19 +84,12 @@ MODULE GraphCoSelection;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Dimension (): INTEGER;
-		VAR
-			k: INTEGER;
-	BEGIN
-		k := SHORT(ENTIER(node.k.value + 0.5));
-		RETURN k + 1
-	END Dimension;
-
 	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
 		VAR
-			i, j, k, numCovariates, size, start, step: INTEGER;
+			i, j, k, numCovariates, size, start, step: INTEGER; K: INTEGER;
 			sum: REAL;
 	BEGIN
+		K := SHORT(ENTIER(node.k.value + 0.5));
 		size := node.Size();
 		start := node.zStart;
 		step := node.zStep;
@@ -223,91 +100,116 @@ MODULE GraphCoSelection;
 			k := 1;
 			sum := node.beta[0].value; 	(*	intercept term	*)
 			WHILE j < numCovariates DO
-				IF node.theta[j].value > 0.5 THEN
-					sum := sum + node.beta[k].value * node.z[start + (i * numCovariates + j) * step].Value();
+				IF node.theta[j] THEN
+					IF node.z # NIL THEN
+						sum := sum + node.beta[k].value * node.z[start + (i * numCovariates + j) * step].Value()
+					ELSE
+						sum := sum + node.beta[k].value * node.zVals[start + (i * numCovariates + j) * step]
+					END;
 					INC(k)
 				END;
 				INC(j)
 			END;
 			values[i] := sum;
 			INC(i)
-		END
+		END ;ASSERT(K = k - 1, 99)
 	END Evaluate;
 
-	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeDescrete (VAR wr: Stores.Writer);
+		VAR
+			v: GraphNodes.SubVector;
 	BEGIN
 		IF node.index = 0 THEN
-			ExternalizeNode(node, wr)
+			v := GraphNodes.NewVector();
+			v.components := node.z;
+			v.values := node.zVals;
+			v.start := node.zStart; v.nElem := node.zSize; v.step := node.zStep;
+			GraphNodes.ExternalizeSubvector(v, wr);
 		END
-	END ExternalizeVector;
+	END ExternalizeDescrete;
 
-	PROCEDURE (node: Node) InitLogical;
+	PROCEDURE (node: Node) InitVD;
 	BEGIN
-		node.k := NIL;
-		node.prec := NIL;
-		node.beta := NIL;
-		node.theta := NIL;
-		node.SetProps(node.props + {GraphLogical.dependent})
-	END InitLogical;
+	END InitVD;
 
-	PROCEDURE (node: Node) InternalizeVector (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeDescrete(VAR rd: Stores.Reader);
+		VAR
+			v: GraphNodes.SubVector;
+			p: Node;
 	BEGIN
 		IF node.index = 0 THEN
-			InternalizeNode(node, rd)
+			GraphNodes.InternalizeSubvector(v, rd);
+			node.z := v.components;
+			node.zVals := v.values;
+			node.zSize := v.nElem;
+			node.zStart := v.start;
+			node.zStep := v.step;
 		ELSE
-			CopyNode(node)
+			p := node.components[0](Node);
+			node.z := p.z;
+			node.zVals := p.zVals;
+			node.zSize := p.zSize;
+			node.zStart := p.zStart;
+			node.zStep := p.zStep;
 		END
-	END InternalizeVector;
+	END InternalizeDescrete;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphCoSelection.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
-		VAR
-			list: GraphNodes.List;
-			p: GraphStochastic.Node;
+	PROCEDURE (node: Node) MinNumBeta (): INTEGER;
 	BEGIN
-		list := NIL;
-		node.k.AddParent(list);
-		GraphNodes.ClearList(list);
-		RETURN list
-	END Parents;
-
+		RETURN 1
+	END MinNumBeta;
+	
+	PROCEDURE (node: Node) ParentsVD (all: BOOLEAN): GraphNodes.List;
+	BEGIN
+		RETURN NIL
+	END ParentsVD;
+	
 	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			numBeta, numTheta, size: INTEGER;
+			k: GraphStochastic.Node;
+			mu, prec: GraphNodes.Node;
+			p: Node;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
+			ASSERT(args.scalars[1] # NIL, 21);
 			size := node.Size();
 			numTheta := args.vectors[0].nElem DIV size;
 			IF size * numTheta # args.vectors[0].nElem THEN
-				res := {GraphNodes.arg1, GraphNodes.length};
+				res := {GraphNodes.arg3, GraphNodes.length};
 				RETURN
 			END;
 			numBeta := numTheta + 1;
-			node.zSize := args.vectors[0].nElem;
-			node.zStart := args.vectors[0].start;
-			node.zStep := args.vectors[0].step;
-			ASSERT(args.vectors[0] # NIL, 21);
-			node.z := args.vectors[0].components;
-			ASSERT(args.scalars[0] # NIL, 21);
-			IF ~(args.scalars[0] IS GraphUnivariate.Node) THEN
-				res := {GraphNodes.arg2, GraphNodes.notStochastic};
-				RETURN
-			END;
-			node.k := args.scalars[0](GraphStochastic.Node);
-			ASSERT(args.scalars[1] # NIL, 21);
-			node.prec := args.scalars[1];
-			(*	set up hidden nodes for first component and replicate for other components	*)
+			k := args.scalars[0](GraphStochastic.Node);
+			mu := GraphConstant.New(0.0);
+			prec := args.scalars[1];
+			node.SetBeta(GraphNormal.fact, k, mu, prec, numBeta);
+			node.SetTheta(numTheta, 0.0, 0.0);
 			IF node.index = 0 THEN
-				node.theta := GraphBern.Vector(numTheta, 0.5);
-				node.beta := GraphNormal.Vector(numBeta, args.scalars[1])
+				node.zSize := args.vectors[0].nElem;
+				node.zStart := args.vectors[0].start;
+				node.zStep := args.vectors[0].step;
+				ASSERT(args.vectors[0] # NIL, 21);
+				node.z := args.vectors[0].components; 
+				node.zVals := args.vectors[0].values;
+				ASSERT(args.scalars[0] # NIL, 21);
+				IF ~(args.scalars[0] IS GraphUnivariate.Node) THEN
+					res := {GraphNodes.arg2, GraphNodes.notStochastic};
+					RETURN
+				END;
 			ELSE
-				node.beta := node.components[0](Node).beta;
-				node.theta := node.components[0](Node).theta;
+				p := node.components[0](Node);
+				node.z := p.z;
+				node.zVals := p.zVals;
+				node.zSize := p.zSize;
+				node.zStart := p.zStart;
+				node.zStep := p.zStep;
 			END
 		END;
 	END Set;
@@ -327,9 +229,13 @@ MODULE GraphCoSelection;
 			k := 1;
 			numCovariates := LEN(node.theta);
 			WHILE j < numCovariates DO
-				IF node.theta[j].value > 0.5 THEN
+				IF node.theta[j] THEN
 					IF node.beta[k] = x THEN
-						diff := node.z[start + (i * numCovariates + j) * step].Value()
+						IF node.z # NIL THEN
+							diff := node.z[start + (i * numCovariates + j) * step].Value()
+						ELSE
+							diff := node.zVals[start + (i * numCovariates + j) * step]
+						END
 					END;
 					INC(k)
 				END;
@@ -339,24 +245,6 @@ MODULE GraphCoSelection;
 	END ValDiff;
 
 	(*	methods for Model class	*)
-
-	PROCEDURE CopyModel (model: ModelNode);
-		VAR
-			p: ModelNode;
-	BEGIN
-		p := model.components[0](ModelNode);
-		model.node := p.node
-	END CopyModel;
-
-	PROCEDURE ExternalizeModel (model: ModelNode; VAR wr: Stores.Writer);
-	BEGIN
-		GraphNodes.Externalize(model.node, wr)
-	END ExternalizeModel;
-
-	PROCEDURE InternalizeModel (model: ModelNode; VAR rd: Stores.Reader);
-	BEGIN
-		model.node := GraphNodes.Internalize(rd)
-	END InternalizeModel;
 
 	PROCEDURE (model: ModelNode) Check (): SET;
 		VAR
@@ -390,7 +278,8 @@ MODULE GraphCoSelection;
 		size := model.Size();
 		i := 0;
 		WHILE i < size DO
-			values[i] := node.theta[i].value; INC(i)
+			IF node.theta[i] THEN  values[i] := 1 ELSE values[i] := 0 END;
+			INC(i)
 		END
 	END Evaluate;
 
@@ -398,7 +287,7 @@ MODULE GraphCoSelection;
 	BEGIN
 		wr.WriteInt(model.index);
 		IF model.index = 0 THEN
-			ExternalizeModel(model, wr)
+			GraphNodes.Externalize(model.node, wr)
 		END
 	END ExternalizeVector;
 
@@ -411,12 +300,14 @@ MODULE GraphCoSelection;
 	PROCEDURE (model: ModelNode) InternalizeVector (VAR rd: Stores.Reader);
 		VAR
 			index: INTEGER;
+			p: ModelNode;
 	BEGIN
 		rd.ReadInt(index);
-		IF index = 0 THEN
-			InternalizeModel(model, rd)
+		IF model.index = 0 THEN
+			model.node := GraphNodes.Internalize(rd)
 		ELSE
-			CopyModel(model)
+			p := model.components[0](ModelNode);
+			model.node := p.node
 		END
 	END InternalizeVector;
 
@@ -427,17 +318,16 @@ MODULE GraphCoSelection;
 
 	PROCEDURE (model: ModelNode) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
-			p: GraphStochastic.Node;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
+		model.node.AddParent(list);
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
 
 	PROCEDURE (model: ModelNode) Set (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN
-		(*	need to do some size checking here	*)
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
 			ASSERT(args.vectors[0] # NIL, 21);
@@ -461,10 +351,11 @@ MODULE GraphCoSelection;
 			node: Node;
 			res: SET;
 	BEGIN
+		res := {};
 		node := predictor.node(Node);
 		len := LEN(node.theta);
 		IF len # predictor.zSize THEN
-			res := {GraphNodes.lhs, GraphNodes.length}
+			res := {GraphNodes.arg1, GraphNodes.length}
 		END;
 		RETURN res
 	END Check;
@@ -483,7 +374,7 @@ MODULE GraphCoSelection;
 	BEGIN
 		GraphNodes.Externalize(predictor.node, wr);
 		v := GraphNodes.NewVector();
-		v.components := predictor.z;
+		v.components := predictor.z; v.values := predictor.zVals;
 		v.start := predictor.zStart; v.nElem := predictor.zSize; v.step := predictor.zStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
 	END ExternalizeLogical;
@@ -501,6 +392,7 @@ MODULE GraphCoSelection;
 		predictor.node := GraphNodes.Internalize(rd);
 		GraphNodes.InternalizeSubvector(v, rd);
 		predictor.z := v.components;
+		predictor.zVals := v.values;
 		predictor.zSize := v.nElem;
 		predictor.zStart := v.start;
 		predictor.zStep := v.step;
@@ -513,17 +405,15 @@ MODULE GraphCoSelection;
 
 	PROCEDURE (predictor: PredictorNode) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
-			p: GraphStochastic.Node;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
+		predictor.node.AddParent(list);
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
 
 	PROCEDURE (predictor: PredictorNode) Set (IN args: GraphNodes.Args; OUT res: SET);
-		VAR
-			i, maxNumBeta, size: INTEGER;
 	BEGIN
 		(*	need to do some size checking here	*)
 		res := {};
@@ -536,9 +426,10 @@ MODULE GraphCoSelection;
 			END;
 			ASSERT(args.vectors[1] # NIL, 22);
 			predictor.z := args.vectors[1].components;
+			predictor.zVals := args.vectors[1].values;
 			predictor.zStart := args.vectors[1].start;
 			predictor.zStep := args.vectors[1].step;
-			predictor.zSize := args.vectors[1].nElem
+			predictor.zSize := args.vectors[1].nElem;
 		END
 	END Set;
 
@@ -556,8 +447,12 @@ MODULE GraphCoSelection;
 		i := 0;
 		k := 1;
 		WHILE i < size DO
-			IF node.theta[i].value > 0.5 THEN
-				value := value + node.beta[k].value * predictor.z[start + i * step].Value();
+			IF node.theta[i] THEN
+				IF predictor.z # NIL THEN
+					value := value + node.beta[k].value * predictor.z[start + i * step].Value()
+				ELSE
+					value := value + node.beta[k].value * predictor.zVals[start + i * step]
+				END;
 				INC(k)
 			END;
 			INC(i)
@@ -571,7 +466,7 @@ MODULE GraphCoSelection;
 	END ValDiff;
 
 	(*	Factory methods	*)
-	PROCEDURE (f: Factory) New ((*options: INTEGER*)): GraphVector.Node;
+	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR
 			node: Node;
 	BEGIN

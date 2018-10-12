@@ -14,9 +14,9 @@ MODULE MapsCmds;
 
 	IMPORT
 		Containers, Dialog, Files, Ports, Strings, Views,
-		StdLog,
-		TextModels, TextViews,
-		BugsCmds, BugsIndex, BugsFiles, BugsMsg, BugsNames, TextMappers, 
+		Log,
+		TextMappers, TextModels, TextViews,
+		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsMsg, BugsNames, 
 		MapsAdjacency, MapsIndex, MapsMap, MapsViews, MapsViews1,
 		MathSort,
 		PlotsAxis, PlotsViews,
@@ -73,9 +73,11 @@ MODULE MapsCmds;
 	PROCEDURE Error (errorNum: INTEGER);
 		VAR
 			numToString: ARRAY 8 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.Show("MapsCmds" + numToString);
+		BugsMsg.Lookup("MapsCmds" + numToString, msg);
+		BugsFiles.ShowStatus(msg)
 	END Error;
 
 	PROCEDURE UpdateNames*;
@@ -181,7 +183,7 @@ MODULE MapsCmds;
 		Views.OpenAux(v, title$);
 		c := Containers.Focus();
 		IF c # NIL THEN
-			c.GetFirstView(Containers.any, v1);
+			c.GetFirstView(Containers.any, v1); 
 			IF v = v1 THEN
 				c.SetOpts(c.opts - {Containers.noSelection})
 			END
@@ -281,7 +283,7 @@ MODULE MapsCmds;
 			IF BugsFiles.whereOut = BugsFiles.window THEN
 				OpenAux(view, title)
 			ELSE
-				StdLog.View(view)
+				Log.View(view)
 			END
 		ELSE
 			Error(1); RETURN

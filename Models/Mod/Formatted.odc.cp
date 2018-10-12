@@ -12,7 +12,6 @@ MODULE ModelsFormatted;
 	
 
 	IMPORT
-		Fonts, 
 		MathSort,
 		BugsFiles,
 		ModelsIndex, ModelsInterface, ModelsMonitors, MonitorModel,
@@ -22,6 +21,9 @@ MODULE ModelsFormatted;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	CONST
+		bold = 700;
+		
 	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
@@ -36,7 +38,7 @@ MODULE ModelsFormatted;
 		sampleSize := ModelsInterface.SampleSize(variable);
 		IF sampleSize = 0 THEN RETURN END;
 		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr,Fonts. bold);
+		newAttr := TextModels.NewWeight(oldAttr, bold);
 		f.rider.SetAttr(newAttr);
 		f.WriteTab; f.WriteString("variable: "); f.WriteString(variable); 
 		f.WriteTab; f.WriteString("sample size: "); f.WriteInt(sampleSize);f.WriteTab;  f.WriteLn;
@@ -72,7 +74,7 @@ MODULE ModelsFormatted;
 		sampleSize := ModelsInterface.SampleSize(variable);
 		IF sampleSize = 0 THEN RETURN END;
 		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		newAttr := TextModels.NewWeight(oldAttr, bold);
 		f.rider.SetAttr(newAttr);
 		f.WriteTab; f.WriteString("variable: "); f.WriteString(variable); 
 		f.WriteTab; f.WriteString("sample size: "); f.WriteInt(sampleSize); f.WriteLn;

@@ -37,7 +37,7 @@ MODULE BugsMAP;
 			i, num: INTEGER;
 	BEGIN
 		diff := prior.DiffLogPrior();
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < num DO

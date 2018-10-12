@@ -56,6 +56,11 @@ MODULE GraphFlexWishart;
 	PROCEDURE (updater: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
+	
+	PROCEDURE (updater: Auxillary) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN 0
+	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -92,7 +97,7 @@ MODULE GraphFlexWishart;
 			flexWish := components[i + size * i](Node);
 			gamma := flexWish.a[i];
 			scale := flexWish.scale[i];
-			IF flexWish.likelihood # NIL THEN
+			IF flexWish.children # NIL THEN
 				lambda := nu * flexWish.value + 1 / (scale * scale);
 				r := (nu + size) / 2
 			ELSE
@@ -136,16 +141,20 @@ MODULE GraphFlexWishart;
 	BEGIN
 	END GetDefaults;
 
-	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
+	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
 	BEGIN
 		lower := - INF;
 		upper := INF
-	END BoundsConjugateMV;
+	END Bounds;
 
-	PROCEDURE (node: Node) CheckConjugateMV (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
-		RETURN {}
-	END CheckConjugateMV;
+		IF GraphNodes.data IN node.props THEN
+			RETURN {GraphNodes.lhs, GraphNodes.notStochastic}
+		ELSE
+			RETURN {}
+		END
+	END Check;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 	BEGIN
@@ -163,12 +172,6 @@ MODULE GraphFlexWishart;
 		HALT(0);
 		RETURN 0.0
 	END Deviance;
-
-	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
-	BEGIN
-		HALT(0);
-		RETURN 0
-	END DiffLogConditionalMap;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
@@ -199,13 +202,13 @@ MODULE GraphFlexWishart;
 		END
 	END ExternalizeConjugateMV;
 
-	PROCEDURE (node: Node) InitConjugateMV;
+	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
 		node.a := NIL;
 		node.nu := - 1;
 		node.scale := NIL;
 		node.dim := - 1;
-	END InitConjugateMV;
+	END InitStochastic;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -281,11 +284,11 @@ MODULE GraphFlexWishart;
 		RETURN (nu + dim - 1) * s[i, j]
 	END Location;
 
-	PROCEDURE (node: Node) LogJacobian (): REAL;
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
 	BEGIN
 		HALT(126);
 		RETURN 0
-	END LogJacobian;
+	END LogDetJacobian;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 	BEGIN
@@ -317,13 +320,12 @@ MODULE GraphFlexWishart;
 		HALT(126)
 	END MVLikelihoodForm;
 
-	PROCEDURE (node: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
 			dim, i, j: INTEGER;
 			nu: REAL;
 	BEGIN
-		ASSERT(as = GraphRules.wishart, 21);
 		(* Provide FlexWishart input scale matrix - with gamma's on diag *)
 		dim := node.dim;
 		nu := node.nu;
@@ -348,7 +350,7 @@ MODULE GraphFlexWishart;
 		node.Sample(res)
 	END MVSample;
 
-	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, dim: INTEGER;
 			list: GraphNodes.List;
@@ -360,8 +362,9 @@ MODULE GraphFlexWishart;
 			node.a[i].AddParent(list);
 			INC(i)
 		END;
+		GraphNodes.ClearList(list);
 		RETURN list
-	END ParentsConjugateMV;
+	END Parents;
 
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL); BEGIN
 		HALT(126)
@@ -404,7 +407,7 @@ MODULE GraphFlexWishart;
 		res := {}
 	END Sample;
 
-	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			dim, i, nElem, start, step: INTEGER;
 			auxillary: UpdaterUpdaters.Updater;
@@ -475,10 +478,11 @@ MODULE GraphFlexWishart;
 					(* setup hidden stochastic node for diag elements of Wishart R matrix *)
 					argsNew.Init;
 					gamma := GraphDummy.fact.New();
+					GraphStochastic.RegisterAuxillary(gamma);
 					gamma.Set(argsNew, res);
 					ASSERT(res = {}, 67);
 					gamma.SetValue(1.0);
-					gamma.SetProps(gamma.props + {GraphStochastic.initialized});
+					gamma.SetProps(gamma.props + {GraphStochastic.hidden, GraphStochastic.initialized});
 					node.a[i] := gamma;
 					INC(i)
 				END;
@@ -496,7 +500,7 @@ MODULE GraphFlexWishart;
 				END
 			END
 		END
-	END SetConjugateMV;
+	END Set;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

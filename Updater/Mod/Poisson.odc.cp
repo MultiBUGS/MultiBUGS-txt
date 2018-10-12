@@ -86,7 +86,7 @@ MODULE UpdaterPoisson;
 		prior := updater.prior(GraphConjugateUV.Node);
 		as := GraphRules.poisson;
 		prior.PriorForm(as, lambda, q);
-		children := prior.Children();
+		children := prior.children;
 		likelihood := children[0](GraphConjugateUV.Node);
 		likelihood.LikelihoodForm(as, node, q, n);
 		lambda := lambda * q;
@@ -105,7 +105,7 @@ MODULE UpdaterPoisson;
 		IF prior.classConditional # GraphRules.poisson THEN
 			RETURN FALSE
 		END;
-		children := prior.Children();
+		children := prior.children;
 		IF children = NIL THEN
 			RETURN FALSE
 		ELSIF LEN(children) # 1 THEN

@@ -14,7 +14,7 @@ MODULE TestScript;
 	IMPORT
 		Dialog, Services,
 		StdLog,
-		BugsCmds, BugsFiles, BugsMaster,
+		BugsCmds, BugsFiles,
 		MapsCmds,
 		SamplesCmds, SamplesDensity, SamplesDiagnostics,
 		SummaryCmds;
@@ -31,21 +31,14 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + model); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("Examples/" + model + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("Examples/" + model + "data");
-		BugsCmds.LoadData;
+		BugsCmds.Parse("Examples/" + model + "model");
+		BugsCmds.LoadData("Examples/" + model + "data");
 		BugsCmds.specificationDialog.numChains := 2;
 		BugsCmds.Compile;
-		BugsCmds.SetFilePath("Examples/" + model + "inits");
-		BugsCmds.LoadInits;
-		BugsCmds.SetFilePath("Examples/" + model + "inits1");
-		BugsCmds.LoadInits;
-		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END;
-		BugsCmds.specificationDialog.numProc := 4;
-		BugsMaster.Install('MPImsimp');
-		BugsCmds.Distribute('MPImsimp')
+		BugsCmds.LoadInits("Examples/" + model + "inits");
+		BugsCmds.LoadInits("Examples/" + model + "inits1");
+		BugsCmds.GenerateInitsGuard(par);
+		BugsCmds.GenerateInits 
 	END Compile;
 
 	PROCEDURE CompileGeo (model: ARRAY OF CHAR);
@@ -56,18 +49,14 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + model); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("GeoBUGS/Examples/" + model + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("GeoBUGS/Examples/" + model + "data");
-		BugsCmds.LoadData;
+		BugsCmds.Parse("GeoBUGS/Examples/" + model + "model");
+		BugsCmds.LoadData("GeoBUGS/Examples/" + model + "data");
 		BugsCmds.specificationDialog.numChains := 2;
 		BugsCmds.Compile;
-		BugsCmds.SetFilePath("GeoBUGS/Examples/" + model + "inits");
-		BugsCmds.LoadInits;
-		BugsCmds.SetFilePath("GeoBUGS/Examples/" + model + "inits1");
-		BugsCmds.LoadInits;
-		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END
+		BugsCmds.LoadInits("GeoBUGS/Examples/" + model + "inits");
+		BugsCmds.LoadInits("GeoBUGS/Examples/" + model + "inits1");
+		BugsCmds.GenerateInitsGuard(par);
+		BugsCmds.GenerateInits
 	END CompileGeo;
 
 	PROCEDURE CompileEco (model: ARRAY OF CHAR);
@@ -78,38 +67,26 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + model); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("Eco/" + model + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("Eco/" + model + "data");
-		BugsCmds.LoadDataGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.LoadData END;
-		BugsCmds.SetFilePath("Eco/" + model + "data1");
-		BugsCmds.LoadDataGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.LoadData END;
-		BugsCmds.SetFilePath("Eco/" + model + "data2");
-		BugsCmds.LoadDataGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.LoadData END;
-		BugsCmds.SetFilePath("Eco/" + model + "data3");
-		BugsCmds.LoadDataGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.LoadData END;
+		BugsCmds.Parse("Eco/" + model + "model");
+		BugsCmds.LoadData("Eco/" + model + "data");
+		BugsCmds.LoadDataGuard(par);
+		BugsCmds.LoadData("Eco/" + model + "data1");
+		BugsCmds.LoadData("Eco/" + model + "data2");
+		BugsCmds.LoadData("Eco/" + model + "data3");
 		BugsCmds.specificationDialog.numChains := 2;
 		BugsCmds.Compile;
-		BugsCmds.SetFilePath("Eco/" + model + "inits1");
-		BugsCmds.LoadInits;
-		BugsCmds.SetFilePath("Eco/" + model + "inits2");
-		BugsCmds.LoadInits;
-		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END
+		BugsCmds.LoadInits("Eco/" + model + "inits1");
+		BugsCmds.LoadInits("Eco/" + model + "inits2");
+		BugsCmds.GenerateInits
 	END CompileEco;
 
 	PROCEDURE Restore;
 	BEGIN
-	(*
 		BugsCmds.ExternalizeModel("junk");
 		BugsCmds.Clear;
 		BugsCmds.InternalizeModel("junk");
 		SamplesCmds.SetVariable('*'); SamplesCmds.Stats;
-		StdLog.Ln;*)
+		StdLog.Ln;
 	END Restore;
 
 	PROCEDURE Air*;
@@ -510,22 +487,15 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + model); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("Examples/" + model + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("Examples/" + model + "data1");
-		BugsCmds.LoadData;
-		BugsCmds.SetFilePath("Examples/" + model + "data2");
-		BugsCmds.LoadData;
-		BugsCmds.SetFilePath("Examples/RCdata");
-		BugsCmds.LoadData;
+		BugsCmds.Parse("Examples/" + model + "model");
+		BugsCmds.LoadData("Examples/" + model + "data1");
+		BugsCmds.LoadData("Examples/" + model + "data2");
+		BugsCmds.LoadData("Examples/RCdata");
 		BugsCmds.specificationDialog.numChains := 2;
 		BugsCmds.Compile;
-		BugsCmds.SetFilePath("Examples/" + model + "inits");
-		BugsCmds.LoadInits;
-		BugsCmds.SetFilePath("Examples/" + model + "inits1");
-		BugsCmds.LoadInits;
-		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END;
+		BugsCmds.LoadInits("Examples/" + model + "inits");
+		BugsCmds.LoadInits("Examples/" + model + "inits1");
+		BugsCmds.GenerateInits;
 		BugsCmds.updateDialog.updates := 1000;
 		BugsCmds.UpdateNI;
 		SamplesCmds.SetVariable('alpha.desc'); SamplesCmds.Set;
@@ -809,10 +779,8 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + model); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("Examples/" + model + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("Examples/" + model + "data");
-		BugsCmds.LoadData;
+		BugsCmds.Parse("Examples/" + model + "model");
+		BugsCmds.LoadData("Examples/" + model + "data");
 		BugsCmds.specificationDialog.numChains := 1;
 		BugsCmds.Compile;
 		BugsCmds.SetNode('solution'); BugsCmds.Values;
@@ -865,18 +833,13 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + model); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("Examples/" + model + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("Examples/" + model + "data");
-		BugsCmds.LoadData;
-		BugsCmds.SetFilePath("Examples/RCdata");
-		BugsCmds.LoadData;
+		BugsCmds.Parse("Examples/" + model + "model");
+		BugsCmds.LoadData("Examples/" + model + "data");
+		BugsCmds.LoadData("Examples/RCdata");
 		BugsCmds.specificationDialog.numChains := 1;
 		BugsCmds.Compile;
-		BugsCmds.SetFilePath("Examples/" + model + "inits");
-		BugsCmds.LoadInits;
-		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END;
+		BugsCmds.LoadInits("Examples/" + model + "inits");
+		BugsCmds.GenerateInits;
 		BugsCmds.updateDialog.updates := 1000;
 		BugsCmds.UpdateNI;
 		SamplesCmds.SetVariable('theta.smooth'); SamplesCmds.Set;
@@ -1112,18 +1075,13 @@ MODULE TestScript;
 		StdLog.String("**********"); StdLog.Ln;
 		StdLog.String("*  " + "Rongelap"); StdLog.Ln;
 		StdLog.String("**********"); StdLog.Ln;
-		BugsCmds.SetFilePath("GeoExamples/" + "Rongelap" + "model");
-		BugsCmds.Parse;
-		BugsCmds.SetFilePath("GeoExamples/" + "Rongelap" + "data");
-		BugsCmds.LoadData;
+		BugsCmds.Parse("GeoExamples/" + "Rongelap" + "model");
+		BugsCmds.LoadData("GeoExamples/" + "Rongelap" + "data");
 		BugsCmds.specificationDialog.numChains := 2;
 		BugsCmds.Compile;
-		BugsCmds.SetFilePath("GeoExamples/" + "Rongelap" + "inits1");
-		BugsCmds.LoadInits;
-		BugsCmds.SetFilePath("GeoExamples/" + "Rongelap" + "inits2");
-		BugsCmds.LoadInits;
-		BugsCmds.GenerateInitsGuardWin(par);
-		IF ~par.disabled THEN BugsCmds.GenerateInits END;
+		BugsCmds.LoadInits("GeoExamples/" + "Rongelap" + "inits1");
+		BugsCmds.LoadInits("GeoExamples/" + "Rongelap" + "inits2");
+		BugsCmds.GenerateInits;
 		BugsCmds.updateDialog.updates := 1000;
 		BugsCmds.UpdateNI;
 		SamplesCmds.SetVariable('beta'); SamplesCmds.Set;

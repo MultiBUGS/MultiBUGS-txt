@@ -42,11 +42,6 @@ MODULE UpdaterMultinomial;
 	BEGIN
 	END CopyFromConjugateMV;
 
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p0: ARRAY OF REAL);
-	BEGIN
-
-	END LikelihoodForm;
-
 	PROCEDURE (updater: Updater) ParamsSize (): INTEGER;
 	BEGIN
 		RETURN updater.Size()
@@ -82,7 +77,7 @@ MODULE UpdaterMultinomial;
 			oldValue[i] := updater.prior[i].value;
 			INC(i)
 		END;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		oldLikelihood := 0.0;

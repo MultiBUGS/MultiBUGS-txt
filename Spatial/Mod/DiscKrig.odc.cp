@@ -3,8 +3,6 @@
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
-
-
 *)
 
 MODULE SpatialDiscKrig;
@@ -14,17 +12,16 @@ MODULE SpatialDiscKrig;
 
 	IMPORT
 		Math,
-		GraphMultivariate, GraphNodes, GraphStochastic,
-		SpatialStrucMVN;
+		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes;
 
 	TYPE
 
-		Factory = POINTER TO RECORD(GraphMultivariate.Factory) END;
+		Factory2 = POINTER TO RECORD(GraphMultivariate.Factory) END;
 
-		Kernel = POINTER TO RECORD(SpatialStrucMVN.SpatialKernel) END;
+		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
 	VAR
-		fact-: GraphMultivariate.Factory;
+		fact2-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		pi: REAL;
@@ -35,7 +32,7 @@ MODULE SpatialDiscKrig;
 		install := "SpatialDiscKrig.Install"
 	END Install;
 
-	PROCEDURE (kernel: Kernel) Element (x1, x2: SpatialStrucMVN.Point; params: ARRAY OF REAL): REAL;
+	PROCEDURE (kernel: Kernel) Element (x1, x2: GraphGPprior.Point; params: ARRAY OF REAL): REAL;
 		VAR
 			dim, i: INTEGER;
 			dist, element: REAL;
@@ -61,19 +58,15 @@ MODULE SpatialDiscKrig;
 		RETURN 1
 	END NumParams;
 
-	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
+	PROCEDURE (f: Factory2) New (): GraphChain.Node;
 		VAR
-			node: SpatialStrucMVN.Node;
-			p: GraphStochastic.Node;
+			node: GraphChain.Node;
 	BEGIN
-		p := SpatialStrucMVN.fact.New();
-		node := p(SpatialStrucMVN.Node);
-		node.Init;
-		node.SetKernel(kernel);
+		node := GraphGPprior.New(kernel);
 		RETURN node
 	END New;
 
-	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
+	PROCEDURE (f: Factory2) Signature (OUT signature: ARRAY OF CHAR);
 		VAR
 			i, numParams: INTEGER;
 	BEGIN
@@ -86,10 +79,10 @@ MODULE SpatialDiscKrig;
 		END
 	END Signature;
 
-	PROCEDURE Install*;
+	PROCEDURE Install2*;
 	BEGIN
-		GraphNodes.SetFactory(fact)
-	END Install;
+		GraphNodes.SetFactory(fact2)
+	END Install2;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -99,11 +92,11 @@ MODULE SpatialDiscKrig;
 
 	PROCEDURE Init;
 		VAR
-			f: Factory;
+			f2: Factory2;
 	BEGIN
 		Maintainer;
-		NEW(f);
-		fact := f;
+		NEW(f2);
+		fact2 := f2;
 		NEW(kernel);
 		pi := Math.Pi()
 	END Init;

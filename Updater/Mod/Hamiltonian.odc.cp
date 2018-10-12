@@ -18,11 +18,11 @@ MODULE UpdaterHamiltonian;
 		UpdaterMetropolisMV;
 
 	TYPE
-		Vector = ARRAY OF REAL;
+		Vector = POINTER TO ARRAY OF REAL;
 
 		Updater* = POINTER TO ABSTRACT RECORD(UpdaterMetropolisMV.Updater)
 			logEps, logEpsBar, hBar, mu: REAL;
-			derivative, p, y, scale: POINTER TO Vector
+			derivative, p, y, mass: Vector
 		END;
 
 	VAR
@@ -55,7 +55,7 @@ MODULE UpdaterHamiltonian;
 	PROCEDURE Energy (updater: Updater): REAL;
 		VAR
 			i, size: INTEGER;
-			energy, factor: REAL;
+			energy, mass, p: REAL;
 			prior: GraphStochastic.Node;
 	BEGIN
 		i := 0;
@@ -63,8 +63,9 @@ MODULE UpdaterHamiltonian;
 		energy :=  - updater.LogConditional();
 		WHILE i < size DO
 			prior := updater.prior[i];
-			factor := updater.p[i] / updater.scale[i];
-			energy := energy + 0.5 * factor * factor - prior.LogJacobian();
+			p := updater.p[i];
+			mass := updater.mass[i];
+			energy := energy + 0.5 * p * p / mass - prior.LogDetJacobian();
 			INC(i)
 		END;
 		RETURN energy
@@ -73,11 +74,13 @@ MODULE UpdaterHamiltonian;
 	PROCEDURE GenerateMomentum (updater: Updater);
 		VAR
 			i, size: INTEGER;
+			mass: REAL;
 	BEGIN
 		i := 0;
 		size := updater.Size();
 		WHILE i < size DO
-			updater.p[i] := updater.scale[i] * MathRandnum.Normal(0.0, 1.0);
+			mass := updater.mass[i];
+			updater.p[i] := MathRandnum.Normal(0.0, Math.Sqrt(updater.mass[i]));
 			INC(i)
 		END;
 	END GenerateMomentum;
@@ -99,15 +102,15 @@ MODULE UpdaterHamiltonian;
 	PROCEDURE LeapFrog (updater: Updater; eps: REAL);
 		VAR
 			i, size: INTEGER;
-			scale2: REAL;
+			mass: REAL;
 	BEGIN
 		i := 0;
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
-			scale2 := updater.scale[i] * updater.scale[i];
+			mass := updater.mass[i];
 			updater.p[i] := updater.p[i] + 0.5 * eps * updater.derivative[i];
-			updater.y[i] := updater.y[i] + eps * updater.p[i] / scale2;
+			updater.y[i] := updater.y[i] + eps * updater.p[i] / mass;
 			INC(i)
 		END;
 		InvMap(updater);
@@ -142,7 +145,7 @@ MODULE UpdaterHamiltonian;
 		(*eps := 0.1;*)
 		(*eps := 0.01;*)
 		eps := 1.0E-6;
-		updater.StoreOldValue;
+		updater.GetValue(updater.oldVals);
 		GenerateMomentum(updater);
 		oldEnergy := Energy(updater);
 		Map(updater);
@@ -176,7 +179,7 @@ MODULE UpdaterHamiltonian;
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
-			wr.WriteReal(updater.scale[i]);
+			wr.WriteReal(updater.mass[i]);
 			INC(i)
 		END;
 		updater.ExternalizeHamiltonian(wr)
@@ -187,13 +190,13 @@ MODULE UpdaterHamiltonian;
 			i, size: INTEGER;
 	BEGIN
 		size := updater.Size();
-		NEW(updater.scale, size);
+		NEW(updater.mass, size);
 		updater.logEps := Math.Ln(0.01);
 		updater.logEpsBar := 0.0;
 		updater.hBar := 0.0;
 		i := 0;
 		WHILE i < size DO
-			updater.scale[i] := 1.0;
+			updater.mass[i] := 1.0;
 			INC(i)
 		END;
 		NEW(updater.derivative, size);
@@ -213,7 +216,7 @@ MODULE UpdaterHamiltonian;
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
-			rd.ReadReal(updater.scale[i]);
+			rd.ReadReal(updater.mass[i]);
 			INC(i)
 		END;
 		updater.InternalizeHamiltonian(rd)
@@ -235,11 +238,11 @@ MODULE UpdaterHamiltonian;
 		eps := Math.Exp(updater.logEps);
 		numSteps := MAX(1, SHORT(ENTIER(lambda / eps)));
 		numSteps := MIN(100, numSteps);
-		updater.StoreOldValue;
+		updater.GetValue(updater.oldVals);
 		GenerateMomentum(updater);
 		oldEnergy := Energy(updater);
-		Map(updater);
 		updater.Derivatives(updater.derivative);
+		Map(updater);
 		steps := 0;
 		WHILE steps < numSteps DO
 			LeapFrog(updater, eps);
@@ -262,16 +265,16 @@ MODULE UpdaterHamiltonian;
 		res := {}
 	END Sample;
 
-	PROCEDURE (updater: Updater) SetScale* (IN scale: ARRAY OF REAL), NEW;
+	PROCEDURE (updater: Updater) SetMass* (IN mass: ARRAY OF REAL), NEW;
 		VAR
 			i, nElem: INTEGER;
 	BEGIN
 		nElem := updater.Size();
 		i := 0;
 		WHILE i < nElem DO
-			updater.scale[i] := scale[i]; INC(i)
+			updater.mass[i] := mass[i]; INC(i)
 		END
-	END SetScale;
+	END SetMass;
 
 	PROCEDURE Maintainer;
 	BEGIN

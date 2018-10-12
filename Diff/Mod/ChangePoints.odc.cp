@@ -22,7 +22,7 @@ MODULE DiffChangePoints;
 		nEq = 3;
 
 	VAR
-		fact-: GraphNodes.Factory;
+		fact-: GraphVector.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -79,14 +79,14 @@ MODULE DiffChangePoints;
 		HALT(126)
 	END Jacobian;
 
-	PROCEDURE (f: Factory) New (): GraphODEBlockM.Node;
+	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR
 			equations: Equations;
-			node: GraphODEBlockM.Node;
+			node: GraphVector.Node;
 			solver: MathODE.Solver;
 	BEGIN
 		NEW(equations);
-		solver := MathRungeKutta45.fact.New();
+		solver := MathRungeKutta45.New();
 		node := GraphODEBlockM.New(solver, equations, nEq);
 		RETURN node
 	END New;

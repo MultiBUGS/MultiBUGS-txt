@@ -111,7 +111,7 @@ MODULE GraphHalf;
 		RETURN 0.5 * node.x.Value()
 	END Value;
 
-	PROCEDURE (f: Factory) New (): GraphNodes.Node;
+	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
 			node: Node;
 	BEGIN

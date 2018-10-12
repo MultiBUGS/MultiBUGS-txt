@@ -13,13 +13,12 @@ MODULE SpatialCARProper;
 
 	IMPORT
 		Math, Stores,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
-		MathFunc, MathMatrix,
-		SpatialUVCAR;
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR, 
+		MathFunc, MathMatrix;
 
 	TYPE
 
-		Node = POINTER TO RECORD (SpatialUVCAR.Normal)
+		Node = POINTER TO RECORD (SpatialUVCAR.Node)
 			m, eigenValues: POINTER TO ARRAY OF REAL;
 			mu: GraphNodes.Vector;
 			gamma: GraphNodes.Node;
@@ -56,7 +55,7 @@ MODULE SpatialCARProper;
 		WHILE row < len DO
 			mRow := node.m[row];
 			p := node.components[row](Node);
-			IF p.neighs # NIL THEN numNeigh := LEN(p.neighs) ELSE numNeigh := 0 END;
+			numNeigh := p.NumberNeighbours();
 			j := 0;
 			WHILE j < numNeigh DO
 				col := p.neighs[j];
@@ -66,7 +65,7 @@ MODULE SpatialCARProper;
 				INC(j)
 			END;
 			INC(row)
-		END;
+		END; 
 		MathMatrix.Jacobi(a, node.eigenValues, len)
 	END EigenValues;
 
@@ -74,22 +73,19 @@ MODULE SpatialCARProper;
 		CONST
 			eps = 1.0E-10;
 		VAR
-			sum, quadForm, gamma, mu, v0, v1, v2: REAL;
-			i, j, nElem, muStart, muStep, numNeigh, col: INTEGER;
+			quadForm, gamma, mu, v0, v1, v2: REAL;
+			i, j, muStart, muStep, numNeigh, col: INTEGER;
 			p: Node;
 	BEGIN
 		gamma := node.gamma.Value();
 		IF gamma > node.gammaMax + eps THEN RETURN MathFunc.logOfZero END;
 		IF gamma < node.gammaMin - eps THEN RETURN MathFunc.logOfZero END;
-		nElem := node.Size();
 		muStart := node.muStart;
 		muStep := node.muStep;
-		sum := 0.0;
 		i := node.index;
 		mu := node.mu[muStart + i * muStep].Value();
 		v0 := node.components[i].value - mu;
 		quadForm := v0 * v0 / node.m[i];
-		sum := 0.0;
 		mu := node.mu[muStart + i * muStep].Value();
 		v1 := (node.components[i].value - mu) / node.m[i];
 		v2 := 0.0;
@@ -113,24 +109,25 @@ MODULE SpatialCARProper;
 			eps = 1.0E-10;
 		VAR
 			i, j, numNeigh, numNeigh1, index: INTEGER;
-			gamma, mRow, mCol, weight: REAL;
+			gamma, mRow, mCol, weight, weightCol: REAL;
 			p: Node;
 	BEGIN
 		gamma := node.gamma.Value();
 		IF gamma < node.gammaMin - eps THEN RETURN {GraphNodes.arg7, GraphNodes.invalidValue} END;
 		IF gamma > node.gammaMax + eps THEN RETURN {GraphNodes.arg7, GraphNodes.invalidValue} END;
 		index := node.index;
-		IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
+		numNeigh := node.NumberNeighbours();
 		i := 0;
 		mRow := node.m[index];
 		WHILE i < numNeigh DO
 			weight := node.weights[i];
 			p := node.components[node.neighs[i]](Node);
-			IF p.neighs # NIL THEN numNeigh1 := LEN(p.neighs) ELSE numNeigh1 := 0 END;
+			numNeigh1 := p.NumberNeighbours();
 			j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # index) DO INC(j) END;
-			mCol := node.m[j];
-			IF ABS(p.weights[j] * mRow - weight * mCol) > eps THEN
-				RETURN {GraphNodes.arg3, GraphNodes.notSymmetric}
+			mCol := node.m[p.index];
+			weightCol := p.weights[j];
+			IF ABS(weightCol * mRow - weight * mCol) > eps THEN 
+				RETURN {GraphNodes.arg2, GraphNodes.notSymmetric}
 			END;
 			INC(i)
 		END;
@@ -163,7 +160,12 @@ MODULE SpatialCARProper;
 		END;
 		RETURN density
 	END ClassifyLikelihoodUVMRF;
-
+	
+	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
+	BEGIN
+		RETURN GraphRules.normal
+	END ClassifyPrior;
+	
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
 			x, mu, tau, differential: REAL;
@@ -174,7 +176,7 @@ MODULE SpatialCARProper;
 		RETURN differential
 	END DiffLogPrior;
 
-	PROCEDURE (node: Node) ExternalizeChainUVCAR (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeUVCAR (VAR wr: Stores.Writer);
 		VAR
 			i, nElem: INTEGER;
 			v: GraphNodes.SubVector;
@@ -196,17 +198,17 @@ MODULE SpatialCARProper;
 				INC(i)
 			END
 		END;
-	END ExternalizeChainUVCAR;
+	END ExternalizeUVCAR;
 
-	PROCEDURE (node: Node) InitStochasticUVCAR;
+	PROCEDURE (node: Node) InitUVCAR;
 	BEGIN
 		node.mu := NIL;
 		node.gamma := NIL;
 		node.m := NIL;
 		node.eigenValues := NIL
-	END InitStochasticUVCAR;
+	END InitUVCAR;
 
-	PROCEDURE (node: Node) InternalizeChainUVCAR (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeUVCAR (VAR rd: Stores.Reader);
 		VAR
 			i, nElem: INTEGER;
 			v: GraphNodes.SubVector;
@@ -239,8 +241,8 @@ MODULE SpatialCARProper;
 			node.gammaMin := p.gammaMin;
 			node.muStart := p.muStart;
 			node.muStep := p.muStep
-		END;
-	END InternalizeChainUVCAR;
+		END
+	END InternalizeUVCAR;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -250,27 +252,22 @@ MODULE SpatialCARProper;
 	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
 	BEGIN
-		ASSERT(as = GraphRules.gamma, 21); 
+		ASSERT(as = GraphRules.gamma, 21);
 		p0 := 0.50;
 		p1 := QuadraticForm(likelihood);
 		x := likelihood.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihood (): REAL;
+	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
 		VAR
-			as, i: INTEGER;
-			lambda, logLikelihood, logTau, r, tau, gamma: REAL;
-			x: GraphNodes.Node;
+			i: INTEGER;
+			logLikelihood, gamma: REAL;
 	BEGIN
 		i := node.index;
-		as := GraphRules.gamma;
-		node.LikelihoodForm(as, x, r, lambda);
-		tau := x.Value();
-		logTau := MathFunc.Ln(tau);
 		gamma := node.gamma.Value();
-		logLikelihood := r * logTau - tau * lambda + Math.Ln(1.0 - gamma * node.eigenValues[i]);
+		logLikelihood := Math.Ln(1.0 - gamma * node.eigenValues[i]);
 		RETURN logLikelihood
-	END LogLikelihood;
+	END LogLikelihoodUVMRF;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -311,6 +308,21 @@ MODULE SpatialCARProper;
 		END
 	END MatrixElements;
 
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
+	OUT p1: ARRAY OF ARRAY OF REAL);
+		VAR
+			i, size, muStart, muStep: INTEGER;
+	BEGIN
+		size := node.Size();
+		muStart := node.muStart;
+		muStep := node.muStep;
+		i := 0;
+		WHILE i < size DO
+			p0[i] := node.mu[muStart + i * muStep].Value();
+			INC(i)
+		END
+	END MVPriorForm;
+
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN 0
@@ -318,50 +330,42 @@ MODULE SpatialCARProper;
 
 	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
 		VAR
-			i, nElem, muStart, muStep: INTEGER;
-			p: GraphNodes.Node;
+			index, muStart, muStep: INTEGER;
+			p, gamma: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
+		index := node.index;
 		list := NIL;
-		IF (node.index = 0) OR all THEN
-			node.gamma.AddParent(list);
-			i := 0;
-			nElem := node.Size();
+		gamma := node.gamma;
+		IF gamma # NIL THEN gamma.AddParent(list) END;
+		IF node.mu # NIL THEN
 			muStart := node.muStart;
 			muStep := node.muStep;
-			WHILE i < nElem DO
-				p := node.mu[muStart + i * muStep];
-				p.AddParent(list);
-				INC(i)
-			END
+			p := node.mu[muStart + index * muStep];
+			p.AddParent(list)
 		END;
-		GraphNodes.ClearList(list);
 		RETURN list
 	END ParentsUVMRF;
 
-	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
+	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
 			index, i, j, len, muStart, muStep: INTEGER;
 			gamma: REAL;
 	BEGIN
-		ASSERT(as IN {GraphRules.normal, GraphRules.mVN}, 21);
-		index := prior.index;
-		muStart := prior.muStart;
-		muStep := prior.muStep;
-		p0 := prior.mu[muStart + index * muStep].Value();
-		IF as = GraphRules.normal THEN
-			gamma := prior.gamma.Value();
-			p1 := prior.tau.Value() / prior.m[index];
-			i := 0;
-			IF prior.neighs # NIL THEN len := LEN(prior.neighs) ELSE len := 0 END;
-			WHILE i < len DO
-				j := prior.neighs[i];
-				p0 := p0 + 
-				gamma * prior.weights[i] * (prior.components[j].value - prior.mu[muStart + j * muStep].Value());
-				INC(i)
-			END
-		ELSE
-			p1 := 0.0
+		ASSERT(as = GraphRules.normal, 21);
+		index := node.index;
+		muStart := node.muStart;
+		muStep := node.muStep;
+		p0 := node.mu[muStart + index * muStep].Value();
+		gamma := node.gamma.Value();
+		p1 := node.tau.Value() / node.m[index];
+		i := 0;
+		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
+		WHILE i < len DO
+			j := node.neighs[i];
+			p0 := p0 + 
+			gamma * node.weights[i] * (node.components[j].value - node.mu[muStart + j * muStep].Value());
+			INC(i)
 		END
 	END PriorForm;
 
@@ -380,32 +384,39 @@ MODULE SpatialCARProper;
 			nElem := LEN(node.components);
 			index := node.index;
 			nElem := node.Size();
-			IF index = nElem - 1 THEN
+			IF index = 0 THEN
 				node.gamma := args.scalars[1];
 				node.mu := args.vectors[3].components;
-				node.muStart := args.vectors[0].start;
-				node.muStep := args.vectors[0].step;
-				node.CountIslands;
+				node.muStart := args.vectors[3].start;
+				node.muStep := args.vectors[3].step;
 				NEW(node.m, nElem);
-				NEW(node.eigenValues, nElem);
 				i := 0;
 				WHILE i < nElem DO
 					node.m[i] := args.vectors[4].components[i].Value();
 					INC(i)
 				END;
-				EigenValues(node);
-				node.gammaMax := 1.0 / node.eigenValues[nElem - 1];
-				node.gammaMin := 1.0 / node.eigenValues[0]
 			ELSE
-				p := node.components[nElem - 1](Node);
+				p := node.components[0](Node);
 				node.mu := p.mu;
 				node.muStart := p.muStart;
 				node.muStep := p.muStep;
 				node.m := p.m;
-				node.eigenValues := p.eigenValues;
 				node.gamma := p.gamma;
-				node.gammaMax := p.gammaMax;
-				node.gammaMin := p.gammaMin
+			END;
+			IF index = nElem - 1 THEN 
+				node.CountIslands;
+				NEW(node.eigenValues, nElem);
+				EigenValues(node);
+				node.gammaMax := 1.0 / node.eigenValues[nElem - 1];
+				node.gammaMin := 1.0 / node.eigenValues[0];
+				i := 0;
+				WHILE i < nElem - 1 DO
+					p := node.components[i](Node);
+					p.eigenValues := node.eigenValues;
+					p.gammaMax := node.gammaMax;
+					p.gammaMin := node.gammaMin;
+					INC(i)
+				END
 			END
 		END
 	END SetUVCAR;

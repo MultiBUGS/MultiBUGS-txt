@@ -36,7 +36,9 @@ MODULE BugsIndex;
 		cursor := index;
 		WHILE cursor # NIL DO
 			name := cursor.name;
-			name.Accept(v);
+(*			IF name.isVariable THEN*)
+				name.Accept(v);
+(*			END;*)
 			cursor := cursor.next
 		END
 	END Accept;
@@ -67,6 +69,22 @@ MODULE BugsIndex;
 		END
 	END Store;
 
+	PROCEDURE NumberNames* (): INTEGER;
+		VAR
+			len, num: INTEGER;
+			cursor: Index;
+			name: BugsNames.Name;
+			node: GraphNodes.Node;
+	BEGIN
+		num := 0;
+		cursor := index;
+		WHILE cursor # NIL DO
+			INC(num);
+			cursor := cursor.next
+		END;
+		RETURN num
+	END NumberNames;
+
 	PROCEDURE NumberNodes* (): INTEGER;
 		VAR
 			len, num: INTEGER;
@@ -78,11 +96,9 @@ MODULE BugsIndex;
 		cursor := index;
 		WHILE cursor # NIL DO
 			name := cursor.name;
-			IF name.components # NIL THEN
-				IF name.string # "deviance" THEN
-					len := LEN(name.components);
-					INC(num, len)
-				END
+			IF (name.string # "deviance") & name.isVariable THEN
+				len := name.Size();
+				INC(num, len)
 			END;
 			cursor := cursor.next
 		END;
@@ -227,7 +243,7 @@ MODULE BugsIndex;
 				EXIT
 			END;
 			name := cursor.name;
-			IF name.components # NIL THEN
+			IF name.isVariable  & (name.components # NIL) THEN
 				len := name.Size();
 				i := 0;
 				WHILE (i < len) & 

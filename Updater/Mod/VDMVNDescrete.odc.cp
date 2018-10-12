@@ -10,15 +10,15 @@ MODULE UpdaterVDMVNDescrete;
 	
 
 	IMPORT
-		Services,
+		Stores, 
 		BugsRegistry,
-		GraphRules, GraphStochastic, GraphVD,
+		GraphRules, GraphStochastic, GraphVD, GraphVDDescrete,
 		MathFunc, MathRandnum,
 		UpdaterUpdaters, UpdaterVDMVN;
 
 	TYPE
-		Updater = POINTER TO RECORD(UpdaterVDMVN.Updater)
-			size, start: INTEGER;
+		Updater = POINTER TO RECORD(UpdaterVDMVN.Updater) 
+			theta: POINTER TO ARRAY OF BOOLEAN	
 		END;
 
 		Factory = POINTER TO RECORD(UpdaterUpdaters.Factory) END;
@@ -27,7 +27,8 @@ MODULE UpdaterVDMVNDescrete;
 		fact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-
+		config: POINTER TO ARRAY OF BOOLEAN;
+		
 	PROCEDURE (updater: Updater) ParamsSize (): INTEGER;
 	BEGIN
 		RETURN 0
@@ -35,26 +36,20 @@ MODULE UpdaterVDMVNDescrete;
 
 	PROCEDURE (updater: Updater) Birth (n: INTEGER);
 		VAR
-			i, j, k, index, numEmpty, size, start: INTEGER;
+			i, j, k, index, numEmpty, size: INTEGER;
+			vdNode: GraphVDDescrete.Node;
 	BEGIN
 		k := SHORT(ENTIER(updater.prior[0].value + 0.5));
-		size := updater.size;
-		start := updater.start;
+		vdNode := updater.vdNode(GraphVDDescrete.Node);
+		size := LEN(vdNode.theta);
 		i := 0;
 		WHILE i < n DO
-			numEmpty := size - k;
-			index := MathRandnum.DiscreteUniform(1, numEmpty);
-			j := 0;
-			WHILE index > 0 DO
-				IF updater.prior[j + start].value < 0.5 THEN DEC(index) END;
-				IF index = 0 THEN
-					updater.prior[j + start].SetValue(1.0);
-				END;
-				INC(j)
-			END;
-			INC(k);
+			REPEAT
+				index := MathRandnum.DiscreteUniform(1, size) - 1
+			UNTIL ~vdNode.theta[index];
+			vdNode.theta[index] := TRUE;
 			INC(i)
-		END
+		END;
 	END Birth;
 
 	PROCEDURE (updater: Updater) Clone (): Updater;
@@ -64,103 +59,148 @@ MODULE UpdaterVDMVNDescrete;
 		NEW(u);
 		RETURN u
 	END Clone;
-
+	
+	PROCEDURE (updater: Updater) CopyFromVDMVN (source: UpdaterUpdaters.Updater);
+		VAR
+			size: INTEGER;
+	BEGIN
+		updater.theta := source(Updater).theta;
+		size := LEN(source(Updater).theta);
+		NEW(updater.theta, size);
+	END CopyFromVDMVN;
+	
 	PROCEDURE (updater: Updater) Death (n: INTEGER);
 		VAR
-			i, j, k, index, start: INTEGER;
+			i, j, k, index, size: INTEGER;
+			vdNode: GraphVDDescrete.Node;
 	BEGIN
 		k := SHORT(ENTIER(updater.prior[0].value + 0.5));
+		vdNode := updater.vdNode(GraphVDDescrete.Node);
+		size := LEN(vdNode.theta);
 		i := 0;
-		start := updater.start;
 		WHILE i < n DO
-			index := MathRandnum.DiscreteUniform(1, k);
-			j := 0;
-			WHILE index > 0 DO
-				IF updater.prior[j + start].value > 0.5 THEN DEC(index) END;
-				IF index = 0 THEN updater.prior[j + start].SetValue(0.0) END;
-				INC(j)
-			END;
-			DEC(k);
+			REPEAT
+				index := MathRandnum.DiscreteUniform(1, size) - 1
+			UNTIL vdNode.theta[index];
+			vdNode.theta[index] := FALSE;
 			INC(i)
-		END
+		END;
 	END Death;
-
-	PROCEDURE (updater: Updater) InitializeUpdatersVDMVN;
+	
+	PROCEDURE (updater: Updater) ExternalizeVD (VAR wr: Stores.Writer);
 		VAR
-			numBeta, numTheta, numPhi: INTEGER;
+			i, size: INTEGER;
 	BEGIN
-		GraphVD.Elements(updater.prior, numBeta, numTheta, numPhi);
-		updater.size := numTheta;
-		updater.start := 1 + numBeta
-	END InitializeUpdatersVDMVN;
+		size := LEN(updater.theta);
+		wr.WriteInt(size);
+		i := 0; WHILE i < size DO wr.WriteBool(updater.theta[i]); INC(i) END
+	END ExternalizeVD;
+	
+	PROCEDURE (updater: Updater) InitializeVDMVN;
+		VAR
+			i, size: INTEGER;
+			theta: POINTER TO ARRAY OF BOOLEAN;
+			vdNode: GraphVDDescrete.Node;
+	BEGIN
+		vdNode := updater.vdNode(GraphVDDescrete.Node);
+		theta := vdNode.theta;
+		size := LEN(theta);
+		NEW(updater.theta, size);
+		i := 0; WHILE i < size DO updater.theta[i] := FALSE; INC(i) END;
+		IF LEN(config) < size THEN NEW(config, size) END;
+	END InitializeVDMVN;
 
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "UpdaterVDMVNDescrete.Install"
 	END Install;
+	
+	PROCEDURE (updater: Updater) InternalizeVD (VAR rd: Stores.Reader);
+		VAR
+			i, size: INTEGER;
+	BEGIN
+		rd.ReadInt(size);
+		i := 0;
+		WHILE i < size DO
+			rd.ReadBool(updater.theta[i]);
+			INC(i)
+		END
+	END InternalizeVD;
+	
+	PROCEDURE (updater: Updater) LoadSampleMultivariate;
+		VAR
+			i, size: INTEGER;
+			theta: POINTER TO ARRAY OF BOOLEAN;
+			vdNode: GraphVDDescrete.Node;
+	BEGIN
+		vdNode := updater.vdNode(GraphVDDescrete.Node);
+		theta := vdNode.theta;
+		i := 0;
+		size := LEN(updater.theta);
+		WHILE i < size DO
+			theta[i] := updater.theta[i];	(*	copy into graph	*)
+			INC(i)
+		END
+	END LoadSampleMultivariate;
 
 	PROCEDURE (updater: Updater) Move (n: INTEGER);
 		VAR
-			i, j, k, index, numEmpty, size, start: INTEGER;
+			i, j, k, index, numEmpty, size: INTEGER;
+			vdNode: GraphVDDescrete.Node;
 	BEGIN
 		k := SHORT(ENTIER(updater.prior[0].value + 0.5));
+		vdNode := updater.vdNode(GraphVDDescrete.Node);
+		size := LEN(vdNode.theta);
+		i := 0; WHILE i < size DO config[i] :=  vdNode.theta[i]; INC(i) END;
 		(*	deaths	*)
 		i := 0;
-		size := updater.size;
-		start := updater.start;
 		WHILE i < n DO
-			index := MathRandnum.DiscreteUniform(1, k);
-			j := 0;
-			WHILE index > 0 DO
-				IF updater.prior[j + start].value > 0.5 THEN DEC(index) END;
-				IF index = 0 THEN updater.prior[j + start].SetValue( - 1.0) END;
-				INC(j)
-			END;
-			DEC(k);
+			REPEAT
+				index := MathRandnum.DiscreteUniform(1, size) - 1
+			UNTIL vdNode.theta[index];
+			vdNode.theta[index] := FALSE;
 			INC(i)
 		END;
 		(*	births	*)
 		k := k + n;
 		i := 0;
 		WHILE i < n DO
-			numEmpty := size - k;
-			index := MathRandnum.DiscreteUniform(1, numEmpty);
-			j := 0;
-			WHILE index > 0 DO
-				IF (updater.prior[j + start].value < 0.5) & (updater.prior[j + start].value >  - 0.5) THEN
-					DEC(index)
-				END;
-				IF index = 0 THEN
-					updater.prior[j + start].SetValue(1.0);
-				END;
-				INC(j)
-			END;
-			INC(k);
+			REPEAT
+				index := MathRandnum.DiscreteUniform(1, size) - 1
+			UNTIL ~vdNode.theta[index] & ~config[index];
+			vdNode.theta[index] := TRUE;
 			INC(i)
 		END;
-		i := 0;
-		WHILE i < size DO
-			IF updater.prior[i + start].value <  - 0.5 THEN
-				updater.prior[i + start].SetValue(0.0)
-			END;
-			INC(i)
-		END
 	END Move;
 
 	PROCEDURE (updater: Updater) PriorDensity (): REAL;
 		VAR
-			k, logPk, logPrior, logPtheta: REAL;
-			size: INTEGER;
+			logPk, logPrior, logPtheta: REAL;
+			k, size: INTEGER;
 	BEGIN
-		k := updater.prior[0].value;
-		size := updater.size;
+		k := SHORT(ENTIER(updater.prior[0].value + 0.5));
+		size := LEN(updater.theta);
 		logPk := updater.prior[0].LogPrior();
-		logPtheta := MathFunc.LogGammaFunc(size - k + 1) + MathFunc.LogGammaFunc(k + 1)
-		 - MathFunc.LogGammaFunc(size + 1);
+		logPtheta := MathFunc.LogFactorial(size - k) + MathFunc.LogFactorial(k)
+		 - MathFunc.LogFactorial(size);
 		logPrior := logPk + logPtheta;
 		RETURN logPrior
 	END PriorDensity;
-
+	
+	PROCEDURE (updater: Updater) StoreSampleMultivariate;
+		VAR
+			i, size: INTEGER;
+			vdNode: GraphVDDescrete.Node;
+	BEGIN
+		i := 0;
+		vdNode := updater.vdNode(GraphVDDescrete.Node);
+		size := LEN(updater.theta);
+		WHILE i < size DO
+			updater.theta[i] := vdNode.theta[i];	(*	copy from graph	*)
+			INC(i)
+		END 
+	END StoreSampleMultivariate;
+	
 	PROCEDURE (f: Factory) GetDefaults;
 		VAR
 			res: INTEGER;
@@ -179,42 +219,18 @@ MODULE UpdaterVDMVNDescrete;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 		VAR
-			children, block: GraphStochastic.Vector;
-			parent: GraphStochastic.Node;
-			i, j, class, numBeta, numPhi, numTheta, num: INTEGER;
-			normal, bernoulli: BOOLEAN;
+			vdNode: GraphVD.Node;
+			beta0: GraphStochastic.Node;
 	BEGIN
-		IF ~(GraphStochastic.integer IN prior.props) THEN
-			RETURN FALSE
+		IF ~(GraphStochastic.integer IN prior.props) THEN RETURN FALSE END;
+		vdNode := GraphVD.VDNode(prior); 
+		IF vdNode = NIL THEN RETURN FALSE END;
+		IF ~(vdNode IS GraphVDDescrete.Node) THEN RETURN FALSE END;
+		beta0 := vdNode.beta[0];
+		beta0.ClassifyConditional;
+		IF ~(beta0.classConditional IN {GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin}) THEN 
+			RETURN FALSE 
 		END;
-		block := GraphVD.Block(prior);
-		IF block = NIL THEN RETURN FALSE END;
-		GraphVD.Elements(block, numBeta, numTheta, numPhi);
-		(*	check that theta variables are bernoulli	*)
-		bernoulli := TRUE;
-		i := 0;
-		WHILE (i < numTheta) & bernoulli DO
-			parent := block[i + numBeta + 1];
-			bernoulli := Services.Is(parent, "GraphBern.Node");
-			INC(i)
-		END;
-		IF ~bernoulli THEN RETURN FALSE END;
-		(*	check that the beta are normal	*)
-		normal := TRUE;
-		i := 0;
-		WHILE (i < numBeta) & normal DO
-			children := prior.Children();
-			IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-			j := 0;
-			WHILE (j < num) & normal DO
-				parent := block[i + 1];
-				class := children[j].ClassifyLikelihood(parent);
-				normal := class = GraphRules.normal;
-				INC(j)
-			END;
-			INC(i)
-		END;
-		IF ~normal THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -255,7 +271,8 @@ MODULE UpdaterVDMVNDescrete;
 			BugsRegistry.WriteSet(name + ".props", f.props)
 		END;
 		f.GetDefaults;
-		fact := f
+		fact := f;
+		NEW(config, 1)
 	END Init;
 
 BEGIN

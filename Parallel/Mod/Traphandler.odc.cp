@@ -12,6 +12,7 @@ MODULE ParallelTraphandler;
 	
 
 	IMPORT
+		WinApi,
 		Files, Kernel, Stores;
 
 	VAR
@@ -32,12 +33,12 @@ MODULE ParallelTraphandler;
 			DEC(a, mod.code); ref := mod.refs;
 			REPEAT Kernel.GetRefProc(ref, end, name) UNTIL (end = 0) OR (a < end);
 			IF a < end THEN
-				msg := " in procedure " + name + " in module " + mod.name + " ******"
+				msg := "Error in procedure " + name + " in module " + mod.name + " ******"
 			END
 		END
 	END GetTrapMsg;
 
-	PROCEDURE TrapViewer;
+(*	PROCEDURE TrapViewer;
 		VAR
 			msg: ARRAY 256 OF CHAR;
 			loc: Files.Locator;
@@ -54,6 +55,15 @@ MODULE ParallelTraphandler;
 		wr.ConnectTo(NIL);
 		f.Close;
 		f.Register(fileName$, "txt", Files.dontAsk, res)
+	END TrapViewer;*)
+
+	PROCEDURE TrapViewer;
+		VAR
+			msg: ARRAY 256 OF CHAR;
+			res: INTEGER;
+	BEGIN
+		GetTrapMsg(msg);
+		res := WinApi.MessageBoxW(0, msg, fileName, {})
 	END TrapViewer;
 
 	PROCEDURE SetTrapViewer* (IN fName: ARRAY OF CHAR);

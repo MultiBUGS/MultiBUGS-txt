@@ -14,7 +14,7 @@ MODULE GraphLinkfunc;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphNodes, GraphScalar, GraphStochastic;
+		GraphNodes, GraphScalar, GraphStochastic;
 
 	TYPE
 		Node* = POINTER TO ABSTRACT RECORD(GraphScalar.Node)

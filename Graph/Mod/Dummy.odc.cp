@@ -14,43 +14,49 @@ MODULE GraphDummy;
 
 	IMPORT
 		Stores,
-		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate;
+		GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphConjugateUV.Node) END;
+		Node = POINTER TO RECORD(GraphStochastic.Node) END;
 
-		Factory = POINTER TO RECORD(GraphUnivariate.Factory) END;
+		Factory = POINTER TO RECORD(GraphStochastic.Factory) END;
 
 	VAR
-		fact-: GraphUnivariate.Factory;
+		fact-: GraphStochastic.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) CheckUnivariate (): SET;
+	PROCEDURE (node: Node) Bounds (OUT left, upper: REAL);
+	BEGIN
+		left := - INF;
+		upper := INF
+	END Bounds;
+
+	PROCEDURE (node: Node) CanSample (multiVar: BOOLEAN): BOOLEAN;
+	BEGIN
+		RETURN TRUE
+	END CanSample;
+
+	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
 		RETURN {}
-	END CheckUnivariate;
+	END Check;
 
-	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate (parent: GraphStochastic.Node): INTEGER;
+	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 	BEGIN
 		RETURN GraphRules.unif
-	END ClassifyLikelihoodUnivariate;
+	END ClassifyLikelihood;
 
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
 		RETURN GraphRules.unif
 	END ClassifyPrior;
 
-	PROCEDURE (node: Node) Cumulative (x: REAL): REAL;
-	BEGIN
-		RETURN 0.0
-	END Cumulative;
-
-	PROCEDURE (node: Node) DevianceUnivariate (): REAL;
+	PROCEDURE (node: Node) Deviance (): REAL;
 	BEGIN
 		HALT(0);
 		RETURN 0.0
-	END DevianceUnivariate;
+	END Deviance;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
@@ -62,15 +68,44 @@ MODULE GraphDummy;
 		RETURN 0.0
 	END DiffLogPrior;
 
+	PROCEDURE (node: Node) ExternalizeStochastic (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeStochastic;
+
+	PROCEDURE (node: Node) InternalizeStochastic (VAR rd: Stores.Reader);
+	BEGIN
+	END InternalizeStochastic;
+
+	PROCEDURE (node: Node) InitStochastic;
+	BEGIN
+		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.initialized,
+		GraphStochastic.hidden, GraphStochastic.update})
+	END InitStochastic;
+
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphDummy.Install"
 	END Install;
 
-	PROCEDURE (node: Node) LogLikelihoodUnivariate (): REAL;
+	PROCEDURE (node: Node) InvMap (y: REAL);
+	BEGIN
+		node.SetValue(y)
+	END InvMap;
+
+	PROCEDURE (node: Node) IsLikelihoodTerm (): BOOLEAN;
+	BEGIN
+		RETURN FALSE
+	END IsLikelihoodTerm;
+
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
 	BEGIN
 		RETURN 0.0
-	END LogLikelihoodUnivariate;
+	END LogDetJacobian;
+
+	PROCEDURE (node: Node) LogLikelihood (): REAL;
+	BEGIN
+		RETURN 0.0
+	END LogLikelihood;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 	BEGIN
@@ -82,55 +117,37 @@ MODULE GraphDummy;
 		RETURN 0.0
 	END Location;
 
-	PROCEDURE (node: Node) BoundsUnivariate (OUT left, upper: REAL);
+	PROCEDURE (node: Node) Map (): REAL;
 	BEGIN
-		left :=  - INF;
-		upper := INF
-	END BoundsUnivariate;
+		RETURN node.value
+	END Map;
 
-	PROCEDURE (node: Node) ExternalizeUnivariate (VAR wr: Stores.Writer);
-	BEGIN
-	END ExternalizeUnivariate;
-
-	PROCEDURE (node: Node) InternalizeUnivariate (VAR rd: Stores.Reader);
-	BEGIN
-	END InternalizeUnivariate;
-
-	PROCEDURE (node: Node) InitUnivariate;
-	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.initialized,
-		GraphStochastic.hidden, GraphStochastic.update})
-	END InitUnivariate;
-
-	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
-	OUT p0, p1: REAL);
-	BEGIN
-		HALT(0)
-	END LikelihoodForm;
-
-	PROCEDURE (node: Node) ParentsUnivariate (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 	BEGIN
 		RETURN NIL
-	END ParentsUnivariate;
+	END Parents;
 
-	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
+	PROCEDURE (node: Node) Representative (): GraphStochastic.Node;
 	BEGIN
-		ASSERT(as = GraphRules.normal, 21);
-		p0 := 0.0;
-		p1 := 0.0
-	END PriorForm;
+		RETURN node
+	END Representative;
 
-	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN
 		res := {}
-	END SetUnivariate;
+	END Set;
+
+	PROCEDURE (node: Node) Size (): INTEGER;
+	BEGIN
+		RETURN 1
+	END Size;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 	BEGIN
 		HALT(0)
 	END Sample;
 
-	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
+	PROCEDURE (f: Factory) New (): GraphStochastic.Node;
 		VAR
 			node: Node;
 	BEGIN

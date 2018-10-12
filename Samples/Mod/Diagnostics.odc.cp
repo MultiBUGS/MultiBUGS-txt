@@ -1,11 +1,11 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-		 *)
+*)
 
 MODULE SamplesDiagnostics;
 
@@ -15,7 +15,7 @@ MODULE SamplesDiagnostics;
 	IMPORT
 		Ports, Stores, Strings, Views,
 		TextMappers, TextModels, TextRulers, TextViews,
-		BugsMappers, 
+		BugsMappers,
 		MathBGR, MathFunc,
 		PlotsAxis, PlotsViews,
 		SamplesViews;
@@ -52,7 +52,6 @@ MODULE SamplesDiagnostics;
 		p.tabs.tab[0].type := {};
 		i := 1;
 		WHILE i < numTabs DO
-			(*	p.tabs.tab[i].stop := 20 * Ports.mm * (i + 1);	*)
 			p.tabs.tab[i].stop := p.tabs.tab[i - 1].stop + 20 * Ports.mm;
 			p.tabs.tab[i].type := {};
 			INC(i)
@@ -177,11 +176,8 @@ MODULE SamplesDiagnostics;
 		v.context.GetSize(w, h);
 		lenSeries := LEN(v.numer);
 		i := 0; end1 := 0; phase := 0;
-		(*	beg := v.start;	*)
 		max := v.max;
 		WHILE i < lenSeries - 1 DO
-			(*	beg := beg + v.step;	*)
-			(*	end := beg + v.step;	*)
 			end1 := end1 + v.step;
 			end2 := end1 + v.step;
 			beg1 := v.start + end1 DIV 2;
@@ -199,9 +195,7 @@ MODULE SamplesDiagnostics;
 			i, len: INTEGER;
 	BEGIN
 		len := LEN(v.numer);
-		(*	minX := v.start;	*)
 		minX := v.start + v.step DIV 2;
-		(*	maxX := v.start + len * v.step;	*)
 		maxX := v.start + (len * v.step) DIV 2;
 		minY := 0.0;
 		maxY := 1;

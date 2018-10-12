@@ -13,8 +13,7 @@ MODULE Config;
 	
 
 	IMPORT
-		Converters, Dialog, Files, Meta,
-		(*WinConsole,*)
+		Converters, Dialog, Files, Kernel, Meta, Strings,
 		OleData;
 
 	VAR
@@ -27,8 +26,11 @@ MODULE Config;
 			locInfo: Files.LocInfo;
 			name: Files.Name;
 			fileInfo: Files.FileInfo;
-			ok: BOOLEAN;
 			item, modItem: Meta.Item;
+			ok: BOOLEAN;
+			module: Kernel.Module;
+			pos: INTEGER;
+			procName: ARRAY 256 OF CHAR;
 	BEGIN
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "txt",
 		{Converters.importAll});
@@ -68,7 +70,7 @@ MODULE Config;
 
 		Dialog.metricSystem := TRUE;
 
-		(*	initialize subsystems in no particular order! problem for registry	*)
+		(*	initialize subsystems in no particular order only used for unlinked version of BUGS	*)
 		loc := Files.dir.This("");
 		locInfo := Files.dir.LocList(loc);
 		WHILE locInfo # NIL DO
@@ -88,10 +90,24 @@ MODULE Config;
 			locInfo := locInfo.next;
 		END;
 
+		(* initialize subsystems for linked BUGS	*)
+(*		module := Kernel.modList;
+		WHILE module # NIL DO
+			Strings.Find(module.name$, "Resources", 0, pos);
+			IF (pos # - 1) & (module.refcnt >= 0) THEN
+				procName := module.name + ".Load";
+				Meta.LookupPath(procName, item);
+				IF item.obj = Meta.procObj THEN
+					item.Call(ok)
+				END
+			END;
+			module := module.next
+		END; *)
+		
 		IF Dialog.commandLinePars # "" THEN
 			Meta.Lookup("BugsBatch", modItem)
 		END;
-
+		
 		Dialog.ShowStatus(Dialog.appName)
 
 	END Setup;

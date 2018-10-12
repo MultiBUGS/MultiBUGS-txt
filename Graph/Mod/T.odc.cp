@@ -56,6 +56,11 @@ MODULE GraphT;
 	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
+	
+	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).lambda)
+	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -86,7 +91,7 @@ MODULE GraphT;
 		lambda := t.lambda;
 		r := 0.5 * t.k.Value();
 		lam := r;
-		IF (GraphNodes.data IN t.props) OR (t.likelihood # NIL) THEN
+		IF (GraphNodes.data IN t.props) OR (t.children # NIL) THEN
 			x := t.value;
 			mu := t.mu.Value();
 			tau := t.tau.Value();
@@ -192,17 +197,17 @@ MODULE GraphT;
 
 	PROCEDURE (node: Node) DevianceUnivariate (): REAL;
 		VAR
-			logDensity, logNu, logTau, mu, k, tau, x: REAL;
+			logDensity, logK, logTau, mu, k, tau, x: REAL;
 	BEGIN
 		x := node.value;
 		mu := node.mu.Value();
 		tau := node.tau.Value();
 		logTau := MathFunc.Ln(tau);
 		k := node.k.Value();
-		logNu := MathFunc.Ln(k);
+		logK := MathFunc.Ln(k);
 		logDensity := MathFunc.LogGammaFunc(0.5 * (k + 1.0))
 		 - MathFunc.LogGammaFunc(0.5 * k)
-		 + 0.5 * (logTau - logPi - logNu)
+		 + 0.5 * (logTau - logPi - logK)
 		 - 0.5 * (k + 1) * Math.Ln(1.0 + tau * (x - mu) * (x - mu) / k);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
@@ -339,7 +344,7 @@ MODULE GraphT;
 		list := NIL;
 		node.mu.AddParent(list);
 		node.tau.AddParent(list);
-		IF all THEN node.k.AddParent(list) END;
+		IF all OR (GraphStochastic.truncated IN node.props) THEN node.k.AddParent(list) END;
 		node.lambda.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
@@ -406,13 +411,12 @@ MODULE GraphT;
 		argsS.scalars[0] := halfK;
 		argsS.scalars[1] := halfK;
 		lambda := GraphGamma.fact.New();
+		GraphStochastic.RegisterAuxillary(lambda);
 		lambda.Set(argsS, res); ASSERT(res = {}, 67);
 		lambda.SetValue(1.0);
 		(*	lambda is likelihood for k	*)
-		lambda.SetProps(lambda.props + {GraphNodes.data, GraphStochastic.initialized,
+		lambda.SetProps(lambda.props + {GraphStochastic.initialized,
 		GraphStochastic.hidden, GraphStochastic.update});
-		lambda.BuildLikelihood;
-		lambda.SetProps(lambda.props - {GraphNodes.data});
 		node.lambda := lambda;
 		auxillary := auxillaryFact.New(node);
 		UpdaterActions.RegisterUpdater(auxillary)
@@ -430,7 +434,7 @@ MODULE GraphT;
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
 		(*	truncation not allowed because of mixture representation	*)
-		signature := "sssC"
+		signature := "sssCT"
 	END Signature;
 
 	PROCEDURE Install*;

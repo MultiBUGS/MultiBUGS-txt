@@ -54,6 +54,11 @@ MODULE UpdaterEmpty;
 	BEGIN
 		RETURN 0
 	END Depth;
+	
+	PROCEDURE (updater: Updater) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN 0
+	END DiffLogConditional;
 
 	PROCEDURE (updater: Updater) Externalize (VAR wr: Stores.Writer);
 	BEGIN
@@ -111,6 +116,11 @@ MODULE UpdaterEmpty;
 		RETURN 0.0
 	END LogLikelihood;
 
+	PROCEDURE (updater: Updater) LogPrior (): REAL;
+	BEGIN
+		RETURN 0.0
+	END LogPrior;
+
 	PROCEDURE (updater: Updater) Node (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		RETURN NIL
@@ -126,10 +136,6 @@ MODULE UpdaterEmpty;
 		res := {};
 	END Sample;
 
-	PROCEDURE (updater: Updater) SetChildren (children: GraphStochastic.Vector);
-	BEGIN
-	END SetChildren;
-
 	PROCEDURE (updater: Updater) SetPrior (prior: GraphStochastic.Node);
 	BEGIN
 	END SetPrior;
@@ -138,6 +144,10 @@ MODULE UpdaterEmpty;
 	BEGIN
 		RETURN updater.size
 	END Size;
+
+	PROCEDURE (updater: Updater) StoreSample;
+	BEGIN
+	END StoreSample;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
@@ -160,10 +170,6 @@ MODULE UpdaterEmpty;
 	PROCEDURE (f: Factory) GetDefaults;
 	BEGIN
 	END GetDefaults;
-
-	PROCEDURE (updater: Updater) StoreSample;
-	BEGIN
-	END StoreSample;
 
 	PROCEDURE New* (size: INTEGER): UpdaterUpdaters.Updater;
 		VAR

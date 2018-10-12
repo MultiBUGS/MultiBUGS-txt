@@ -13,7 +13,7 @@ MODULE UpdaterRandWalkUV;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		Math, Stores,
 		GraphStochastic,
 		MathRandnum,
 		UpdaterMetropolisUV, UpdaterUpdaters;
@@ -39,8 +39,8 @@ MODULE UpdaterRandWalkUV;
 		updater.delayedRejection := s.delayedRejection;
 		updater.CopyFromRandWalkUV(source)
 	END CopyFromMetropolisUV;
-	
-	PROCEDURE (updater: Updater) DelayedRejection*(delayed: BOOLEAN), NEW;
+
+	PROCEDURE (updater: Updater) DelayedRejection* (delayed: BOOLEAN), NEW;
 	BEGIN
 		updater.delayedRejection := delayed
 	END DelayedRejection;
@@ -60,68 +60,53 @@ MODULE UpdaterRandWalkUV;
 		rd.ReadBool(updater.delayedRejection);
 		updater.InternalizeRandWalkUV(rd)
 	END InternalizeMetropolis;
-	
+
 	PROCEDURE (updater: Updater) InitializeRandWalkUV-, NEW, ABSTRACT;
-	
+
 	PROCEDURE (updater: Updater) InitializeMetropolis-;
 	BEGIN
 		updater.InitializeRandWalkUV
 	END InitializeMetropolis;
-	
+
 	PROCEDURE (updater: Updater) SampleProposal- (): REAL, NEW, ABSTRACT;
 
 	(*	Antithetic delayed rejection metropolis	*)
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			deltaLogLike, deltaLogPrior, deltaValue, logAlpha, newVal, newLogLike,
-			new1LogLike, newLogPrior, new1LogPrior, oldLogLike, oldLogPrior,
-			psiBar, psiBarLogLike, psiBarLogPrior: REAL;
-			delta: ARRAY 2 OF REAL;
+			eltaValue, logAlpha, newVal, newLogCond, delta0, delta1, deltaValue, oldVal, psiBar,
+			new1LogCond, oldLogLike, oldLogCond, oldValMap, psiBarLogCond: REAL;
 			prior: GraphStochastic.Node;
 			reject: BOOLEAN;
 	BEGIN
 		res := {};
 		prior := updater.prior;
-		updater.StoreOldValue;
-		oldLogPrior := prior.LogPrior();
-		oldLogLike := updater.LogLikelihood();
+		oldVal := prior.value;
+		oldValMap := prior.Map();
+		oldLogCond := updater.LogConditional() + prior.LogDetJacobian();
 		deltaValue := updater.SampleProposal();
-		newVal := updater.oldVal + deltaValue;
-		prior.SetValue(newVal);
-		newLogPrior := prior.LogPrior();
-		newLogLike := updater.LogLikelihood();
-		deltaLogPrior := newLogPrior - oldLogPrior;
-		deltaLogLike := newLogLike - oldLogLike;
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReal(deltaLogLike)
-		END;
-		logAlpha := deltaLogPrior + deltaLogLike;
+		newVal := oldValMap + deltaValue;
+		prior.InvMap(newVal);
+		newLogCond := updater.LogConditional() + prior.LogDetJacobian();
+		logAlpha := newLogCond - oldLogCond;
 		reject := logAlpha < Math.Ln(MathRandnum.Rand());
 		IF reject THEN
 			IF updater.delayedRejection THEN
-				psiBar := updater.oldVal - 2 * deltaValue;
-				prior.SetValue(psiBar);
-				psiBarLogPrior := prior.LogPrior();
-				psiBarLogLike := updater.LogLikelihood();
-				newVal := updater.oldVal - deltaValue;
-				prior.SetValue(newVal);
-				new1LogPrior := prior.LogPrior();
-				new1LogLike := updater.LogLikelihood();
-				delta[0] := new1LogLike - oldLogLike;
-				delta[1] := psiBarLogLike - new1LogLike;
-				IF GraphStochastic.distributed IN prior.props THEN
-					MPIworker.SumReals(delta)
-				END;
-				delta[0] := new1LogPrior - oldLogPrior + delta[0];
-				delta[1] := psiBarLogPrior - new1LogPrior + delta[1];
-				reject := delta[1] > 0.0;
+				psiBar := oldValMap - 2 * deltaValue;
+				prior.InvMap(psiBar);
+				psiBarLogCond := updater.LogConditional() + prior.LogDetJacobian();
+				newVal := oldValMap - deltaValue;
+				prior.InvMap(newVal);
+				new1LogCond := updater.LogConditional() + prior.LogDetJacobian();
+				delta0 := new1LogCond - oldLogCond;
+				delta1:= psiBarLogCond - new1LogCond;
+				reject := delta1 > 0.0;
 				IF ~reject THEN
-					logAlpha := delta[0] + Math.Ln(1 - Math.Exp(delta[1])) - Math.Ln(1 - Math.Exp(logAlpha));
+					logAlpha := delta0 + Math.Ln(1 - Math.Exp(delta1)) - Math.Ln(1 - Math.Exp(logAlpha));
 					reject := logAlpha < Math.Ln(MathRandnum.Rand());
 				END
 			END;
 			IF reject THEN
-				prior.SetValue(updater.oldVal);
+				prior.SetValue(oldVal);
 				INC(updater.rejectCount)
 			END
 		END;

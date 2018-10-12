@@ -7,40 +7,33 @@
 
 	  *)
 
-(*	Must have BugsStdInterpreter in IMPORT list to initailize interpreter	*)
-
-MODULE Startup;
+MODULE BugsStartup;
 
 	
 
 	IMPORT
-		Kernel, Meta, Strings,
+		Kernel, Meta, Strings, 
 		MathTT800;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		setup: BOOLEAN;
 
-	PROCEDURE Setup*;
+	PROCEDURE Setup;
 		VAR
 			item: Meta.Item;
 			ok: BOOLEAN;
 			module: Kernel.Module;
 			pos: INTEGER;
-			nameM: Kernel.Utf8Name;
 			procName: ARRAY 256 OF CHAR;
 	BEGIN
-		IF setup THEN RETURN END;
-		setup := TRUE;
 		MathTT800.Install; 
 		(*	initialize linked subsystem of loaded modules	*)
 		module := Kernel.modList;
 		WHILE module # NIL DO
-			nameM := module.name;
-			Strings.Find(LONG(nameM), "Resources", 0, pos);
+			Strings.Find(module.name$, "Resources", 0, pos);
 			IF (pos # - 1) & (module.refcnt >= 0) THEN
-				procName := nameM + ".Load";
+				procName := module.name + ".Load";
 				Meta.LookupPath(procName, item);
 				IF item.obj = Meta.procObj THEN
 					item.Call(ok)
@@ -59,10 +52,10 @@ MODULE Startup;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		setup := FALSE
+		Setup
 	END Init;
 
 BEGIN
 	Init
-END Startup.
+END BugsStartup.
 

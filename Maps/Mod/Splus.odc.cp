@@ -34,7 +34,7 @@ MODULE MapsSplus;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("MapsSplus" + numToString, errorMes);
-		BugsMsg.Store(errorMes)
+		BugsMsg.StoreError(errorMes)
 	END Error;
 
 	PROCEDURE (imp: Importer) Load (VAR s: BugsMappers.Scanner): MapsMap.Map;
@@ -152,6 +152,9 @@ MODULE MapsSplus;
 					s.Scan
 				ELSE
 					negative := FALSE
+				END;
+				IF i = maxPoints THEN
+					Error(15); RETURN NIL
 				END;
 				IF s.type = BugsMappers.real THEN
 					x[i] := s.real * xScale

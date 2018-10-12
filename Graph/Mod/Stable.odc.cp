@@ -19,7 +19,7 @@ MODULE GraphStable;
 	TYPE
 		Node = POINTER TO RECORD(GraphUnivariate.Node)
 			alpha, beta, gamma, delta: GraphNodes.Node;
-			y: GraphUnivariate.Node
+			y: GraphStochastic.Node
 		END;
 
 		Auxillary = POINTER TO RECORD(UpdaterAuxillary.UpdaterUV) END;
@@ -70,7 +70,7 @@ MODULE GraphStable;
 		RETURN diff
 	END DTbyDy;
 
-	PROCEDURE (updater: Auxillary) Clone (): Auxillary;
+	PROCEDURE (auxillary: Auxillary) Clone (): Auxillary;
 		VAR
 			u: Auxillary;
 	BEGIN
@@ -78,9 +78,14 @@ MODULE GraphStable;
 		RETURN u
 	END Clone;
 
-	PROCEDURE (updater: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
+	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
+	
+	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).y)
+	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -102,7 +107,7 @@ MODULE GraphStable;
 
 	PROCEDURE (auxillary: Auxillary) Sample (overRelax: BOOLEAN; OUT res: SET);
 		CONST
-			maxIts = 100000;
+			maxIts = 1000000;
 			eps = 1.0E-4;
 		VAR
 			stable: Node;
@@ -113,6 +118,8 @@ MODULE GraphStable;
 		res := {};
 		i := 0;
 		stable := auxillary.node(Node);
+		(*	if stable node is for prediction no need to sample its auxillay variable	*)
+		IF ~(GraphStochastic.data IN stable.props) & (stable.children = NIL) THEN RETURN END;
 		x := stable.value;
 		alpha := stable.alpha.Value();
 		beta := stable.beta.Value();
@@ -266,7 +273,7 @@ MODULE GraphStable;
 		node.gamma := GraphNodes.Internalize(rd);
 		node.delta := GraphNodes.Internalize(rd);
 		p := GraphNodes.Internalize(rd);
-		node.y := p(GraphUnivariate.Node)
+		node.y := p(GraphStochastic.Node)
 	END InternalizeUnivariate;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -330,7 +337,7 @@ MODULE GraphStable;
 		p := node.beta; p.AddParent(list);
 		p := node.gamma; p.AddParent(list);
 		p := node.delta; p.AddParent(list);
-		p := node.y; p.AddParent(list);
+		IF all THEN p := node.y; p.AddParent(list) END;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END ParentsUnivariate;
@@ -351,7 +358,7 @@ MODULE GraphStable;
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			auxillary: UpdaterUpdaters.Updater;
-			y: GraphUnivariate.Node;
+			y: GraphStochastic.Node;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.Args DO
@@ -364,6 +371,7 @@ MODULE GraphStable;
 			node.gamma := args.scalars[2];
 			node.delta := args.scalars[3];
 			y := GraphDummy.fact.New();
+			GraphStochastic.RegisterAuxillary(y);
 			(*	need to set y	*)
 			y.Set(args, res);
 			node.y := y;

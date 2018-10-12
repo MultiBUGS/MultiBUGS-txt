@@ -13,7 +13,7 @@ MODULE BugsTraphandler;
 
 	IMPORT
 		Kernel,
-		BugsTexts;
+		Dialog;
 
 	VAR
 		version-: INTEGER;
@@ -23,7 +23,7 @@ MODULE BugsTraphandler;
 		VAR
 			ref, end, a: INTEGER;
 			mod: Kernel.Module;
-			name: Kernel.Name;
+			name: Kernel.Utf8Name;
 	BEGIN
 		msg := " ******";
 		a := Kernel.pc; mod := Kernel.modList;
@@ -42,7 +42,7 @@ MODULE BugsTraphandler;
 			msg: ARRAY 128 OF CHAR;
 	BEGIN
 		GetTrapMsg(msg);
-		BugsTexts.ShowMsg("****** Sorry something went wrong" + msg)
+		Dialog.ShowMsg("****** Sorry something went wrong" + msg)
 	END TrapViewer;
 
 

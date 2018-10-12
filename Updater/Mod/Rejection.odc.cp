@@ -18,7 +18,7 @@ MODULE UpdaterRejection;
 		BugsRegistry,
 		GraphConjugateUV, GraphLinkfunc, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
-		UpdaterContinuous, UpdaterUpdaters;
+		UpdaterContinuous, UpdaterUnivariate, UpdaterUpdaters;
 
 	CONST
 		batch = 25;
@@ -74,8 +74,8 @@ MODULE UpdaterRejection;
 		updater.iteration := 0;
 		updater.sigma := 0.1;
 		updater.meanSigma := 0.0;
-		children :=  prior.Children();
-		len := LEN(children);
+		children :=  prior.children;
+		IF children # NIL THEN len := LEN(children) ELSE len := 0 END;
 		IF len > LEN(param0) THEN
 			NEW(param0, len);
 			NEW(param1, len);
@@ -137,10 +137,10 @@ MODULE UpdaterRejection;
 			END;
 			IF leftB & rightB THEN EXIT END;
 			DEC(iter);
-			IF iter = 0 THEN
-				res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT
+			IF iter = 0 THEN 
+				res := {GraphNodes.lhs, GraphNodes.tooManyIts};  EXIT
 			END;
-			mode := mode + step
+			mode := mode + step;
 		END;
 		mode := 0.5 * (left + right);
 		LOOP
@@ -153,7 +153,7 @@ MODULE UpdaterRejection;
 			interval := right - left;
 			IF (ABS(deriv) < eps) OR (interval < eps1) THEN EXIT END;
 			DEC(iter);
-			IF iter = 0 THEN
+			IF iter = 0 THEN 
 				res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT
 			END;
 			step :=  - deriv / deriv2;
@@ -268,7 +268,7 @@ MODULE UpdaterRejection;
 		prior := updater.prior;
 		prior.SetValue(x);
 		cond := 0.0;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < num DO
@@ -281,7 +281,7 @@ MODULE UpdaterRejection;
 			INC(i)
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReal(cond)
+			cond := MPIworker.SumReal(cond)
 		END;
 		cond := cond + prior.LogPrior();
 		RETURN cond
@@ -301,7 +301,7 @@ MODULE UpdaterRejection;
 		prior.SetValue(x);
 		deriv := prior.DiffLogPrior();
 		deriv2 := deriv2 - deriv;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		param[0] := 0.0;
 		param[1] := 0.0;
@@ -317,7 +317,7 @@ MODULE UpdaterRejection;
 			INC(i)
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(param)
+			MPIworker.SumReals(param);
 		END;
 		deriv := deriv + param[0];
 		deriv2 := deriv2 + param[1]
@@ -338,7 +338,7 @@ MODULE UpdaterRejection;
 			children: GraphStochastic.Vector;
 	BEGIN
 		prior := updater.prior;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		as := GraphRules.beta;
 		i := 0;
@@ -375,7 +375,7 @@ MODULE UpdaterRejection;
 		prior := updater.prior;
 		prior.SetValue(x);
 		cond := 0.0;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < num DO
@@ -387,7 +387,7 @@ MODULE UpdaterRejection;
 			INC(i)
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReal(cond)
+			cond := MPIworker.SumReal(cond)
 		END;
 		cond := cond + prior.LogPrior();
 		RETURN cond
@@ -407,7 +407,7 @@ MODULE UpdaterRejection;
 		prior.SetValue(x);
 		deriv := prior.DiffLogPrior();
 		deriv2 := deriv2 - deriv;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		param[0] := 0.0;
 		param[1] := 0.0;
@@ -423,7 +423,7 @@ MODULE UpdaterRejection;
 			INC(i)
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(param)
+			MPIworker.SumReals(param);
 		END;
 		deriv := deriv + param[0];
 		deriv2 := deriv2 + param[1]
@@ -446,7 +446,7 @@ MODULE UpdaterRejection;
 		prior := updater.prior;
 		as := GraphRules.gamma;
 		i := 0;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		WHILE i < num DO
 			gamma := children[i](GraphConjugateUV.Node);
@@ -470,6 +470,7 @@ MODULE UpdaterRejection;
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.logitReg THEN RETURN FALSE END;
+		IF ~UpdaterUnivariate.IsHomologous(prior) THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -508,12 +509,9 @@ MODULE UpdaterRejection;
 			GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF bounds * prior.props # {} THEN
-			RETURN FALSE
-		END;
-		IF prior.classConditional # GraphRules.logReg THEN
-			RETURN FALSE
-		END;
+		IF bounds * prior.props # {} THEN RETURN FALSE END;
+		IF prior.classConditional # GraphRules.logReg THEN RETURN FALSE END;
+		IF ~UpdaterUnivariate.IsHomologous(prior) THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

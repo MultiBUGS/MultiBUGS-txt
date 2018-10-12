@@ -16,7 +16,8 @@ MODULE GraphODEBlockL;
 	
 
 	IMPORT
-		Meta, Stores, 
+		Stores, 
+		BugsMsg,
 		GraphDummy, GraphLogical, GraphNodes, GraphPiecewise, GraphRules,
 		GraphStochastic, GraphVector,
 		MathODE;
@@ -25,7 +26,7 @@ MODULE GraphODEBlockL;
 		trap = 55;
 
 	TYPE
-		Node* = POINTER TO ABSTRACT RECORD (GraphVector.Node)
+		Node = POINTER TO RECORD (GraphVector.Node)
 			linked: BOOLEAN;
 			tol, atol: REAL;
 			x0, x1: POINTER TO ARRAY OF REAL;
@@ -98,7 +99,7 @@ MODULE GraphODEBlockL;
 		WHILE i < len DO
 			j := 0;
 			WHILE j < wid DO
-				GraphNodes.Externalize(node.inits[i][j], wr);
+				GraphNodes.Externalize(node.inits[i, j], wr);
 				INC(j);
 			END;
 			INC(i);
@@ -141,14 +142,23 @@ MODULE GraphODEBlockL;
 		END
 	END Internalize;
 
-	PROCEDURE (node: Node) ExternalizeVector- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 	BEGIN
 		IF node.index = 0 THEN
 			Externalize(node, wr)
 		END
 	END ExternalizeVector;
 
-	PROCEDURE (node: Node) InternalizeVector- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
+		VAR
+			install1, install2: ARRAY 128 OF CHAR;
+	BEGIN
+		node.solver.Install(install1);
+		BugsMsg.Lookup(install1, install2);
+		BugsMsg.Lookup(install2, install) 
+	END Install;
+
+	PROCEDURE (node: Node) InternalizeVector (VAR rd: Stores.Reader);
 
 	BEGIN
 		IF node.index = 0 THEN
@@ -189,12 +199,12 @@ MODULE GraphODEBlockL;
 		END
 	END Link;
 
-	PROCEDURE (node: Node) Check* (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
 		RETURN {};
 	END Check;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			form, numEq, numBlocks, gridSize, i, j: INTEGER;
 			p: GraphNodes.Node;
@@ -236,7 +246,7 @@ MODULE GraphODEBlockL;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate- (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
 		CONST
 			eps = 1.0E-10;
 		VAR
@@ -319,9 +329,10 @@ MODULE GraphODEBlockL;
 		END
 	END Evaluate;
 
-	PROCEDURE (node: Node) InitLogical-;
+	PROCEDURE (node: Node) InitLogical;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
+		node.solver := NIL;
 		node.linked := FALSE;
 		node.tol := 0.0;
 		node.atol := 0.0;
@@ -336,7 +347,7 @@ MODULE GraphODEBlockL;
 		node.inits := NIL
 	END InitLogical;
 
-	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
 			numEq, numBlocks, gridSize, i, j: INTEGER;
@@ -379,7 +390,7 @@ MODULE GraphODEBlockL;
 		RETURN list;
 	END Parents;
 
-	PROCEDURE (node: Node) Set* (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			numInitBlocks, numEq, numBlocks, gridSize, i, j, off: INTEGER;
 			equations: Equations;
@@ -491,17 +502,12 @@ MODULE GraphODEBlockL;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) SetSolver* (solver: MathODE.Solver), NEW;
-	BEGIN
-		node.solver := solver
-	END SetSolver;
-
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
 	BEGIN
 		HALT(126)
 	END ValDiff;
 
-	PROCEDURE (equations: Equations) Derivatives* (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
+	PROCEDURE (equations: Equations) Derivatives (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
 	t: REAL; OUT dxdt: ARRAY OF REAL);
 		VAR
 			i: INTEGER;
@@ -529,20 +535,30 @@ MODULE GraphODEBlockL;
 		install := ""
 	END Install;
 
-	PROCEDURE (equations: Equations) SecondDerivatives* (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
+	PROCEDURE (equations: Equations) SecondDerivatives (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
 	t: REAL; OUT d2xdt2: ARRAY OF REAL);
 	BEGIN
 	END SecondDerivatives;
 
-	PROCEDURE (equations: Equations) Jacobian* (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
+	PROCEDURE (equations: Equations) Jacobian (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
 	t: REAL; OUT jacob: ARRAY OF ARRAY OF REAL);
 	BEGIN
 	END Jacobian;
 
+	PROCEDURE New* (solver: MathODE.Solver): GraphVector.Node;
+		VAR
+			node: Node;
+	BEGIN
+		NEW(node); 
+		node.Init;
+		node.solver := solver; 
+		RETURN node
+	END New;
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
-		maintainer := "   ";
+		maintainer := "---";
 	END Maintainer;
 
 	PROCEDURE Init;

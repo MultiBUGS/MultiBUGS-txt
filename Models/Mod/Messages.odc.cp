@@ -18,29 +18,19 @@ MODULE ModelsMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		RegisterKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		StoreKey("ModelsEmbed:MonitorCleared", "monitored cleared");
-		StoreKey("ModelsEmbed:MonitorSet", "monitor set");
-		StoreKey("ModelsEmbed:NotInitialized", "model must be initialized before monitors used");
-		StoreKey("ModelsEmbed:NotVariable", "^0 is not a variable in the model");
-		StoreKey("ModelsEmbed:NotVector", "^0 is not a vector");
-		StoreKey("ModelsEmbed:Adapting", "inference can not be made when sampler is in adaptive phase");
-		StoreKey("ModelsEmbed:NotSet", "no monitor set for variable ^0");
-		StoreKey("ModelsEmbed:NoMonitors", "no monitors set");
-		StoreKey("ModelsEmbed:AlreadySet", "monitor already set");
-
-		StoreKey("ModelsCmds:MonitorCleared", "monitored cleared");
-		StoreKey("ModelsCmds:MonitorSet", "monitor set");
-		StoreKey("ModelsCmds:NotInitialized", "model must be initialized before monitors used");
-		StoreKey("ModelsCmds:NotVariable", "^0 is not a variable in the model");
-		StoreKey("ModelsCmds:NotVector", "^0 is not a vector");
-		StoreKey("ModelsCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
-		StoreKey("ModelsCmds:NotSet", "no monitor set for variable ^0");
-		StoreKey("ModelsCmds:NoMonitors", "no monitors set");
-		StoreKey("ModelsCmds:AlreadySet", "monitor already set");
+		RegisterKey("ModelsCmds:MonitorCleared", "monitored cleared");
+		RegisterKey("ModelsCmds:MonitorSet", "monitor set");
+		RegisterKey("ModelsCmds:NotInitialized", "model must be initialized before monitors used");
+		RegisterKey("ModelsCmds:NotVariable", "^0 is not a variable in the model");
+		RegisterKey("ModelsCmds:NotVector", "^0 is not a vector");
+		RegisterKey("ModelsCmds:Adapting", "inference can not be made when sampler is in adaptive phase");
+		RegisterKey("ModelsCmds:NotSet", "no monitor set for variable ^0");
+		RegisterKey("ModelsCmds:NoMonitors", "no monitors set");
+		RegisterKey("ModelsCmds:AlreadySet", "monitor already set");
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -52,7 +42,7 @@ MODULE ModelsMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		StoreKey := BugsMsg.StoreKey
+		RegisterKey := BugsMsg.RegisterKey
 	END Init;
 
 BEGIN

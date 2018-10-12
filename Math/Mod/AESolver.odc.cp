@@ -1,11 +1,11 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-	 *)
+*)
 
 MODULE MathAESolver;
 
@@ -28,6 +28,11 @@ MODULE MathAESolver;
 		factBisection-, factPegasus-: MathFunctional.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+
+	PROCEDURE (solver: Bisection) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "MathAESolver.InstallBisection"
+	END Install;
 
 	PROCEDURE (solver: Bisection) Value (x0, x1, tol: REAL; IN theta: ARRAY OF REAL): REAL;
 		VAR
@@ -59,6 +64,11 @@ MODULE MathAESolver;
 		END;
 		RETURN x
 	END Value;
+
+	PROCEDURE (solver: Pegasus) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "MathAESolver.InstallPegasus"
+	END Install;
 
 	PROCEDURE (solver: Pegasus) Value (x0, x1, tol: REAL; IN theta: ARRAY OF REAL): REAL;
 		VAR

@@ -21,7 +21,7 @@ MODULE DiffLotkaVolterra;
 		nEq = 2;
 
 	VAR
-		fact-: GraphNodes.Factory;
+		fact-: GraphVector.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -63,7 +63,7 @@ MODULE DiffLotkaVolterra;
 			solver: MathODE.Solver;
 	BEGIN
 		NEW(equations);
-		solver := MathRungeKutta45.fact.New();
+		solver := MathRungeKutta45.New();
 		node := GraphODEmath.New(solver, equations, nEq);
 		RETURN node
 	END New;

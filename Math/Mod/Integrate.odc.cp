@@ -66,6 +66,11 @@ MODULE MathIntegrate;
 		END
 	END PolyInterp;
 
+	PROCEDURE (integrator: Romberg) Install* (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "MathIntegrate.InstallRomberg"
+	END Install;
+	
 	PROCEDURE (integrator: Romberg) Trapezoid (x0, x1: REAL; IN theta: ARRAY OF REAL; n: INTEGER): REAL, NEW;
 		VAR
 			i, numPoints: INTEGER;

@@ -26,6 +26,8 @@ The BUGS code is as follows
 			phi[i, 3] <- -exp(theta[i, 3])
 			for (k in 1:3) {
 				theta[i, k] ~ dnorm(mu[k], tau[k])
+				diffAD[i, k] <- diffLC(theta[i, k])
+				LC[i, k] <- LC(theta[i, k])
 			}
 		}
 		tauC ~ dgamma(1.0E-3, 1.0E-3)

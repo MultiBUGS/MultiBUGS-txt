@@ -15,7 +15,7 @@ MODULE MapsImporter;
 	IMPORT
 		Controllers, Dialog, Files, Meta, Models, Stores,
 		TextControllers, TextModels, TextViews,
-		BugsMappers, BugsMsg, 
+		BugsDialog, BugsFiles, BugsMappers, BugsMsg, 
 		MapsMap;
 
 	TYPE
@@ -38,7 +38,6 @@ MODULE MapsImporter;
 		VAR
 			ok: BOOLEAN;
 			pos, res: INTEGER;
-			errorMes: ARRAY 240 OF CHAR;
 			importer: Importer;
 			m: Models.Model;
 			s: BugsMappers.Scanner;
@@ -65,7 +64,7 @@ MODULE MapsImporter;
 				fact := NIL;
 				map := importer.Load(s);
 				IF map = NIL THEN
-					BugsMsg.Show(BugsMsg.message);
+					BugsFiles.ShowStatus(BugsMsg.message);
 					pos := s.Pos();
 					TextViews.ShowRange(text, pos, pos, FALSE);
 					TextControllers.SetCaret(text, pos);
@@ -74,7 +73,7 @@ MODULE MapsImporter;
 				END;
 				map.CalculateBounds(ok);
 				IF ~ok THEN
-					BugsMsg.Show(BugsMsg.message);
+					BugsFiles.ShowStatus(BugsMsg.message);
 					RETURN
 				END;
 				map.HiddenEdges;

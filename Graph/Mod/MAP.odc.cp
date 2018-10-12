@@ -22,6 +22,23 @@ MODULE GraphMAP;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE DiffLogConditional (node: GraphStochastic.Node): REAL;
+		VAR
+			diff: REAL;
+			children: GraphStochastic.Vector;
+			i, num: INTEGER;
+	BEGIN
+		diff := node.DiffLogPrior();
+		children := node.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE i < num DO
+			diff := diff + children[i].DiffLogLikelihood(node);
+			INC(i)
+		END;
+		RETURN diff
+	END DiffLogConditional;
+
 	PROCEDURE Hessian* (priors: GraphStochastic.Vector; VAR matrix: ARRAY OF ARRAY OF REAL);
 		VAR
 			i, j, dim: INTEGER;
@@ -36,13 +53,13 @@ MODULE GraphMAP;
 			priors[i].SetValue(val + delta);
 			j := 0;
 			WHILE j < dim DO
-				matrix[i, j] := priors[j].DiffLogConditional();
+				matrix[i, j] := DiffLogConditional(priors[j]);
 				INC(j)
 			END;
 			priors[i].SetValue(val - delta);
 			j := 0;
 			WHILE j < dim DO
-				matrix[i, j] := (matrix[i, j] - priors[j].DiffLogConditional()) / (2 * delta);
+				matrix[i, j] := (matrix[i, j] - DiffLogConditional(priors[j])) / (2 * delta);
 				INC(j)
 			END;
 			priors[i].SetValue(val);
@@ -70,7 +87,7 @@ MODULE GraphMAP;
 		i := 0;
 		dim := LEN(priors);
 		WHILE (i < dim) & converged DO
-			deriv := priors[i].DiffLogConditional();
+			deriv := DiffLogConditional(priors[i]);
 			converged := converged & (ABS(deriv) < tol);
 			INC(i)
 		END;
@@ -86,7 +103,7 @@ MODULE GraphMAP;
 			eps = 1.0E-6;
 			tol = 1.0E-6;
 	BEGIN
-		diff := prior.DiffLogConditional();
+		diff := DiffLogConditional(prior);
 		IF ABS(diff) < eps THEN
 			RETURN
 		ELSE
@@ -94,15 +111,15 @@ MODULE GraphMAP;
 			x0 := x0 + eps;
 			x1 := x1 - eps;
 			prior.SetValue(x0);
-			y0 := prior.DiffLogConditional();
+			y0 := DiffLogConditional(prior);
 			prior.SetValue(x1);
-			y1 := prior.DiffLogConditional();
+			y1 := DiffLogConditional(prior);
 			(*	pegasus solver	*)
 			count := 0;
 			LOOP
 				x := x1 - y1 * (x1 - x0) / (y1 - y0);
 				prior.SetValue(x);
-				y := prior.DiffLogConditional();
+				y := DiffLogConditional(prior);
 				IF ABS(y) < eps THEN EXIT END;
 				IF y * y1 > 0 THEN
 					y0 := y0 * y1 / (y1 + y)
@@ -130,16 +147,16 @@ MODULE GraphMAP;
 	BEGIN
 		count := 0;
 		prior.Bounds(lower, upper);
-		diff := prior.DiffLogConditional();
+		diff := DiffLogConditional(prior);
 		x := prior.value;
 		LOOP
 			prior.SetValue(x);
-			diff := prior.DiffLogConditional();
+			diff := DiffLogConditional(prior);
 			IF ABS(diff) < tol THEN EXIT END;
 			prior.SetValue(x + delta);
-			diffPlus := prior.DiffLogConditional();
+			diffPlus := DiffLogConditional(prior);
 			prior.SetValue(x - delta);
-			diffMinus := prior.DiffLogConditional();
+			diffMinus := DiffLogConditional(prior);
 			diff2 := (diffPlus - diffMinus) / (2 * delta);
 			IF diff2 > 0 THEN EXIT END;
 			x0 := x;
@@ -195,7 +212,7 @@ MODULE GraphMAP;
 			Hessian(priors, tau);
 			i := 0;
 			WHILE i < dim DO
-				deriv[i] := priors[i].DiffLogConditional();
+				deriv[i] := DiffLogConditional(priors[i]);
 				j := 0;
 				WHILE j < dim DO
 					cholesky[i, j] := - tau[i, j];

@@ -23,12 +23,12 @@ MODULE GraphRules;
 
 		(* classification of form of distribution *)
 
-		invalid* = 0; catagorical* = 1; descrete* = 2; poisson* = 3;  multinomial* = 4; general* = 5; 
-		genDiff* = 6; beta* = 7; beta1* = 8; cloglogReg* = 9; 
+		invalid* = 0; catagorical* = 1; descrete* = 2; poisson* = 3; multinomial* = 4; general* = 5;
+		genDiff* = 6; beta* = 7; beta1* = 8; cloglogReg* = 9;
 		dirichletPrior* = 10; gamma* = 11; gamma1* = 12; logCon* = 13; logReg* = 14;
-		logitReg* = 15; normal* = 16; pareto* = 17; probitReg* = 18; 
-		unif* = 19; mVN* = 20; mVNLin* = 21; dirichlet* = 22; wishart* = 23;
-		noDensity = 24;
+		logitReg* = 15; normal* = 16; pareto* = 17; probitReg* = 18;
+		unif* = 19; mVN* = 20; mVNLin* = 21; mVNSigma* = 22; dirichlet* = 23; wishart* = 24;
+		noDensity = 25;
 
 	VAR
 
@@ -550,13 +550,13 @@ MODULE GraphRules;
 		product[pareto, gamma1] := gamma;
 
 		product[normal, normal] := normal;
-		product[normal, mVN] := normal;
 		product[normal, logCon] := logCon;
 		product[normal, unif] := normal;
 		product[normal, cloglogReg] := cloglogReg;
 		product[normal, logitReg] := logitReg;
 		product[normal, probitReg] := probitReg;
 		product[normal, logReg] := logReg;
+		product[normal, mVN] := normal;
 		product[normal, mVNLin] := normal;
 		product[normal, gamma1] := logCon;
 
@@ -569,6 +569,7 @@ MODULE GraphRules;
 		product[mVN, probitReg] := probitReg;
 		product[mVN, logReg] := logReg;
 		product[mVN, mVNLin] := mVNLin;
+		product[mVN, mVNSigma] := mVN;
 
 		product[mVNLin, normal] := normal;
 		product[mVNLin, mVNLin] := mVNLin;
@@ -578,7 +579,11 @@ MODULE GraphRules;
 		product[mVNLin, logitReg] := logitReg;
 		product[mVNLin, probitReg] := probitReg;
 		product[mVNLin, logReg] := logReg;
+		product[mVNLin, mVNSigma] := mVNLin;
 
+		product[mVNSigma, mVNLin] := mVNLin;
+		product[mVNSigma, mVN] := mVN;
+		
 		i := 0;
 		WHILE i < noDensity DO
 			product[wishart, i] := invalid;

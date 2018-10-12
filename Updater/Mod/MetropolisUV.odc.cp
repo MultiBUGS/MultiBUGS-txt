@@ -20,7 +20,6 @@ MODULE UpdaterMetropolisUV;
 
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterContinuous.Updater)
-			oldVal-: REAL;
 			iteration*, rejectCount*: INTEGER
 		END;
 
@@ -35,7 +34,6 @@ MODULE UpdaterMetropolisUV;
 			s: Updater;
 	BEGIN
 		s := source(Updater);
-		updater.oldVal := s.oldVal;
 		updater.iteration := s.iteration;
 		updater.rejectCount := s.rejectCount;
 		updater.CopyFromMetropolisUV(source)
@@ -67,11 +65,6 @@ MODULE UpdaterMetropolisUV;
 		updater.rejectCount := 0;
 		updater.InitializeMetropolis
 	END InitializeUnivariate;
-
-	PROCEDURE (updater: Updater) StoreOldValue*, NEW;
-	BEGIN
-		updater.oldVal := updater.prior.value
-	END StoreOldValue;
 
 	PROCEDURE Maintainer;
 	BEGIN

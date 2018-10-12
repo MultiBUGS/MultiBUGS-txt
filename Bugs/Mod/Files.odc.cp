@@ -13,10 +13,10 @@ MODULE BugsFiles;
 	
 
 	IMPORT
-		Containers, Converters, Documents, Files, Fonts, Log, Ports, Strings, Views,
+		Containers, Converters, Dialog, Documents, Files, Log, Ports, Strings, Views,
 		TextMappers, TextModels, TextRulers, TextViews;
 
-CONST
+	CONST
 		file* = 2; (*	use file input/output	*)
 		log* = 1; (*	use the log for output	*)
 		window* = 0; (*	use window for output	*)
@@ -82,8 +82,7 @@ CONST
 			view: Views.View;
 			attr: TextRulers.Attributes;
 			s: TextMappers.Scanner;
-			font: Fonts.Font;
-			asc, dsc, width, num, w, h: INTEGER;
+			asc, dsc, num, w, h: INTEGER;
 			loc: Files.Locator;
 	BEGIN
 		CASE whereOut OF
@@ -128,7 +127,8 @@ CONST
 		|log:
 			Log.String(title);
 			Log.Ln;
-			(*Log.text.Append(text)*)
+			v := TextViews.dir.New(text);
+			Log.View(v)
 		|file:
 			v := TextViews.dir.New(text);
 			loc := tempLoc;
@@ -205,6 +205,14 @@ CONST
 		workingLoc := Files.dir.This("");
 		PathToFileSpec(path, workingLoc, name);
 	END SetWorkingDir;
+
+	PROCEDURE ShowStatus* (IN msg: ARRAY OF CHAR);
+	BEGIN
+		IF (whereOut = window) OR (whereOut = log) THEN
+			Dialog.ShowStatus(msg);
+			Log.String(msg); Log.Ln
+		END
+	END ShowStatus;
 
 	PROCEDURE WriteRuler* (IN tabs: ARRAY OF INTEGER; VAR f: TextMappers.Formatter);
 		VAR

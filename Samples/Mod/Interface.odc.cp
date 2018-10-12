@@ -71,8 +71,8 @@ MODULE SamplesInterface;
 			INC(i)
 		END;
 		IF num = 0 THEN
-			BugsMsg.Lookup("SamplesEmbed:NoMonitors", msg);
-			BugsMsg.Store(msg);
+			BugsMsg.Lookup("SamplesCmds:NoMonitors", msg);
+			BugsMsg.StoreMsg(msg);
 			ok := FALSE; RETURN
 		END;
 		IF newMonitor THEN
@@ -96,6 +96,7 @@ MODULE SamplesInterface;
 			var: BugsParser.Variable;
 			name: BugsNames.Name;
 			monitor: SamplesMonitors.Monitor;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		IF IsStar(variable) THEN
 			ok := TRUE; SamplesIndex.Clear
@@ -124,7 +125,12 @@ MODULE SamplesInterface;
 			END;
 			IF i = size THEN SamplesIndex.DeRegister(monitor) END;
 		END;
-		IF ok THEN BugsInterface.MonitorChanged END
+		IF ok THEN 
+			BugsInterface.MonitorChanged 
+		ELSE
+			BugsMsg.Lookup("SamplesCmds:MonitorNotCleared", msg);
+			BugsMsg.StoreMsg(msg);
+		END
 	END Clear;
 
 	PROCEDURE ClearNI* (IN variable: ARRAY OF CHAR);

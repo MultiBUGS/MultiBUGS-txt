@@ -13,7 +13,7 @@ MODULE BugsVersion;
 	
 
 	IMPORT
-		(*Fonts,*) Kernel, Meta, 
+		Kernel, Meta, 
 		TextMappers, TextModels;
 
 	VAR

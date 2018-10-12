@@ -285,29 +285,6 @@ MODULE GraphNormal;
 		GraphNodes.SetFactory(fact)
 	END Install;
 
-	PROCEDURE Vector* (size: INTEGER; tau: GraphNodes.Node): GraphStochastic.Vector;
-		VAR
-			i: INTEGER;
-			args: GraphStochastic.Args;
-			normals: GraphStochastic.Vector;
-			props, res: SET;
-	BEGIN
-		NEW(normals, size);
-		args.Init;
-		args.numScalars := 2;
-		args.scalars[0] := GraphConstant.New(0.0);
-		args.scalars[1] := tau;
-		i := 0;
-		WHILE i < size DO
-			normals[i] := fact.New();
-			normals[i].Set(args, res);
-			props := normals[i].props;
-			normals[i].SetProps(props + {GraphStochastic.hidden, GraphStochastic.initialized});
-			INC(i)
-		END;
-		RETURN normals
-	END Vector;
-
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;

@@ -12,18 +12,18 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface, BugsLatexprinter, BugsMAP, BugsMappers, BugsMsg,
-		BugsNames, BugsParser, BugsPrettyprinter,
-		BugsRandnum, BugsScripting, BugsSerialize, BugsVersion, Controllers, Converters, DevDebug,
-		Dialog, Files, GraphNodes, GraphRules, GraphStochastic, HostMenus,
-		MathRandnum, Meta, Models, MonitorMonitors, MPI,
-		Ports,
-		Services, StdCmds, StdLog,
-		Strings,
-		TextCmds,
-		TextControllers,
-		TextMappers, TextModels, TextViews, UpdaterActions, UpdaterMethods,
-		UpdaterSettings, Views;
+		Dialog, Files, Meta, Ports, Services, Strings, Views, Windows, 
+		HostMenus,
+		StdLog,
+		TextCmds, TextControllers, TextMappers, TextModels, TextViews,
+		BugsCPCompiler, BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface,
+		BugsInterpreter, BugsLatexprinter, BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser,
+		BugsPrettyprinter, BugsRandnum, BugsScripting, BugsSerialize, BugsVersion,
+		DevDebug,
+		GraphNodes, GraphRules, GraphStochastic,
+		MathRandnum,
+		MonitorMonitors,
+		UpdaterActions, UpdaterMethods, UpdaterSettings;
 
 	TYPE
 		Action = POINTER TO RECORD (Services.Action)
@@ -54,7 +54,7 @@ MODULE BugsCmds;
 
 		SpecificationDialog* = POINTER TO RECORD(BugsDialog.DialogBox)
 			chain*: INTEGER; 	(*	load inits for this chain	*)
-			numChains*, numProc*: INTEGER; 	(*	number of MCMC chains	*)
+			numChains*, workersPerChain*: INTEGER; 	(*	number of MCMC chains	*)
 			fixFounder*: BOOLEAN
 		END;
 
@@ -79,7 +79,9 @@ MODULE BugsCmds;
 		startTime: LONGINT;
 		action: Action;
 		scriptAction: ScriptAction;
-		filePath: ARRAY 1024 OF CHAR;
+		
+		script-: BOOLEAN;
+		
 		defaultNumChains, defaultRefresh: INTEGER;
 
 		compileDialog*: CompileDialog;
@@ -96,16 +98,18 @@ MODULE BugsCmds;
 		numberPresets: INTEGER;
 
 	PROCEDURE SetDisplay* (option: ARRAY OF CHAR);
+		VAR
+			res: INTEGER;
 	BEGIN
 		IF option = "log" THEN
 			displayDialog.whereOut := BugsFiles.log;
 			BugsFiles.SetDest(BugsFiles.log);
-			StdLog.Open
+			Dialog.Call("StdLog.Open", "", res);
 		ELSIF option = "window" THEN
 			displayDialog.whereOut := BugsFiles.window;
 			BugsFiles.SetDest(BugsFiles.window)
 		ELSIF option = "file" THEN
-			displayDialog.whereOut :=  - 1;
+			displayDialog.whereOut := BugsFiles.file;
 			BugsFiles.SetDest(BugsFiles.file)
 		END
 	END SetDisplay;
@@ -153,11 +157,6 @@ MODULE BugsCmds;
 		END
 	END SetChain;
 
-	PROCEDURE SetFilePath* (path: ARRAY OF CHAR);
-	BEGIN
-		filePath := path$
-	END SetFilePath;
-
 	PROCEDURE SetIteration* (iteration: INTEGER);
 	BEGIN
 		updateDialog.iteration := iteration
@@ -180,47 +179,50 @@ MODULE BugsCmds;
 		END
 	END NewModel;
 
-	PROCEDURE GetText (): TextModels.Model;
+	PROCEDURE GetText (IN filePath: ARRAY OF CHAR): TextModels.Model;
 		VAR
-			m: Models.Model;
 			text: TextModels.Model;
+			c: TextControllers.Controller;
+			w: Windows.Window;
 			v: Views.View;
-			name: Files.Name;
-			loc: Files.Locator;
-			conv: Converters.Converter;
-			pos: INTEGER;
 	BEGIN
 		IF filePath # "" THEN
 			text := BugsFiles.FileToText(filePath)
-		ELSE
-			m := Controllers.FocusModel();
-			IF m # NIL THEN
-				IF m IS TextModels.Model THEN
-					text := m(TextModels.Model)
-				ELSE
-					text := NIL
-				END
+		ELSIF Dialog.platform = Dialog.linux THEN (*	work round bug in Linux version of BB	*)
+			w := Windows.dir.First();
+			WHILE (w # NIL) & ~(w.doc.ThisView() IS TextViews.View) DO
+				w := Windows.dir.Next(w)
+			END;
+			IF w # NIL THEN
+				v := w.doc.ThisView();
+				text := v(TextViews.View).ThisModel()
 			ELSE
 				text := NIL
 			END
+		ELSE
+			c := TextControllers.Focus();
+			IF c # NIL THEN text := c.text ELSE text := NIL END
 		END;
 		RETURN text
 	END GetText;
 
-	PROCEDURE GetPos (): INTEGER;
+	PROCEDURE GetPos (IN filePath: ARRAY OF CHAR): INTEGER;
 		VAR
 			beg, end, pos: INTEGER;
 			c: TextControllers.Controller;
 			text: TextModels.Model;
 	BEGIN
-		text := GetText();
-		IF (text # NIL) & (filePath = "") THEN
-			c := TextControllers.Focus();
-			c.GetSelection(beg, end);
-			IF beg # end THEN
-				pos := beg
-			ELSE
-				pos := 0
+		text := GetText(filePath);
+		IF filePath = "" THEN
+			text := GetText(filePath);
+			IF text # NIL THEN
+				c := TextControllers.Focus();
+				c.GetSelection(beg, end);
+				IF beg # end THEN
+					pos := beg
+				ELSE
+					pos := 0
+				END
 			END
 		ELSE
 			pos := 0
@@ -241,66 +243,82 @@ MODULE BugsCmds;
 			beg := end - 1
 		END;
 		errorMes := BugsMsg.message$;
-		BugsDialog.ShowMsg(errorMes);
-		IF filePath = "" THEN
-			TextViews.ShowRange(text, beg, end, TextViews.any);
-			TextControllers.SetSelection(text, beg, end)
-		END;
-		Dialog.Beep
+		BugsFiles.ShowStatus(errorMes);
+		TextViews.ShowRange(text, beg, end, TextViews.any);
+		TextControllers.SetSelection(text, beg, end)
 	END TextError;
 
 	(* 	Command to parse BUGS model 	*)
 
-	PROCEDURE Parse*;
+	PROCEDURE Parse* (filePath: ARRAY OF CHAR);
 		VAR
 			ok: BOOLEAN;
 			pos: INTEGER;
+			msg: ARRAY 1024 OF CHAR;
 			s: BugsMappers.Scanner;
 			text: TextModels.Model;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		IF filePath = "" THEN
 			NewModel(ok);
-			IF ~ok THEN filePath := ""; RETURN END
+			IF ~ok THEN RETURN END
 		END;
 		Clear;
 		BugsDialog.UpdateDialogs;
-		text := GetText();
-		IF text = NIL THEN filePath := ""; RETURN END;
+		text := GetText(filePath);
+		IF text = NIL THEN 
+			IF filePath # "" THEN
+				p[0] := filePath$;
+				BugsMsg.LookupParam("BugsCmds:NoFile", p, msg);
+				BugsMsg.StoreError(msg);
+				BugsFiles.ShowStatus(msg)
+			END;
+			RETURN 
+		END;
 		s.ConnectToText(text);
-		pos := GetPos();
+		pos := GetPos(filePath);
 		s.SetPos(pos);
 		BugsInterface.ParseModel(s, ok);
-		IF ~BugsInterface.IsParsed() THEN TextError(s, text); filePath := ""; RETURN END;
+		IF ~BugsInterface.IsParsed() THEN TextError(s, text); RETURN END;
 		BugsDialog.UpdateDialogs;
-		BugsDialog.ShowMsg("BugsCmds:OkSyntax");
-		filePath := ""
+		BugsMsg.Lookup("BugsCmds:OkSyntax", msg);
+		BugsFiles.ShowStatus(msg)
 	END Parse;
 
 	(*	Commands to load data	*)
 
-	PROCEDURE LoadData*;
+	PROCEDURE LoadData*(filePath: ARRAY OF CHAR);
 		VAR
 			ok: BOOLEAN;
 			pos: INTEGER;
 			s: BugsMappers.Scanner;
 			text: TextModels.Model;
 			msg, warning: ARRAY 1024 OF CHAR;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
-		BugsMsg.Store("");
-		IF ~BugsInterface.IsParsed() THEN filePath := ""; RETURN END;
-		text := GetText();
-		IF text = NIL THEN filePath := ""; RETURN END;
+		IF ~BugsInterface.IsParsed() THEN RETURN END;
+		text := GetText(filePath);
+		IF text = NIL THEN 
+			IF filePath # "" THEN
+				p[0] := filePath$;
+				BugsMsg.LookupParam("BugsCmds:NoFile", p, msg);
+				BugsMsg.StoreError(msg);
+				BugsFiles.ShowStatus(msg)
+			END;
+			RETURN 
+		END;
 		s.ConnectToText(text);
-		pos := GetPos();
+		pos := GetPos(filePath);
 		s.SetPos(pos);
+		BugsMsg.Clear;
 		BugsInterface.LoadData(s, ok);
-		IF ~ok THEN TextError(s, text); filePath := ""; RETURN END;
-		BugsMsg.Lookup("BugsCmds:OkData", msg);
+		IF ~ok THEN TextError(s, text); RETURN END;
 		warning := BugsMsg.message$;
+		BugsMsg.Lookup("BugsCmds:OkData", msg);
 		(* If warning not encountered, will contain empty string *)
 		msg := msg + warning;
-		BugsDialog.ShowMsg(msg);
-		filePath := ""
+		BugsMsg.StoreMsg(msg);
+		BugsFiles.ShowStatus(msg);
 	END LoadData;
 
 	(*	Commands to write model graph	*)
@@ -315,6 +333,7 @@ MODULE BugsCmds;
 			updaterByMethod, ok: BOOLEAN;
 			numChains, len0, len1: INTEGER;
 			startTime, elapsedTime: LONGINT;
+			msg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 		CONST
 			eps = 1.0E-20;
@@ -326,7 +345,7 @@ MODULE BugsCmds;
 		len0 := StdLog.text.Length();
 		BugsGraph.Compile(numChains, updaterByMethod, ok);
 		len1 := StdLog.text.Length();
-		StdLog.text.Delete(len0, len1);
+		IF ~BugsCPCompiler.debug THEN StdLog.text.Delete(len0, len1) END;
 		IF ok THEN
 			SetAdaptingStatus;
 			UpdaterSettings.MarkCompiled;
@@ -335,10 +354,10 @@ MODULE BugsCmds;
 			elapsedTime := Services.Ticks() - startTime;
 			elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 			Strings.IntToString(elapsedTime, p[0]);
-			BugsDialog.ShowParamMsg("BugsCmds:OkCompile", p);
+			BugsMsg.LookupParam("BugsCmds:OkCompile", p, msg);
+			BugsFiles.ShowStatus(msg)
 		ELSE
-			BugsDialog.ShowMsg(BugsMsg.message);
-			RETURN
+			BugsFiles.ShowStatus(BugsMsg.message)
 		END
 	END Compile;
 
@@ -356,7 +375,7 @@ MODULE BugsCmds;
 		END
 	END NewInits;
 
-	PROCEDURE LoadInits*;
+	PROCEDURE LoadInits* (filePath: ARRAY OF CHAR);
 		VAR
 			ok, fixFounder: BOOLEAN;
 			pos: INTEGER;
@@ -364,14 +383,23 @@ MODULE BugsCmds;
 			s: BugsMappers.Scanner;
 			text: TextModels.Model;
 			msg, warning: ARRAY 1024 OF CHAR;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
-		BugsMsg.Store("");
+		BugsMsg.Clear;
 		NewInits(ok);
-		IF ~ok THEN filePath := ""; RETURN END;
-		text := GetText();
-		IF text = NIL THEN filePath := ""; RETURN END;
+		IF ~ok THEN RETURN END;
+		text := GetText(filePath);
+		IF text = NIL THEN 
+			IF filePath # "" THEN
+				p[0] := filePath$;
+				BugsMsg.LookupParam("BugsCmds:NoFile", p, msg);
+				BugsMsg.StoreError(msg);
+				BugsFiles.ShowStatus(msg)
+			END;
+			RETURN 
+		END;
 		s.ConnectToText(text);
-		pos := GetPos();
+		pos := GetPos(filePath);
 		s.SetPos(pos);
 		chain := specificationDialog.chain;
 		numChains := specificationDialog.numChains;
@@ -379,12 +407,13 @@ MODULE BugsCmds;
 		BugsInterface.LoadInits(s, chain - 1, numChains, fixFounder, ok);
 		IF ~ok THEN
 			IF UpdaterActions.IsInitialized(chain - 1) THEN
-				BugsDialog.ShowMsg(BugsMsg.message);
+				BugsFiles.ShowStatus(BugsMsg.message);
 			ELSE
 				TextError(s, text);
 			END;
-			filePath := ""; RETURN
+			RETURN
 		END;
+		warning := BugsMsg.message$;
 		IF BugsInterface.IsInitialized() THEN
 			BugsMsg.Lookup("BugsCmds:OkInits", msg);
 		ELSIF UpdaterActions.IsInitialized(chain - 1) THEN
@@ -392,12 +421,11 @@ MODULE BugsCmds;
 		ELSE
 			BugsMsg.Lookup("BugsCmds:NotInit", msg)
 		END;
-		warning := BugsMsg.message$;
 		msg := msg + warning;
-		BugsDialog.ShowMsg(msg);
+		BugsMsg.StoreMsg(msg);
+		BugsFiles.ShowStatus(BugsMsg.message);
 		SetChain(chain + 1);
-		Dialog.Update(specificationDialog);
-		filePath := ""
+		Dialog.Update(specificationDialog)
 	END LoadInits;
 
 	(*	Commands to generate initial values	*)
@@ -406,31 +434,37 @@ MODULE BugsCmds;
 		VAR
 			numChains: INTEGER;
 			fixFounder, ok: BOOLEAN;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		IF ~BugsInterface.IsCompiled() THEN RETURN END;
+		IF BugsInterface.IsInitialized() THEN RETURN END;
 		numChains := specificationDialog.numChains;
 		fixFounder := specificationDialog.fixFounder;
 		BugsInterface.GenerateInits(numChains, fixFounder, ok);
 		IF ok THEN
-			BugsDialog.ShowMsg("BugsCmds:OkGenInits");
+			BugsMsg.Lookup("BugsCmds:OkGenInits", msg);
+			BugsFiles.ShowStatus(msg)
 		ELSE
-			BugsDialog.ShowMsg(BugsMsg.message);
+			BugsFiles.ShowStatus(BugsMsg.message);
 			RETURN
 		END
 	END GenerateInits;
 
-	PROCEDURE Distribute* (mpiImplementation: ARRAY OF CHAR);
+	PROCEDURE Distribute*;
 		VAR
+			workersPerChain, numChains, res: INTEGER;
 			msg: ARRAY 1024 OF CHAR;
-			numProc, numChains: INTEGER;
 	BEGIN
-		numProc := specificationDialog.numProc;
 		numChains := specificationDialog.numChains;
-		BugsInterface.Distribute(mpiImplementation, numProc, numChains);
+		workersPerChain := specificationDialog.workersPerChain;
+		Dialog.Call("BugsMaster.Install", "", res);
+		BugsInterface.Distribute(workersPerChain, numChains);
 		IF BugsInterface.IsDistributed() THEN
-			BugsMsg.Store("model distributed")
-		END;
-		BugsDialog.ShowMsg(BugsMsg.message)
+			BugsMsg.Lookup("BugsCmds:ModelDistibuted", msg);
+			BugsFiles.ShowStatus(msg)
+		ELSE
+			BugsFiles.ShowStatus(BugsMsg.message)
+		END
 	END Distribute;
 
 	PROCEDURE DistributeInfo*;
@@ -439,7 +473,7 @@ MODULE BugsCmds;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
 		CONST
-			space = 35* Ports.mm;
+			space = 35 * Ports.mm;
 	BEGIN
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
@@ -463,6 +497,7 @@ MODULE BugsCmds;
 			i, numChains, refresh, thin, updates: INTEGER;
 			elapsedTime: LONGINT;
 			p: ARRAY 2 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		IF ~a.updating THEN RETURN END;
 		i := 0;
@@ -484,7 +519,8 @@ MODULE BugsCmds;
 		SetIteration(updateDialog.iteration + i);
 		IF ~ok THEN
 			a.updating := FALSE;
-			BugsDialog.ShowMsg(BugsMsg.message);
+			BugsMsg.Lookup(BugsMsg.message, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		MonitorMonitors.UpdateDrawers;
@@ -500,17 +536,20 @@ MODULE BugsCmds;
 			elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 			Strings.IntToString(updates, p[0]);
 			Strings.IntToString(elapsedTime, p[1]);
-			BugsDialog.ShowParamMsg("BugsCmds:UpdatesTook", p);
+			BugsMsg.LookupParam("BugsCmds:UpdatesTook", p, msg);
+			BugsFiles.ShowStatus(msg)
 		END
 	END Do;
 
 	PROCEDURE Update*;
 		VAR
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		IF ~action.updating THEN
 			action.updating := TRUE;
 			startTime := Services.Ticks();
-			BugsDialog.ShowMsg("BugsCmds:Updating");
+			BugsMsg.Lookup("BugsCmds:Updating", msg);
+			BugsFiles.ShowStatus(msg);
 			action.updates := 0;
 			Services.DoLater(action, Services.now)
 		ELSE
@@ -527,8 +566,10 @@ MODULE BugsCmds;
 			i, numChains, thin, updates: INTEGER;
 			elapsedTime: LONGINT;
 			p: ARRAY 2 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
-		BugsDialog.ShowMsg("BugsCmds:Updating");
+		BugsMsg.Lookup("BugsCmds:Updating", msg);
+		BugsFiles.ShowStatus(msg);
 		startTime := Services.Ticks();
 		i := 0;
 		updates := updateDialog.updates;
@@ -547,14 +588,15 @@ MODULE BugsCmds;
 		SetAdaptingStatus;
 		INC(updateDialog.iteration, i);
 		IF ~ok THEN
-			BugsDialog.ShowMsg(BugsMsg.message);
+			BugsFiles.ShowStatus(BugsMsg.message);
 			RETURN
 		END;
 		elapsedTime := Services.Ticks() - startTime;
 		elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 		Strings.IntToString(updates, p[0]);
 		Strings.IntToString(elapsedTime, p[1]);
-		BugsDialog.ShowParamMsg("BugsCmds:UpdatesTook", p)		;
+		BugsMsg.LookupParam("BugsCmds:UpdatesTook", p, msg);
+		BugsFiles.ShowStatus(msg);
 		Dialog.Update(updateDialog)
 	END UpdateNI;
 
@@ -570,34 +612,52 @@ MODULE BugsCmds;
 
 	PROCEDURE (a: ScriptAction) Do;
 		VAR
-			res: INTEGER;
+			bugsCommand, errorMsg: ARRAY 1024 OF CHAR;
+			pos, res: INTEGER;
 	BEGIN
 		res := 0;
 		IF IsUpdating() OR a.s.eot THEN
 			(*	if updating wait, do not read next script command	*)
 		ELSE
-			BugsScripting.Script(a.s, res)
+			script := TRUE;
+			BugsScripting.Script(a.s, bugsCommand, res);
+			script := FALSE
 		END;
+		Strings.Find(bugsCommand, "(", 0, pos);
+		IF pos # - 1 THEN bugsCommand[pos] := 0X END;
 		IF res = 0 THEN
-			Services.DoLater(a, Services.now)
+			IF ~BugsMsg.error THEN
+				Services.DoLater(a, Services.now)
+			ELSE
+				BugsMsg.Lookup("BugsCmds.CommandError", errorMsg);
+				errorMsg := errorMsg + " " + bugsCommand + " failed";
+				Dialog.ShowMsg(errorMsg)
+			END
+		ELSIF res = BugsInterpreter.failedGuard THEN
+			errorMsg := BugsMsg.message$;
+			errorMsg := errorMsg + " " + bugsCommand + " failed";
+			Dialog.ShowMsg(errorMsg)
 		ELSE
-			BugsDialog.ShowMsg("script failed")
+			BugsMsg.Lookup("BugsCmds.ScriptFailed", errorMsg);
+			Dialog.ShowMsg(errorMsg)
 		END
 	END Do;
 
-	PROCEDURE Script*;
+	PROCEDURE Script*(fileName: ARRAY OF CHAR);
 		VAR
 			beg, end: INTEGER;
 			s: BugsMappers.Scanner;
 			text, text0: TextModels.Model;
 			c: TextControllers.Controller;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
-		text := GetText();
+		text := GetText(fileName);
 		IF text = StdLog.text THEN
-			Dialog.ShowMsg("#Bugs:ScriptFailed");
+			BugsMsg.Lookup("BugsCmds:ScripIsLog", msg);
+			Dialog.ShowMsg(msg);
 			RETURN
 		END;
-		(*	if have text with high lighted region make a copy of high lighted region	*)
+		(*	if have text with high-lighted region make a copy of high-lighted region	*)
 		c := TextControllers.Focus();
 		IF c # NIL THEN
 			c.GetSelection(beg, end);
@@ -614,26 +674,6 @@ MODULE BugsCmds;
 		scriptAction.s := s;
 		Services.DoLater(scriptAction, Services.now)
 	END Script;
-
-	PROCEDURE ScriptFile* (path: ARRAY OF CHAR);
-		VAR
-			beg: INTEGER;
-			s: BugsMappers.Scanner;
-			v: Views.View;
-			text: TextModels.Model;
-			loc: Files.Locator;
-			name: Files.Name;
-	BEGIN
-		text := BugsFiles.FileToText(path);
-		IF text # NIL THEN
-			s.ConnectToText(text);
-			beg := 0;
-			s.SetPos(beg);
-			s.Scan;
-			scriptAction.s := s;
-			Services.DoLater(scriptAction, Services.now)
-		END
-	END ScriptFile;
 
 	PROCEDURE Metrics*;
 		VAR
@@ -707,7 +747,7 @@ MODULE BugsCmds;
 		tabs[3] := 90 * Ports.mm;
 		tabs[4] := 110 * Ports.mm;
 		BugsFiles.WriteRuler(tabs, f);
-		(*BugsInfo.MapValues(f);*)
+		BugsInfo.MapValues(f);
 		BugsFiles.Open("Mapped values", text)
 	END MapValues;
 
@@ -716,28 +756,25 @@ MODULE BugsCmds;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
-			i, numChains, numProc: INTEGER;
+			i, workersPerChain: INTEGER;
 			string: ARRAY 128 OF CHAR;
 	BEGIN
-		numChains := specificationDialog.numChains;
-		numProc := specificationDialog.numProc;
-		numProc := numProc DIV numChains;
-		numProc := MAX(numProc, 1);
+		workersPerChain := specificationDialog.workersPerChain;
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		f.SetPos(0);
-		NEW(tabs, numProc + 2);
+		NEW(tabs, workersPerChain + 2);
 		tabs[0] := 10 * Ports.mm;
 		i := 1;
-		WHILE i < numProc + 1 DO
+		WHILE i < workersPerChain + 1 DO
 			tabs[i] := tabs[0] + i * 40 * Ports.mm;
 			INC(i)
 		END;
-		tabs[numProc + 1] := tabs[numProc] + 20 * Ports.mm;
+		tabs[workersPerChain + 1] := tabs[workersPerChain] + 20 * Ports.mm;
 		BugsFiles.WriteRuler(tabs, f);
-		BugsInfo.Distribute(numProc, f);
-		Strings.IntToString(numProc, string);
-		string := "Updaters distributed over " + string + " processors";
+		BugsInfo.Distribute(workersPerChain, f);
+		Strings.IntToString(workersPerChain, string);
+		string := "Updaters distributed over " + string + " workers";
 		BugsFiles.Open(string, text)
 	END ShowDistribution;
 
@@ -746,27 +783,24 @@ MODULE BugsCmds;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
-			i, numChains, numProc: INTEGER;
+			i, workersPerChain: INTEGER;
 			string: ARRAY 128 OF CHAR;
 	BEGIN
-		numChains := specificationDialog.numChains;
-		numProc := specificationDialog.numProc;
-		numProc := numProc DIV numChains;
-		numProc := MAX(numProc, 1);
+		workersPerChain := specificationDialog.workersPerChain;
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		f.SetPos(0);
-		NEW(tabs, numProc + 1);
+		NEW(tabs, workersPerChain + 1);
 		tabs[0] := 10 * Ports.mm;
 		i := 1;
-		WHILE i < numProc DO
+		WHILE i < workersPerChain DO
 			tabs[i] := tabs[0] + i * 40 * Ports.mm;
 			INC(i)
 		END;
-		tabs[numProc] := tabs[numProc - 1] + 20 * Ports.mm;
+		tabs[workersPerChain] := tabs[workersPerChain - 1] + 20 * Ports.mm;
 		BugsFiles.WriteRuler(tabs, f);
-		BugsInfo.DistributeDeviance(numProc, f);
-		Strings.IntToString(numProc, string);
+		BugsInfo.DistributeDeviance(workersPerChain, f);
+		Strings.IntToString(workersPerChain, string);
 		string := "Deviance distributed over " + string + " processors";
 		BugsFiles.Open(string, text)
 	END ShowDistributionDeviance;
@@ -776,16 +810,13 @@ MODULE BugsCmds;
 			i, max, numChains: INTEGER;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			f: TextMappers.Formatter;
-			text: TextModels.Model;
+			text, header: TextModels.Model;
 	BEGIN
-		IF BugsInfo.IsConstant(infoDialog.node.item) THEN
-			numChains := 1
-		ELSE
-			numChains := specificationDialog.numChains
-		END;
+		numChains := specificationDialog.numChains;
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		f.SetPos(0);
+		BugsInfo.Values(infoDialog.node.item, numChains, f);
 		max := 2 + MIN(numChains, 10);
 		NEW(tabs, max);
 		i := 0;
@@ -793,8 +824,12 @@ MODULE BugsCmds;
 			tabs[i] := i * 25 * Ports.mm;
 			INC(i)
 		END;
+		header := TextModels.dir.New();
+		f.ConnectTo(header);
+		f.SetPos(0);
 		BugsFiles.WriteRuler(tabs, f);
-		BugsInfo.Values(infoDialog.node.item, numChains, f);
+		header.Append(text);
+		text := header;
 		BugsFiles.Open("Node values", text)
 	END Values;
 
@@ -804,6 +839,7 @@ MODULE BugsCmds;
 			numAsString: ARRAY 8 OF CHAR;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		numChains := specificationDialog.numChains;
 		i := 0;
@@ -816,7 +852,8 @@ MODULE BugsCmds;
 			BugsFiles.Open("chain " + numAsString, text);
 			INC(i)
 		END;
-		BugsDialog.ShowMsg("BugsCmds:ChainsWrittenOut");
+		BugsMsg.Lookup("BugsCmds:ChainsWrittenOut", msg);
+		BugsFiles.ShowStatus(msg)
 	END WriteChains;
 
 	PROCEDURE WriteChainsToFile* (stem: ARRAY OF CHAR);
@@ -825,6 +862,7 @@ MODULE BugsCmds;
 			numAsString: ARRAY 8 OF CHAR;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		numChains := specificationDialog.numChains;
 		i := 0;
@@ -837,7 +875,8 @@ MODULE BugsCmds;
 			BugsFiles.Save(stem + numAsString, text);
 			INC(i)
 		END;
-		BugsDialog.ShowMsg("BugsCmds:ChainsWrittenOut");
+		BugsMsg.Lookup("BugsCmds:ChainsWrittenOut", msg);
+		BugsFiles.ShowStatus(msg)
 	END WriteChainsToFile;
 
 	PROCEDURE WriteData*;
@@ -848,6 +887,7 @@ MODULE BugsCmds;
 			text: TextModels.Model;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			i: INTEGER;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
@@ -861,32 +901,44 @@ MODULE BugsCmds;
 		BugsFiles.WriteRuler(tabs, f);
 		BugsInfo.WriteData(f);
 		BugsFiles.Open("Data ", text);
-		BugsDialog.ShowMsg("BugsCmds:DataOut");
+		BugsMsg.Lookup("BugsCmds:DataOut", msg);
+		BugsFiles.ShowStatus(msg)
 	END WriteData;
 
 	PROCEDURE WriteUninitNodes*;
 		VAR
-			i, numChains: INTEGER;
+			i, numChains, pos, pos1: INTEGER;
+			unInit: BOOLEAN;
 			numAsString: ARRAY 8 OF CHAR;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
 			tabs: ARRAY 2 OF INTEGER;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		tabs[0] := 0;
 		tabs[1] := 50 * Ports.mm;
 		numChains := specificationDialog.numChains;
 		i := 0;
+		unInit := FALSE;
 		WHILE i < numChains DO
 			text := TextModels.dir.New();
 			f.ConnectTo(text);
 			f.SetPos(0);
 			BugsFiles.WriteRuler(tabs, f);
+			pos := f.Pos();
 			BugsInfo.WriteUninitNodes(i, f);
-			Strings.IntToString(i + 1, numAsString);
-			BugsFiles.Open("uninitialized nodes for chain " + numAsString, text);
+			pos1 := f.Pos();
+			IF pos # pos1 THEN
+				Strings.IntToString(i + 1, numAsString);
+				BugsFiles.Open("uninitialized nodes for chain " + numAsString, text);
+				unInit := TRUE;
+			END;
 			INC(i)
 		END;
-		BugsDialog.ShowMsg("BugsCmds:UninitializedNodes");
+		IF ~unInit THEN
+			BugsMsg.Lookup("BugsCmds:UninitializedNodes", msg);
+			BugsFiles.ShowStatus(msg)
+		END
 	END WriteUninitNodes;
 
 	PROCEDURE MAP*;
@@ -993,7 +1045,8 @@ MODULE BugsCmds;
 		Strings.IntToString(int, millions);
 		msg := millions + " " + thousands + " " + hundreds;
 		msg := msg + " bytes of memory allocated";
-		BugsDialog.ShowMsg(msg)
+		BugsMsg.StoreMsg(msg);
+		BugsFiles.ShowStatus(msg)
 	END AllocatedMemory;
 
 	PROCEDURE NumberOfBugFiles (): INTEGER;
@@ -1008,7 +1061,7 @@ MODULE BugsCmds;
 		WHILE fileList # NIL DO
 			IF fileList.type = "bug" THEN
 				Strings.Find(fileList.name, "bug_", 0, pos);
-				IF pos =  - 1 THEN INC(num) END
+				IF pos = - 1 THEN INC(num) END
 			END;
 			fileList := fileList.next
 		END;
@@ -1034,7 +1087,7 @@ MODULE BugsCmds;
 		WHILE fileList # NIL DO
 			IF fileList.type = "bug" THEN
 				Strings.Find(fileList.name, "bug_", 0, pos);
-				IF pos =  - 1 THEN
+				IF pos = - 1 THEN
 					bugFileNames[i] := fileList.name$;
 					len := LEN(fileList.name$);
 					bugFileNames[i, len - 4] := 0X;
@@ -1079,12 +1132,14 @@ MODULE BugsCmds;
 			loc: Files.Locator;
 			f: Files.File;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		loc := BugsSerialize.restartLoc;
 		f := Files.dir.Old(loc, fileName + ".bug", Files.shared);
 		IF f = NIL THEN
 			p[0] := fileName$;
-			BugsDialog.ShowParamMsg("BugsCmds:NoFile", p);
+			BugsMsg.LookupParam("BugsCmds:NoFile", p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		f.Close;
@@ -1095,16 +1150,19 @@ MODULE BugsCmds;
 		UpdaterSettings.MarkCompiled;
 		UpdaterSettings.FillDialog;
 		BugsDialog.UpdateDialogs;
-		BugsDialog.ShowMsg("modelInternalized");
+		BugsMsg.Lookup("BugsCmds:modelInternalized", msg);
+		BugsFiles.ShowStatus(msg);
 	END InternalizeModel;
 
 	PROCEDURE Externalize*;
 		VAR
 			bugFileName: Dialog.String;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		bugFileName := outBugDialog.name.item$;
 		BugsSerialize.Externalize(bugFileName);
-		BugsDialog.ShowMsg("model externalized to file ok")
+		BugsMsg.Lookup("BugsCmds:ModelExternalized ", msg);
+		Dialog.ShowMsg(msg)
 	END Externalize;
 
 	PROCEDURE Internalize*;
@@ -1112,6 +1170,7 @@ MODULE BugsCmds;
 			ok: BOOLEAN;
 			index: INTEGER;
 			name: Dialog.String;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		NewModel(ok);
 		IF ~ok THEN RETURN END;
@@ -1125,7 +1184,8 @@ MODULE BugsCmds;
 		UpdaterSettings.MarkCompiled;
 		UpdaterSettings.FillDialog;
 		BugsDialog.UpdateDialogs;
-		BugsDialog.ShowMsg("model internalized from file ok")
+		BugsMsg.Lookup("BugsCmds:ModelInternalized", msg);
+		BugsFiles.ShowStatus(msg)
 	END Internalize;
 
 	PROCEDURE Quit* (option: ARRAY OF CHAR);
@@ -1134,25 +1194,30 @@ MODULE BugsCmds;
 	BEGIN
 		i := 0; WHILE i < LEN(option) DO option[i] := CAP(option[i]); INC(i) END;
 		IF (option = "YES") OR (option = "Y") THEN
-			HostMenus.Exit
+			HostMenus.askQuit := FALSE
 		ELSE
-			Dialog.GetOK("Quit OpenBUGS?", "", "", "", {Dialog.ok, Dialog.cancel}, res);
-			IF res = Dialog.ok THEN
-				HostMenus.Exit
-			END
-		END
+			HostMenus.askQuit := TRUE
+		END;
+		HostMenus.Exit
 	END Quit;
 
+	PROCEDURE Debug*;
+	BEGIN
+		BugsCPCompiler.debug := ~BugsCPCompiler.debug;
+		BugsMsg.debug := ~BugsMsg.debug
+	END Debug;
 
 	PROCEDURE ChangeSampler* (node: ARRAY OF CHAR);
 		VAR
 			ok: BOOLEAN;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		BugsInterface.ChangeSampler(node, UpdaterMethods.index, ok);
 		IF ~ok THEN
 			p[0] := node$;
-			BugsDialog.ShowParamMsg("BugsCmds:couldNotChangeUpdater", p);
+			BugsMsg.LookupParam("BugsCmds:couldNotChangeUpdater", p, msg);
+			BugsFiles.ShowStatus(msg)
 		END
 	END ChangeSampler;
 
@@ -1239,7 +1304,7 @@ MODULE BugsCmds;
 	BEGIN
 		dialogBox.numChains := defaultNumChains;
 		dialogBox.chain := 1;
-		dialogBox.numProc := 2;
+		dialogBox.workersPerChain := 1;
 		dialogBox.fixFounder := TRUE
 	END Init;
 
@@ -1247,15 +1312,6 @@ MODULE BugsCmds;
 	BEGIN
 		Dialog.Update(dialogBox)
 	END Update;
-
-	PROCEDURE OpenSpecificationDialog*;
-	BEGIN
-		IF MPI.RunningUnderMPI() THEN
-			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool');
-		ELSE
-			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
-		END;
-	END OpenSpecificationDialog;
 
 	PROCEDURE (dialogBox: UpdateDialog) Update-;
 	BEGIN
@@ -1326,242 +1382,179 @@ MODULE BugsCmds;
 		BugsFiles.SetDest(displayDialog.whereOut)
 	END DisplayNotifier;
 
-	PROCEDURE CompileGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE CompileGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.disabled := ~BugsInterface.IsParsed() OR BugsInterface.IsCompiled()
-	END CompileGuardWin;
+		par.disabled := ~BugsInterface.IsParsed() OR BugsInterface.IsCompiled();
+		IF par.disabled & script THEN BugsMsg.Lookup("BugsCmds:NoCheckCompile", par.label)  END
+	END CompileGuard;
 
-	PROCEDURE CompiledGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE CompiledGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.readOnly := BugsInterface.IsCompiled()
-	END CompiledGuardWin;
+	END CompiledGuard;
 
-	PROCEDURE CompileCPGuardWin* (VAR par: Dialog.Par);
-		VAR
-			mod: Meta.Item;
+	PROCEDURE DebugGuard* (VAR par: Dialog.Par);
 	BEGIN
-		Meta.Lookup("StdLoader", mod);
-		par.readOnly := mod.obj # Meta.modObj
-	END CompileCPGuardWin;
+		par.checked := BugsCPCompiler.debug
+	END DebugGuard;
 
-	PROCEDURE DevianceGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE DevianceGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.disabled := ~BugsInterface.IsInitialized() OR (BugsIndex.Find("deviance") = NIL)
-	END DevianceGuardWin;
+		par.disabled := ~BugsInterface.IsInitialized() OR (BugsIndex.Find("deviance") = NIL);
+		IF par.disabled & script THEN  BugsMsg.Lookup("BugsCmds:NoDeviance", par.label) END
+	END DevianceGuard;
 
-	PROCEDURE DistributeGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE DistributeGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.disabled := BugsInterface.IsDistributed() OR (~BugsInterface.IsInitialized())
-	END DistributeGuardWin;
+		par.disabled := BugsInterface.IsDistributed() OR (~BugsInterface.IsInitialized());
+		IF par.disabled & script THEN  BugsMsg.Lookup("BugsCmds:UnableToDistribute", par.label)END
+	END DistributeGuard;
 
-	PROCEDURE GenerateInitsGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE GenerateInitsGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsCompiled();
-		par.disabled := par.disabled OR BugsInterface.IsInitialized()
-	END GenerateInitsGuardWin;
-
-	PROCEDURE LoadDataGuardWin* (VAR par: Dialog.Par);
-	BEGIN
-		par.disabled := ~BugsInterface.IsParsed();
-		IF ~par.disabled THEN
-			TextCmds.FocusGuard(par)
+		IF par.disabled THEN
+			IF script THEN BugsMsg.Lookup("BugsCmds:NoCompileGenInits", par.label) END
+		ELSE
+			par.disabled := BugsInterface.IsInitialized();
+			IF par.disabled & script THEN BugsMsg.Lookup("BugsCmds:AlreadyInits", par.label) END
 		END
-	END LoadDataGuardWin;
+	END GenerateInitsGuard;
 
-	PROCEDURE LoadInitsGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE LoadDataGuard* (VAR par: Dialog.Par);
+	BEGIN
+		par.disabled := ~BugsInterface.IsParsed() OR BugsInterface.IsCompiled();
+		IF par.disabled THEN
+			IF script THEN BugsMsg.Lookup("BugsCmds:NoCheckData", par.label) END
+		ELSE
+			IF ~script THEN TextCmds.FocusGuard(par) END
+		END
+	END LoadDataGuard;
+
+	PROCEDURE LoadInitsGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsCompiled() OR BugsInterface.IsDistributed();
-		IF ~par.disabled THEN
-			TextCmds.FocusGuard(par)
+		IF par.disabled THEN
+			IF script THEN  BugsMsg.Lookup("BugsCmds:NoCompileInits", par.label) END
+		ELSE
+			IF ~script THEN TextCmds.FocusGuard(par) END
 		END
-	END LoadInitsGuardWin;
+	END LoadInitsGuard;
 
-	PROCEDURE NotCompiledGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE MAPGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.disabled := ~BugsInterface.IsCompiled()
-	END NotCompiledGuardWin;
+		par.disabled := ~BugsInterface.IsInitialized() OR (GraphNodes.maxStochDepth > 1)
+	END MAPGuard;
 
-	PROCEDURE ParseGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE NodeInfoGuard* (VAR par: Dialog.Par);
+		VAR
+			i: INTEGER;
+			var: Dialog.String;
+			name: BugsNames.Name;
 	BEGIN
-		TextCmds.FocusGuard(par)
-	END ParseGuardWin;
+		var := infoDialog.node.item;
+		i := 0;
+		WHILE (var[i] # 0X) & (var[i] # "[") DO
+			INC(i)
+		END;
+		var[i] := 0X;
+		name := BugsIndex.Find(var);
+		par.disabled := name = NIL;
+		IF par.disabled & script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
+	END NodeInfoGuard;
 
-	PROCEDURE ParsedGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE NodeInfo1Guard* (VAR par: Dialog.Par);
+		VAR
+			i: INTEGER;
+			var: Dialog.String;
+			name: BugsNames.Name;
 	BEGIN
-		par.disabled := ~BugsInterface.IsParsed()
-	END ParsedGuardWin;
+		var := infoDialog.node.item;
+		i := 0;
+		WHILE (var[i] # 0X) & (var[i] # "[") DO
+			INC(i)
+		END;
+		var[i] := 0X;
+		name := BugsIndex.Find(var);
+		par.disabled := name = NIL;
+		IF par.disabled THEN
+			IF script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
+		ELSE
+			par.disabled := ~name.isVariable;
+			IF par.disabled & script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
+		END
+	END NodeInfo1Guard;
+
+	PROCEDURE NotCompiledGuard* (VAR par: Dialog.Par);
+	BEGIN
+		par.disabled := ~BugsInterface.IsCompiled();
+		IF par.disabled & script THEN BugsMsg.Lookup("BugsCmds:NotCompiled", par.label) END
+	END NotCompiledGuard;
+
+	PROCEDURE ParseGuard* (VAR par: Dialog.Par);
+	BEGIN
+		IF ~script THEN TextCmds.FocusGuard(par) END
+	END ParseGuard;
+
+	PROCEDURE ParsedGuard* (VAR par: Dialog.Par);
+	BEGIN
+		par.disabled := ~BugsInterface.IsParsed();
+		IF par.disabled & script THEN  BugsMsg.Lookup("BugsCmds:NoCheckData", par.label) END
+	END ParsedGuard;
 
 	PROCEDURE SetLogGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.checked := displayDialog.whereOut = BugsFiles.log
 	END SetLogGuard;
 
+	PROCEDURE SetRNGuard* (VAR par: Dialog.Par);
+	BEGIN
+		par.readOnly := ~BugsInterface.IsCompiled() OR BugsInterface.IsInitialized()
+	END SetRNGuard;
+	
 	PROCEDURE SetWindowGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.checked := displayDialog.whereOut = BugsFiles.window
 	END SetWindowGuard;
 
-	PROCEDURE UpdateGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE UpdateGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.disabled := ~BugsInterface.IsInitialized()
-	END UpdateGuardWin;
-
-	PROCEDURE SetRNGuardWin* (VAR par: Dialog.Par);
-	BEGIN
-		par.readOnly := ~BugsInterface.IsCompiled() OR BugsInterface.IsInitialized()
-	END SetRNGuardWin;
-
-	PROCEDURE MAPGuardWin* (VAR par: Dialog.Par);
-	BEGIN
-		par.disabled := ~BugsInterface.IsInitialized() OR (GraphNodes.maxStochDepth > 1)
-	END MAPGuardWin;
-
-	PROCEDURE DevianceGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := BugsIndex.Find("deviance") # NIL;
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:NoDeviance")
-		END
-	END DevianceGuard;
-
-	PROCEDURE ParseGuard* (OUT ok: BOOLEAN);
-		VAR
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsFiles.FileToText(filePath) # NIL;
-		IF ~ok THEN
-			p[0] := filePath$;
-			BugsDialog.ShowParamMsg("BugsCmds:NoFile", p);
-		END
-	END ParseGuard;
-
-	PROCEDURE ParsedGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := BugsInterface.IsParsed();
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:NoCheckData")
-		END
-	END ParsedGuard;
-
-	PROCEDURE LoadDataGuard* (OUT ok: BOOLEAN);
-		VAR
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsFiles.FileToText(filePath) # NIL;
-		IF ~ok THEN
-			p[0] := filePath$;
-			BugsDialog.ShowParamMsg("BugsCmds:NoFile", p);
-		ELSE
-			ok := BugsInterface.IsParsed();
-			IF ~ok THEN
-				BugsDialog.ShowMsg("BugsCmds:NoCheckData");
-			END
-		END
-	END LoadDataGuard;
-
-	PROCEDURE CompileGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := BugsInterface.IsParsed();
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:NoCheckCompile");
-		END
-	END CompileGuard;
-
-	PROCEDURE DistributeGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := ~BugsInterface.IsDistributed() & BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:UnableToDistribute");
-		END
-	END DistributeGuard;
-
-	PROCEDURE NotCompiledGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := ~BugsInterface.IsCompiled();
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:NotCompiled");
-		END
-	END NotCompiledGuard;
-
-	PROCEDURE LoadInitsGuard* (OUT ok: BOOLEAN);
-		VAR
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsFiles.FileToText(filePath) # NIL;
-		IF ~ok THEN
-			p[0] := filePath$;
-			BugsDialog.ShowParamMsg("BugsCmds:NoFile", p);
-		ELSE
-			ok := BugsInterface.IsCompiled();
-			IF ~ok THEN
-				BugsDialog.ShowMsg("BugsCmds:NoCompileInits");
-			END
-		END
-	END LoadInitsGuard;
-
-	PROCEDURE GenerateInitsGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := BugsInterface.IsCompiled();
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:NoCompileGenInits");
-		ELSE
-			ok := ~BugsInterface.IsInitialized();
-			IF ~ok THEN
-				BugsDialog.ShowMsg("BugsCmds:AlreadyInits");
-			END
-		END
-	END GenerateInitsGuard;
-
-	PROCEDURE UpdateGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsDialog.ShowMsg("BugsCmds:NotInits");
-		END
+		par.disabled := ~BugsInterface.IsInitialized();
+		IF par.disabled & script THEN  BugsMsg.Lookup("BugsCmds:NotInits", par.label) END
 	END UpdateGuard;
 
-	PROCEDURE SetRNGuard* (OUT ok: BOOLEAN);
+	PROCEDURE AdaptivePhaseGuard* (VAR par: Dialog.Par);
 		VAR
-			s: ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsCompiled() & ~BugsInterface.IsInitialized();
-		IF ~ok THEN
-			s := "model must have been compiled but not initialized to be able to change RN generator";
-			BugsDialog.ShowMsg(s)
-		END
-	END SetRNGuard;
-
-	PROCEDURE FactoryGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		UpdaterMethods.FactoryGuard(ok);
-		IF ~ok THEN
-			BugsDialog.ShowMsg("UpdaterMethods:notUpdateMethod");
-		END
-	END FactoryGuard;
-
-	PROCEDURE AdaptivePhaseGuard* (OUT ok: BOOLEAN);
+			ok: BOOLEAN;
 	BEGIN
 		UpdaterMethods.AdaptivePhaseGuard(ok);
 		IF ~ok THEN
-			BugsDialog.ShowMsg("UpdaterMethods:notAdaptive");
+			par.disabled := TRUE;
+			IF script THEN  BugsMsg.Lookup("UpdaterMethods:notAdaptive", par.label) END
 		END
 	END AdaptivePhaseGuard;
 
-	PROCEDURE IterationsGuard* (OUT ok: BOOLEAN);
+	PROCEDURE FactoryGuard* (VAR par: Dialog.Par);
+		VAR
+			ok: BOOLEAN;
+	BEGIN
+		UpdaterMethods.FactoryGuard(ok);
+		IF ~ok THEN
+			par.disabled := TRUE;
+			IF script THEN BugsMsg.Lookup("UpdaterMethods:notUpdateMethod", par.label) END
+		END
+	END FactoryGuard;
+
+	PROCEDURE IterationsGuard* (VAR par: Dialog.Par);
+		VAR
+			ok: BOOLEAN;
 	BEGIN
 		UpdaterMethods.IterationsGuard(ok);
 		IF ~ok THEN
-			BugsDialog.ShowMsg("UpdaterMethods.notIterations");
+			par.disabled := TRUE;
+			IF script THEN  BugsMsg.Lookup("UpdaterMethods:notIterations", par.label) END
 		END
 	END IterationsGuard;
-
-	PROCEDURE OverRelaxationGuard* (OUT ok: BOOLEAN);
-	BEGIN
-		UpdaterMethods.OverRelaxationGuard(ok);
-		IF ~ok THEN
-			BugsDialog.ShowMsg("UpdaterMethods:notOverRelax");
-		END
-	END OverRelaxationGuard;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -1609,7 +1602,5 @@ MODULE BugsCmds;
 
 BEGIN
 	Init
-CLOSE
-	BugsInterface.Clear
 END BugsCmds.
 

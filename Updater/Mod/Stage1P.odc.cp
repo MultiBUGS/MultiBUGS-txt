@@ -78,21 +78,9 @@ MODULE UpdaterStage1P;
 	BEGIN
 		prior := updater.prior;
 		oldVal := prior.value;
-		oldDen := 0.0;
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			oldDen := oldDen + children[i].LogLikelihood();
-			INC(i)
-		END;
+		oldDen := updater.LogLikelihood();
 		prior.Sample(res);
-		newDen := 0.0;
-		i := 0;
-		WHILE i < num DO
-			newDen := newDen + children[i].LogLikelihood();
-			INC(i)
-		END;
+		newDen := updater.LogLikelihood();
 		alpha := newDen - oldDen;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
 			prior.SetValue(oldVal)
@@ -121,7 +109,7 @@ MODULE UpdaterStage1P;
 			install: ARRAY 128 OF CHAR;
 	BEGIN
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		prior.Install(install);
 		i := 0; WHILE install[i] # "." DO INC(i) END; install[i] := 0X;
 		IF install # "GraphPriorNP" THEN RETURN FALSE END;

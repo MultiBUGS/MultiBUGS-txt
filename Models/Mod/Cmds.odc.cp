@@ -13,8 +13,7 @@ MODULE ModelsCmds;
 
 	IMPORT
 		Dialog, Ports, 
-		BugsDialog,
-		BugsFiles, BugsIndex, BugsInterface, BugsMsg, ModelsFormatted,
+		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg, ModelsFormatted,
 		ModelsIndex, ModelsInterface, ModelsMonitors, 
 		TextMappers, TextModels;
 
@@ -59,6 +58,7 @@ MODULE ModelsCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		IF ModelsInterface.IsStar(name) THEN
@@ -69,7 +69,8 @@ MODULE ModelsCmds;
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -83,13 +84,15 @@ MODULE ModelsCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		ModelsInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -103,13 +106,15 @@ MODULE ModelsCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		ModelsInterface.Set(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -131,7 +136,7 @@ MODULE ModelsCmds;
 		NEW(tabs, numTabs);
 		tabs[0] := 0;
 		tabs[1] := 30 * Ports.mm;
-		tabs[2] := tabs[1] + 35 * Ports.mm;
+		tabs[2] := tabs[1] + 40 * Ports.mm;
 		BugsFiles.WriteRuler(tabs, f);
 		pos := f.Pos();
 		ModelsFormatted.ComponentProbs(dialog.node.item, f);
@@ -168,34 +173,42 @@ MODULE ModelsCmds;
 
 	(*	Guards	*)
 
-	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
+	PROCEDURE SetGuard* (VAR par: Dialog.Par);
 		VAR
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 			variable: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("ModelsCmds:NotInitialized");
+		par.disabled := FALSE;
+		IF ~BugsInterface.IsInitialized() THEN 
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("ModelsCmds:NotInitialized", par.label) END
 		ELSE
-			variable := dialog.node.item;
-			ok := ~BugsInterface.IsAdapting();
-			IF ~ok THEN
-				BugsMsg.Show("ModelsCmds:Adapting");
+			IF BugsInterface.IsAdapting() THEN
+				par.disabled := TRUE;
+				IF BugsCmds.script THEN BugsMsg.Lookup("ModelsCmds:Adapting", par.label) END
 			ELSE
-				ok := BugsIndex.Find(variable) # NIL;
-				IF ~ok THEN
-					p[0] := variable$;
-					BugsMsg.ShowParam("ModelsCmds:NotVariable", p);
-				ELSE
-					ok := BugsIndex.Find(variable).numSlots = 1;
-					IF ~ok THEN
+				variable := dialog.node.item;
+				IF BugsIndex.Find(variable) = NIL THEN
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN 
 						p[0] := variable$;
-						BugsMsg.ShowParam("ModelsCmds:NotVector", p);
-					ELSE
-						ok := ModelsIndex.Find(variable) = NIL;
-						IF ~ok THEN
+						BugsMsg.LookupParam("ModelsCmds:NotVariable", p, par.label)
+					END
+				ELSE
+					IF BugsIndex.Find(variable).numSlots # 1 THEN
+						par.disabled := TRUE;
+						IF BugsCmds.script THEN
 							p[0] := variable$;
-							BugsMsg.ShowParam("ModelsCmds:AlreadySet", p);
+							BugsMsg.LookupParam("ModelsCmds:NotVector", p, par.label)
+						END
+					ELSE
+						IF ModelsIndex.Find(variable) # NIL THEN
+							par.disabled := TRUE;
+							par.disabled := TRUE;
+							IF BugsCmds.script THEN
+								p[0] := variable$;
+								BugsMsg.LookupParam("ModelsCmds:AlreadySet", p, par.label)
+							END
 						END
 					END
 				END
@@ -203,82 +216,37 @@ MODULE ModelsCmds;
 		END
 	END SetGuard;
 
-	PROCEDURE StatsGuard* (OUT ok: BOOLEAN);
+	PROCEDURE StatsGuard* (VAR par: Dialog.Par);
 		VAR
 			numMonitors: INTEGER;
 			variable: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("ModelsCmds:NotInitialized");
-		ELSE
-			variable := dialog.node.item;
-			IF~ModelsInterface.IsStar(variable) THEN
-				ok := ModelsIndex.Find(variable) # NIL;
-				IF ~ok THEN
-					p[0] := variable$;
-					BugsMsg.ShowParam("ModelsCmds:NotSet", p);
-				END
-			ELSE
-				numMonitors := ModelsIndex.NumberOfMonitors();
-				ok := numMonitors # 0; ;
-				IF ~ok THEN
-					BugsMsg.Show("ModelsCmds:NoMonitors");
-				END
-			END
-		END
-	END StatsGuard;
-
-	PROCEDURE SetGuardWin* (VAR par: Dialog.Par);
-		VAR
-			variable: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := FALSE;
 		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
-		ELSE
-			IF BugsInterface.IsAdapting() THEN
-				par.disabled := TRUE
-			ELSE
-				variable := dialog.node.item;
-				IF BugsIndex.Find(variable) = NIL THEN
-					par.disabled := TRUE
-				ELSE
-					IF BugsIndex.Find(variable).numSlots # 1 THEN
-						par.disabled := TRUE
-					ELSE
-						IF ModelsIndex.Find(variable) # NIL THEN
-							par.disabled := TRUE
-						END
-					END
-				END
-			END
-		END
-	END SetGuardWin;
-
-	PROCEDURE StatsGuardWin* (VAR par: Dialog.Par);
-		VAR
-			numMonitors: INTEGER;
-			variable: Dialog.String;
-	BEGIN
-		par.disabled := FALSE;
-		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("ModelsCmds:NotInitialized", par.label) END
 		ELSE
 			variable := dialog.node.item;
 			IF~ModelsInterface.IsStar(variable) THEN
 				IF ModelsIndex.Find(variable) = NIL THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN
+						p[0] := variable$;
+						BugsMsg.LookupParam("ModelsCmds:NotSet", p, par.label)
+					END
 				END
 			ELSE
 				numMonitors := ModelsIndex.NumberOfMonitors();
 				IF numMonitors = 0 THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN
+						BugsMsg.Lookup("ModelsCmds:NoMonitors", par.label)
+					END
 				END
 			END
 		END
-	END StatsGuardWin;
+	END StatsGuard;
 
 	PROCEDURE InitDialog;
 	BEGIN
@@ -289,6 +257,7 @@ MODULE ModelsCmds;
 
 	PROCEDURE (dialogBox0: DialogBox) Init-;
 	BEGIN
+		ModelsInterface.ClearNI("*");
 		dialog.node.item := "";
 		dialog.node.SetLen(1);
 		dialog.node.SetItem(0, " ");

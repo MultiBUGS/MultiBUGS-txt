@@ -14,9 +14,9 @@ MODULE UpdaterActions;
 	
 
 	IMPORT
-		GraphLogical,
-		GraphMRF, GraphNodes, GraphStochastic, MathSort,
 		Stores,
+		GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
+		MathSort,
 		UpdaterAuxillary, UpdaterUpdaters;
 
 	TYPE
@@ -57,7 +57,7 @@ MODULE UpdaterActions;
 			children: GraphStochastic.Vector;
 			i, numUpdaters, numChildren, totalChildren, num: INTEGER;
 	BEGIN
-		(* remove forward sampling nodes from mean calculation *)
+		(*	remove forward sampling nodes from mean calculation	*)
 		i := 0;
 		numUpdaters := NumberUpdaters();
 		totalChildren := 0;
@@ -85,47 +85,40 @@ MODULE UpdaterActions;
 		VAR
 			updater: UpdaterUpdaters.Updater;
 			children: GraphStochastic.Vector;
-			i, numUpdaters, numChildren: INTEGER;
+			i, j, numUpdaters, numChildren, numForward: INTEGER;
 			x: POINTER TO ARRAY OF REAL;
 		CONST
 			eps = 0.1;
 	BEGIN
+		numForward := 0;
 		numUpdaters := NumberUpdaters();
-		NEW(x, numUpdaters);
 		i := 0;
+		WHILE i < numUpdaters DO
+			updater := updaters[0, i];
+			IF updater # NIL THEN
+				children := updater.Children();
+				IF children = NIL THEN INC(numForward) END
+			END;
+			INC(i)
+		END;
+		NEW(x, numUpdaters - numForward);
+		i := 0;
+		j := 0;
 		WHILE i < numUpdaters DO
 			updater := updaters[0, i];
 			IF updater # NIL THEN
 				children := updater.Children();
 				IF children # NIL THEN
 					numChildren := LEN(children);
-				ELSE
-					numChildren := 0
-				END;
-				x[i] := numChildren
+					x[j] := numChildren;
+					INC(j)
+				END
 			END;
 			INC(i)
 		END;
-		MathSort.HeapSort(x, numUpdaters);
-		RETURN SHORT(ENTIER(x[numUpdaters DIV 2] + eps))
+		MathSort.HeapSort(x, j);
+		RETURN SHORT(ENTIER(x[j DIV 2] + 0.5))
 	END MedianNumChildren;
-
-	(*	externalize data of nodes associated with updaters	*)
-	PROCEDURE AllocateLikelihoods*;
-		VAR
-			u: UpdaterUpdaters.Updater;
-			p: GraphStochastic.Node;
-			i, numUpdaters: INTEGER;
-	BEGIN
-		numUpdaters := NumberUpdaters();
-		i := 0;
-		WHILE i < numUpdaters DO
-			u := updaters[0, i];
-			p := u.Node(0);
-			p.AllocateLikelihood;
-			INC(i)
-		END
-	END AllocateLikelihoods;
 
 	(*	Clears the updater list etc	*)
 	PROCEDURE Clear*;
@@ -364,15 +357,17 @@ MODULE UpdaterActions;
 		IF found THEN
 			chain := i - 1; index := j - 1
 		ELSE
-			chain :=  - 1; index :=  - 1
+			chain := - 1; index := - 1
 		END
 	END FindUpdater;
 
+	(*	inserts a special uder into list of updaters after a updater for GMRF but only if the GMRF is not
+		updated by a block updater	*)
 	PROCEDURE InsertConstraints*;
 		VAR
 			mrf, oldMRF: GraphMRF.Node;
 			cursor, prev, element: List;
-			updater: UpdaterUpdaters.Updater;
+			updater, prevUpdater: UpdaterUpdaters.Updater;
 			prior, prevPrior: GraphStochastic.Node;
 			factory: UpdaterUpdaters.Factory;
 	BEGIN
@@ -383,12 +378,12 @@ MODULE UpdaterActions;
 		WHILE cursor # NIL DO
 			updater := cursor.updater;
 			prior := updater.Node(0);
-			IF prior IS GraphMRF.Node THEN
+			IF (prior IS GraphMRF.Node) & (updater.Size() = 1) THEN
 				mrf := prior(GraphMRF.Node);
 				mrf := mrf.components[0](GraphMRF.Node);
 				IF mrf # oldMRF THEN
 					IF oldMRF # NIL THEN
-						IF factory.CanUpdate(prevPrior) THEN
+						IF factory.CanUpdate(prevPrior) & (prevUpdater.Size() = 1) THEN
 							NEW(element);
 							element.updater := factory.New(prevPrior);
 							element.next := cursor;
@@ -399,7 +394,7 @@ MODULE UpdaterActions;
 				END
 			ELSE
 				IF oldMRF # NIL THEN
-					IF factory.CanUpdate(prevPrior) THEN
+					IF factory.CanUpdate(prevPrior) & (prevUpdater.Size() = 1)THEN
 						NEW(element);
 						element.updater := factory.New(prevPrior);
 						element.next := cursor;
@@ -409,7 +404,8 @@ MODULE UpdaterActions;
 				END
 			END;
 			prev := cursor;
-			prevPrior := prev.updater.Node(0);
+			prevUpdater := prev.updater;
+			prevPrior := prevUpdater.Node(0);
 			cursor := cursor.next
 		END
 	END InsertConstraints;
@@ -523,7 +519,7 @@ MODULE UpdaterActions;
 		END
 	END LoadSamples;
 
-	PROCEDURE CanDistribute (updater: UpdaterUpdaters.Updater; avNum: INTEGER): BOOLEAN;
+	PROCEDURE CanDistribute (updater: UpdaterUpdaters.Updater; avNum, workersPerChain: INTEGER): BOOLEAN;
 		VAR
 			canDistribute: BOOLEAN;
 			i, numChild: INTEGER;
@@ -537,12 +533,14 @@ MODULE UpdaterActions;
 			children := updater.Children();
 			prior := updater.Prior(0);
 			IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
-			canDistribute := (numChild > 2 * avNum) OR (GraphNodes.maxStochDepth = 1);
+			canDistribute := (numChild > 2 * avNum) OR (numChild > 50 * workersPerChain) OR
+				((GraphNodes.maxStochDepth = 1) & (numChild >  2 * workersPerChain));
 			i := 0;
 			WHILE ~canDistribute & (i < numChild) DO
 				canDistribute := children[i] IS GraphMRF.Node;
 				INC(i)
 			END;
+			(*	do not distribute if prior has logical dependent nodes	*)
 			dependents := prior.dependents;
 			WHILE canDistribute & (dependents # NIL) DO
 				canDistribute := ~(GraphLogical.stochParent IN dependents.node.props);
@@ -552,23 +550,32 @@ MODULE UpdaterActions;
 		RETURN canDistribute
 	END CanDistribute;
 
-	PROCEDURE MarkDistributed*;
+	PROCEDURE MarkDistributed*(workersPerChain: INTEGER);
 		VAR
 			i, j, numUpdaters, avNumChild, size: INTEGER;
 			updater: UpdaterUpdaters.Updater;
-			prior: GraphStochastic.Node;
+			prior, p: GraphStochastic.Node;
+			list: GraphStochastic.List;
+		CONST
+			all = TRUE;
 	BEGIN
 		avNumChild := MeanNumChildren();
 		numUpdaters := NumberUpdaters();
 		i := 0;
 		WHILE i < numUpdaters DO
 			updater := updaters[0, i];
-			IF CanDistribute(updater, avNumChild) THEN
+			IF CanDistribute(updater, avNumChild, workersPerChain) THEN
 				j := 0;
 				size := updater.Size();
 				WHILE j < size DO
 					prior := updater.Prior(j);
 					prior.SetProps(prior.props + {GraphStochastic.distributed});
+					list := GraphStochastic.Parents(prior, all);
+					WHILE list # NIL DO
+						p := list.node;
+						p.SetProps(p.props + {GraphStochastic.distributed});
+						list := list.next
+					END;
 					INC(j)
 				END
 			END;
@@ -719,12 +726,27 @@ MODULE UpdaterActions;
 	END StartFinish;
 
 	(*	Generates initial values	*)
-	PROCEDURE GenerateInits* (chain: INTEGER; fixFounder: BOOLEAN; OUT res: SET; OUT updater: UpdaterUpdaters.Updater);
+	PROCEDURE GenerateInits* (chain: INTEGER; fixFounder: BOOLEAN; OUT res: SET;
+	OUT updater: UpdaterUpdaters.Updater);
 		VAR
 			i, start, finish, depth, min, max: INTEGER;
 	BEGIN
-		res := {};
 		MinMaxDepth(min, max);
+		(*	try to generate inits	*)
+		res := {};
+		depth := 1;
+		WHILE depth <= max DO
+			StartFinish(depth, start, finish);
+			i := start;
+			WHILE i < finish DO
+				updater := updaters[chain, i];
+				updater.GenerateInit(fixFounder, res);
+				INC(i)
+			END;
+			INC(depth)
+		END;
+		(*	now generate inits again for any case that failed first time	*)
+		res := {};
 		depth := 1;
 		WHILE (depth <= max) & (res = {}) DO
 			StartFinish(depth, start, finish);
@@ -737,7 +759,7 @@ MODULE UpdaterActions;
 			INC(depth)
 		END;
 		(*	forward sampling for prediction nodes	*)
-		depth :=  - 1;
+		depth := - 1;
 		WHILE (depth >= min) & (res = {}) DO
 			StartFinish(depth, start, finish);
 			i := start;
@@ -780,7 +802,7 @@ MODULE UpdaterActions;
 			INC(num, size);
 			INC(i)
 		END;
-		IF num > 0 THEN NEW(stochastics, num) END;
+		IF num > 0 THEN NEW(stochastics, num) ELSE stochastics := NIL END;
 		i := 0;
 		num := 0;
 		WHILE i < numUpdaters DO

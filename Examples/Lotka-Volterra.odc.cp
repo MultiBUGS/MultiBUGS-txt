@@ -23,7 +23,7 @@ In the BUGS language the model is
 		log.gamma ~ dnorm(0.0, 0.0001) 
 		log.delta ~ dnorm(0.0, 0.0001) 
 
-		D(C[1], t) <-  C[1 ] * (alpha - beta * C[2])
+		D(C[1], t) <-  C[1] * (alpha - beta * C[2])
 		D(C[2], t) <- -C[2]  * (gamma - delta * C[1])
 		
 		for (i in 1:ngrid)

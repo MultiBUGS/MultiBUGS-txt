@@ -42,103 +42,105 @@ MODULE UpdaterUpdaters;
 		enabled* = 30; 	(*	updater algorithm can be used	*)
 		active* = 31; 	(*	updater algorithm is used	*)
 
-		maxNumTypes = 500;	(*	maximum number of updater types that can be used in model	*)
+		maxNumTypes = 500; 	(*	maximum number of updater types that can be used in model	*)
 
 	VAR
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
+		block*: BOOLEAN;	(*	hint for choosing block updaters	*)
 		fact: Factory; 	(*	factory object for creating MCMC updaters for graphical model	*)
 		typeLabel: INTEGER;
 		startOfUpdaters: INTEGER;
 		installProc: ARRAY maxNumTypes OF String;
 		factories: ARRAY maxNumTypes OF Factory;
 
-	(*	returns a vector containing the children of updater	*)
+		(*	returns a vector containing the children of updater	*)
 	PROCEDURE (updater: Updater) Children* (): GraphStochastic.Vector, NEW, ABSTRACT;
 
-	(*	creates a new updater of the same type as updater	*)
+		(*	creates a new updater of the same type as updater	*)
 	PROCEDURE (updater: Updater) Clone- (): Updater, NEW, ABSTRACT;
 
-	(*	copies the internal fields of source to updater	*)
+		(*	copies the internal fields of source to updater	*)
 	PROCEDURE (updater: Updater) CopyFrom- (source: Updater), NEW, ABSTRACT;
 
-	(*	toplogical depth of node(s) that the updater updates	*)
+		(*	toplogical depth of node(s) that the updater updates	*)
 	PROCEDURE (updater: Updater) Depth* (): INTEGER, NEW, ABSTRACT;
 
-	(*	writes the updater's mutable internal state to store	*)
+		(*	writes the updater's mutable internal state to store	*)
 	PROCEDURE (updater: Updater) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-	(*	writes in the 'prior' (posibly a block of nodes) for updater to store	*)
+		(*	calculates derivative of log conditional wrt to parameters on whole real line	*)
+	PROCEDURE (updater: Updater) DiffLogConditional* (index: INTEGER): REAL, NEW, ABSTRACT;
+
+		(*	writes in the 'prior' (posibly a block of nodes) for updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-	(*	generate initial values for nodes that updater updates	*)
+		(*	generate initial values for nodes that updater updates	*)
 	PROCEDURE (updater: Updater) GenerateInit* (fixFounder: BOOLEAN; OUT res: SET), NEW, ABSTRACT;
 
-	(*	sets the updater's ummutable internal fields and allocates any needed dynamic storage	*)
+		(*	sets the updater's ummutable internal fields and allocates any needed dynamic storage	*)
 	PROCEDURE (updater: Updater) Initialize-, NEW, ABSTRACT;
 
-	(*	reads the updater's mutable internal state from store	*)
+		(*	reads the updater's mutable internal state from store	*)
 	PROCEDURE (updater: Updater) Internalize- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-	(*	reads in the 'prior' (posibly a block of nodes) for updater from store	*)
+		(*	reads in the 'prior' (posibly a block of nodes) for updater from store	*)
 	PROCEDURE (updater: Updater) InternalizePrior- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-	(*	name of procedure that 'creates' (sets up factory object for) updater	*)
+		(*	name of procedure that 'creates' (sets up factory object for) updater	*)
 	PROCEDURE (updater: Updater) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	(*	is updater algorithm in adaptive phase	*)
+		(*	is updater algorithm in adaptive phase	*)
 	PROCEDURE (updater: Updater) IsAdapting* (): BOOLEAN, NEW, ABSTRACT;
 
-	(*	are nodes associated with updater initialized	*)
+		(*	are nodes associated with updater initialized	*)
 	PROCEDURE (updater: Updater) IsInitialized* (): BOOLEAN, NEW, ABSTRACT;
 
-	(*	load sampled values stored in updater into graphical model	*)
+		(*	load sampled values stored in updater into graphical model	*)
 	PROCEDURE (updater: Updater) LoadSample*, NEW, ABSTRACT;
 
-	(*	calculated the log conditional of the node (nodes) that updater updates	*)
+		(*	calculated the log conditional of the node (nodes) that updater updates	*)
 	PROCEDURE (updater: Updater) LogConditional* (): REAL, NEW, ABSTRACT;
-	
-	(*	calculated the log likelihood of the node (nodes) that updater updates	*)
+
+		(*	calculated the log likelihood of the node (nodes) that updater updates	*)
 	PROCEDURE (updater: Updater) LogLikelihood* (): REAL, NEW, ABSTRACT;
-	
-	(*	returns the node that updater updates, occasionaly this is not prior	*)
+
+		(*	calculated the log prior of the node (nodes) that updater updates	*)
+	PROCEDURE (updater: Updater) LogPrior* (): REAL, NEW, ABSTRACT;
+
+		(*	returns the node that updater updates, occasionaly this is not prior	*)
 	PROCEDURE (updater: Updater) Node* (index: INTEGER): GraphStochastic.Node, NEW, ABSTRACT;
 
-	(*	node(s) in graphical model that updater is associated with	*)
+		(*	node(s) in graphical model that updater is associated with	*)
 	PROCEDURE (updater: Updater) Prior* (index: INTEGER): GraphStochastic.Node, NEW, ABSTRACT;
 
-	(*	sample values for node(s) that updater is associated with places value(s) in nodes(s)	*)
+		(*	sample values for node(s) that updater is associated with places value(s) in nodes(s)	*)
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET), NEW, ABSTRACT;
 
-	(*	set the children of  updater	*)
-	PROCEDURE (updater: Updater) SetChildren* (children: GraphStochastic.Vector),
-	NEW, ABSTRACT;
+		(*	associate node(s) in graphical model with updater	*)
+	PROCEDURE (updater: Updater) SetPrior- (prior: GraphStochastic.Node), NEW, ABSTRACT;
 
-	(*	associate node(s) in graphical model with updater	*)
-	PROCEDURE (updater: Updater) SetPrior- (prior: GraphStochastic.Node),
-	NEW, ABSTRACT;
-
-	(*	number of nodes that updater is associated with	*)
+		(*	number of nodes that updater is associated with	*)
 	PROCEDURE (updater: Updater) Size* (): INTEGER, NEW, ABSTRACT;
 
-	(*	copy node values from graphical model into updater	*)
+		(*	copy node values from graphical model into updater	*)
 	PROCEDURE (updater: Updater) StoreSample*, NEW, ABSTRACT;
 
-	(*	Factory methods	*)
-	
-	(*	can this type of updater update prior	*)
+		(*	Factory methods	*)
+
+		(*	can this type of updater update prior	*)
 	PROCEDURE (f: Factory) CanUpdate* (prior: GraphStochastic.Node): BOOLEAN, NEW, ABSTRACT;
 
-	(*	create new updater	*)
+		(*	create new updater	*)
 	PROCEDURE (f: Factory) Create- (): Updater, NEW, ABSTRACT;
 
-	(*	read default parameters for updater from registry	*)
+		(*	read default parameters for updater from registry	*)
 	PROCEDURE (f: Factory) GetDefaults*, NEW, ABSTRACT;
 
-	(*	get insatll procedure for factory	*)
+		(*	get insatll procedure for factory	*)
 	PROCEDURE (f: Factory) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	(*	create new updater for prior	*)
+		(*	create new updater for prior	*)
 	PROCEDURE (f: Factory) New* (prior: GraphStochastic.Node): Updater, NEW;
 		VAR
 			updater: Updater;
@@ -177,7 +179,7 @@ MODULE UpdaterUpdaters;
 		wr.WriteInt(f.adaptivePhase);
 		wr.WriteInt(f.overRelaxation)
 	END Externalize;
-	
+
 	(*	reads internal fields of factory object from store	*)
 	PROCEDURE (f: Factory) Internalize* (VAR rd: Stores.Reader), NEW;
 	BEGIN
@@ -188,7 +190,7 @@ MODULE UpdaterUpdaters;
 	END Internalize;
 
 	(*	procedures	*)
-	
+
 	(*	calls the procedure install, which sets the global factory object fact to ceate a particular updater	*)
 	PROCEDURE InstallFactory* (IN install: ARRAY OF CHAR): Factory;
 		VAR
@@ -255,6 +257,45 @@ MODULE UpdaterUpdaters;
 		updater.CopyFrom(source);
 		RETURN updater
 	END CopyFrom;
+
+	(*	differentiates the log conditional for node wrt to node mapping node so that it has support on
+	whole real line. Adds in the differential of appropiate Jacobean	*)
+	PROCEDURE DiffLogConditional* (node: GraphStochastic.Node): REAL;
+		VAR
+			dxdy, diffLogCond, diffLogJacobian, lower, upper, val: REAL;
+			i, num: INTEGER;
+			children: GraphStochastic.Vector;
+	BEGIN
+		val := node.value;
+		IF {GraphStochastic.rightNatural, GraphStochastic.rightImposed} * node.props # {} THEN
+			node.Bounds(lower, upper);
+			IF {GraphStochastic.leftNatural, GraphStochastic.rightImposed} * node.props # {} THEN
+				diffLogJacobian := (upper + lower - 2 * val) / (upper - lower);
+				dxdy := (val - lower) * (upper - val) / (upper - lower)
+			ELSE
+				diffLogJacobian := - 1.0;
+				dxdy := upper - val
+			END
+		ELSIF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
+			node.Bounds(lower, upper);
+			diffLogJacobian := 1.0;
+			dxdy := val - lower
+		ELSE
+			diffLogJacobian := 0.0;
+			dxdy := 1.0
+		END;
+		diffLogCond := 0.0;
+		children := node.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE i < num DO
+			diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
+			INC(i)
+		END;
+		diffLogCond := node.DiffLogPrior() + diffLogCond;
+		diffLogCond := dxdy * diffLogCond + diffLogJacobian;
+		RETURN diffLogCond
+	END DiffLogConditional;
 
 	(*	ends the protocol for externalizing updaters	*)
 	PROCEDURE EndExternalize* (VAR wr: Stores.Writer);
@@ -370,6 +411,7 @@ MODULE UpdaterUpdaters;
 	BEGIN
 		Maintainer;
 		fact := NIL;
+		block := FALSE
 	END Init;
 
 BEGIN

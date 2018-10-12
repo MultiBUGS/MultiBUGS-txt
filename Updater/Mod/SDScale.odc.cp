@@ -124,14 +124,14 @@ MODULE UpdaterSDScale;
 	BEGIN
 		prior := updater.prior;
 		oldVal := prior.value;
-		oldDen := prior.LogConditional();
+		oldDen := updater.LogConditional();
 		a := updater.a;
 		b := updater.b;
 		piHat := updater.piHat;
 		precX := Math.Exp( - a) * Math.Power((1.0 + ABS(oldVal)) / Math.Exp(piHat),  - b);
 		newVal := MathRandnum.Normal(oldVal, precX);
 		prior.SetValue(newVal);
-		newDen := prior.LogConditional();
+		newDen := updater.LogConditional();
 		precY := Math.Exp( - a) * Math.Power((1.0 + ABS(newVal)) / Math.Exp(piHat),  - b);
 		alpha := newDen - oldDen + 0.5 * Math.Ln(precY / precX)
 		 - 0.5 * (newVal - oldVal) * (newVal - oldVal) * (precY - precX);
@@ -161,7 +161,7 @@ MODULE UpdaterSDScale;
 			GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;

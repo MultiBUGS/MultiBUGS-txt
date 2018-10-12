@@ -13,7 +13,8 @@ MODULE UpdaterWishart;
 	
 
 	IMPORT
-		MPIworker, Math,
+		MPIworker,
+		Math,
 		BugsRegistry,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
@@ -28,21 +29,9 @@ MODULE UpdaterWishart;
 		fact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		value, s, p1: POINTER TO ARRAY OF ARRAY OF REAL;
+		value, s: POINTER TO ARRAY OF ARRAY OF REAL;
 
-	PROCEDURE (updater: Updater) Clone (): Updater;
-		VAR
-			u: Updater;
-	BEGIN
-		NEW(u);
-		RETURN u
-	END Clone;
-
-	PROCEDURE (updater: Updater) CopyFromConjugateMV (source: UpdaterUpdaters.Updater);
-	BEGIN
-	END CopyFromConjugateMV;
-
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL);
+	PROCEDURE WishartLikelihood (prior: GraphMultivariate.Node; OUT p: ARRAY OF REAL);
 		CONST
 			eps = 1.0E-20;
 		VAR
@@ -53,24 +42,22 @@ MODULE UpdaterWishart;
 			q: GraphNodes.Node;
 			children: GraphStochastic.Vector;
 			xVector: GraphNodes.Vector;
-			prior: GraphConjugateMV.Node;
 	BEGIN
 		as := GraphRules.wishart;
-		size := updater.Size();
+		size := prior.Size();
 		len := SHORT(ENTIER(Math.Sqrt(size + eps)));
-		prior := updater.prior[0](GraphConjugateMV.Node);
 		i := 0;
 		WHILE i < size + 1 DO
 			p[i] := 0.0;
 			INC(i)
 		END;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		l := 0;
 		WHILE l < num DO
 			stoch := children[l];
 			WITH stoch: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
-				stoch.MVLikelihoodForm(as, xVector, start, step, p0, p1);
+				stoch.MVLikelihoodForm(as, xVector, start, step, p0, value);
 				i := 0;
 				WHILE i < len DO
 					j := 0;
@@ -84,7 +71,7 @@ MODULE UpdaterWishart;
 							prior.components[k].SetValue(1.0);
 							weight := xVector[start + k * step].Value() - weight
 						END;
-						p[k] := p[k] + weight * p1[i, j];
+						p[k] := p[k] + weight * value[i, j];
 						INC(j)
 					END;
 					INC(i)
@@ -109,8 +96,23 @@ MODULE UpdaterWishart;
 				END;
 			END;
 			INC(l)
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			MPIworker.SumReals(p)
 		END
-	END LikelihoodForm;
+	END WishartLikelihood;
+
+	PROCEDURE (updater: Updater) Clone (): Updater;
+		VAR
+			u: Updater;
+	BEGIN
+		NEW(u);
+		RETURN u
+	END Clone;
+
+	PROCEDURE (updater: Updater) CopyFromConjugateMV (source: UpdaterUpdaters.Updater);
+	BEGIN
+	END CopyFromConjugateMV;
 
 	PROCEDURE (updater: Updater) ParamsSize (): INTEGER;
 	BEGIN
@@ -129,8 +131,7 @@ MODULE UpdaterWishart;
 		len := SHORT(ENTIER(Math.Sqrt(size + eps)));
 		IF len > LEN(s, 0) THEN
 			NEW(value, len, len);
-			NEW(s, len, len);
-			NEW(p1, len, len)
+			NEW(s, len, len)
 		END
 	END InitializeMultivariate;
 
@@ -143,7 +144,7 @@ MODULE UpdaterWishart;
 		CONST
 			eps = 1.0E-20;
 		VAR
-			as, i, j, len, size: INTEGER;
+			i, j, len, size: INTEGER;
 			nu: REAL;
 			prior: GraphConjugateMV.Node;
 			p0: ARRAY 1 OF REAL;
@@ -151,12 +152,8 @@ MODULE UpdaterWishart;
 		prior := updater.prior[0](GraphConjugateMV.Node);
 		size := prior.Size();
 		len := SHORT(ENTIER(Math.Sqrt(size) + eps));
-		as := GraphRules.wishart;
-		updater.LikelihoodForm(updater.params);
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(updater.params)
-		END;
-		prior.MVPriorForm(as, p0, s);
+		WishartLikelihood(prior, updater.params);
+		prior.MVPriorForm(p0, s);
 		nu := p0[0];
 		nu := nu + updater.params[size];
 		i := 0;
@@ -241,7 +238,6 @@ MODULE UpdaterWishart;
 		Maintainer;
 		NEW(value, dim, dim);
 		NEW(s, dim, dim);
-		NEW(p1, dim, dim);
 		NEW(f);
 		f.SetProps({UpdaterUpdaters.enabled, UpdaterUpdaters.hidden});
 		f.Install(name);

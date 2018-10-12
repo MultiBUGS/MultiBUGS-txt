@@ -78,10 +78,10 @@ MODULE UpdaterMetropolisMV;
 		updater.InternalizeMetropolisMV(rd)
 	END InternalizeMultivariate;
 
-	PROCEDURE (updater: Updater) StoreOldValue*, NEW;
+(*	PROCEDURE (updater: Updater) StoreOldValue*, NEW;
 	BEGIN
 		updater.GetValue(updater.oldVals)
-	END StoreOldValue;
+	END StoreOldValue;*)
 
 	PROCEDURE Maintainer;
 	BEGIN

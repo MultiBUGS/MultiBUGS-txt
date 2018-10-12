@@ -24,12 +24,13 @@ MODULE UpdaterMVNLinear;
 	
 
 	IMPORT
-		MPIworker, Math,
+		MPIworker,
+		Math,
 		BugsRegistry,
-		GraphConjugateMV, GraphConjugateUV, GraphNodes, GraphRules,
-		GraphStochastic,
+		GraphConjugateMV, GraphConjugateUV, GraphMultivariate, GraphNodes,
+		GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
-		UpdaterConjugateMV, UpdaterUpdaters;
+		UpdaterConjugateMV, UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
 		Updater = POINTER TO RECORD (UpdaterConjugateMV.Updater)
@@ -43,24 +44,22 @@ MODULE UpdaterMVNLinear;
 		fact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		z, value, p0, left, right: POINTER TO ARRAY OF REAL;
+		p0, z, value: POINTER TO ARRAY OF REAL;
 		p1, theta: POINTER TO ARRAY OF ARRAY OF REAL;
-		des: POINTER TO ARRAY OF ARRAY OF ARRAY OF REAL;
-		desPrec: POINTER TO ARRAY OF ARRAY OF ARRAY OF REAL;
+		des, desPrec: POINTER TO ARRAY OF ARRAY OF ARRAY OF REAL;
 
-	PROCEDURE GetDesign (prior: GraphConjugateMV.Node);
+
+	PROCEDURE GetDesign (prior, children: GraphStochastic.Vector);
 		VAR
 			as, lenChild, lenPrior, i, j, k, l, start, step, num: INTEGER;
-			children: GraphStochastic.Vector;
 			child: GraphStochastic.Node;
 			x: GraphNodes.Vector;
 			mu: GraphNodes.Node;
 			q0, q1: REAL;
 	BEGIN
-		lenPrior := prior.Size();
-		children := prior.Children();
+		lenPrior := LEN(prior);
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0; WHILE i < lenPrior DO prior.components[i].SetValue(0.0); INC(i) END;
+		i := 0; WHILE i < lenPrior DO prior[i].SetValue(0.0); INC(i) END;
 		i := 0;
 		WHILE i < num DO
 			child := children[i];
@@ -70,18 +69,18 @@ MODULE UpdaterMVNLinear;
 				child.MVLikelihoodForm(as, x, start, step, p0, p1);
 				j := 0;
 				WHILE j < lenChild DO
-					theta[i, j] :=  - x[start + j * step].Value();
+					theta[i, j] := - x[start + j * step].Value();
 					INC(j)
 				END;
 				j := 0;
 				WHILE j < lenPrior DO
-					prior.components[j].SetValue(1.0);
+					prior[j].SetValue(1.0);
 					k := 0;
 					WHILE k < lenChild DO
 						des[i, k, j] := x[start + k * step].Value() + theta[i, k];
 						INC(k)
 					END;
-					prior.components[j].SetValue(0.0);
+					prior[j].SetValue(0.0);
 					INC(j)
 				END;
 				j := 0; WHILE j < lenChild DO theta[i, j] := theta[i, j] + p0[j]; INC(j) END;
@@ -89,10 +88,10 @@ MODULE UpdaterMVNLinear;
 				WHILE j < lenPrior DO
 					k := 0;
 					WHILE k < lenChild DO
-						desPrec[i, j, k] := 0;
+						desPrec[i, k, j] := 0;
 						l := 0;
 						WHILE l < lenChild DO
-							desPrec[i, j, k] := desPrec[i, j, k] + des[i, l, j] * p1[l, k];
+							desPrec[i, k, j] := desPrec[i, k, j] + des[i, l, j] * p1[l, k];
 							INC(l)
 						END;
 						INC(k)
@@ -102,20 +101,88 @@ MODULE UpdaterMVNLinear;
 			|child: GraphConjugateUV.Node DO (* univariate normal likelihood *)
 				as := GraphRules.normal;
 				child.LikelihoodForm(as, mu, q0, q1);
-				theta[i, 0] :=  - mu.Value();
+				theta[i, 0] := - mu.Value();
 				j := 0;
 				WHILE j < lenPrior DO
-					prior.components[j].SetValue(1.0);
+					prior[j].SetValue(1.0);
 					des[i, 0, j] := mu.Value() + theta[i, 0];
-					prior.components[j].SetValue(0.0);
+					prior[j].SetValue(0.0);
 					INC(j)
 				END;
 				theta[i, 0] := theta[i, 0] + q0;
-				j := 0; WHILE j < lenPrior DO desPrec[i, j, 0] := des[i, 0, j] * q1; INC(j) END
+				j := 0; WHILE j < lenPrior DO desPrec[i, 0, j] := des[i, 0, j] * q1; INC(j) END
 			END;
 			INC(i);
 		END
 	END GetDesign;
+
+	PROCEDURE MVNLinearLikelihood (prior, children: GraphStochastic.Vector; OUT p: ARRAY OF REAL);
+		VAR
+			i, j, k, l, lenChild, lenP, paramsSize, size, size2, num, d0, d1, d2: INTEGER;
+			child: GraphStochastic.Node;
+	BEGIN
+		size := LEN(prior);
+		size2 := size * size;
+		paramsSize := size + size2;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		lenChild := 0;
+		i := 0;
+		WHILE i < num DO
+			lenChild := MAX(lenChild, children[i].Size());
+			INC(i)
+		END;
+		lenP := MAX(size, lenChild);
+		IF lenP > LEN(p0) THEN
+			NEW(p0, lenP)
+		END;
+		IF lenP > LEN(p1, 0) THEN
+			NEW(p1, lenP, lenP);
+		END;
+		IF (num > LEN(theta, 0)) OR (lenChild > LEN(theta, 1)) THEN
+			d0 := MAX(num, LEN(theta, 0));
+			d1 := MAX(lenChild, LEN(theta, 1));
+			NEW(theta, d0, d1)
+		END;
+		IF (num > LEN(des, 0)) OR (lenChild > LEN(des, 1)) OR (size > LEN(des, 2)) THEN
+			d0 := MAX(num, LEN(des, 0));
+			d1 := MAX(lenChild, LEN(des, 1));
+			d2 := MAX(size, LEN(des, 2));
+			NEW(des, d0, d1, d2); NEW(desPrec, d0, d1, d2)
+		END;
+		i := 0;
+		WHILE i < paramsSize DO
+			p[i] := 0.0;
+			INC(i)
+		END;
+		GetDesign(prior, children);
+		i := 0;
+		WHILE i < num DO
+			child := children[i];
+			lenChild := child.Size();
+			j := 0;
+			WHILE j < size DO
+				k := 0;
+				WHILE k < lenChild DO
+					p[size2 + j] := p[size2 + j] + desPrec[i, k, j] * theta[i, k];
+					INC(k)
+				END;
+				k := 0;
+				WHILE k < size DO
+					l := 0;
+					WHILE l < lenChild DO
+						p[j * size + k] := p[j * size + k] + desPrec[i, l, j] * des[i, l, k];
+						INC(l)
+					END;
+					INC(k)
+				END;
+				INC(j)
+			END;
+			INC(i)
+		END;
+		IF GraphStochastic.distributed IN prior[0].props THEN
+			MPIworker.SumReals(p)
+		END;
+	END MVNLinearLikelihood;
 
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
@@ -129,51 +196,6 @@ MODULE UpdaterMVNLinear;
 	BEGIN
 	END CopyFromConjugateMV;
 
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL);
-		VAR
-			i, j, k, l, lenChild, paramsSize, size, size2, num: INTEGER;
-			children: GraphStochastic.Vector;
-			prior: GraphConjugateMV.Node;
-			child: GraphStochastic.Node;
-	BEGIN
-		prior := updater.prior[0](GraphConjugateMV.Node);
-		size := prior.Size();
-		size2 := size * size;
-		paramsSize := updater.ParamsSize();
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < paramsSize DO
-			p[i] := 0.0;
-			INC(i)
-		END;
-		GetDesign(prior);
-		i := 0;
-		WHILE i < num DO
-			child := children[i];
-			lenChild := child.Size();
-			j := 0;
-			WHILE j < size DO
-				k := 0;
-				WHILE k < lenChild DO
-					p[size2 + j] := p[size2 + j] + desPrec[i, j, k] * theta[i, k];
-					INC(k)
-				END;
-				k := 0;
-				WHILE k < size DO
-					l := 0;
-					WHILE l < lenChild DO
-						p[j * size + k] := p[j * size + k] + desPrec[i, j, l] * des[i, l, k];
-						INC(l)
-					END;
-					INC(k)
-				END;
-				INC(j)
-			END;
-			INC(i)
-		END
-	END LikelihoodForm;
-
 	PROCEDURE (updater: Updater) ParamsSize (): INTEGER;
 		VAR
 			dim: INTEGER;
@@ -184,33 +206,14 @@ MODULE UpdaterMVNLinear;
 
 	PROCEDURE (updater: Updater) InitializeMultivariate;
 		VAR
-			i, size, lenChild, lenP, lenPrior, numChild, num: INTEGER;
-			children: GraphStochastic.Vector;
-			prior: GraphStochastic.Node;
+			size: INTEGER;
 	BEGIN
 		size := updater.Size();
-		prior := updater.prior[0];
 		NEW(updater.mu, size);
 		NEW(updater.tau, size, size);
-		lenPrior := prior.Size();
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		lenChild := children[0].Size();
-		numChild := 0;
-		i := 0;
-		WHILE i < num DO
-			lenChild := MAX(lenChild, children[i].Size());
-			INC(numChild);
-			INC(i)
-		END;
-		lenP := MAX(lenChild, lenPrior);
-		IF lenPrior > LEN(p0) THEN
-			NEW(p0, lenP); NEW(p1, lenP, lenP);
-			NEW(z, lenPrior); NEW(value, lenPrior);
-			NEW(left, lenPrior); NEW(right, lenPrior);
-			numChild := MAX(numChild, LEN(theta, 0));
-			NEW(des, numChild, lenChild, lenPrior);
-			NEW(desPrec, numChild, lenPrior, lenChild);
+		IF size > LEN(p0) THEN
+			NEW(p0, size); NEW(p1, size, size);
+			NEW(z, size); NEW(value, size);
 		END
 	END InitializeMultivariate;
 
@@ -221,31 +224,52 @@ MODULE UpdaterMVNLinear;
 
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			ok: BOOLEAN;
-			as, i, j, size, size2: INTEGER;
+			i, j, size, size2: INTEGER;
 			alpha: REAL;
-			prior: GraphConjugateMV.Node;
+			prior: GraphMultivariate.Node;
+			children: GraphStochastic.Vector;
 			mu: POINTER TO ARRAY OF REAL;
 			tau: POINTER TO ARRAY OF ARRAY OF REAL;
 	BEGIN
-		prior := updater.prior[0](GraphConjugateMV.Node);
+		prior := updater.prior[0](GraphMultivariate.Node);
+		children := updater.Children();
 		size := updater.Size();
 		size2 := size * size;
-		as := GraphRules.mVN;
 		updater.GetValue(z);
 		mu := updater.mu;
 		tau := updater.tau;
-		updater.LikelihoodForm(updater.params);
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(updater.params)
+		MVNLinearLikelihood(prior.components, children, updater.params);
+		prior.MVPriorForm(p0, p1);
+		IF prior.ClassifyPrior() = GraphRules.mVNSigma THEN
+			(*	have Cholesky of covariance matrix so must calculate precision matrix	*)
+			i := 0;
+			WHILE i < size DO
+				j := 0;
+				WHILE j < size DO
+					IF j = i THEN tau[i, j] := 1 ELSE tau[i, j] := 0 END;
+					INC(j)
+				END;
+				MathMatrix.ForwardSub(p1, tau[i], size);
+				MathMatrix.BackSub(p1, tau[i], size);
+				INC(i)
+			END
+		ELSE
+			i := 0;
+			WHILE i < size DO
+				j := 0;
+				WHILE j < size DO
+					tau[i, j] := p1[i, j];
+					INC(j)
+				END;
+				INC(i)
+			END
 		END;
-		prior.MVPriorForm(as, p0, p1);
 		i := 0;
 		WHILE i < size DO
 			mu[i] := 0;
 			j := 0;
 			WHILE j < size DO
-				mu[i] := mu[i] + p1[i, j] * p0[j];
+				mu[i] := mu[i] + tau[i, j] * p0[j];
 				INC(j)
 			END;
 			INC(i)
@@ -263,60 +287,11 @@ MODULE UpdaterMVNLinear;
 		MathMatrix.Cholesky(tau, size);
 		MathMatrix.ForwardSub(tau, mu, size);
 		MathMatrix.BackSub(tau, mu, size);
-		IF ~(GraphStochastic.leftImposed IN prior.props)
-			 & ~(GraphStochastic.rightImposed IN prior.props) THEN
-			IF overRelax THEN
-				alpha :=  - (1 - 1 / Math.Sqrt(fact.overRelaxation));
-				MathRandnum.RelaxedMNormal(tau, mu, z, size, alpha, value)
-			ELSE
-				MathRandnum.MNormal(tau, mu, size, value)
-			END
-		ELSIF (GraphStochastic.leftImposed IN prior.props)
-			 & ~(GraphStochastic.rightImposed IN prior.props) THEN
-			i := 0;
-			WHILE i < size DO
-				prior.components[i].Bounds(left[i], right[i]);
-				INC(i)
-			END;
-			REPEAT
-				MathRandnum.MNormal(tau, mu, size, value);
-				ok := TRUE;
-				i := 0;
-				WHILE ok & (i < size) DO ok := value[i] > left[i];
-					INC(i)
-				END
-			UNTIL ok
-		ELSIF (GraphStochastic.rightImposed IN prior.props)
-			 & ~(GraphStochastic.leftImposed IN prior.props) THEN
-			i := 0;
-			WHILE i < size DO
-				prior.components[i].Bounds(left[i], right[i]);
-				INC(i)
-			END;
-			REPEAT
-				MathRandnum.MNormal(tau, mu, size, value);
-				ok := TRUE;
-				i := 0;
-				WHILE ok & (i < size) DO
-					ok := value[i] < right[i];
-					INC(i)
-				END
-			UNTIL ok
+		IF overRelax THEN
+			alpha := - (1 - 1 / Math.Sqrt(fact.overRelaxation));
+			MathRandnum.RelaxedMNormal(tau, mu, z, size, alpha, value)
 		ELSE
-			i := 0;
-			WHILE i < size DO
-				prior.components[i].Bounds(left[i], right[i]);
-				INC(i)
-			END;
-			REPEAT
-				MathRandnum.MNormal(tau, mu, size, value);
-				ok := TRUE;
-				i := 0;
-				WHILE ok & (i < size) DO
-					ok := (value[i] < right[i]) & (value[i] < right[i]);
-					INC(i)
-				END
-			UNTIL ok
+			MathRandnum.MNormal(tau, mu, size, value)
 		END;
 		updater.SetValue(value);
 		res := {}
@@ -344,8 +319,13 @@ MODULE UpdaterMVNLinear;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.mVNLin THEN RETURN FALSE END;
-		IF ~(prior IS GraphConjugateMV.Node) THEN RETURN FALSE END;
-		RETURN TRUE
+		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
+		IF prior.classConditional # GraphRules.mVN THEN RETURN FALSE END;
+		WITH prior: GraphMultivariate.Node DO
+			RETURN UpdaterMultivariate.ClassifyBlock(prior.components) = GraphRules.mVNLin
+		ELSE
+			RETURN FALSE
+		END
 	END CanUpdate;
 
 	PROCEDURE (f: Factory) Create (): UpdaterUpdaters.Updater;
@@ -373,17 +353,16 @@ MODULE UpdaterMVNLinear;
 			isRegistered: BOOLEAN;
 			res: INTEGER;
 			name: ARRAY 256 OF CHAR;
+		CONST
+			dim = 2;
 	BEGIN
 		Maintainer;
-		NEW(value, 2);
-		NEW(p0, 2);
+		NEW(value, dim);
+		NEW(p0, dim);
 		NEW(z, 2);
-		NEW(left, 2);
-		NEW(right, 2);
-		NEW(p1, 2, 2);
-		NEW(des, 2, 2, 2);
-		NEW(desPrec, 2, 2, 2);
-		NEW(theta, 2, 2);
+		NEW(p1, dim, dim);
+		NEW(des, dim, dim, dim);
+		NEW(desPrec, dim, dim, dim);
 		NEW(f);
 		f.Install(name);
 		f.SetProps({UpdaterUpdaters.overRelaxation, UpdaterUpdaters.enabled});

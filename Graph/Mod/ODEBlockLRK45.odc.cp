@@ -12,12 +12,10 @@ MODULE GraphODEBlockLRK45;
 	
 
 	IMPORT
-		GraphNodes, GraphODEBlockL, GraphVector,
+		GraphNodes, GraphODEBlockL, GraphVector, 
 		MathODE, MathRungeKutta45;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphODEBlockL.Node) END;
-
 		Factory = POINTER TO RECORD(GraphVector.Factory) END;
 
 	VAR
@@ -25,20 +23,13 @@ MODULE GraphODEBlockLRK45;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphODEBlockLRK45.Install"
-	END Install;
-
 	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR
-			node: Node;
+			node: GraphVector.Node;
 			solver: MathODE.Solver;
 	BEGIN
-		NEW(node);
-		node.Init;
-		solver := MathRungeKutta45.fact.New();
-		node.SetSolver(solver);
+		solver := MathRungeKutta45.New(); 
+		node := GraphODEBlockL.New(solver);
 		RETURN node
 	END New;
 

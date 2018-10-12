@@ -23,7 +23,7 @@ MODULE GraphCat2;
 		Factory = POINTER TO RECORD (GraphUnivariate.Factory) END;
 
 	VAR
-		fact-: GraphNodes.Factory;
+		fact-: GraphUnivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -57,8 +57,7 @@ MODULE GraphCat2;
 
 	PROCEDURE (node: Node) DevianceUnivariate (): REAL;
 	BEGIN
-		HALT(0);
-		RETURN 0
+		RETURN 2 * Math.Ln(1 + Math.Exp(node.s.Value()))
 	END DevianceUnivariate;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
@@ -67,7 +66,7 @@ MODULE GraphCat2;
 	BEGIN
 		val := node.value;
 		node.s.ValDiff(x, s, sDiff);
-		differential := sDiff / (1 + Math.Exp( - s));
+		differential := sDiff / (1 + Math.Exp( - s)) - sDiff;
 		RETURN differential
 	END DiffLogLikelihood;
 
@@ -84,6 +83,7 @@ MODULE GraphCat2;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
+		node.SetProps(node.props + {GraphStochastic.noMean});
 		node.s := NIL
 	END InitUnivariate;
 

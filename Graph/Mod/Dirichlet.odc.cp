@@ -34,15 +34,15 @@ MODULE GraphDirichlet;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		alpha, diagJacob, diffWork, proportions: POINTER TO ARRAY OF REAL;
+		alpha, diagJacob, diffWork, proportions, value: POINTER TO ARRAY OF REAL;
 
-	PROCEDURE (node: Node) BoundsConjugateMV (OUT left, right: REAL);
+	PROCEDURE (node: Node) Bounds (OUT left, right: REAL);
 	BEGIN
 		left := 0.0;
 		right := 1.0
-	END BoundsConjugateMV;
+	END Bounds;
 
-	PROCEDURE (node: Node) CheckConjugateMV (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 		VAR
 			i, nElem: INTEGER;
 			prop, sum: REAL;
@@ -62,7 +62,7 @@ MODULE GraphDirichlet;
 			RETURN {GraphNodes.invalidProportions, GraphNodes.lhs}
 		END;
 		RETURN {}
-	END CheckConjugateMV;
+	END Check;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 	BEGIN
@@ -97,69 +97,69 @@ MODULE GraphDirichlet;
 		RETURN - 2.0 * logLikelihood
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
-		VAR
-			i, index, size, j, num: INTEGER;
-			children: GraphStochastic.Vector;
-			p: GraphStochastic.Node;
-			diff, q, stickLen: REAL;
+	(*	PROCEDURE (node: Node) DiffLogConditionalMap (jacobian: BOOLEAN): REAL;
+	VAR
+	i, index, size, j, num: INTEGER;
+	children: GraphStochastic.Vector;
+	p: GraphStochastic.Node;
+	diff, q, stickLen, prop: REAL;
+	components: GraphStochastic.Vector;
 	BEGIN
-		size := node.Size();
-		(*	for first component compute and store some usefull quantities	*)
-		IF node.index = 0 THEN
-			IF LEN(diffWork) > size THEN
-				NEW(diffWork, size);
-				NEW(proportions, size);
-				NEW(diagJacob, size)
-			END;
-			(*	calculate differentials wrt to the proportion parameters of Dirichlet	*)
-			i := 0;
-			WHILE i < size DO
-				p := node.components[i];
-				diffWork[i] := p.DiffLogPrior();
-				children := node.Children();
-				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-				j := 0;
-				WHILE j < num DO
-					diffWork[i] := diffWork[i] + children[j].DiffLogLikelihood(p);
-					INC(j)
-				END;
-				INC(i)
-			END;
-			(*	calculate jacobian matrix of parameter transformation	*)
-			stickLen := 1.0;
-			i := 0;
-			WHILE i < size - 1 DO
-				q := node.components[i].value / stickLen;
-				proportions[i] := q;
-				diagJacob[i] := q * (1.0 - q) * stickLen;
-				stickLen := stickLen - node.components[i].value;
-				INC(i)
-			END
-		END;
-		index := node.index;
-		IF index = size - 1 THEN
-			RETURN 0
-		ELSE
-			(*	use chain rule to convert to differential wrt transformed parameters	*)
-			diff := diffWork[index] * diagJacob[index] - diffWork[size - 1] * diagJacob[index];
-			i := index + 1;
-			WHILE i < size - 1 DO
-				diff := diff - proportions[i] * diagJacob[index] * diffWork[i];
-				INC(i)
-			END;
-			(*	add in differential of log Jacobean	*)
-			q := proportions[i];
-			diff := diff + 1.0 - 2.0 * q;
-			i := index + 1;
-			WHILE i < size - 1 DO
-				q := proportions[i];
-				diff := diff - q * (1.0 - q);
-				INC(i)
-			END;
-			RETURN diff
-		END
-	END DiffLogConditionalMap;
+	size := node.Size();
+	index := node.index;
+	(*	for first component compute and store some usefull quantities	*)
+	IF index = 0 THEN
+	(*	calculate differentials wrt to the proportion parameters of Dirichlet	*)
+	components := node.components;
+	i := 0;
+	WHILE i < size DO
+	p := components[i];
+	diffWork[i] := p.DiffLogPrior();
+	children := node.children;
+	IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+	j := 0;
+	WHILE j < num DO
+	diffWork[i] := diffWork[i] + children[j].DiffLogLikelihood(p);
+	INC(j)
+	END;
+	INC(i)
+	END;
+	(*	calculate jacobian matrix of parameter transformation	*)
+	stickLen := 1.0;
+	i := 0;
+	WHILE i < size - 1 DO
+	prop := components[i].value;
+	q := prop / stickLen;
+	proportions[i] := q;
+	diagJacob[i] := q * (1.0 - q) * stickLen;
+	stickLen := stickLen - prop;
+	INC(i)
+	END
+	END;
+	IF index = size - 1 THEN
+	diff := 0.0
+	ELSE
+	(*	use chain rule to convert to differential wrt transformed parameters	*)
+	diff := (diffWork[index] - diffWork[size - 1]) * diagJacob[index];
+	i := index + 1;
+	WHILE i < size - 1 DO
+	diff := diff - proportions[i] * diagJacob[index] * diffWork[i];
+	INC(i)
+	END;
+	IF jacobian THEN
+	(*	add in differential of log Jacobean	*)
+	q := proportions[i];
+	diff := diff + 1.0 - 2.0 * q;
+	i := index + 1;
+	WHILE i < size - 1 DO
+	q := proportions[i];
+	diff := diff - q * (1.0 - q);
+	INC(i)
+	END
+	END
+	END;
+	RETURN diff
+	END DiffLogConditionalMap;*)
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
@@ -211,13 +211,13 @@ MODULE GraphDirichlet;
 		END
 	END ExternalizeConjugateMV;
 
-	PROCEDURE (node: Node) InitConjugateMV;
+	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
 		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
 		node.alpha := NIL;
 		node.start := - 1;
 		node.step := 0
-	END InitConjugateMV;
+	END InitStochastic;
 
 	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
 		VAR
@@ -249,42 +249,73 @@ MODULE GraphDirichlet;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 		VAR
-			i, index: INTEGER;
-			p, stickLen: REAL;
+			i, index, indSize: INTEGER;
+			p, q, stickLen: REAL;
 	BEGIN
-		stickLen := 1.0;
-		i := 0;
 		index := node.index;
-		WHILE i < index DO
-			stickLen := stickLen - node.components[i].value;
-			INC(i)
+		indSize := LEN(node.components) - 1;
+		IF index < indSize THEN
+			value[index] := 1.0 / (1.0 + Math.Exp( - y))
 		END;
-		p := stickLen;
-		IF index < LEN(node.components) THEN
-			p := p / (1.0 + Math.Exp( - y))
-		END;
-		node.SetValue(p)
+		IF index = indSize - 1 THEN
+			i := 0;
+			stickLen := 1.0;
+			WHILE i < indSize DO
+				q := value[i];
+				p := q * stickLen;
+				node.components[i].SetValue(p);
+				stickLen := stickLen - p;
+				INC(i)
+			END;
+			node.components[indSize].SetValue(stickLen)
+		END
 	END InvMap;
 
-	PROCEDURE (node: Node) LogJacobian (): REAL;
+	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
+	OUT p0, p1: REAL);
+	BEGIN
+		HALT(126)
+	END LikelihoodForm;
+
+	PROCEDURE (node: Node) Location (): REAL;
 		VAR
-			i, size: INTEGER;
-			q, stickLen, log: REAL;
+			alphaI, alphaIndex, sum: REAL;
+			i, size, start, step: INTEGER;
+	BEGIN
+		size := node.Size();
+		i := 0;
+		start := node.start;
+		step := node.step;
+		sum := 0.0;
+		WHILE i < size DO
+			alphaI := node.alpha[start + i * step].Value();
+			IF i = node.index THEN alphaIndex := alphaI END;
+			sum := sum + alphaI;
+			INC(i)
+		END;
+		RETURN alphaIndex / sum
+	END Location;
+
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
+		VAR
+			i, indSize: INTEGER;
+			prop, q, stickLen, log: REAL;
 	BEGIN
 		log := 0.0;
 		IF node.index = 0 THEN
 			stickLen := 1.0;
 			i := 0;
-			size := node.Size() - 1;
-			WHILE i < size DO
-				q := node.components[i].value / stickLen;
+			indSize := node.Size() - 1;
+			WHILE i < indSize DO
+				prop := node.components[i].value;
+				q := prop / stickLen;
 				log := log + Math.Ln(q * (1.0 - q) * stickLen);
-				stickLen := stickLen - node.components[i].value;
+				stickLen := stickLen - prop;
 				INC(i)
 			END
 		END;
 		RETURN log
-	END LogJacobian;
+	END LogDetJacobian;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
@@ -309,74 +340,9 @@ MODULE GraphDirichlet;
 		RETURN logLikelihood
 	END LogLikelihood;
 
-	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
-	OUT p0, p1: REAL);
-	BEGIN
-		HALT(126)
-	END LikelihoodForm;
-
-	PROCEDURE (node: Node) Map (): REAL;
-		VAR
-			i, index: INTEGER;
-			q, stickLen: REAL;
-	BEGIN
-		index := node.index;
-		IF index < LEN(node.components) THEN
-			stickLen := 1.0;
-			i := 0;
-			WHILE i < index DO
-				stickLen := stickLen - node.components[i].value;
-				INC(i)
-			END;
-			q := node.value / stickLen;
-			RETURN Math.Ln(q / (1 - q))
-		ELSE
-			RETURN 0
-		END;
-	END Map;
-
-	PROCEDURE (node: Node) Location (): REAL;
-		VAR
-			alphaI, alphaIndex, sum: REAL;
-			i, size, start, step: INTEGER;
-	BEGIN
-		size := node.Size();
-		i := 0;
-		start := node.start;
-		step := node.step;
-		sum := 0.0;
-		WHILE i < size DO
-			alphaI := node.alpha[start + i * step].Value();
-			IF i = node.index THEN alphaIndex := alphaI END;
-			sum := sum + alphaI;
-			INC(i)
-		END;
-		RETURN alphaIndex / sum
-	END Location;
-
-	PROCEDURE (node: Node) MVLikelihoodForm (as: INTEGER; OUT x: GraphNodes.Vector;
-	OUT start, step: INTEGER; OUT p0: ARRAY OF REAL; OUT p1: ARRAY OF ARRAY OF REAL);
-	BEGIN
-		HALT(126)
-	END MVLikelihoodForm;
-
 	PROCEDURE (node: Node) LogMVPrior (): REAL;
-		VAR
-			i, nElem, start, step: INTEGER;
-			alpha, logPrior, x: REAL;
 	BEGIN
-		i := 0;
-		nElem := LEN(node.components);
-		start := node.start;
-		step := node.step;
-		logPrior := 0.0;
-		WHILE i < nElem DO
-			x := node.components[i].value;
-			alpha := node.alpha[start + i * step].Value();
-			logPrior := logPrior + (alpha - 1) * MathFunc.Ln(x);
-			INC(i)
-		END;
-		RETURN logPrior
+		RETURN node.LogPrior()
 	END LogMVPrior;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
@@ -398,12 +364,42 @@ MODULE GraphDirichlet;
 		RETURN logPrior
 	END LogPrior;
 
-	PROCEDURE (node: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	PROCEDURE (node: Node) Map (): REAL;
+		VAR
+			i, index, indSize: INTEGER;
+			p, q, stickLen: REAL;
+	BEGIN
+		index := node.index;
+		indSize := LEN(node.components) - 1;
+		IF index = 0 THEN
+			stickLen := 1.0;
+			i := 0;
+			WHILE i < indSize DO
+				p := node.components[i].value;
+				q := p / stickLen;
+				value[i] := Math.Ln(q / (1 - q));
+				stickLen := stickLen - p;
+				INC(i)
+			END;
+		END;
+		IF index < indSize THEN
+			RETURN value[index]
+		ELSE
+			RETURN 0
+		END;
+	END Map;
+
+	PROCEDURE (node: Node) MVLikelihoodForm (as: INTEGER; OUT x: GraphNodes.Vector;
+	OUT start, step: INTEGER; OUT p0: ARRAY OF REAL; OUT p1: ARRAY OF ARRAY OF REAL);
+	BEGIN
+		HALT(126)
+	END MVLikelihoodForm;
+
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
 			i, nElem, start, step: INTEGER;
 	BEGIN
-		ASSERT(as = GraphRules.dirichlet, 21);
 		i := 0;
 		nElem := node.Size();
 		start := node.start;
@@ -419,7 +415,7 @@ MODULE GraphDirichlet;
 		node.Sample(res)
 	END MVSample;
 
-	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -439,7 +435,7 @@ MODULE GraphDirichlet;
 			GraphNodes.ClearList(list)
 		END;
 		RETURN list
-	END ParentsConjugateMV;
+	END Parents;
 
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
@@ -469,7 +465,7 @@ MODULE GraphDirichlet;
 		res := {}
 	END Sample;
 
-	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			nElem: INTEGER;
 	BEGIN
@@ -490,10 +486,11 @@ MODULE GraphDirichlet;
 				NEW(alpha, nElem);
 				NEW(proportions, nElem);
 				NEW(diagJacob, nElem);
-				NEW(diffWork, nElem)
+				NEW(diffWork, nElem);
+				NEW(value, nElem)
 			END;
 		END
-	END SetConjugateMV;
+	END Set;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
@@ -532,7 +529,8 @@ MODULE GraphDirichlet;
 		NEW(alpha, nElem);
 		NEW(proportions, nElem);
 		NEW(diffWork, nElem);
-		NEW(diagJacob, nElem)
+		NEW(diagJacob, nElem);
+		NEW(value, nElem)
 	END Init;
 
 BEGIN

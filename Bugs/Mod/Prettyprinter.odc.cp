@@ -42,14 +42,15 @@ MODULE BugsPrettyprinter;
 			real: BugsParser.Real;
 			integer: BugsParser.Integer;
 			operator: BugsParser.Internal;
-			i, j, len, numPar, skip: INTEGER;
+			i, j, len, numPar, op, skip: INTEGER;
 			string: ARRAY 256 OF CHAR;
 			descriptor: GraphGrammar.External;
 			fact: GraphNodes.Factory;
 	BEGIN
 		IF node IS BugsParser.Binary THEN
 			binary := node(BugsParser.Binary);
-			CASE binary.op OF
+			op := binary.op MOD GraphGrammar.modifier;
+			CASE op OF
 			|GraphGrammar.add:
 				PrintNode(binary.left, f);
 				f.WriteString(" + ");

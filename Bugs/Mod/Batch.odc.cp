@@ -15,7 +15,6 @@ MODULE BugsBatch;
 
 	IMPORT
 		Dialog,
-		StdLog,
 		BugsCmds, BugsFiles;
 
 	VAR
@@ -29,11 +28,13 @@ MODULE BugsBatch;
 	END Maintainer;
 
 	PROCEDURE Init;
+		VAR
+			res: INTEGER;
 	BEGIN
 		Maintainer;
 		BugsFiles.SetDest(BugsFiles.log);
-		StdLog.Open;
-		BugsCmds.ScriptFile(Dialog.commandLinePars)
+		Dialog.Call("StdLog.Open", "", res);
+		BugsCmds.Script(Dialog.commandLinePars)
 	END Init;
 
 BEGIN

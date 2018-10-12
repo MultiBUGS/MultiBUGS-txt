@@ -14,7 +14,7 @@ MODULE CorrelCmds;
 	IMPORT
 		Dialog, 
 		TextMappers, TextModels, 
-		BugsCmds, BugsDialog, BugsFiles, BugsInterface, BugsMsg, 
+		BugsCmds, BugsDialog, BugsFiles, BugsInterface, BugsMsg,
 		CorrelFormatted, CorrelPlots,
 		SamplesIndex;
 
@@ -123,57 +123,20 @@ MODULE CorrelCmds;
 		BugsFiles.Open("Bivariate Scatter Plot", text)
 	END ScatterPlots;
 
-	PROCEDURE Guard* (OUT ok: BOOLEAN);
-		VAR
-			i: INTEGER;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("CorrelCmds:NotInitialized");
-		ELSE
-			ok := ~BugsInterface.IsAdapting();
-			IF ~ok THEN
-				BugsMsg.Show("CorrelCmds:Adapting");
-			ELSE
-				i := 0;
-				WHILE (dialog.string0[i] # 0X) & (dialog.string0[i] # "[") DO
-					p[0][i] := dialog.string0[i];
-					INC(i)
-				END;
-				p[0][i] := 0X;
-				ok := SamplesIndex.Find(p[0]) # NIL;
-				IF ~ok THEN
-					BugsMsg.ShowParam("CorrelCmds:NotMonitored", p);
-				ELSE
-					IF dialog.string1 # "" THEN
-						i := 0;
-						WHILE (dialog.string1[i] # 0X) & (dialog.string1[i] # "[") DO
-							p[0][i] := dialog.string1[i];
-							INC(i)
-						END;
-						p[0][i] := 0X;
-						ok := SamplesIndex.Find(p[0]) # NIL;
-						IF ~ok THEN
-							BugsMsg.ShowParam("CorrelCmds:NotMonitored", p);
-						END
-					END
-				END
-			END
-		END
-	END Guard;
-
-	PROCEDURE GuardWin* (VAR par: Dialog.Par);
+	PROCEDURE Guard* (VAR par: Dialog.Par);
 		VAR
 			i: INTEGER;
 			string: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := FALSE;
 		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("CorrelCmds:NotInitialized", par.label) END
 		ELSE
 			IF BugsInterface.IsAdapting() THEN
-				par.disabled := TRUE
+				par.disabled := TRUE;
+				IF BugsCmds.script THEN BugsMsg.Lookup("CorrelCmds:Adapting", par.label) END
 			ELSE
 				i := 0;
 				WHILE (dialog.string0[i] # 0X) & (dialog.string0[i] # "[") DO
@@ -182,7 +145,11 @@ MODULE CorrelCmds;
 				END;
 				string[i] := 0X;
 				IF SamplesIndex.Find(string) = NIL THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN
+						p[0] := string;
+						BugsMsg.LookupParam("CorrelCmds:NotMonitored", p, par.label);
+					END
 				ELSE
 					IF dialog.string1 # "" THEN
 						i := 0;
@@ -192,13 +159,17 @@ MODULE CorrelCmds;
 						END;
 						string[i] := 0X;
 						IF SamplesIndex.Find(string) = NIL THEN
-							par.disabled := TRUE
+							par.disabled := TRUE;
+							IF BugsCmds.script THEN
+								p[0] := string;
+								BugsMsg.LookupParam("CorrelCmds:NotMonitored", p, par.label);
+							END
 						END
 					END
 				END
 			END
 		END
-	END GuardWin;
+	END Guard;
 
 	PROCEDURE FirstNotifier* (op, from, to: INTEGER);
 	BEGIN

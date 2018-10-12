@@ -49,8 +49,6 @@ MODULE UpdaterStage1;
 	END ExternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InternalizeUnivariate (VAR rd: Stores.Reader);
-		VAR
-			p: GraphNodes.Node;
 	BEGIN
 	END InternalizeUnivariate;
 
@@ -60,7 +58,7 @@ MODULE UpdaterStage1;
 			prior: GraphStochastic.Node;
 	BEGIN
 		prior := updater.prior;
-		children := prior.Children();
+		children := prior.children;
 		updater.stage1 := children[0](GraphMultivariate.Node)
 	END InitializeUnivariate;
 
@@ -135,8 +133,8 @@ MODULE UpdaterStage1;
 	BEGIN
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
 		IF prior IS GraphMultivariate.Node THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
-		children := prior.Children();
+		IF prior.children = NIL THEN RETURN FALSE END;
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		j := 0;
 		WHILE j < num DO

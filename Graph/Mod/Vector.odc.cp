@@ -13,7 +13,7 @@ MODULE GraphVector;
 	
 
 	IMPORT
-		Stores,
+		Stores, 
 		GraphLogical, GraphNodes;
 
 	TYPE
@@ -40,7 +40,7 @@ MODULE GraphVector;
 			i, index, size: INTEGER;
 			components: GraphLogical.Vector;
 	BEGIN
-		index := node.index;
+		index := node.index; 
 		wr.WriteInt(index);
 		IF index = 0 THEN
 			size := node.Size();
@@ -74,11 +74,10 @@ MODULE GraphVector;
 		VAR
 			i, index, size: INTEGER;
 			components: GraphLogical.Vector;
-			values: POINTER TO ARRAY OF REAL;
 			p: GraphNodes.Node;
 			q: Node;
 	BEGIN
-		rd.ReadInt(index);
+		rd.ReadInt(index); 
 		node.index := index;
 		IF index = 0 THEN
 			rd.ReadInt(size);
@@ -86,26 +85,13 @@ MODULE GraphVector;
 			i := 0;
 			WHILE i < size DO
 				p := GraphNodes.InternalizePointer(rd);
-				components[i] := p(Node);
-				INC(i)
-			END;
-			NEW(values, size);
-			i := 0;
-			WHILE i < size DO rd.ReadReal(values[i]); INC(i) END;
-			i := 0;
-			WHILE i < size DO
-				q := components[i](Node);
+				q := p(Node);
+				components[i] := q;
 				q.SetComponent(components, i);
 				INC(i)
 			END;
-			i := 0;
-			WHILE i < size DO
-				q := components[i](Node);
-				q.components := components;
-				q.values := values;
-				INC(i)
-			END
-		END;
+			i := 0; WHILE i < size DO rd.ReadReal(node.values[i]); INC(i) END
+		END; 
 		node.InternalizeVector(rd)
 	END InternalizeLogical;
 

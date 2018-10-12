@@ -13,7 +13,7 @@ MODULE UpdaterMultivariate;
 	
 
 	IMPORT
-		Stores,
+		MPIworker, Stores, 
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		UpdaterUpdaters;
 
@@ -40,7 +40,7 @@ MODULE UpdaterMultivariate;
 	BEGIN
 		IF block = NIL THEN RETURN NIL END;
 		IF (block[0] IS GraphConjugateMV.Node) & (LEN(block) = block[0].Size()) THEN
-			children := block[0].Children();
+			children := block[0].children;
 			RETURN children
 		END;
 		GraphStochastic.AddMarks(block, {GraphNodes.mark});
@@ -49,7 +49,7 @@ MODULE UpdaterMultivariate;
 		i := 0;
 		WHILE i < blockSize DO
 			node := block[i];
-			children := node.Children();
+			children := node.children;
 			IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 			j := 0;
 			WHILE j < num DO
@@ -83,8 +83,8 @@ MODULE UpdaterMultivariate;
 		ASSERT(class # {}, 20);
 		IF~(prior IS GraphUnivariate.Node) THEN RETURN NIL END;
 		IF ~allowBounds & (bounds * prior.props # {}) THEN RETURN NIL END;
-		IF prior.likelihood = NIL THEN RETURN NIL END;
-		IF LEN(prior.Children()) = 1 THEN RETURN NIL END;
+		IF prior.children = NIL THEN RETURN NIL END;
+		IF LEN(prior.children) = 1 THEN RETURN NIL END;
 		depth := prior.depth;
 		coParents := prior.CoParents();
 		list := NIL;
@@ -94,7 +94,7 @@ MODULE UpdaterMultivariate;
 				IF multiDepth OR (node.depth = depth) THEN
 					IF node.classConditional IN class THEN
 						IF allowBounds OR (bounds * node.props = {}) THEN
-							IF (LEN(node.Children()) > 1) & (node IS GraphUnivariate.Node) THEN
+							IF (LEN(node.children) > 1) & (node IS GraphUnivariate.Node) THEN
 								GraphStochastic.AddToList(node, list)
 							END
 						END
@@ -104,9 +104,7 @@ MODULE UpdaterMultivariate;
 			coParents := coParents.next
 		END;
 		IF list # NIL THEN
-			IF allowBounds OR (bounds * prior.props = {}) THEN
-				GraphStochastic.AddToList(prior, list)
-			END;
+			GraphStochastic.AddToList(prior, list);
 			block := GraphStochastic.ListToVector(list);
 			IF (LEN(block) > maxBlockSize) OR (LEN(block) < 2) THEN
 				block := NIL
@@ -117,55 +115,54 @@ MODULE UpdaterMultivariate;
 		RETURN block
 	END FixedEffects;
 
-	PROCEDURE IsGLMBlock* (block: GraphStochastic.Vector): BOOLEAN;
+	PROCEDURE IsHomologous* (block: GraphStochastic.Vector): BOOLEAN;
 		VAR
 			class, i, num: INTEGER;
 			likelihood: GraphStochastic.Vector;
+			prior: GraphStochastic.Node;
 	BEGIN
 		IF block = NIL THEN RETURN FALSE END;
+		prior := block[0];
 		likelihood := BlockLikelihood(block);
 		IF likelihood # NIL THEN num := LEN(likelihood) ELSE num := 0 END;
 		i := 0;
 		GraphStochastic.AddMarks(block, {GraphStochastic.mark});
-		class := likelihood[0].ClassifyLikelihood(block[0]);
+		class := likelihood[0].ClassifyLikelihood(prior);
 		LOOP
 			IF i = num THEN EXIT END;
-			IF class # likelihood[i].ClassifyLikelihood(block[0]) THEN EXIT END;
+			IF class # likelihood[i].ClassifyLikelihood(prior) THEN EXIT END;
 			INC(i)
 		END;
 		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
 		RETURN i = num
-	END IsGLMBlock;
+	END IsHomologous;
 
-	PROCEDURE IsNLBlock* (block: GraphStochastic.Vector): BOOLEAN;
+	PROCEDURE ClassifyBlock* (block: GraphStochastic.Vector): INTEGER;
 		VAR
-			varParents, i, num: INTEGER;
+			class, class1, i, num: INTEGER;
 			likelihood: GraphStochastic.Vector;
-			node: GraphNodes.Node;
-			parents: GraphNodes.List;
+			prior: GraphStochastic.Node;
 	BEGIN
-		IF block = NIL THEN RETURN FALSE END;
+		IF block = NIL THEN RETURN GraphRules.unif END;
+		prior := block[0];
 		likelihood := BlockLikelihood(block);
 		IF likelihood # NIL THEN num := LEN(likelihood) ELSE num := 0 END;
 		i := 0;
-		varParents := 0;
-		WHILE (i < num) & (varParents < 2) DO
-			varParents := 0;
-			parents := likelihood[i].Parents(FALSE);
-			GraphStochastic.AddMarks(block, {GraphStochastic.mark});
-			WHILE parents # NIL DO
-				node := parents.node;
-				IF GraphStochastic.ClassFunction(node, block[0]) # GraphRules.const THEN
-					INC(varParents)
-				END;
-				parents := parents.next
-			END;
-			GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
+		GraphStochastic.AddMarks(block, {GraphStochastic.mark});
+		class := likelihood[0].ClassifyLikelihood(prior);
+		WHILE i < num DO
+			class1 :=  likelihood[i].ClassifyLikelihood(prior);
+			class := GraphRules.product[class, class1];
 			INC(i)
 		END;
-		GraphStochastic.ClearMarks(block, {GraphStochastic.mark, GraphNodes.mark});
-		RETURN (*varParents < 2*)TRUE
-	END IsNLBlock;
+		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
+		RETURN class
+	END ClassifyBlock;
+
+	PROCEDURE (updater: Updater) Children* (): GraphStochastic.Vector;
+	BEGIN
+		RETURN updater.children
+	END Children;
 
 	PROCEDURE (updater: Updater) CopyFromMultivariate- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
@@ -208,13 +205,18 @@ MODULE UpdaterMultivariate;
 		size := updater.Size();
 		WHILE i < size DO
 			prior := updater.prior[i];
-			IF prior.likelihood # NIL THEN likelihood := TRUE END;
+			IF prior.children # NIL THEN likelihood := TRUE END;
 			depth := MAX(depth, prior.depth);
 			INC(i)
 		END;
 		IF ~likelihood THEN depth := - depth END;
 		RETURN depth
 	END Depth;
+	
+	PROCEDURE (updater: Updater) DiffLogConditional* (index: INTEGER): REAL;
+	BEGIN
+		RETURN UpdaterUpdaters.DiffLogConditional(updater.prior[index])
+	END DiffLogConditional;
 
 	PROCEDURE (updater: Updater) ExternalizeMultivariate- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
@@ -277,7 +279,7 @@ MODULE UpdaterMultivariate;
 			mvUpdate := i = size
 		END;
 		IF mvUpdate THEN
-			IF ~p.CanEvaluate() THEN res := {GraphNodes.lhs}; RETURN END;
+			IF ~p.CanSample(mvUpdate) THEN res := {GraphNodes.lhs}; RETURN END;
 			IF ~fixFounder OR (p.depth # 1) OR (p.props * bounds # {}) THEN
 				priorMV.MVSample(res);
 				IF res # {} THEN RETURN END;
@@ -302,7 +304,7 @@ MODULE UpdaterMultivariate;
 			i := 0;
 			WHILE i < size DO
 				p := updater.prior[i];
-				IF ~p.CanEvaluate() THEN res := {GraphNodes.lhs}; RETURN END;
+				IF ~p.CanSample(~mvUpdate) THEN res := {GraphNodes.lhs}; RETURN END;
 				IF ~(GraphStochastic.initialized IN p.props) THEN
 					IF ~fixFounder OR (p.depth # 1) OR (p.props * bounds # {}) THEN
 						p.Sample(res)
@@ -362,7 +364,7 @@ MODULE UpdaterMultivariate;
 		ELSE
 			updater.params := NIL
 		END;
-		updater.InitializeMultivariate
+		updater.InitializeMultivariate 
 	END Initialize;
 
 	PROCEDURE (updater: Updater) InternalizeMultivariate- (VAR rd: Stores.Reader), NEW, ABSTRACT;
@@ -415,11 +417,8 @@ MODULE UpdaterMultivariate;
 		RETURN isInitialized
 	END IsInitialized;
 
-	PROCEDURE (updater: Updater) Children* (): GraphStochastic.Vector;
-	BEGIN
-		RETURN updater.children
-	END Children;
-
+	PROCEDURE (updater: Updater) LoadSampleMultivariate-, NEW, EMPTY;
+	
 	PROCEDURE (updater: Updater) LoadSample*;
 		VAR
 			i, size: INTEGER;
@@ -436,16 +435,36 @@ MODULE UpdaterMultivariate;
 				prior.SetProps(prior.props - {GraphStochastic.initialized})
 			END;
 			INC(i)
-		END
+		END;
+		updater.LoadSampleMultivariate
 	END LoadSample;
+
+	PROCEDURE (updater: Updater) LogDetJacobian* (): REAL, NEW;
+		VAR
+			logDet: REAL;
+			i, size: INTEGER;
+			prior: GraphStochastic.Vector;
+	BEGIN
+		logDet := 0.0;
+		prior := updater.prior;
+		size := LEN(prior);
+		i := 0;
+		WHILE i < size DO
+			logDet := logDet + prior[i].LogDetJacobian();
+			INC(i)
+		END;
+		RETURN logDet
+	END LogDetJacobian;
 
 	PROCEDURE (updater: Updater) LogLikelihood* (): REAL;
 		VAR
 			logLikelihood, log: REAL;
 			children: GraphStochastic.Vector;
 			i, num: INTEGER;
+			prior: GraphStochastic.Node;
 	BEGIN
 		logLikelihood := 0.0;
+		prior := updater.prior[0];
 		children := updater.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
@@ -458,10 +477,13 @@ MODULE UpdaterMultivariate;
 			END;
 			INC(i)
 		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			logLikelihood := MPIworker.SumReal(logLikelihood)
+		END;
 		RETURN logLikelihood
 	END LogLikelihood;
 
-	PROCEDURE (updater: Updater) LogPrior* (): REAL, NEW;
+	PROCEDURE (updater: Updater) LogPrior* (): REAL;
 		VAR
 			i, size: INTEGER;
 			logPrior, log: REAL;
@@ -519,11 +541,6 @@ MODULE UpdaterMultivariate;
 		END
 	END Prior;
 
-	PROCEDURE (updater: Updater) SetChildren* (children: GraphStochastic.Vector);
-	BEGIN
-		updater.children := children
-	END SetChildren;
-
 	(*	associate node in graphical model with updater	*)
 	PROCEDURE (updater: Updater) SetPrior- (prior: GraphStochastic.Node);
 	BEGIN
@@ -548,6 +565,8 @@ MODULE UpdaterMultivariate;
 	BEGIN
 		RETURN LEN(updater.prior)
 	END Size;
+	
+	PROCEDURE (updater: Updater) StoreSampleMultivariate-, NEW, EMPTY;
 
 	(*	copy node values from graphical model into updater	*)
 	PROCEDURE (updater: Updater) StoreSample*;
@@ -566,7 +585,8 @@ MODULE UpdaterMultivariate;
 				updater.initialized[i] := FALSE
 			END;
 			INC(i)
-		END
+		END;
+		updater.StoreSampleMultivariate;
 	END StoreSample;
 
 	PROCEDURE Maintainer;

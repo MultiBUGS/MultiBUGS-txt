@@ -232,7 +232,7 @@ MODULE GraphODEmath;
 	BEGIN
 		node.solver.equations.Install(install);
 	END Install;
-
+	
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, start, nElem: INTEGER;

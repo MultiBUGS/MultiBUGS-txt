@@ -1,7 +1,8 @@
-	model{
+model{
 		for(i in 2 : N){
 			z[i] ~ dstable(alpha, beta, gamma, delta)	
 			z[i] <- price[i] / price[i - 1] - 1
+			pValue[i] <- post.p.value(z[i])
 		}
 		
 		alpha ~ dunif(1.1, 2)
@@ -12,3 +13,4 @@
 		mean.z <- mean(z[2:50])
 		sd.z <- sd(z[2:50])
 	}
+

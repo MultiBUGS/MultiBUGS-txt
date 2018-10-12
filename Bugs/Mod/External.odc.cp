@@ -32,7 +32,7 @@ MODULE BugsExternal;
 	BEGIN
 
 		(*	special place holder not user level distribution	*)
-		Density("dummy", "GraphDummy.Install");
+		Density("_dummy_", "GraphDummy.Install");
 
 		(*	Univariate distributions	*)
 		
@@ -266,9 +266,12 @@ MODULE BugsExternal;
 		Function("LC", "GraphValDiff.LogCondInstall");
 		Function("diffLC", "GraphValDiff.ADLogCondInstall");
 		Function("diffLCFD", "GraphValDiff.FDLogCondInstall");
+		Function("diffLCmapFD", "GraphValDiff.FDLogCondMapInstall");
 		Function("diff", "GraphValDiff.ADInstall");
 		Function("diffFD", "GraphValDiff.FDInstall");
 
+		Function("map", "GraphMapped.Install");
+		
 		(*	Functions for rank etc	*)
 		Function("ranked", "GraphRanks.RankedInstall");
 		Function("rank", "GraphRanks.RankInstall");
@@ -277,15 +280,16 @@ MODULE BugsExternal;
 		Function("co.selection", "GraphCoSelection.Install");
 		Function("co.selection.model", "GraphCoSelection.ModelInstall");
 		Function("co.selection.pred", "GraphCoSelection.PredictorInstall");
-		Function("linear.spline.d", "GraphSpline.LinearDescreteInstall");
-		Function("quadratic.spline.d", "GraphSpline.QuadraticDescreteInstall");
-		Function("cubic.spline.d", "GraphSpline.CubicDescreteInstall");
-		Function("general.spline.d", "GraphSpline.GenericDescreteInstall");
-		Function("linear.spline.c", "GraphSpline.ContinuousLinearInstall");
-		Function("quadratic.spline.c", "GraphSpline.ContinuousQuadraticInstall");
-		Function("cubic.spline.c", "GraphSpline.ContinuousCubicInstall");
-		Function("general.spline.c", "GraphSpline.ContinuousGenericInstall");
-		Function("spline.pred", "GraphSpline.PredictorInstall")
+		Function("linear.spline.d", "GraphSpline.LinearInstall");
+		Function("quadratic.spline.d", "GraphSpline.QuadraticInstall");
+		Function("cubic.spline.d", "GraphSpline.CubicInstall");
+		Function("general.spline.d", "GraphSpline.GenericInstall");
+		Function("spline.pred.d", "GraphSpline.PredictorInstall");
+		Function("linear.spline.c", "GraphSplinecon.LinearInstall");
+		Function("quadratic.spline.c", "GraphSplinecon.QuadraticInstall");
+		Function("cubic.spline.c", "GraphSplinecon.CubicInstall");
+		Function("general.spline.c", "GraphSplinecon.GenericInstall");
+		Function("spline.pred.c", "GraphSplinecon.PredictorInstall")
 
 	END Load;
 

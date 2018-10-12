@@ -13,7 +13,7 @@ MODULE UpdaterPareto;
 	
 
 	IMPORT
-		Stores, MPIworker,
+		MPIworker, Stores, 
 		BugsRegistry,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
@@ -28,6 +28,33 @@ MODULE UpdaterPareto;
 		fact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+
+	PROCEDURE ParetoLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
+		VAR
+			children: GraphStochastic.Vector;
+			as, i, num: INTEGER;
+			theta1, x1: REAL;
+			stoch: GraphConjugateUV.Node;
+			x: GraphNodes.Node;
+	BEGIN
+		as := GraphRules.pareto;
+		p[0] := 0.0;
+		p[1] := 0.0;
+		children := prior.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE i < num DO
+			stoch := children[i](GraphConjugateUV.Node);
+			stoch.LikelihoodForm(as, x, theta1, x1);
+			p[0] := p[0] + theta1;
+			p[1] := MAX(x1, p[1]);
+			INC(i)
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			p[0] := MPIworker.SumReal(p[0]);
+			p[1] := MPIworker.MaxReal(p[1])
+		END
+	END ParetoLikelihood;
 
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
@@ -48,29 +75,6 @@ MODULE UpdaterPareto;
 	PROCEDURE (updater: Updater) InternalizeUnivariate (VAR rd: Stores.Reader);
 	BEGIN
 	END InternalizeUnivariate;
-
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL), NEW;
-		VAR
-			children: GraphStochastic.Vector;
-			as, i, num: INTEGER;
-			theta1, x1: REAL;
-			prior: GraphConjugateUV.Node;
-			node: GraphNodes.Node;
-	BEGIN
-		as := GraphRules.pareto;
-		p[0] := 0.0;
-		p[1] := 0.0;
-		prior := updater.prior(GraphConjugateUV.Node);
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			children[i](GraphConjugateUV.Node).LikelihoodForm(as, node, theta1, x1);
-			p[0] := p[0] + theta1;
-			p[1] := MAX(x1, p[1]);
-			INC(i)
-		END
-	END LikelihoodForm;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
 	BEGIN
@@ -97,11 +101,7 @@ MODULE UpdaterPareto;
 		prior.Bounds(left, right);
 		as := GraphRules.pareto;
 		prior.PriorForm(as, theta, x0);
-		updater.LikelihoodForm(p);
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReal(p[0]);
-			MPIworker.MaxReal(p[1])
-		END;
+		ParetoLikelihood(prior, p);
 		theta := p[0] + theta;
 		x0 := MAX(p[1],  x0);
 		IF GraphStochastic.rightImposed IN prior.props THEN

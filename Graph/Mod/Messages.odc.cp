@@ -18,42 +18,48 @@ MODULE GraphMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		RegisterKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		StoreKey("Graph1", "first argument");
-		StoreKey("Graph2", "second argument");
-		StoreKey("Graph3", "third argument");
-		StoreKey("Graph4", "fourth argument");
-		StoreKey("Graph5", "fifth argument");
-		StoreKey("Graph6", "sixth argumnent");
-		StoreKey("Graph7", "seventh argument");
-		StoreKey("Graph8", "eighth argument");
-		StoreKey("Graph9", "ninth argument");
-		StoreKey("Graph10", "tenth argument");
-		StoreKey("Graph11", "node");
+		RegisterKey("Graph0", "invalid argument in function");
+		RegisterKey("Graph1", "first argument");
+		RegisterKey("Graph2", "second argument");
+		RegisterKey("Graph3", "third argument");
+		RegisterKey("Graph4", "fourth argument");
+		RegisterKey("Graph5", "fifth argument");
+		RegisterKey("Graph6", "sixth argumnent");
+		RegisterKey("Graph7", "seventh argument");
+		RegisterKey("Graph8", "eighth argument");
+		RegisterKey("Graph9", "ninth argument");
+		RegisterKey("Graph10", "tenth argument");
+		RegisterKey("Graph11", "node");
 		
-		StoreKey("Graph12", "censored node can not be used as prior");
-		StoreKey("Graph13", "truncated MV prior must have constant parameters");
-		StoreKey("Graph14", "argument must be stochastic");
-		StoreKey("Graph15", "argument must be multivariate");
+		RegisterKey("Graph12", "censored node can not be used as prior");
+		RegisterKey("Graph13", "truncated MV prior must have constant parameters");
+		RegisterKey("Graph14", "argument must be stochastic");
+		RegisterKey("Graph15", "argument must be multivariate");
+		RegisterKey("Graph16", "argument is not defined");
+		RegisterKey("Graph17", "has invalid value");
+		RegisterKey("Graph18", "matrix must be symetric");
+		RegisterKey("Graph19", "must be data");
+		RegisterKey("Graph20", "too many iterations");
+		RegisterKey("Graph21", "lower bound violated");
+		RegisterKey("Graph22", "upper bound violated");
+		RegisterKey("Graph23", "must be a proportion");
+		RegisterKey("Graph24", "invalid value given for proportion");
+		RegisterKey("Graph25", "must be positive");
+		RegisterKey("Graph26", "invalid value given for positive quantity");
+		RegisterKey("Graph27", "must be integer valued");
+		RegisterKey("Graph28", "invalid integer value given");
+		RegisterKey("Graph29", "node contails mixture of data and stochastic elements");
+		RegisterKey("Graph30", "vector has wrong length");
+		RegisterKey("Graph31", "vetor contains undefined elements");
 		
-		StoreKey("Graph18", "matrix must be symetric");
-		StoreKey("Graph17", "has invalid value");
-		StoreKey("Graph19", "must be data");
-		StoreKey("Graph20", "too many iterations");
-		StoreKey("Graph21", "lower bound violated");
-		StoreKey("Graph22", "upper bound violated");
-		StoreKey("Graph23", "must be a proportion");
-		StoreKey("Graph24", "invalid value given for proportion");
-		StoreKey("Graph25", "must be positive");
-		StoreKey("Graph26", "invalid value given for positive quantity");
-		StoreKey("Graph27", "must be integer valued");
-		StoreKey("Graph28", "invalid integer value given");
-		StoreKey("Graph29", "node contails mixture of data and stochastic elements");
-		StoreKey("Graph30", "vector has wrong length");
-		StoreKey("Graph31", "vetor contains undefined elements")
+		RegisterKey("MathIntegrate.InstallRomberg", "GraphIntegrate.Install");
+		RegisterKey("MathAESolver.InstallPegasus", "GraphAESolver.Install");
+		RegisterKey("MathRungeKutta45.Install", "GraphODElangRK45.Install");
+		RegisterKey("GraphODElangRK45.Install", "GraphODEBlockLRK45.Install")
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -65,7 +71,7 @@ MODULE GraphMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		StoreKey := BugsMsg.StoreKey
+		RegisterKey := BugsMsg.RegisterKey
 	END Init;
 
 BEGIN

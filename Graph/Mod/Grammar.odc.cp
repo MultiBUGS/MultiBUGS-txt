@@ -22,7 +22,7 @@ MODULE GraphGrammar;
 	IMPORT
 		GraphNodes;
 
-	(*	internal functions and operators	*)
+		(*	internal functions and operators	*)
 	CONST
 		ref* = 0; const* = 1; refStoch* = 2; add* = 3; sub* = 4; mult* = 5; div* = 6; uminus* = 7;
 		cloglog* = 10; cos* = 11; equals* = 12; exp* = 13; log* = 14; logfact* = 15; logit* = 16;
@@ -31,7 +31,9 @@ MODULE GraphGrammar;
 		arctan* = 31; sinh* = 32; cosh* = 33; tanh* = 34; arcsinh* = 35; arccosh* = 36;
 		arctanh* = 37; ilogit* = 38; icloglog* = 39;
 
-	(*	external functions and distributions	*)
+		modifier* = 40; leftConst* = modifier; rightConst* = 2 * modifier;
+
+		(*	external functions and distributions	*)
 	TYPE
 		External* = POINTER TO RECORD
 			name-, install: ARRAY 128 OF CHAR;

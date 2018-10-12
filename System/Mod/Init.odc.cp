@@ -1,6 +1,6 @@
 MODULE Init;
-	(**
-				project	= "BlackBox"
+(**
+	project	= "BlackBox"
 	organization	= "www.oberon.ch"
 	contributors	= "Oberon microsystems"
 	version	= "System/Rsrc/About"
@@ -15,20 +15,14 @@ MODULE Init;
 	- ...
 	##<="
 
-	**)
+**)
 
-	
-
-	IMPORT Converters, Dialog, HostMenus, MPI, Kernel;
+	IMPORT Kernel, Dialog, Converters, HostMenus;
 
 	PROCEDURE Init;
 		VAR res: INTEGER; m: Kernel.Module;
 	BEGIN
-		IF MPI.RunningUnderMPI() THEN
-			Dialog.appName := "MultiBUGS"
-		ELSE
-			Dialog.appName := "OpenBUGS"
-		END;
+		Dialog.appName := "MultiBUGS";
 		HostMenus.OpenApp;
 		m := Kernel.ThisMod("DevDebug");
 		IF m = NIL THEN Kernel.LoadMod("StdDebug") END;
@@ -38,7 +32,6 @@ MODULE Init;
 		Dialog.Call("Config.Setup", "", res);
 		HostMenus.Run
 	END Init;
-
 
 BEGIN
 	Init

@@ -14,7 +14,7 @@ MODULE GraphRanks;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic, GraphVector,
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic, GraphScalar, GraphVector,
 		MathSort;
 
 	TYPE
@@ -22,18 +22,21 @@ MODULE GraphRanks;
 		RankedNode = POINTER TO RECORD(GraphMemory.Node)
 			start, step, nElem: INTEGER;
 			rank: GraphNodes.Node;
-			vector: GraphNodes.Vector
+			vector: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
 		RankNode = POINTER TO RECORD(GraphMemory.Node)
 			start, step, nElem: INTEGER;
 			index: GraphNodes.Node;
-			vector: GraphNodes.Vector
+			vector: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
 		SortNode = POINTER TO RECORD(GraphVector.Node)
 			start, step: INTEGER;
-			vector: GraphNodes.Vector
+			vector: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
 		RankedFactory = POINTER TO RECORD(GraphMemory.Factory) END;
@@ -46,7 +49,8 @@ MODULE GraphRanks;
 		eps = 1.0E-20;
 
 	VAR
-		factRanked-, factRank-, factSort-: GraphNodes.Factory;
+		factRanked-, factRank-: GraphScalar.Factory;
+		factSort-: GraphVector.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		workValues: POINTER TO ARRAY OF REAL;
@@ -67,9 +71,11 @@ MODULE GraphRanks;
 		start := node.start;
 		step := node.step;
 		WHILE (i < nElem) & (form = GraphRules.const) DO
-			off := start + i * step;
-			p := node.vector[off];
-			form := GraphStochastic.ClassFunction(p, parent);
+			IF node.vector # NIL THEN
+				off := start + i * step;
+				p := node.vector[off];
+				form := GraphStochastic.ClassFunction(p, parent)
+			END;
 			INC(i)
 		END;
 		IF form = GraphRules.const THEN
@@ -92,8 +98,12 @@ MODULE GraphRanks;
 		i := 0;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			workValues[i] := p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				workValues[i] := p.Value()
+			ELSE
+				workValues[i] := node.constant[off]
+			END;
 			INC(i)
 		END;
 		rank := SHORT(ENTIER(node.rank.Value() + eps));
@@ -110,7 +120,7 @@ MODULE GraphRanks;
 			v: GraphNodes.SubVector;
 	BEGIN
 		v := GraphNodes.NewVector();
-		v.components := node.vector;
+		v.components := node.vector; v.values := node.constant;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.rank, wr)
@@ -122,7 +132,7 @@ MODULE GraphRanks;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
-		node.vector := v.components;
+		node.vector := v.components; node.constant := v.values;
 		node.rank := GraphNodes.Internalize(rd)
 	END InternalizeMemory;
 
@@ -130,6 +140,7 @@ MODULE GraphRanks;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
+		node.constant := NIL;
 		node.start :=  - 1;
 		node.nElem :=  - 1;
 		node.step := 0;
@@ -153,9 +164,11 @@ MODULE GraphRanks;
 		start := node.start;
 		step := node.step;
 		WHILE i < nElem DO
-			off := start + i * step;
-			p := node.vector[off];
-			p.AddParent(list);
+			IF node.vector # NIL THEN
+				off := start + i * step;
+				p := node.vector[off];
+				p.AddParent(list)
+			END;
 			INC(i)
 		END;
 		p := node.rank;
@@ -172,8 +185,9 @@ MODULE GraphRanks;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.vector := args.vectors[0].components;
+			node.constant := args.vectors[0].values;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			start := args.vectors[0].start;
 			node.start := start;
@@ -188,11 +202,18 @@ MODULE GraphRanks;
 			isData := GraphNodes.data IN node.rank.props;
 			i := 0;
 			WHILE i < nElem DO
-				off := start + i * step; p := node.vector[off];
-				IF p = NIL THEN
-					res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+				off := start + i * step; 
+				IF node.vector # NIL THEN
+					p := node.vector[off];
+					IF p = NIL THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					ELSE
+						isData := isData & (GraphNodes.data IN p.props)
+					END
 				ELSE
-					isData := isData & (GraphNodes.data IN p.props)
+					IF node.constant[off] = INF THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					END
 				END;
 				INC(i)
 			END;
@@ -210,7 +231,7 @@ MODULE GraphRanks;
 
 	PROCEDURE (node: RankNode) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
-			i, f, form, off, nElem, start, step: INTEGER;
+			i, form, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
 		form := GraphRules.const;
@@ -218,16 +239,18 @@ MODULE GraphRanks;
 		nElem := node.nElem;
 		start := node.start;
 		step := node.step;
-		WHILE (i < nElem) & (form = GraphRules.const) DO
-			off := start + i * step;
-			p := node.vector[off];
-			f := GraphStochastic.ClassFunction(p, parent);
-			INC(i)
+		IF node.vector # NIL THEN
+			WHILE (i < nElem) & (form = GraphRules.const) DO
+				off := start + i * step;
+				p := node.vector[off];
+				form := GraphStochastic.ClassFunction(p, parent);
+				INC(i)
+			END
 		END;
 		IF form = GraphRules.const THEN
-			f := GraphStochastic.ClassFunction(node.index, parent)
+			form:= GraphStochastic.ClassFunction(node.index, parent)
 		END;
-		IF f # GraphRules.const THEN
+		IF form # GraphRules.const THEN
 			form := GraphRules.other
 		END;
 		RETURN form
@@ -237,20 +260,30 @@ MODULE GraphRanks;
 		VAR
 			i, iValue, off, index, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			val: REAL;
 	BEGIN
 		nElem := node.nElem;
 		start := node.start;
 		step := node.step;
 		index := SHORT(ENTIER(node.index.Value() - 1 + eps));
 		off := start + index * step;
-		p := node.vector[off];
-		value := p.Value();
+		IF node.vector # NIL THEN
+			p := node.vector[off];
+			value := p.Value()
+		ELSE
+			value := node.constant[off]
+		END;
 		i := 0;
 		iValue := 1;
 		WHILE i < index DO
 			off := start + i * step;
-			p := node.vector[off];
-			IF p.Value() <= value THEN
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				val := p.Value() 
+			ELSE
+				val := node.constant[off]
+			END;
+			IF val <= value THEN
 				INC(iValue)
 			END;
 			INC(i)
@@ -258,8 +291,13 @@ MODULE GraphRanks;
 		i := index + 1;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			IF p.Value() <= value THEN
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				val := p.Value() 
+			ELSE
+				val := node.constant[off]
+			END;
+			IF val <= value THEN
 				INC(iValue)
 			END;
 			INC(i)
@@ -277,7 +315,7 @@ MODULE GraphRanks;
 			v: GraphNodes.SubVector;
 	BEGIN
 		v := GraphNodes.NewVector();
-		v.components := node.vector;
+		v.components := node.vector; v.values := node.constant;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.index, wr)
@@ -288,6 +326,7 @@ MODULE GraphRanks;
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
+		node.vector := v.components; node.constant := v.values;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
 		node.index := GraphNodes.Internalize(rd)
 	END InternalizeMemory;
@@ -296,6 +335,7 @@ MODULE GraphRanks;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
+		node.constant := NIL;
 		node.start :=  - 1;
 		node.nElem :=  - 1;
 		node.step := 0;
@@ -319,9 +359,11 @@ MODULE GraphRanks;
 		start := node.start;
 		step := node.step;
 		WHILE i < nElem DO
-			off := start + i * step;
-			p := node.vector[off];
-			p.AddParent(list);
+			IF node.vector # NIL THEN
+				off := start + i * step;
+				p := node.vector[off];
+				p.AddParent(list)
+			END;
 			INC(i)
 		END;
 		p := node.index;
@@ -338,8 +380,9 @@ MODULE GraphRanks;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.vector := args.vectors[0].components;
+			node.constant := args.vectors[0].values;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			start := args.vectors[0].start;
 			node.start := start;
@@ -355,11 +398,17 @@ MODULE GraphRanks;
 			i := 0;
 			WHILE i < nElem DO
 				off := start + i * step;
-				p := node.vector[off];
-				IF p = NIL THEN
-					res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+				IF node.vector # NIL THEN
+					p := node.vector[off];
+					IF p = NIL THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					ELSE
+						isData := isData & (GraphNodes.data IN p.props)
+					END
 				ELSE
-					isData := isData & (GraphNodes.data IN p.props)
+					IF node.constant[off] = INF THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					END
 				END;
 				INC(i)
 			END;
@@ -377,6 +426,7 @@ MODULE GraphRanks;
 			form, i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
+		IF node.constant # NIL THEN RETURN GraphRules.const END;
 		form := GraphRules.const;
 		i := 0;
 		nElem := node.Size();
@@ -405,8 +455,12 @@ MODULE GraphRanks;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			values[i] := p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				values[i] := p.Value()
+			ELSE
+				values[i] := node.constant[off]
+			END;
 			INC(i)
 		END;
 		MathSort.HeapSort(values, nElem);
@@ -418,7 +472,7 @@ MODULE GraphRanks;
 	BEGIN
 		IF node.index = 0 THEN
 			v := GraphNodes.NewVector();
-			v.components := node.vector;
+			v.components := node.vector; v.values := node.constant;
 			v.start := node.start; v.nElem := node.Size(); v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr)
 		END
@@ -432,13 +486,18 @@ MODULE GraphRanks;
 	BEGIN
 		IF node.index = 0 THEN
 			GraphNodes.InternalizeSubvector(v, rd);
-			node.vector := v.components;
+			node.vector := v.components; node.constant := v.values;
 			node.start := v.start; node.step := v.step;
-		ELSE
-			p := node.components[0](SortNode);
-			node.vector := p.vector;
-			node.start := p.start;
-			node.step := p.step
+			i := 1;
+			nElem := node.Size();
+			WHILE i < nElem DO
+				p := node.components[0](SortNode);
+				p.vector := node.vector;
+				p.constant := node.constant;
+				p.start := node.start;
+				p.step := node.step;
+				INC(i)
+			END
 		END
 	END InternalizeVector;
 
@@ -446,6 +505,7 @@ MODULE GraphRanks;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
+		node.constant := NIL;
 		node.start :=  - 1;
 		node.step := 0
 	END InitLogical;
@@ -461,6 +521,7 @@ MODULE GraphRanks;
 			p: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
+		IF node.constant # NIL THEN RETURN NIL END;
 		list := NIL;
 		i := 0;
 		nElem := node.Size();
@@ -485,8 +546,9 @@ MODULE GraphRanks;
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
 			nElem := node.Size();
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.vector := args.vectors[0].components;
+			node.constant := args.vectors[0].values;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			node.start := args.vectors[0].start;
 			node.step := args.vectors[0].step;
@@ -504,11 +566,17 @@ MODULE GraphRanks;
 			step := node.step;
 			WHILE i < nElem DO
 				off := start + i * step;
-				p := node.vector[off];
-				IF p = NIL THEN
-					res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+				IF node.vector # NIL THEN
+					p := node.vector[off];
+					IF p = NIL THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					ELSE
+						isData := isData & (GraphNodes.data IN p.props)
+					END
 				ELSE
-					isData := isData & (GraphNodes.data IN p.props)
+					IF node.constant[off] = INF THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					END
 				END;
 				INC(i)
 			END;

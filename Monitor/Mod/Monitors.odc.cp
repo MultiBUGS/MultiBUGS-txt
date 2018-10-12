@@ -4,20 +4,19 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
 
-
-  *)
+ *)
 
 MODULE MonitorMonitors;
 
 	
 
 	IMPORT
-		Meta, Stores, 
+		Kernel, Meta, Stores,
 		GraphNodes, GraphStochastic;
 
 	TYPE
 
-		(*	Draws visual output	*)
+	(*	Draws visual output	*)
 		Drawer* = POINTER TO ABSTRACT RECORD END;
 
 		DrawerList = POINTER TO RECORD
@@ -43,38 +42,40 @@ MODULE MonitorMonitors;
 		monitorList: MonitorList;
 		drawerList: DrawerList;
 
-		(*	Clears (freezes, cut link to simulation of) drawing	*)
+	(*	Clears (freezes, cut link to simulation of) drawing	*)
 	PROCEDURE (drawer: Drawer) Clear-, NEW, EMPTY;
 
-		(*	Updates the drawing	*)
+	(*	Updates the drawing	*)
 	PROCEDURE (drawer: Drawer) Update-, NEW, ABSTRACT;
 
-		(*	Clears monitor	*)
+	(*	Clears monitor	*)
 	PROCEDURE (monitor: Monitor) Clear-, NEW, EMPTY;
 
-		(*	Externalize monitor	*)
+	(*	Externalize monitor	*)
 	PROCEDURE (monitor: Monitor) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-		(*	Internalize monitor	*)
+	(*	Internalize monitor	*)
 	PROCEDURE (monitor: Monitor) Internalize- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) MarkMonitored-, NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
-		(*	Set number of chains for monitor	*)
+	(*	Set number of chains for monitor	*)
 	PROCEDURE (monitor: Monitor) SetNumChains- (numChains: INTEGER), NEW, ABSTRACT;
 
-		(*	Update monitor	*)
+	(*	Update monitor	*)
 	PROCEDURE (monitor: Monitor) Update- (chain: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE (f: Factory) New* (): Monitor, NEW, ABSTRACT;
 
-		(*	Clears the monitor and draw lists	*)
+	(*	Clears the monitor and draw lists	*)
 	PROCEDURE Clear*;
 		VAR
 			cursor: DrawerList;
 			drawer: Drawer;
+			item: Meta.Item;
+			ok: BOOLEAN;
 	BEGIN
 		cursor := drawerList;
 		WHILE cursor # NIL DO
@@ -85,7 +86,13 @@ MODULE MonitorMonitors;
 		devianceMonitored := FALSE;
 		monitorList := NIL;
 		drawerList := NIL;
-		fact := NIL
+		fact := NIL;
+		IF Kernel.ThisLoadedMod("MonitorSamplesDisc") # NIL THEN
+			Meta.LookupPath("MonitorSamplesDisc.Clear", item);
+			IF item.obj = Meta.procObj THEN
+				item.Call(ok)
+			END
+		END
 	END Clear;
 
 	(*	Externalize monitors	*)
@@ -135,7 +142,7 @@ MODULE MonitorMonitors;
 		Meta.LookupPath(install, item);
 		IF item.obj = Meta.procObj THEN
 			item.Call(ok)
-		END;
+		END
 	END InstallFactory;
 
 	(*	Procedure to add new type of monitor	*)
@@ -160,7 +167,7 @@ MODULE MonitorMonitors;
 		ASSERT(monitorList = NIL, 21);
 		rd.ReadInt(numTypes);
 		(*	read start info for each monitor type	*)
-		i := 0; WHILE i < numTypes DO rd.ReadInt(start); ASSERT(start #  - 1, 66); INC(i) END;
+		i := 0; WHILE i < numTypes DO rd.ReadInt(start); ASSERT(start # - 1, 66); INC(i) END;
 		i := 0;
 		WHILE i < numTypes DO
 			rd.ReadString(install);
@@ -220,36 +227,6 @@ MODULE MonitorMonitors;
 		END
 	END MarkMonitored;
 
-	PROCEDURE MonitoredNodes* (OUT nodes: ARRAY OF INTEGER; OUT num: INTEGER);
-		VAR
-			i, len: INTEGER;
-			p: GraphStochastic.Node;
-			q: GraphNodes.Node;
-			stochastics: GraphStochastic.Vector;
-	BEGIN
-		stochastics := GraphStochastic.stochastics;
-		i := 0;
-		len := LEN(stochastics);
-		WHILE i < len DO (*	any node that has its represenative marked is also marked	*)
-			p := stochastics[i];
-			q := p.Representative();
-			IF GraphStochastic.mark IN q.props THEN
-				p.SetProps(p.props + {GraphStochastic.mark})
-			END;
-			INC(i)
-		END;
-		i := 0;
-		num := 0;
-		WHILE i < len DO
-			p := stochastics[i];
-			IF GraphStochastic.mark IN p.props THEN
-				nodes[num] := i;
-				INC(num)
-			END;
-			INC(i)
-		END
-	END MonitoredNodes;
-
 	PROCEDURE MonitorOfType* (IN install: ARRAY OF CHAR): Monitor;
 		VAR
 			cursor: MonitorList;
@@ -267,22 +244,6 @@ MODULE MonitorMonitors;
 		RETURN monitor
 	END MonitorOfType;
 
-	PROCEDURE RecvMonitored* (IN values: ARRAY OF REAL; IN monitored: ARRAY OF INTEGER;
-	numMonitored: INTEGER);
-		VAR
-			i: INTEGER;
-			p: GraphStochastic.Node;
-			stochastics: GraphStochastic.Vector;
-	BEGIN
-		stochastics := GraphStochastic.stochastics;
-		i := 0;
-		WHILE i < numMonitored DO
-			p := stochastics[monitored[i]];
-			p.SetValue(values[i]);
-			INC(i)
-		END
-	END RecvMonitored;
-
 	(*	Procedure to add new type of drawer	*)
 	PROCEDURE RegisterDrawer* (drawer: Drawer);
 		VAR
@@ -294,28 +255,12 @@ MODULE MonitorMonitors;
 		drawerList := element
 	END RegisterDrawer;
 
-	PROCEDURE CollectMonitored* (IN monitored: ARRAY OF INTEGER; numMonitored: INTEGER;
-	OUT values: ARRAY OF REAL);
-		VAR
-			i: INTEGER;
-			p: GraphStochastic.Node;
-			stochastics: GraphStochastic.Vector;
-	BEGIN
-		stochastics := GraphStochastic.stochastics;
-		i := 0;
-		WHILE i < numMonitored DO
-			p := stochastics[monitored[i]];
-			values[i] := p.value;
-			INC(i)
-		END
-	END CollectMonitored;
-
 	PROCEDURE SetFactory* (f: Factory);
 	BEGIN
 		fact := f
 	END SetFactory;
 
-	(*	set number of chains for each entry in monitor list	*)
+	(*	Set number of chains for each entry in monitor list	*)
 	PROCEDURE SetNumChainsMonitors* (numChains: INTEGER);
 		VAR
 			cursor: MonitorList;

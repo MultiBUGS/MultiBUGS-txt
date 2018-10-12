@@ -14,8 +14,7 @@ MODULE DoodleCmds;
 
 	IMPORT
 		Controllers, Dialog, Models, Ports, Views,
-		BugsCmds,
-		BugsDialog, BugsInterface, BugsMsg, BugsParser, DoodleModels,
+		BugsCmds, BugsDialog, BugsFiles, BugsInterface, BugsMsg, BugsParser, DoodleModels,
 		DoodleNodes, DoodleParser, DoodlePlates, DoodleViews, TextViews;
 
 	TYPE
@@ -100,10 +99,10 @@ MODULE DoodleCmds;
 	PROCEDURE Parse*;
 		VAR
 			ok: BOOLEAN;
-			msg: ARRAY 1024 OF CHAR;
 			model: BugsParser.Statement;
 			doodle: DoodleModels.Model;
 			v: Views.View;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		v := Controllers.FocusView();
 		IF v = NIL THEN RETURN END;
@@ -115,10 +114,12 @@ MODULE DoodleCmds;
 		doodle := v.ThisModel()(DoodleModels.Model);
 		model := DoodleParser.ParseModel(doodle);
 		BugsParser.SetModel(model);
+		BugsParser.MarkVariables;
 		IF model = NIL THEN
 			DoodleParser.PrintError(doodle)
 		ELSE
-			BugsMsg.Show("BugsCmds:OkSyntax");
+			BugsMsg.Lookup("BugsCmds:OkSyntax", msg);
+			BugsFiles.ShowStatus(msg)
 		END
 	END Parse;
 

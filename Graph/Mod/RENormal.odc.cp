@@ -15,11 +15,11 @@ MODULE GraphRENormal;
 	IMPORT
 		Stores,
 		GraphMRF,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUVMRF,
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUVGMRF,
 		MathFunc;
 
 	TYPE
-		Node = POINTER TO ABSTRACT RECORD(GraphUVMRF.Normal) END;
+		Node = POINTER TO ABSTRACT RECORD(GraphUVGMRF.Node) END;
 
 		StdNode = POINTER TO RECORD(Node) END;
 
@@ -44,17 +44,22 @@ MODULE GraphRENormal;
 		RETURN GraphRules.unif
 	END ClassifyLikelihoodUVMRF;
 
-	PROCEDURE (node: Node) ExternalizeChainUVMRF (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
-	END ExternalizeChainUVMRF;
+		RETURN GraphRules.normal
+	END ClassifyPrior;
 
-	PROCEDURE (node: Node) InitStochasticUVMRF;
+	PROCEDURE (node: Node) ExternalizeUVMRF (VAR wr: Stores.Writer);
 	BEGIN
-	END InitStochasticUVMRF;
+	END ExternalizeUVMRF;
 
-	PROCEDURE (node: Node) InternalizeChainUVMRF (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InitUVMRF;
 	BEGIN
-	END InternalizeChainUVMRF;
+	END InitUVMRF;
+
+	PROCEDURE (node: Node) InternalizeUVMRF (VAR rd: Stores.Reader);
+	BEGIN
+	END InternalizeUVMRF;
 
 	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
 	BEGIN
@@ -65,15 +70,6 @@ MODULE GraphRENormal;
 	BEGIN
 		res := {}
 	END SetUVMRF;
-
-	PROCEDURE (node: Node) DiffLogPrior (): REAL;
-		VAR
-			tau, x: REAL;
-	BEGIN
-		x := node.value;
-		tau := node.tau.Value();
-		RETURN - tau * x
-	END DiffLogPrior;
 
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
@@ -87,28 +83,10 @@ MODULE GraphRENormal;
 		x := node.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihood (): REAL;
-		VAR
-			as: INTEGER;
-			lambda, logLikelihood, logTau, r, tau: REAL;
-			x: GraphNodes.Node;
+	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
 	BEGIN
-		as := GraphRules.gamma;
-		node.LikelihoodForm(as, x, r, lambda);
-		tau := x.Value();
-		logTau := MathFunc.Ln(tau);
-		logLikelihood := r * logTau - tau * lambda;
-		RETURN logLikelihood
-	END LogLikelihood;
-
-	PROCEDURE (node: Node) LogPrior (): REAL;
-		VAR
-			tau, x: REAL;
-	BEGIN
-		x := node.value;
-		tau := node.tau.Value();
-		RETURN - 0.50 * tau * x * x
-	END LogPrior;
+		RETURN 0.0
+	END LogLikelihoodUVMRF;
 
 	PROCEDURE (node: Node) MatrixElements (OUT elements: ARRAY OF REAL);
 		VAR
@@ -142,6 +120,11 @@ MODULE GraphRENormal;
 			INC(i)
 		END;
 	END MatrixMap;
+
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
+	OUT p1: ARRAY OF ARRAY OF REAL);
+	BEGIN
+	END MVPriorForm;
 
 	PROCEDURE (node: Node) NumberNeighbours (): INTEGER;
 	BEGIN

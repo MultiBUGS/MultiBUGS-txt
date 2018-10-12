@@ -13,9 +13,9 @@ MODULE BugsComponents;
 
 	IMPORT
 		Files, Kernel, Meta, Services, Stores, Strings,
-		BugsGraph, BugsIndex, BugsMsg, BugsRandnum, BugsSerialize,
-		GraphNodes, GraphStochastic,
-		UpdaterActions, UpdaterMethods, UpdaterParallel, UpdaterUpdaters;
+		BugsGraph, BugsIndex, BugsMsg, BugsParallel, BugsRandnum, 
+		GraphGrammar, GraphNodes, GraphStochastic,
+		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
 
 	TYPE
 		List = POINTER TO RECORD
@@ -24,6 +24,8 @@ MODULE BugsComponents;
 		END;
 
 	VAR
+		graphModules, updaterModules: List;
+		allThis: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -48,7 +50,7 @@ MODULE BugsComponents;
 		END;
 		RETURN vector;
 	END ListToVector;
-		
+
 	PROCEDURE AddModule (name: Files.Name; VAR modList: List);
 		VAR
 			entry: List;
@@ -59,6 +61,11 @@ MODULE BugsComponents;
 		modList := entry;
 		IF name = "Files" THEN
 			AddModule("HostFiles", modList)
+		ELSIF name = "MathSparsematrix" THEN
+			(*	add in sparse matrix library if found on this computer	*)
+			IF Kernel.ThisLoadedMod("MathTaucsImp") # NIL THEN
+				AddModule("MathTaucsImp", modList)
+			END
 		END
 	END AddModule;
 
@@ -94,14 +101,14 @@ MODULE BugsComponents;
 			END
 		END
 	END Imports;
-	
+
 	PROCEDURE ImportList (file: Files.File): POINTER TO ARRAY OF Files.Name;
 		VAR
 			i, num, p: INTEGER;
 			imports: POINTER TO ARRAY OF Files.Name;
 			rd: Files.Reader;
 			name: Files.Name;
-					
+
 		PROCEDURE RWord (VAR x: INTEGER);
 			VAR b: BYTE; y: INTEGER;
 		BEGIN
@@ -134,33 +141,95 @@ MODULE BugsComponents;
 		rd.SetPos(0); RWord(p);
 		IF p = 6F4F4346H THEN
 			RWord(p); RWord(p); RWord(p); RWord(p); RWord(p); RWord(p);
-			RNum(num); 
+			RNum(num);
 			NEW(imports, num);
-			RName(name); 
+			RName(name);
 			i := 0;
 			WHILE i < num DO RName(imports[i]); INC(i) END;
 		END;
 		file.Close;
 		RETURN imports
 	END ImportList;
-	
-	PROCEDURE Modules* (mpiImplementation: ARRAY OF CHAR): POINTER TO ARRAY OF Files.Name;
+
+	PROCEDURE AddModules;
 		VAR
-			name, timeStamp: Files.Name;
-			i, index, pos, numMod: INTEGER;
+			name, name0: Files.Name;
+			index, dot, open, close, plus: INTEGER;
+			external: GraphGrammar.External;
+	BEGIN
+		(*	get used Graph modules	*)
+		index := 0;
+		GraphNodes.GetInstallProc(index, name);
+		WHILE name # "" DO
+			Strings.Find(name, ")", 0, close);
+			IF close # - 1 THEN name[close] := 0X END;
+			Strings.Find(name, "+", 0, plus);
+			IF plus # - 1 THEN
+				Strings.Extract(name, plus + 1, LEN(name), name0);
+				external := GraphGrammar.FindDensity(name0);
+				name0 := external.name$;
+				Strings.Find(name0, ".", 0, dot);
+				name0[dot] := 0X;
+				IF IsNew(name0, graphModules) THEN
+					AddModule(name0, graphModules)
+				END;
+				name[plus] := 0X
+			END;
+			Strings.Find(name, "(", 0, open);
+			IF open # - 1 THEN
+				Strings.Extract(name, open + 1, LEN(name), name0);
+				external := GraphGrammar.FindDensity(name0);
+				name0 := external.name$;
+				Strings.Find(name0, ".", 0, dot);
+				name0[dot] := 0X;
+				IF IsNew(name0, graphModules) THEN
+					AddModule(name0, graphModules)
+				END;
+			END;
+			Strings.Find(name, ".", 0, dot);
+			name[dot] := 0X;
+			IF IsNew(name, graphModules) THEN
+				AddModule(name, graphModules)
+			END;
+			INC(index);
+			GraphNodes.GetInstallProc(index, name);
+		END;
+		(*	get used Updater modules	*)
+		index := 0;
+		UpdaterUpdaters.GetInstallProc(index, name);
+		WHILE name # "" DO
+			Strings.Find(name, ".", 0, dot);
+			name[dot] := 0X;
+			IF IsNew(name, updaterModules) THEN
+				AddModule(name, updaterModules)
+			END;
+			INC(index);
+			UpdaterUpdaters.GetInstallProc(index, name);
+		END
+	END AddModules;
+
+	PROCEDURE Clear;
+	BEGIN
+		graphModules := NIL;
+		updaterModules := NIL
+	END Clear;
+
+	PROCEDURE Modules* (): POINTER TO ARRAY OF Files.Name;
+		VAR
+			i, numMod: INTEGER;
 			modList: List;
 			modules: POINTER TO ARRAY OF Files.Name;
 			file: Files.File;
 			imports: POINTER TO ARRAY OF Files.Name;
 			loc: Files.Locator;
 			mod: Meta.Item;
-			
+
 	BEGIN
 		modList := NIL;
-		
+
 		(*	add Kernel to modList	*)
 		AddModule("Kernel+", modList);
-		
+
 		(*	load some modules used by ParallelWorker	*)
 		loc := Files.dir.This("Parallel");
 		loc := loc.This("Code");
@@ -168,45 +237,26 @@ MODULE BugsComponents;
 		imports := ImportList(file);
 		numMod := LEN(imports);
 		i := 0;
-		WHILE i < numMod DO 
+		WHILE i < numMod DO
 			Meta.Lookup(imports[i], mod);
-			Imports(imports[i], modList); 
-			INC(i) 
-		END; 
-
-		(*	add time stamp to linker list but do not load	*)
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
-		AddModule("DynamicTime_" + timeStamp, modList);
-				
-		(*	add mpi implementation to linker script but do not load	*)
-		AddModule(mpiImplementation$, modList);
-
-		(*	get used Updater modules	*)
-		index := 0;
-		UpdaterUpdaters.GetInstallProc(index, name);
-		WHILE name # "" DO
-			Strings.Find(name, ".", 0, pos);
-			name[pos] := 0X;
-			Imports(name, modList);
-			INC(index);
-			UpdaterUpdaters.GetInstallProc(index, name);
+			Imports(imports[i], modList);
+			INC(i)
 		END;
 
-		(*	get used Graph modules	*)
-		index := 0;
-		GraphNodes.GetInstallProc(index, name);
-		WHILE name # "" DO
-			Strings.Find(name, ".", 0, pos);
-			name[pos] := 0X;
-			Imports(name, modList);
-			INC(index);
-			GraphNodes.GetInstallProc(index, name);
+		WHILE graphModules # NIL DO
+			Imports(graphModules.name, modList);
+			graphModules := graphModules.next
+		END;
+
+		WHILE updaterModules # NIL DO
+			Imports(updaterModules.name, modList);
+			updaterModules := updaterModules.next
 		END;
 
 		(*	top level module for BUGS worker program but do not load	*)
 		AddModule("ParallelWorker", modList);
 
-		modules := ListToVector(modList); 
+		modules := ListToVector(modList);
 		RETURN modules
 	END Modules;
 
@@ -218,8 +268,8 @@ MODULE BugsComponents;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.LookupParam("BugsParallel" + numToString, p, errorMsg);
-		BugsMsg.Store(errorMsg)
+		BugsMsg.LookupParam("BugsComponents" + numToString, p, errorMsg);
+		BugsMsg.StoreError(errorMsg)
 	END Error;
 
 	(*	check that for distributed updaters algorithm can be distributed and if not replace it with one that
@@ -272,7 +322,7 @@ MODULE BugsComponents;
 							updater.LoadSample;
 							updater := UpdaterUpdaters.CopyFrom(newUpdater);
 							updater.StoreSample;
-							UpdaterActions.updaters[j, i] :=  updater;
+							UpdaterActions.updaters[j, i] := updater;
 							INC(j)
 						END
 					ELSE
@@ -285,65 +335,49 @@ MODULE BugsComponents;
 						END
 					END
 				END
-			END; 
+			END;
 			INC(i)
 		END
 	END ModifyUpdaterMethods;
 
-	PROCEDURE WriteModel* (f: Files.File; numChains: INTEGER; portName: ARRAY OF SHORTCHAR;
-	OUT ok: BOOLEAN);
+	PROCEDURE WriteModel* (f: Files.File; workersPerChain, numberChains: INTEGER; OUT ok: BOOLEAN);
 		VAR
-			i, len: INTEGER;
+			pos0, rank: INTEGER;
+			pos: POINTER TO ARRAY OF INTEGER;
 			wr: Stores.Writer;
+			this: BOOLEAN;
 	BEGIN
+		allThis := TRUE;
 		wr.ConnectTo(f);
 		wr.SetPos(0);
-		(*	copy port name into bugs files from where the workers can read it and establish connection
-		with master	*)
-		i := 0;
-		len := LEN(portName);
-		WHILE i < len DO
-			wr.WriteSChar(portName[i]); INC(i)
-		END;
 		wr.WriteBool(BugsGraph.devianceExists);
 		BugsRandnum.ExternalizeRNGenerators(wr);
-		wr.WriteInt(numChains);
-		UpdaterActions.MarkDistributed;
+		UpdaterActions.MarkDistributed(workersPerChain);
 		ModifyUpdaterMethods(ok);
 		IF ~ok THEN RETURN END;
-		UpdaterActions.UnMarkDistributed;
-		BugsSerialize.ExternalizeGraph(wr);
-		UpdaterActions.ExternalizeUpdaterData(wr);
+		BugsParallel.Distribute(workersPerChain);
+		pos0 := wr.Pos();
+		NEW(pos, workersPerChain);
+		rank := 0; 
+		WHILE rank < workersPerChain DO  
+			pos[rank] := - 1; wr.WriteInt(pos[rank]); INC(rank)
+		END;
+		wr.WriteBool(allThis);
+		rank := 0;
+		WHILE rank < workersPerChain DO
+			pos[rank] := wr.Pos();
+			BugsParallel.Write(rank, numberChains, this, wr);
+			allThis := allThis & this;
+			AddModules;
+			INC(rank)
+		END;
+		wr.SetPos(pos0);
+		wr.WriteBool(allThis);
+		rank := 0; WHILE rank < workersPerChain DO wr.WriteInt(pos[rank]); INC(rank) END;
 		f.Flush;
-		wr.ConnectTo(NIL)
+		wr.ConnectTo(NIL);
+		UpdaterActions.UnMarkDistributed
 	END WriteModel;
-
-	PROCEDURE Debug* (numChains: INTEGER);
-		VAR
-			f: Files.File;
-			loc: Files.Locator;
-			wr: Stores.Writer;
-			rd: Stores.Reader;
-			ok: BOOLEAN;
-			numberChains: INTEGER;
-	BEGIN
-		loc := Files.dir.This("");
-		f := Files.dir.New(loc, Files.exclusive);
-		wr.ConnectTo(f);
-		wr.SetPos(0);
-		wr.WriteInt(numChains);
-		UpdaterActions.MarkDistributed;
-		ModifyUpdaterMethods(ok);
-		IF ~ok THEN HALT(0) END;
-		UpdaterActions.UnMarkDistributed;
-		BugsSerialize.ExternalizeGraph(wr);
-		UpdaterActions.ExternalizeUpdaterData(wr);
-		rd.ConnectTo(f);
-		rd.SetPos(0);
-		rd.ReadInt(numberChains);
-		UpdaterParallel.ReadGraph(0, rd);
-		HALT(0)
-	END Debug;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -351,9 +385,13 @@ MODULE BugsComponents;
 		maintainer := "A.Thomas"
 	END Maintainer;
 
-BEGIN
-	Maintainer
-END BugsComponents.
+	PROCEDURE Init;
+	BEGIN
+		Maintainer;
+		Clear
+	END Init;
 
-"BugsComponents.Debug(1)"
+BEGIN
+	Init
+END BugsComponents.
 

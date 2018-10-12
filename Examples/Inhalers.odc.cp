@@ -126,6 +126,7 @@ Results
 	pi	-0.2416	-0.2419	0.1981	0.002443	-0.6405	0.1518	1001	20000	6573
 	sigma	1.239	1.247	0.254	0.0131	0.7048	1.729	1001	20000	375
 
+
 The estimates can be compared with those of Ezzet and Whitehead, who used the Newton-Raphson method and numerical integration to obtain maximum-likelihood estimates of the parameters. They reported b = 1.17 +/- 0.75, p = -0.23 +/- 0.20, k = 0.21 +/- 0.49, logs = 0.17 +/- 0.23, a1 = 0.68, a2 = 3.85, a3 = 5.10
 
 

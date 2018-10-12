@@ -35,7 +35,7 @@ MODULE PharmacoSum;
 		LogFactory = POINTER TO RECORD (GraphScalar.Factory) END;
 
 	VAR
-		factS-, factL-, factSM-, factLM-: GraphScalar.Factory;
+		factS-, factL-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -393,7 +393,7 @@ MODULE PharmacoSum;
 			mes := " column " + intString + " row ";
 			Strings.IntToString(row, intString);
 			mes := mes + intString + " ";
-			BugsMsg.Store(mes)
+			BugsMsg.StoreError(mes)
 		END
 	END Set;
 

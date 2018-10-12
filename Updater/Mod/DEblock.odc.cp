@@ -42,7 +42,7 @@ MODULE UpdaterDEblock;
 		VAR
 			class: SET;
 	BEGIN
-		class := {prior.classConditional, GraphRules.normal};
+		class := {GraphRules.general, GraphRules.normal};
 		RETURN UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE)
 	END FindBlock;
 
@@ -97,7 +97,7 @@ MODULE UpdaterDEblock;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
-		class := {prior.classConditional, GraphRules.normal};
+		class := {GraphRules.general, GraphRules.normal};
 		block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE);
 		IF block = NIL THEN RETURN FALSE END;
 		RETURN TRUE
@@ -137,7 +137,7 @@ MODULE UpdaterDEblock;
 		IF class * {GraphRules.logitReg, GraphRules.logReg} = {} THEN RETURN FALSE END;
 		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
-		IF ~UpdaterMultivariate.IsGLMBlock(block) THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

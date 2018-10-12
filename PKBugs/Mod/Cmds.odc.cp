@@ -16,7 +16,7 @@ MODULE PKBugsCmds;
 		PKBugsData, PKBugsNames,
 		PKBugsNodes, PKBugsParse, PKBugsPriors, PKBugsScanners, PKBugsTree, Strings, TextControllers,
 		TextMappers, TextModels,
-		BugsCmds, BugsDialog, BugsGraph, BugsInterface, BugsMappers, BugsMsg, 
+		BugsCmds, BugsDialog, BugsFiles, BugsGraph, BugsInterface, BugsMappers, BugsMsg, 
 		MathRandnum;
 
 	CONST
@@ -121,10 +121,12 @@ MODULE PKBugsCmds;
 			ch: CHAR;
 			error, mes: ARRAY 256 OF CHAR;
 			p: ARRAY 1 OF ARRAY 256 OF CHAR;
+			msg: ARRAY 256 OF CHAR;
 	BEGIN
 		Strings.IntToString(res, error); error := "PKBugs:" + error;
 		p[0] := string$;
-		BugsMsg.ShowParam(error, p);
+		BugsMsg.LookupParam(error, p, msg);
+		BugsFiles.ShowStatus(msg);
 		IF m # NIL THEN
 			ConnectScanner(s, m);
 			s.SetPos(pos); ch := s.nextCh; s.FindToken(ch); TextControllers.SetCaret(m, s.Pos())
@@ -274,7 +276,7 @@ MODULE PKBugsCmds;
 			ok: BOOLEAN;
 			m: Models.Model;
 			s: PKBugsScanners.Scanner;
-			mes: Dialog.String;
+			msg: Dialog.String;
 	BEGIN
 		BugsCmds.NewModel(ok);
 		IF ~ok THEN RETURN END;
@@ -295,7 +297,8 @@ MODULE PKBugsCmds;
 				END
 			END
 		END;
-		BugsMsg.Show("PKBugs:namesLoaded");
+		BugsMsg.Lookup("PKBugs:namesLoaded", msg);
+		BugsFiles.ShowStatus(msg);
 		status := {namesLoaded};
 	END ReadNames;
 
@@ -303,7 +306,7 @@ MODULE PKBugsCmds;
 		VAR
 			pos, res, nData, nRecords, ind, cov: INTEGER;
 			m: Models.Model;
-			string, inp, error, individual, mes: Dialog.String;
+			string, inp, error, individual, msg: Dialog.String;
 			s: PKBugsScanners.Scanner;
 	BEGIN
 		PKBugsData.Reset; PKBugsParse.Reset;
@@ -329,8 +332,8 @@ MODULE PKBugsCmds;
 					IF res < 0 THEN
 						res := - res;
 						Strings.IntToString(res, error); error := "#PKBugs:" + error;
-						Dialog.MapParamString(error, inp, string, "", mes);
-						(*BugsTexts.ShowMsg(mes);*)
+						Dialog.MapParamString(error, inp, string, "", msg);
+						BugsFiles.ShowStatus(msg);
 						Dialog.Beep
 					ELSE
 						Error(NIL, 0, res, string)
@@ -351,7 +354,8 @@ MODULE PKBugsCmds;
 			END;
 			PKBugsParse.StoreHist;
 		END;
-		BugsMsg.Show("PKBugs:dataLoaded");
+		BugsMsg.Lookup("PKBugs:dataLoaded", msg);
+		BugsFiles.ShowStatus(msg);
 		status := {dataLoaded};
 		BuildLists;
 	END ReadData;
@@ -359,7 +363,7 @@ MODULE PKBugsCmds;
 	PROCEDURE Compile*;
 		VAR
 			chain, ind, numChains, par, res: INTEGER;
-			mes, s: Dialog.String;
+			msg, s: Dialog.String;
 			log, updaterByMethod, ok: BOOLEAN;
 			u: REAL;
 	BEGIN
@@ -389,7 +393,8 @@ MODULE PKBugsCmds;
 			PKBugsPriors.GenerateInitsForChain(chain, u);
 			INC(chain)
 		END;
-		BugsMsg.Show("PKBugs:modelCompiled");
+		BugsMsg.Lookup("PKBugs:modelCompiled", msg);
+		Dialog.ShowStatus(msg);
 		SetStatus({modelCompiled});
 		BugsDialog.UpdateDialogs
 	END Compile;

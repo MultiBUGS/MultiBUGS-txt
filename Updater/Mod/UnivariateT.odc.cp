@@ -46,9 +46,11 @@ MODULE UpdaterUnivariateT;
 	PROCEDURE (updater: Updater) GenerateInit (fixFounder: BOOLEAN; OUT res: SET);
 		VAR
 			prior: GraphStochastic.Node;
+		CONST
+			univariate = FALSE;
 	BEGIN
 		prior := updater.prior;
-		IF ~prior.CanEvaluate() THEN res := {GraphNodes.lhs}; RETURN END;
+		IF ~prior.CanSample(univariate) THEN res := {GraphNodes.lhs}; RETURN END;
 		prior.Sample(res);
 		IF res # {} THEN RETURN END;
 		prior.SetProps(prior.props + {GraphStochastic.initialized})
@@ -109,7 +111,7 @@ MODULE UpdaterUnivariateT;
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		(*	if not able to (or unwilling to) update node prior return NIL	*)
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

@@ -23,7 +23,7 @@ MODULE GraphLogical;
 		dependent* = 6; 	(*	fine control of evaluation of nodes with memory	*)
 		linked* = 7; 	(*	node has been linked into its stochastic parents dependant list	*)
 		dirty* = 8; 	(*	node value needs to be recalculated	*)
-		stochParent* = 9;	(*	logical node is parent of stochastic node	*)
+		stochParent* = 9; 	(*	logical node is parent of stochastic node	*)
 
 		undefined* = MAX(INTEGER); 	(*	recursive level of node is undefined	*)
 
@@ -45,9 +45,19 @@ MODULE GraphLogical;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE ^Parents* (node: GraphNodes.Node; all: BOOLEAN): List;
+
+	(*	abstract node methods	*)
+
 	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER, NEW, ABSTRACT;
 
+	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer), NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) InitLogical-, NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+
+	(*	concrete node methods	*)
 
 	PROCEDURE (node: Node) AddToList* (VAR list: List), NEW;
 		VAR
@@ -60,52 +70,6 @@ MODULE GraphLogical;
 			list := cursor
 		END
 	END AddToList;
-
-	PROCEDURE Clear (list: List);
-		VAR
-			cursor: List;
-			p: Node;
-	BEGIN
-		cursor := list;
-		WHILE cursor # NIL DO
-			p := cursor.node;
-			p.SetProps(p.props - {GraphNodes.mark});
-			cursor := cursor.next
-		END
-	END Clear;
-
-	PROCEDURE Parents* (node: GraphNodes.Node; all: BOOLEAN): List;
-		VAR
-			list: List;
-			cursor, parents, pList: GraphNodes.List;
-			p, q: GraphNodes.Node;
-	BEGIN
-		parents := node.Parents(all);
-		cursor := parents;
-		list := NIL;
-		WHILE cursor # NIL DO
-			p := cursor.node;
-			cursor := cursor.next;
-			WITH p: Node DO
-				p.AddToList(list);
-				p.SetProps(p.props + {GraphNodes.mark});
-				pList := p.Parents(all);
-				WHILE pList # NIL DO
-					q := pList.node;
-					WITH q: Node DO
-						q.AddToList(list);
-						q.AddParent(cursor);
-						q.SetProps(q.props + {GraphNodes.mark})
-					ELSE
-					END;
-					pList := pList.next
-				END
-			ELSE
-			END
-		END;
-		Clear(list);
-		RETURN list
-	END Parents;
 
 	PROCEDURE (node: Node) CalculateLevel*, NEW;
 		VAR
@@ -148,6 +112,13 @@ MODULE GraphLogical;
 		END
 	END ClearLevel;
 
+	(*	writes internal fields of logical node to store	*)
+	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer);
+	BEGIN
+		wr.WriteInt(node.level);
+		node.ExternalizeLogical(wr)
+	END ExternalizeNode;
+
 	PROCEDURE (node: Node) InitNode-;
 	BEGIN
 		node.SetProps({alwaysEvaluate, dirty});
@@ -155,6 +126,16 @@ MODULE GraphLogical;
 		node.InitLogical
 	END InitNode;
 
+		(*	read internal fields of logical node from store	*)
+	PROCEDURE (node: Node) InternalizeNode- (VAR rd: Stores.Reader);
+	BEGIN
+		rd.ReadInt(node.level);
+		node.InternalizeLogical(rd)
+	END InternalizeNode;
+
+	PROCEDURE (node: Node) Representative* (): Node, ABSTRACT;
+
+	(*	Factory methods	*)
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
 
 	PROCEDURE (f: Factory) NumParam* (): INTEGER;
@@ -204,25 +185,43 @@ MODULE GraphLogical;
 		RETURN logicalList
 	END InternalizeList;
 
-	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-	(*	writes internal fields of logical node to store	*)
-	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer);
+	PROCEDURE Parents* (node: GraphNodes.Node; all: BOOLEAN): List;
+		VAR
+			list, list1: List;
+			cursor, parents, pList: GraphNodes.List;
+			p, q: GraphNodes.Node;
 	BEGIN
-		wr.WriteInt(node.level);
-		node.ExternalizeLogical(wr)
-	END ExternalizeNode;
-
-	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-
-	(*	read internal fields of logical node from store	*)
-	PROCEDURE (node: Node) InternalizeNode- (VAR rd: Stores.Reader);
-	BEGIN
-		rd.ReadInt(node.level);
-		node.InternalizeLogical(rd)
-	END InternalizeNode;
-
-	PROCEDURE (node: Node) Representative* (): Node, ABSTRACT;
+		parents := node.Parents(all);
+		cursor := parents;
+		list := NIL;
+		WHILE cursor # NIL DO
+			p := cursor.node;
+			cursor := cursor.next;
+			WITH p: Node DO
+				p.AddToList(list);
+				p.SetProps(p.props + {GraphNodes.mark});
+				pList := p.Parents(all);
+				WHILE pList # NIL DO
+					q := pList.node;
+					WITH q: Node DO
+						q.AddToList(list);
+						q.AddParent(cursor);
+						q.SetProps(q.props + {GraphNodes.mark})
+					ELSE
+					END;
+					pList := pList.next
+				END
+			ELSE
+			END
+		END;
+		list1 := list;
+		WHILE list1 # NIL DO
+			p := list1.node;
+			p.SetProps(p.props - {GraphNodes.mark});
+			list1 := list1.next
+		END;
+		RETURN list
+	END Parents;
 
 	PROCEDURE Maintainer;
 	BEGIN

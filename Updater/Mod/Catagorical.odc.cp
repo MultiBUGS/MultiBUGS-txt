@@ -13,7 +13,7 @@ MODULE UpdaterCatagorical;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		Math, Stores,
 		BugsRegistry,
 		GraphNodes, GraphRules, GraphStochastic, GraphVD,
 		MathRandnum,
@@ -37,14 +37,16 @@ MODULE UpdaterCatagorical;
 			child: GraphStochastic.Node;
 			children: GraphStochastic.Vector;
 			i, num: INTEGER;
+		CONST
+			univariate = FALSE;
 	BEGIN
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		list := NIL;
 		WHILE i < num DO
 			child := children[i];
-			IF child.CanEvaluate()
+			IF child.CanSample(univariate)
 				 & (child.props * {GraphNodes.data, GraphStochastic.initialized} # {}) THEN
 				GraphStochastic.AddToList(child, list)
 			END;
@@ -85,6 +87,7 @@ MODULE UpdaterCatagorical;
 		CONST
 			eps = 1.0E-20;
 			minExp = -200;
+			univariate = FALSE;
 		VAR
 			first, i, last, numForbiddenStates: INTEGER;
 			density, logDensity, lower, rand, upper: REAL;
@@ -95,7 +98,7 @@ MODULE UpdaterCatagorical;
 		res := {};
 		prior := updater.prior;
 		IF GraphStochastic.initialized IN prior.props THEN RETURN END;
-		IF ~prior.CanEvaluate() THEN res := {GraphNodes.lhs}; RETURN END;
+		IF ~prior.CanSample(univariate) THEN res := {GraphNodes.lhs}; RETURN END;
 		list := BuildLikelihood(prior);
 		prior.Bounds(lower, upper);
 		first := SHORT(ENTIER(lower + eps));
@@ -170,9 +173,6 @@ MODULE UpdaterCatagorical;
 			p[i] := updater.LogLikelihood();
 			INC(i)
 		END;
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(p)
-		END;
 		max :=  - INF;
 		i := first;
 		WHILE i <= last DO
@@ -196,13 +196,12 @@ MODULE UpdaterCatagorical;
 	END Sample;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
+		VAR
+			install: ARRAY 64 OF CHAR;
 	BEGIN
 		IF ~(GraphStochastic.integer IN prior.props) THEN RETURN FALSE END;
 		IF GraphVD.Block(prior) # NIL THEN RETURN FALSE END;
-		IF (prior.classConditional # GraphRules.catagorical) & 
-			(prior.classConditional # GraphRules.descrete) THEN
-			RETURN FALSE
-		END;
+		IF prior.classConditional # GraphRules.catagorical THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

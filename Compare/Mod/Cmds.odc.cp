@@ -86,10 +86,10 @@ MODULE CompareCmds;
 					NEW(sample, numChains, sampleSize);
 					monitor.Sample(i, beg, end, thin, firstChain, lastChain, sample);
 					data[i] := SamplesStatistics.Mean(sample)
-				ELSE
+				ELSE 
 					RETURN NIL
 				END
-			ELSE
+			ELSE 
 				RETURN NIL
 			END;
 			INC(i)
@@ -115,10 +115,14 @@ MODULE CompareCmds;
 		i := 0;
 		WHILE i < len DO
 			index := offsets[i];
-			IF GraphNodes.data IN name.components[index].props THEN
-				axis[i] := name.components[index].Value()
+			IF name.components # NIL THEN
+				IF GraphNodes.data IN name.components[index].props THEN
+					axis[i] := name.components[index].Value()
+				ELSE
+					RETURN NIL
+				END
 			ELSE
-				RETURN NIL
+				axis[i] := name.values[i]
 			END;
 			INC(i)
 		END;
@@ -234,13 +238,27 @@ MODULE CompareCmds;
 	PROCEDURE GuardN* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsInitialized() OR BugsInterface.IsAdapting();
-		IF ~par.disabled THEN par.disabled := ~IsMonitored(dialog.node) END
+		IF par.disabled THEN
+			IF BugsCmds.script THEN END
+		ELSE 
+			par.disabled := ~IsMonitored(dialog.node);
+			IF par.disabled THEN 
+				IF BugsCmds.script THEN END
+			END
+		END
 	END GuardN;
 
 	PROCEDURE GuardNA* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsInitialized() OR BugsInterface.IsAdapting();
-		IF ~par.disabled THEN par.disabled := ~IsMonitored(dialog.node) OR ~IsRegistered(dialog.axis) END
+		IF par.disabled THEN
+			IF BugsCmds.script THEN END
+		ELSE 
+			par.disabled := ~IsMonitored(dialog.node) OR ~IsRegistered(dialog.axis);
+			IF par.disabled THEN 
+				IF BugsCmds.script THEN END
+			END
+		END
 	END GuardNA;
 
 	PROCEDURE Maintainer;

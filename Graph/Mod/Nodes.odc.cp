@@ -79,7 +79,8 @@ MODULE GraphNodes;
 			start*: INTEGER; 	(*	first element in sub vector	*)
 			nElem*: INTEGER; 	(*	number of elements in sub vector	*)
 			step*: INTEGER; 	(*	spacing of elements in sub vector	*)
-			components*: Vector (*	vector containing sub vectors elements	*)
+			components*: Vector; (*	vector containing sub vectors elements	*)
+			values*: POINTER TO ARRAY OF SHORTREAL;
 		END;
 
 		(*	arguments to be passed to node	*)
@@ -96,7 +97,6 @@ MODULE GraphNodes;
 		maxDepth-, maxStochDepth-: INTEGER;
 		version-: INTEGER; (*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; (*	person maintaining module	*)
-		timeStamp-: LONGINT;
 		fact: Factory; 	(*	factory object for creating nodes in graphical model	*)
 		nodeLabel, typeLabel: INTEGER;
 		nodes: Vector;
@@ -104,11 +104,6 @@ MODULE GraphNodes;
 		installProc: ARRAY maxNumTypes OF String;
 		factories: ARRAY maxNumTypes OF Factory;
 		startOfGraph: INTEGER;
-
-	PROCEDURE SetTimeStamp* (t: LONGINT);
-	BEGIN
-		timeStamp := t
-	END SetTimeStamp;
 
 	PROCEDURE InstallFactory* (IN install: ARRAY OF CHAR): Factory;
 		VAR
@@ -122,7 +117,7 @@ MODULE GraphNodes;
 		fact := NIL;
 		Strings.Find(install, "(", 0, pos);
 		Strings.Find(install, ")", 0, pos1);
-		IF pos =  - 1 THEN
+		IF pos = - 1 THEN
 			Meta.LookupPath(install, item);
 			ASSERT(item.obj = Meta.procObj, 20);
 			item.Call(ok)
@@ -146,25 +141,25 @@ MODULE GraphNodes;
 
 	(*	checks that internal state of node is consistant	*)
 	PROCEDURE (node: Node) Check* (): SET, NEW, ABSTRACT;
-	
-	(*	externalize interrnal fields of node	*)
+
+		(*	externalize interrnal fields of node	*)
 	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) Externalize* (VAR wr: Stores.Writer), NEW;
 	BEGIN
 		wr.WriteSet(node.props);
-		node.ExternalizeNode(wr);
+		node.ExternalizeNode(wr)
 	END Externalize;
-	
+
 	(*	initializes the internal fields of node to non sensible / possible values	*)
 	PROCEDURE (node: Node) InitNode-, NEW, ABSTRACT;
 
 	(*	gets name of the Install procedure for this type of node	*)
 	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
-	
-	(*	internalize internal fields of node	*)
+
+		(*	internalize internal fields of node	*)
 	PROCEDURE (node: Node) InternalizeNode- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-	
+
 	PROCEDURE (node: Node) Internalize* (VAR rd: Stores.Reader), NEW;
 	BEGIN
 		rd.ReadSet(node.props);
@@ -174,22 +169,22 @@ MODULE GraphNodes;
 	(*	returns parents of node, 'all' controls if parents not relevant to likelihood are returned	*)
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): List, NEW, ABSTRACT;
 
-	(*	returns a node that is representetive of node	*)
+		(*	returns a node that is representetive of node	*)
 	PROCEDURE (node: Node) Representative* (): Node, NEW, ABSTRACT;
 
-	(*	sets internal fields of node	*)
+		(*	sets internal fields of node	*)
 	PROCEDURE (node: Node) Set* (IN args: Args; OUT res: SET), NEW, ABSTRACT;
 
-	(*	size of node	*)
+		(*	size of node	*)
 	PROCEDURE (node: Node) Size* (): INTEGER, NEW, ABSTRACT;
 
-	(*	value of node	*)
+		(*	value of node	*)
 	PROCEDURE (node: Node) Value* (): REAL, NEW, ABSTRACT;
 
-	(*	value and value of differential of node wrt x	*)
+		(*	value and value of differential of node wrt x	*)
 	PROCEDURE (node: Node) ValDiff* (x: Node; OUT val, diff: REAL), NEW, ABSTRACT;
 
-	(*	add parent node to list, if node is marked then it is not added to list	*)
+		(*	add parent node to list, if node is marked then it is not added to list	*)
 	PROCEDURE (node: Node) AddParent* (VAR list: List), NEW;
 		VAR
 			cursor: List;
@@ -221,16 +216,16 @@ MODULE GraphNodes;
 	(*	initialize args data type	*)
 	PROCEDURE (VAR args: Args) Init*, NEW, ABSTRACT;
 
-	(*	create a new node in graphical model	*)
+		(*	create a new node in graphical model	*)
 	PROCEDURE (f: Factory) New* (): Node, NEW, ABSTRACT;
 
-	(*	number of parameters that node created by factory has	*)
+		(*	number of parameters that node created by factory has	*)
 	PROCEDURE (f: Factory) NumParam* (): INTEGER, NEW, ABSTRACT;
 
-	(*	signature of parameters of node created by factory	*)
+		(*	signature of parameters of node created by factory	*)
 	PROCEDURE (f: Factory) Signature* (OUT signature: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	(*	clears mark from nodes in list	*)
+		(*	clears mark from nodes in list	*)
 	PROCEDURE ClearList* (list: List);
 		VAR
 			cursor: List;
@@ -250,9 +245,9 @@ MODULE GraphNodes;
 			vector: SubVector;
 	BEGIN
 		NEW(vector);
-		vector.start :=  - 1;
-		vector.nElem :=  - 1;
-		vector.step :=  - 1;
+		vector.start := - 1;
+		vector.nElem := - 1;
+		vector.step := - 1;
 		vector.components := NIL;
 		RETURN vector
 	END NewVector;
@@ -270,11 +265,11 @@ MODULE GraphNodes;
 			element: List;
 	BEGIN
 		IF node = NIL THEN
-			wr.WriteInt(0); 
+			wr.WriteInt(0);
 		ELSIF node.label > 0 THEN
-			wr.WriteInt(node.label); 
+			wr.WriteInt(node.label);
 		ELSE
-			(*	first time seen node	*)
+			(*	first timehave  seen node	*)
 			NEW(element);
 			element.node := node;
 			element.next := nodeList;
@@ -324,10 +319,10 @@ MODULE GraphNodes;
 		IF label = 0 THEN
 			node := NIL
 		ELSIF label > 0 THEN
-			ASSERT(label < LEN(nodes), 100);
+			ASSERT(label < LEN(nodes), 111);
 			node := nodes[label]
 		ELSE
-			label :=  - label;
+			label := - label;
 			nodeLabel := MAX(nodeLabel, label);
 			rd.ReadInt(typeLabel);
 			IF factories[typeLabel] # NIL THEN
@@ -337,7 +332,7 @@ MODULE GraphNodes;
 				node := NIL
 			END;
 			nodes[label] := node;
-			node.Init;
+			(*node.Init;*)
 			IF deep THEN node.Internalize(rd) END
 		END;
 		RETURN node
@@ -383,31 +378,34 @@ MODULE GraphNodes;
 	PROCEDURE ExternalizeSubvector* (v: SubVector; VAR wr: Stores.Writer);
 		VAR
 			i, start, nElem, step: INTEGER;
-			components: Vector;
 	BEGIN
 		start := v.start; nElem := v.nElem; step := v.step;
-		components := v.components;
-		wr.WriteInt(nElem);
-		i := 0;
-		WHILE i < nElem DO
-			Externalize(components[start + i * step], wr); INC(i)
+		IF v.components # NIL THEN
+			wr.WriteInt(nElem);
+			i := 0; WHILE i < nElem DO Externalize(v.components[start + i * step], wr); INC(i) END
+		ELSE
+			wr.WriteInt(-nElem);
+			i := 0; WHILE i < nElem DO wr.WriteSReal(v.values[start + i * step]); INC(i) END
 		END
 	END ExternalizeSubvector;
 
 	(*	internalizes a sub-vector	*)
 	PROCEDURE InternalizeSubvector* (OUT v: SubVector; VAR rd: Stores.Reader);
 		VAR
-			i, nElem: INTEGER;
-			components: Vector;
+			i, nElem, n: INTEGER;
 	BEGIN
 		NEW(v);
-		rd.ReadInt(nElem);
+		rd.ReadInt(n);
+		nElem := ABS(n); 
 		v.start := 0; v.nElem := nElem; v.step := 1;
-		NEW(components, nElem);
-		v.components := components;
-		i := 0;
-		WHILE i < nElem DO
-			components[i] := Internalize(rd); INC(i)
+		IF n > 0 THEN
+			NEW(v.components, nElem);
+			v.values := NIL;
+			i := 0;  WHILE i < nElem DO v.components[i] := Internalize(rd); INC(i) END
+		ELSE
+			NEW(v.values, nElem);
+			v.components := NIL;
+			i := 0;  WHILE i < nElem DO rd.ReadSReal(v.values[i]); INC(i) END
 		END
 	END InternalizeSubvector;
 
@@ -458,12 +456,45 @@ MODULE GraphNodes;
 		END
 	END InternalizeNodeData;
 
+	(*	similar to ExternalizePointer but does not write to Store	*)
+	PROCEDURE Label* (node: Node): INTEGER;
+		VAR
+			label: INTEGER;
+			element: List;
+	BEGIN
+		IF node = NIL THEN
+			label := 0
+		ELSIF node.label > 0 THEN
+			label := node.label;
+		ELSE
+			(*	first time have seen node	*)
+			NEW(element);
+			element.node := node;
+			element.next := nodeList;
+			nodeList := element;
+			INC(nodeLabel);
+			label := - nodeLabel;
+			node.label := nodeLabel;
+		END;
+		RETURN label
+	END Label;
+	
+	(*	clear label field	*)
+	PROCEDURE UnlabelNodes*;
+	BEGIN
+		nodeLabel := 0;
+		WHILE nodeList # NIL DO
+			nodeList.node.label := 0;
+			nodeList := nodeList.next
+		END
+	END UnlabelNodes;
+	
 	(*	initializes the externalization of graph	*)
 	PROCEDURE BeginExternalize* (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
-		wr.WriteLong(timeStamp);
+		(*		wr.WriteLong(timeStamp);*)
 		startOfGraph := wr.Pos();
 		wr.WriteInt(MIN(INTEGER));
 		wr.WriteInt(MIN(INTEGER));
@@ -490,11 +521,7 @@ MODULE GraphNodes;
 		numNodes := nodeLabel;
 		wr.WriteInt(numNodes);
 		wr.WriteInt(endPos);
-		(*	clear label field	*)
-		WHILE nodeList # NIL DO
-			nodeList.node.label := 0;
-			nodeList := nodeList.next
-		END;
+		UnlabelNodes;
 		wr.SetPos(endPos);
 		numTypes := typeLabel;
 		wr.WriteInt(numTypes);
@@ -509,9 +536,7 @@ MODULE GraphNodes;
 	PROCEDURE BeginInternalize* (VAR rd: Stores.Reader);
 		VAR
 			numNodes, endPos, pos, numTypes, i: INTEGER;
-			string: ARRAY 128 OF CHAR;
 	BEGIN
-		rd.ReadLong(timeStamp);
 		rd.ReadInt(numNodes);
 		NEW(nodes, numNodes + 1);
 		nodes[0] := NIL;
@@ -521,7 +546,6 @@ MODULE GraphNodes;
 		rd.SetPos(endPos);
 		rd.ReadInt(numTypes);
 		i := 0;
-		Strings.IntToString(timeStamp, string);
 		WHILE i < numTypes DO
 			rd.ReadString(installProc[i]);
 			factories[i] := InstallFactory(installProc[i]);
@@ -609,7 +633,6 @@ MODULE GraphNodes;
 	BEGIN
 		maxDepth := 0;
 		maxStochDepth := 0;
-		timeStamp := - 1
 	END Clear;
 
 	PROCEDURE Maintainer;
@@ -626,7 +649,6 @@ MODULE GraphNodes;
 		nodeLabel := 0;
 		installProc[0] := "";
 		typeLabel := 1;
-		timeStamp := - 1
 	END Init;
 
 BEGIN

@@ -51,8 +51,6 @@ MODULE UpdaterConjugateMV;
 		RETURN FALSE
 	END IsAdapting;
 
-	PROCEDURE (updater: Updater) LikelihoodForm* (OUT p: ARRAY OF REAL), NEW, ABSTRACT;
-
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;

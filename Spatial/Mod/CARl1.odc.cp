@@ -14,9 +14,8 @@ MODULE SpatialCARl1;
 
 	IMPORT
 		Math, Stores,
-		GraphMultivariate,
-		GraphNodes, GraphRules, GraphStochastic, MathFunc,
-		SpatialUVCAR;
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR,
+		MathFunc;
 
 
 	TYPE
@@ -29,45 +28,9 @@ MODULE SpatialCARl1;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) CheckUVCAR (): SET;
-		CONST
-			eps = 1.0E-3;
-		VAR
-			i, j, numNeigh, numNeigh1, index: INTEGER;
-			weight: REAL;
-			p: Node;
-	BEGIN
-		index := node.index;
-		IF index # - 1 THEN
-			IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
-			i := 0;
-			WHILE i < numNeigh DO
-				weight := node.weights[i];
-				p := node.components[node.neighs[i]](Node);
-				IF p.neighs # NIL THEN numNeigh1 := LEN(p.neighs) ELSE numNeigh1 := 0 END;
-				j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # index) DO INC(j) END;
-				IF ABS(p.weights[j] - weight) > eps THEN
-					RETURN {GraphNodes.arg3, GraphNodes.notSymmetric}
-				END;
-				INC(i)
-			END
-		END;
-		RETURN {}
-	END CheckUVCAR;
-
-	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF (parent: GraphStochastic.Node): INTEGER;
-	BEGIN
-		RETURN GraphRules.unif
-	END ClassifyLikelihoodUVMRF;
-
-	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
-	BEGIN
-		RETURN NIL
-	END ParentsUVMRF;
-
 	PROCEDURE LinearForm (node: Node): REAL;
 		VAR
-			i, j,index,  len: INTEGER;
+			i, j, index, len: INTEGER;
 			mu, value, linearForm: REAL;
 			com: GraphStochastic.Vector;
 	BEGIN
@@ -88,6 +51,37 @@ MODULE SpatialCARl1;
 		END;
 		RETURN linearForm
 	END LinearForm;
+
+	PROCEDURE (node: Node) CheckUVCAR (): SET;
+		CONST
+			eps = 1.0E-3;
+		VAR
+			i, j, numNeigh, numNeigh1, index: INTEGER;
+			weight: REAL;
+			p: Node;
+	BEGIN
+		index := node.index;
+		IF index # - 1 THEN
+			IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
+			i := 0;
+			WHILE i < numNeigh DO
+				weight := node.weights[i];
+				p := node.components[node.neighs[i]](Node);
+				IF p.neighs # NIL THEN numNeigh1 := LEN(p.neighs) ELSE numNeigh1 := 0 END;
+				j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # index) DO INC(j) END;
+				IF ABS(p.weights[j] - weight) > eps THEN
+					RETURN {GraphNodes.arg2, GraphNodes.notSymmetric}
+				END;
+				INC(i)
+			END
+		END;
+		RETURN {}
+	END CheckUVCAR;
+
+	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF (parent: GraphStochastic.Node): INTEGER;
+	BEGIN
+		RETURN GraphRules.unif
+	END ClassifyLikelihoodUVMRF;
 
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
@@ -116,22 +110,22 @@ MODULE SpatialCARl1;
 		RETURN differential
 	END DiffLogPrior;
 
-	PROCEDURE (node: Node) ExternalizeChainUVCAR (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeUVCAR (VAR wr: Stores.Writer);
 	BEGIN
-	END ExternalizeChainUVCAR;
+	END ExternalizeUVCAR;
 
-	PROCEDURE (node: Node) InitStochasticUVCAR;
+	PROCEDURE (node: Node) InitUVCAR;
 	BEGIN
-	END InitStochasticUVCAR;
+	END InitUVCAR;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "SpatialCARl1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) InternalizeChainUVCAR (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeUVCAR (VAR rd: Stores.Reader);
 	BEGIN
-	END InternalizeChainUVCAR;
+	END InternalizeUVCAR;
 
 	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
@@ -142,19 +136,10 @@ MODULE SpatialCARl1;
 		x := likelihood.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihood (): REAL;
-		VAR
-			as: INTEGER;
-			lambda, logLikelihood, logTau, r, tau: REAL;
-			x: GraphNodes.Node;
+	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
 	BEGIN
-		as := GraphRules.gamma;
-		node.LikelihoodForm(as, x, r, lambda);
-		tau := x.Value();
-		logTau := MathFunc.Ln(tau);
-		logLikelihood := r * logTau - tau * lambda;
-		RETURN logLikelihood
-	END LogLikelihood;
+		RETURN 0.0
+	END LogLikelihoodUVMRF;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -207,10 +192,20 @@ MODULE SpatialCARl1;
 		HALT(0)
 	END MatrixElements;
 
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
+	OUT p1: ARRAY OF ARRAY OF REAL);
+	BEGIN
+	END MVPriorForm;
+
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN 1
 	END NumberConstraints;
+
+	PROCEDURE (node: Node) ParentsUVMRF (all: BOOLEAN): GraphNodes.List;
+	BEGIN
+		RETURN NIL
+	END ParentsUVMRF;
 
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
