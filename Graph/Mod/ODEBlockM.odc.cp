@@ -321,7 +321,6 @@ MODULE GraphODEBlockM;
 		node.x0 := NIL;
 		node.x1 := NIL;
 		node.thetaVal := NIL;
-		node.solver := NIL;
 		node.block := NIL;
 		node.origins := NIL;
 		node.grid := NIL;
