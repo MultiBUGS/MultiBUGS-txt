@@ -12,9 +12,9 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		Dialog, Files, Meta, Ports, Services, Strings, Views, Windows, 
+		MPI, Dialog, Files, Meta, Ports, Services, Strings, Views, Windows, 
 		HostMenus,
-		StdLog,
+		StdLog, StdCmds,
 		TextCmds, TextControllers, TextMappers, TextModels, TextViews,
 		BugsCPCompiler, BugsDialog, BugsFiles, BugsGraph, BugsIndex, BugsInfo, BugsInterface,
 		BugsInterpreter, BugsLatexprinter, BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser,
@@ -1312,6 +1312,15 @@ MODULE BugsCmds;
 	BEGIN
 		Dialog.Update(dialogBox)
 	END Update;
+
+	PROCEDURE OpenSpecificationDialog*;
+	BEGIN
+		IF MPI.RunningUnderMPI() THEN
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool');
+		ELSE
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
+		END;
+	END OpenSpecificationDialog;
 
 	PROCEDURE (dialogBox: UpdateDialog) Update-;
 	BEGIN

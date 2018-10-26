@@ -17,12 +17,16 @@ MODULE Init;
 
 **)
 
-	IMPORT Kernel, Dialog, Converters, HostMenus;
+	IMPORT Kernel, Dialog, Converters, HostMenus, MPI;
 
 	PROCEDURE Init;
 		VAR res: INTEGER; m: Kernel.Module;
 	BEGIN
-		Dialog.appName := "MultiBUGS";
+		IF MPI.RunningUnderMPI() THEN
+			Dialog.appName := "MultiBUGS"
+		ELSE
+ 			Dialog.appName := "OpenBUGS"
+		END;
 		HostMenus.OpenApp;
 		m := Kernel.ThisMod("DevDebug");
 		IF m = NIL THEN Kernel.LoadMod("StdDebug") END;

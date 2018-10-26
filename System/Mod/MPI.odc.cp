@@ -9,7 +9,7 @@ MODULE MPI;
 	
 
 	IMPORT
-		SYSTEM;
+		SYSTEM, WinApi;
 
 	TYPE
 		Hook* = POINTER TO ABSTRACT RECORD END;
@@ -33,7 +33,6 @@ MODULE MPI;
 		COMM_NULL* = 04000000H;
 
 		BOOL* = 4C00010DH;
-		CHAR* = 04C000101H;
 		DOUBLE* = 4C00080BH;
 		INT* = 4C000405H;
 
@@ -160,12 +159,22 @@ MODULE MPI;
 		comm: Comm;
 	status: Status), NEW, ABSTRACT;
 
-		PROCEDURE (hook: Hook) Send* (
-		buff: Address;
-		count: INTEGER;
-		datatype: Datatype;
-		dest: INTEGER;
-		tag: INTEGER;
+	PROCEDURE RunningUnderMPI* (): BOOLEAN;
+		VAR
+			out: POINTER TO ARRAY OF CHAR;
+			envVarValue: WinApi.PtrWSTR;
+	BEGIN
+		NEW(out, 256);
+		envVarValue := out^;
+		RETURN WinApi.GetEnvironmentVariableW("PMI_SIZE", envVarValue, 256) # 0;
+	END RunningUnderMPI;
+
+	PROCEDURE (hook: Hook) Send* (
+	buff: Address;
+	count: INTEGER;
+	datatype: Datatype;
+	dest: INTEGER;
+	tag: INTEGER;
 	comm: Comm), NEW, ABSTRACT;
 
 	PROCEDURE (hook: Hook) Wtime* (): REAL, NEW, ABSTRACT;
