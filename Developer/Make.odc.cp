@@ -12,8 +12,6 @@ HostMenus
 
 MPI MPIlib MPIimp MPIworker MPImaster
 
-Init
-
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth
 
@@ -120,6 +118,8 @@ MapsMessages MapsResources
 
 BugsDialog
 
+Init
+
 UpdaterSettings
 
 DevDebug
@@ -156,6 +156,8 @@ StdCmds1
 BugsC
 
 TestScript
+
+BugsDistribute
 
 BugsPackage
 
