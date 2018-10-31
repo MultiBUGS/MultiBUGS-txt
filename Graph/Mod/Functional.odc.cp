@@ -13,7 +13,7 @@ MODULE GraphFunctional;
 	
 
 	IMPORT
-		Stores,
+		Stores, 
 		BugsMsg,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathFunctional;
@@ -125,7 +125,9 @@ MODULE GraphFunctional;
 		p.AddParent(list);
 		p := node.x1;
 		p.AddParent(list);
-		GraphNodes.ClearList(list);
+		p := node.x;
+		p.AddParent(list);
+		GraphNodes.ClearList(list); 
 		RETURN list
 	END Parents;
 
@@ -170,6 +172,7 @@ MODULE GraphFunctional;
 	BEGIN
 		NEW(node);
 		node.SetFunctional(functional);
+		node.Init;
 		RETURN node
 	END New;
 
