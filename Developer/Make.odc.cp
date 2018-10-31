@@ -10,7 +10,7 @@ DevCompiler.CompileThis
 
 HostMenus
 
-MPI MPIlib MPIimp MPIworker MPImaster
+Environment MPI MPIlib MPIimp MPIworker MPImaster
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth
@@ -79,13 +79,13 @@ GraphCoSelection GraphSpline GraphSplinecon
 
 UpdaterForward
 
-UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial
+UpdaterCatagorical UpdaterDescreteSliceUpdaterMetbinomial
 
 UpdaterICM
 
 UpdaterBeta  UpdaterGriddy UpdaterGamma UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterStage1 UpdaterStage1P
 
-UpdaterAM UpdaterDE UpdaterHamiltonian UpdaterVD 
+UpdaterAM UpdaterDE UpdaterHamiltonian UpdaterVD
 
 UpdaterAMblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet
 UpdaterElliptical UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart

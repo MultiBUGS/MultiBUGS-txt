@@ -17,12 +17,12 @@ MODULE Init;
 
 **)
 
-	IMPORT Kernel, Dialog, Converters, HostMenus, MPI;
+	IMPORT Kernel, Dialog, Converters, HostMenus, Environment;
 
 	PROCEDURE Init;
 		VAR res: INTEGER; m: Kernel.Module;
 	BEGIN
-		IF MPI.RunningUnderMPI() THEN
+		IF Environment.RunningUnderMPI() THEN
 			Dialog.appName := "MultiBUGS"
 		ELSE
  			Dialog.appName := "OpenBUGS"

@@ -9,7 +9,7 @@ MODULE MPI;
 	
 
 	IMPORT
-		SYSTEM, WinApi;
+		SYSTEM, Environment;
 
 	TYPE
 		Hook* = POINTER TO ABSTRACT RECORD END;
@@ -158,16 +158,6 @@ MODULE MPI;
 		tag: INTEGER;
 		comm: Comm;
 	status: Status), NEW, ABSTRACT;
-
-	PROCEDURE RunningUnderMPI* (): BOOLEAN;
-		VAR
-			out: POINTER TO ARRAY OF CHAR;
-			envVarValue: WinApi.PtrWSTR;
-	BEGIN
-		NEW(out, 256);
-		envVarValue := out^;
-		RETURN WinApi.GetEnvironmentVariableW("PMI_SIZE", envVarValue, 256) # 0;
-	END RunningUnderMPI;
 
 	PROCEDURE (hook: Hook) Send* (
 	buff: Address;

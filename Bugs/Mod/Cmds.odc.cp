@@ -12,7 +12,7 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		MPI, Dialog, Files, Meta, Ports, Services, Strings, Views, Windows, 
+		Environment, Dialog, Files, Meta, Ports, Services, Strings, Views, Windows, 
 		HostMenus,
 		StdLog, StdCmds,
 		TextCmds, TextControllers, TextMappers, TextModels, TextViews,
@@ -1315,7 +1315,7 @@ MODULE BugsCmds;
 
 	PROCEDURE OpenSpecificationDialog*;
 	BEGIN
-		IF MPI.RunningUnderMPI() THEN
+		IF Environment.RunningUnderMPI() THEN
 			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool');
 		ELSE
 			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
