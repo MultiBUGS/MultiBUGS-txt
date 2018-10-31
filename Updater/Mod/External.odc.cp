@@ -150,6 +150,9 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterSDScale.Install");
 
 		(*	updater for generic distribution can have bounds	*)
+		UpdaterMethods.LoadUpdater("UpdaterSlicegamma.Install");
+
+		(*	updater for generic distribution can have bounds	*)
 		UpdaterMethods.LoadUpdater("UpdaterSlice.Install");
 
 		(*	updater for generic distribution with bounded support	*)

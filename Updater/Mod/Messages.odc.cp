@@ -119,6 +119,8 @@ MODULE UpdaterMessages;
 
 		RegisterKey("UpdaterSlice.Install", "slice");
 
+		RegisterKey("UpdaterSlicegamma.Install", "gamma slice");
+
 		RegisterKey("UpdaterStage1.Install", "stage one (likelihood)");
 		RegisterKey("UpdaterStage1M.Install", "multivariate stage one (likelihood)");
 		RegisterKey("UpdaterStage1P.Install", "stage one (prior)");

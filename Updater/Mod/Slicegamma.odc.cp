@@ -7,22 +7,36 @@ copyright:	"Rsrc/About"
 
 *)
 
-MODULE UpdaterSlice;
+MODULE UpdaterSlicegamma;
 
 	
 
 	IMPORT
+		Math, MPIworker, Stores, 
 		BugsRegistry,
-		GraphStochastic,
+		GraphConjugateUV, GraphLogical, GraphNodes, GraphRules, GraphStochastic,
+		MathRandnum,
 		UpdaterSlicebase, UpdaterUpdaters;
 
+	CONST
+		batch = 25;
+
+		(*	internal states of sampling algorithm	*)
+		init = 0; firstLeft = 1; left = 2; firstRight = 3; right = 4; sample = 5;
+
+		leftBounds = {GraphStochastic.leftNatural, GraphStochastic.leftImposed};
+		rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
+
 	TYPE
-		Updater = POINTER TO RECORD(UpdaterSlicebase.Updater) END;
+		Updater = POINTER TO RECORD(UpdaterSlicebase.Updater) 
+			gamma: GraphNodes.Node
+		END;
 
 		Factory = POINTER TO RECORD(UpdaterUpdaters.Factory) END;
 
 
 	VAR
+		p: ARRAY 2 OF REAL;
 		fact-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -37,32 +51,84 @@ MODULE UpdaterSlice;
 
 	PROCEDURE (updater: Updater) LogLikelihoodOpt (): REAL;
 		VAR
-			logLike: REAL;
+			logLike, x: REAL;
+			prior: GraphStochastic.Node;
 	BEGIN
-		logLike := updater.LogLikelihood();
+		prior := updater.prior;
+		IF updater.gamma # NIL THEN
+			x := updater.gamma.Value();
+			logLike := p[0] * Math.Ln(x) - p[1] * x
+		ELSE
+			logLike := 0.0;
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			logLike := MPIworker.SumReal(logLike)
+		END;
 		RETURN logLike
 	END LogLikelihoodOpt;
 
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterSlice.Install"
+		install := "UpdaterSlicegamma.Install"
 	END Install;
 
 	PROCEDURE (updater: Updater) Setup;
+		VAR
+			i, len: INTEGER;
+			children: GraphStochastic.Vector;
+			p0, p1: REAL;
+		CONST
+			as = GraphRules.gamma;
 	BEGIN
 		UpdaterSlicebase.adaptivePhase := fact.adaptivePhase;
-		UpdaterSlicebase.maxIterations := fact.iterations
+		UpdaterSlicebase.maxIterations := fact.iterations;
+		children := updater.prior.children;
+		i := 0; 
+		p[0] := 0.0; p[1] := 0.0;
+		IF children # NIL THEN len := LEN(children) ELSE len := 0 END;
+		WHILE i < len DO
+			children[i](GraphConjugateUV.Node).LikelihoodForm(as, updater.gamma, p0, p1);
+			p[0] := p[0] + p0; p[1] := p[1] + p1;
+			INC(i)
+		END
 	END Setup;
-	
+
 	PROCEDURE (updater: Factory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterSlice.Install"
+		install := "UpdaterSlicegamma.Install"
 	END Install;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
+		VAR
+			gamma: BOOLEAN;
+			children: GraphStochastic.Vector;
+			x, oldX: GraphNodes.Node;
+			i, len: INTEGER;
+			p0, p1: REAL;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		RETURN TRUE
+		children := prior.children;
+		IF children # NIL THEN len := LEN(children) ELSE len := 0 END;
+		gamma := children # NIL;
+		i := 0;
+		oldX := NIL;
+		WHILE gamma & (i < len) DO
+			gamma := children[i].ClassifyPrior() = GraphRules.normal;
+			IF gamma THEN
+				children[i](GraphConjugateUV.Node).LikelihoodForm(GraphRules.gamma, x, p0, p1);
+				gamma :=  (oldX = NIL) OR (oldX = x);
+				oldX := x;
+				IF gamma THEN
+					children[i](GraphConjugateUV.Node).LikelihoodForm(GraphRules.normal, x, p0, p1);
+					gamma := x # prior;
+					IF gamma & (x IS GraphLogical.Node) THEN
+						gamma := x(GraphLogical.Node).ClassFunction(prior) = GraphRules.const
+					END
+				END
+			END;
+			INC(i)
+		END;
+		RETURN gamma
 	END CanUpdate;
 
 	PROCEDURE (f: Factory) Create (): UpdaterUpdaters.Updater;
@@ -70,6 +136,7 @@ MODULE UpdaterSlice;
 			updater: Updater;
 	BEGIN
 		NEW(updater);
+		updater.gamma := NIL;
 		RETURN updater
 	END Create;
 
@@ -128,4 +195,4 @@ MODULE UpdaterSlice;
 
 BEGIN
 	Init
-END UpdaterSlice.
+END UpdaterSlicegamma.

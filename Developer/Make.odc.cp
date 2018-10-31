@@ -79,11 +79,11 @@ GraphCoSelection GraphSpline GraphSplinecon
 
 UpdaterForward
 
-UpdaterCatagorical UpdaterDescreteSliceUpdaterMetbinomial
+UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial UpdaterSlicebase
 
 UpdaterICM
 
-UpdaterBeta  UpdaterGriddy UpdaterGamma UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterStage1 UpdaterStage1P
+UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P
 
 UpdaterAM UpdaterDE UpdaterHamiltonian UpdaterVD
 
