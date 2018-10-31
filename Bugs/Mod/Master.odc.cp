@@ -12,7 +12,7 @@ MODULE BugsMaster;
 	
 
 	IMPORT
-		Dialog, Files, Kernel, MPIimp, MPImaster, Services, Strings,
+		Dialog, Files, Kernel, MPImaster, Services, Strings,
 		HostFiles,
 		StdLog,
 		TextModels,
