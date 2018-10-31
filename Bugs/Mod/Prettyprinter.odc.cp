@@ -266,8 +266,8 @@ MODULE BugsPrettyprinter;
 				PrintNode(statement.expression, f)
 			END;
 			f.WriteLn
-		ELSIF statement.density # NIL THEN
-			IF statement.density.descriptor.name # "dummy" THEN
+		ELSIF statement.density # NIL THEN 
+			IF statement.density.descriptor.name # "_dummy_" THEN
 				j := 0; WHILE j <= loopDepth DO f.WriteTab; INC(j) END;
 				PrintNode(statement.variable, f);
 				f.WriteString(" ~ ");
