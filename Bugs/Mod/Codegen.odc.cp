@@ -395,13 +395,13 @@ MODULE BugsCodegen;
 					INC(args.numVectors)
 				ELSE
 					scalar := BugsEvaluate.RHScalar(variable);
-					IF scalar = NIL THEN args.valid := FALSE; RETURN END;
+					IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
 					args.scalars[args.numScalars] := scalar;
 					INC(args.numScalars)
 				END
 			ELSE
 				scalar := BugsEvaluate.RHScalar(parents[i]);
-				IF scalar = NIL THEN args.valid := FALSE; RETURN END;
+				IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
 				args.scalars[args.numScalars] := scalar;
 				INC(args.numScalars)
 			END;

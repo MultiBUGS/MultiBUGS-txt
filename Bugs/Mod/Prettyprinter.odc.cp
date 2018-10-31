@@ -396,6 +396,8 @@ MODULE BugsPrettyprinter;
 			plate: BugsParser.Index;
 			f: TextMappers.Formatter;
 			i, j, loopDepth, numClosedLoops, numNewLoops: INTEGER;
+			min: BugsParser.Internal;
+			condition: BugsParser.Node;
 	BEGIN
 		ok := TRUE;
 		f := visitor.f;
@@ -424,12 +426,19 @@ MODULE BugsPrettyprinter;
 			INC(loopDepth);
 			plate := visitor.newLoops[i];
 			f.WriteTab;
-			f.WriteString("for( ");
-			f.WriteString(plate.name);
-			f.WriteString(" in ");
-			PrintNode(plate.lower, f);
-			f.WriteString(" : ");
-			PrintNode(plate.upper, f);
+			IF plate.name[0] # "$" THEN
+				f.WriteString("for( ");
+				f.WriteString(plate.name);
+				f.WriteString(" in ");
+				PrintNode(plate.lower, f);
+				f.WriteString(" : ");
+				PrintNode(plate.upper, f);
+			ELSE
+				f.WriteString("if(");
+				min := plate.upper(BugsParser.Internal);
+				condition := min.parents[1];
+				PrintNode(condition, f)
+			END;
 			f.WriteString(" ) {");
 			f.WriteLn;
 			INC(i)

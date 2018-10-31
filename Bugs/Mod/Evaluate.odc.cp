@@ -45,7 +45,7 @@ MODULE BugsEvaluate;
 		CONST
 			eps = 1.0E-5;
 		VAR
-			i, intValue, left, numSlots, offset, right: INTEGER;
+			i, intValue, left, numSlots, offset, right, key: INTEGER;
 			abs, value: REAL;
 			indices: ARRAY 20 OF INTEGER;
 			string: ARRAY 80 OF CHAR;
@@ -55,6 +55,7 @@ MODULE BugsEvaluate;
 			name: BugsNames.Name;
 			variable: BugsParser.Variable;
 			node: GraphNodes.Node;
+			internal: BugsParser.Internal;
 	BEGIN
 		IF t IS BugsParser.Binary THEN
 			bin := t(BugsParser.Binary);
@@ -81,6 +82,26 @@ MODULE BugsEvaluate;
 				END;
 				RETURN left DIV right
 			END
+		ELSIF t IS BugsParser.Internal THEN
+			internal := t(BugsParser.Internal);
+			left := Index(internal.parents[0]);
+			key := internal.descriptor.key;
+			IF left = error THEN RETURN error END;
+			IF LEN(internal.parents) = 2 THEN
+				right := Index(internal.parents[1]);
+				IF right = error THEN RETURN error END;
+				CASE key  OF
+				|GraphGrammar.equals:
+					IF left = right THEN RETURN 1 ELSE RETURN 0 END
+				|GraphGrammar.max:
+					RETURN MAX(left, right)
+				|GraphGrammar.min:
+					RETURN MIN(left, right)
+				END
+			ELSE
+				ASSERT(key = GraphGrammar.step, 21);
+				IF left >= right THEN RETURN 1 ELSE RETURN 0 END
+			END;
 		ELSIF t IS BugsParser.Variable THEN
 			variable := t(BugsParser.Variable);
 			name := variable.name;
@@ -393,7 +414,7 @@ MODULE BugsEvaluate;
 				offset := name.Offset(indices);
 				IF name.isVariable THEN
 					node := variable.name.components[offset];
-					IF node = NIL THEN RETURN NIL END
+					IF node = NIL THEN Error(14, name.string); RETURN NIL END
 				ELSE
 					IF ~variable.name.IsDefined(offset) THEN Error(14, name.string); RETURN NIL END;
 					value := variable.name.Value(offset);
@@ -410,7 +431,7 @@ MODULE BugsEvaluate;
 				argL.numScalars := numVarIndex;
 				node := GraphMixture.fact.New();
 				node.Set(argL, res);
-				IF res # {} THEN RETURN NIL END
+				IF res # {} THEN Error(14, name.string); RETURN NIL END
 			END
 		ELSIF tree IS BugsParser.Integer THEN
 			integer := tree(BugsParser.Integer);

@@ -91,7 +91,7 @@ MODULE BugsParser;
 		nodeLabel: INTEGER;
 		nodes: POINTER TO ARRAY OF Node;
 		nodeList: List;
-		startOfGraph: INTEGER;
+		startOfGraph, numIfs: INTEGER;
 
 	PROCEDURE (node: Node) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
@@ -257,21 +257,21 @@ MODULE BugsParser;
 		InternalizeNode(binary.right, rd)
 	END Internalize;
 
-	PROCEDURE NewPlate (pos: INTEGER; IN name: ARRAY OF CHAR): Index;
+	PROCEDURE NewIndex (pos: INTEGER; IN name: ARRAY OF CHAR): Index;
 		VAR
-			plate: Index;
+			index: Index;
 	BEGIN
-		NEW(plate);
-		plate.label := 0;
-		plate.pos := pos;
-		plate.value := 0.0;
-		plate.evaluated := FALSE;
-		plate.name := name$;
-		plate.intVal := - 1;
-		plate.lower := NIL;
-		plate.upper := NIL;
-		RETURN plate
-	END NewPlate;
+		NEW(index);
+		index.label := 0;
+		index.pos := pos;
+		index.value := 0.0;
+		index.evaluated := FALSE;
+		index.name := name$;
+		index.intVal := - 1;
+		index.lower := NIL;
+		index.upper := NIL;
+		RETURN index
+	END NewIndex;
 
 	PROCEDURE (index: Index) Externalize- (VAR wr: Stores.Writer);
 	BEGIN
@@ -856,13 +856,21 @@ MODULE BugsParser;
 			pos: INTEGER;
 			binary: Binary;
 			node: Node;
+			internal: GraphGrammar.Internal;
 	BEGIN
 		IF (s.type = BugsMappers.char) & (s.char = "+") THEN (*	unexpected token in factor	*)
 			Error(10); RETURN NIL
 		END;
 		IF s.type = BugsMappers.function THEN
 			IF integer THEN (*	logical function not allowed in integer expression	*)
-				Error(11); RETURN NIL
+				internal := GraphGrammar.FindInternal(s.string); 
+				IF internal # NIL THEN
+					CASE internal.key OF
+					|GraphGrammar.equals, GraphGrammar.max, GraphGrammar.min, GraphGrammar.step:
+					ELSE
+						Error(11); RETURN NIL
+					END
+				END
 			END;
 			node := ParseFunction(loops, s);
 			IF node = NIL THEN RETURN NIL END
@@ -1214,13 +1222,13 @@ MODULE BugsParser;
 		RETURN density
 	END BuildDensity;
 
-	PROCEDURE BuildIndex* (plate: Index; lower, upper: Node);
+	PROCEDURE BuildIndex* (index: Index; lower, upper: Node);
 	BEGIN
-		plate.lower := lower;
-		plate.upper := upper;
+		index.lower := lower;
+		index.upper := upper;
 	END BuildIndex;
 
-	PROCEDURE BuildForLoop* (plate: Index): Statement;
+	PROCEDURE BuildForLoop* (index: Index): Statement;
 		VAR
 			statement: Statement;
 	BEGIN
@@ -1228,7 +1236,7 @@ MODULE BugsParser;
 		statement.variable := NIL;
 		statement.expression := NIL;
 		statement.density := NIL;
-		statement.index := plate;
+		statement.index := index;
 		RETURN statement
 	END BuildForLoop;
 
@@ -1294,7 +1302,7 @@ MODULE BugsParser;
 	PROCEDURE ParseIndexName* (loops: Statement; VAR s: BugsMappers.Scanner): Index;
 		VAR
 			for: Statement;
-			plate: Index;
+			index: Index;
 	BEGIN
 		IF s.type # BugsMappers.string THEN (*	loop index must be a name	*)
 			Error(29); RETURN NIL
@@ -1307,8 +1315,8 @@ MODULE BugsParser;
 		IF for # NIL THEN (*	already used as loop index	*)
 			Error(31); RETURN NIL
 		END;
-		plate := NewPlate(s.Pos(), s.string);
-		RETURN plate
+		index := NewIndex(s.Pos(), s.string);
+		RETURN index
 	END ParseIndexName;
 
 	PROCEDURE ParseForLoop* (loops: Statement; VAR s: BugsMappers.Scanner): Statement;
@@ -1353,6 +1361,50 @@ MODULE BugsParser;
 		statement.index := index;
 		RETURN statement
 	END ParseForLoop;
+
+	PROCEDURE ParseIf* (loops: Statement; VAR s: BugsMappers.Scanner): Statement;
+		VAR
+			condition: Node;
+			if: Index;
+			statement: Statement;
+			one: Integer;
+			min: Internal;
+			descriptor: GraphGrammar.Internal;
+			ifName: ARRAY 32 OF CHAR;
+	BEGIN
+		IF (s.type # BugsMappers.char) OR (s.char # "(") THEN (*	expected left parenthesis	*)
+			Error(32); RETURN NIL
+		END;
+		s.Scan;
+		condition := ParseLimit(loops, s);
+		IF condition = NIL THEN RETURN NIL END;
+		IF (s.type # BugsMappers.char) OR (s.char # ")") THEN (*	expected right parenthesis	*)
+			Error(35); RETURN NIL
+		END;
+		s.Scan;
+		IF (s.type # BugsMappers.char) OR (s.char # "{") THEN (*	expected open brace	*)
+			Error(36); RETURN NIL
+		END;
+		Strings.IntToString(numIfs, ifName);
+		ifName := "$" + ifName;	(*	$ prevents clash with any for loop variable name	*)
+		INC(numIfs);
+		if := NewIndex(0, ifName);
+		one := NewInteger(0, 1);
+		if.lower := one;
+		one := NewInteger(0, 1);
+		descriptor := GraphGrammar.FindInternal("min");
+		min := NewInternal(0, descriptor);
+		min.parents[0] := one;
+		min.parents[1] := condition;
+		if.upper := min;
+		s.Scan;
+		NEW(statement);
+		statement.variable := NIL;
+		statement.expression := NIL;
+		statement.density := NIL;
+		statement.index := if;
+		RETURN statement
+	END ParseIf;
 
 	PROCEDURE ReverseList* (model: Statement): Statement;
 		VAR
@@ -1401,6 +1453,11 @@ MODULE BugsParser;
 			IF ((s.type = BugsMappers.string) OR (s.type = BugsMappers.function)) & (s.string = "for") THEN
 				s.Scan;
 				statement := ParseForLoop(loops, s);
+				IF statement = NIL THEN RETURN END;
+				statement.CopyToList(loops)	(*	push loop stack	*)
+			ELSIF ((s.type = BugsMappers.string) OR (s.type = BugsMappers.function)) & (s.string = "if") THEN
+				s.Scan;
+				statement := ParseIf(loops, s);
 				IF statement = NIL THEN RETURN END;
 				statement.CopyToList(loops)	(*	push loop stack	*)
 			ELSIF s.type = BugsMappers.string THEN
@@ -1821,7 +1878,8 @@ MODULE BugsParser;
 		nodes := NIL;
 		nodeLabel := 0;
 		error := FALSE;
-		model := NIL
+		model := NIL;
+		numIfs := 0
 	END Clear;
 
 	PROCEDURE Maintainer;
