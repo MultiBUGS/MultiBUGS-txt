@@ -175,6 +175,7 @@ MODULE BugsInterpreter;
 								res := invalidArgument; RETURN
 							END
 						ELSIF item1.typ = Meta.boolTyp THEN
+							s.Scan;
 							IF s.type = BugsMappers.int THEN
 								item1.PutBoolVal(s.int # 0)
 							ELSIF s.type = BugsMappers.string THEN
