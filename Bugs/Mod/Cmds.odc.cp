@@ -1331,6 +1331,16 @@ MODULE BugsCmds;
 	BEGIN
 		Dialog.Update(dialogBox)
 	END Update;
+	
+	PROCEDURE OpenSpecificationDialog*;
+	VAR specificationDialog: Dialog.String;
+	BEGIN
+		specificationDialog := "Bugs/Rsrc/SpecificationDialog";
+		IF Environment.RunningUnderMPI() THEN
+			specificationDialog := specificationDialog + "Multi"
+		END;
+		StdCmds.OpenToolDialog(specificationDialog, 'Specification Tool');
+	END OpenSpecificationDialog;
 
 	PROCEDURE (dialogBox: UpdateDialog) Init-;
 	BEGIN
