@@ -118,7 +118,7 @@ MapsMessages MapsResources
 
 BugsDialog
 
-Init
+BugsStartup Init
 
 UpdaterSettings
 
