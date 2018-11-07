@@ -92,11 +92,11 @@ MODULE BugsScripts;
 
 		(*	compile model using 1 chain	*)
 		StoreKey("modelCompile()",
-		"BugsCmds.CompileGuard; BugsCmds.specificationDialog.numChains := 1; BugsCmds.Compile");
+		"BugsCmds.CompileGuard; MathTT800.Install; BugsCmds.specificationDialog.numChains := 1; BugsCmds.Compile");
 
 		(*	compile model using i chains	*)
 		StoreKey("modelCompile(i)",
-		"BugsCmds.CompileGuard; BugsCmds.specificationDialog.numChains  := ^0; BugsCmds.Compile");
+		"BugsCmds.CompileGuard; MathTT800.Install; BugsCmds.specificationDialog.numChains  := ^0; BugsCmds.Compile");
 
 		(*	load initial values for current chain from file s	*)
 		StoreKey("modelInits(s)",

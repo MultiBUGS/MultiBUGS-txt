@@ -103,12 +103,13 @@ MODULE BugsMsg;
 	PROCEDURE StoreError* (IN msg: ARRAY OF CHAR);
 	BEGIN
 		message := msg$;
-		error := TRUE;
-		IF debug THEN HALT(0) END
+		error := TRUE; 
+		(*IF debug THEN HALT(0) END*)
 	END StoreError;
 
 	PROCEDURE StoreMsg* (IN msg: ARRAY OF CHAR);
 	BEGIN
+		error := FALSE;
 		message := msg$
 	END StoreMsg;
 

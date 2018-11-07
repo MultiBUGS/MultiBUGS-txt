@@ -76,7 +76,7 @@ MODULE BugsInterpreter;
 			realCmd: RECORD(Meta.Value) Do: PROCEDURE (arg: REAL) END;
 			intCmd: RECORD(Meta.Value) Do: PROCEDURE (arg: INTEGER) END;
 			boolCmd: RECORD(Meta.Value) Do: PROCEDURE (arg: BOOLEAN) END;
-			guard: RECORD(Meta.Value) Do: PROCEDURE (arg: Dialog.Par) END;
+			guard: RECORD(Meta.Value) Do: PROCEDURE (VAR arg: Dialog.Par) END;
 			item, item0, item1: Meta.Item;
 			msg: Dialog.String;
 	BEGIN
@@ -94,7 +94,7 @@ MODULE BugsInterpreter;
 				IF item0.obj = Meta.procObj THEN
 					item0.GetVal(cmd, ok);
 					IF ok THEN
-						cmd.Do
+						cmd.Do 
 					ELSE
 						item0.GetVal(stringCmd, ok);
 						IF ok THEN
@@ -107,7 +107,7 @@ MODULE BugsInterpreter;
 							item0.GetVal(intCmd, ok);
 							IF ok THEN
 								s.Scan;
-								IF s.type # BugsMappers.int THEN
+								IF s.type # BugsMappers.int THEN 
 									res := invalidArgument; RETURN
 								END;
 								intCmd.Do(s.int)
@@ -135,7 +135,7 @@ MODULE BugsInterpreter;
 											res := invalidArgument; RETURN
 										END
 									ELSE
-										item0.GetVal(guard, ok);
+										item0.GetVal(guard, ok); 
 										IF ok THEN
 											par.disabled := FALSE;
 											guard.Do(par);
@@ -175,7 +175,6 @@ MODULE BugsInterpreter;
 								res := invalidArgument; RETURN
 							END
 						ELSIF item1.typ = Meta.boolTyp THEN
-							s.Scan;
 							IF s.type = BugsMappers.int THEN
 								item1.PutBoolVal(s.int # 0)
 							ELSIF s.type = BugsMappers.string THEN

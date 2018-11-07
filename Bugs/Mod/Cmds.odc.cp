@@ -12,7 +12,7 @@ MODULE BugsCmds;
 	
 
 	IMPORT
-		Environment, Dialog, Files, Meta, Ports, Services, Strings, Views, Windows, 
+		Dialog, Environment, Files, Meta, Ports, Services, Strings, Views, Windows, 
 		HostMenus,
 		StdLog, StdCmds,
 		TextCmds, TextControllers, TextMappers, TextModels, TextViews,
@@ -355,7 +355,8 @@ MODULE BugsCmds;
 			elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 			Strings.IntToString(elapsedTime, p[0]);
 			BugsMsg.LookupParam("BugsCmds:OkCompile", p, msg);
-			BugsFiles.ShowStatus(msg)
+			BugsMsg.StoreMsg(msg);
+			BugsFiles.ShowStatus(msg);
 		ELSE
 			BugsFiles.ShowStatus(BugsMsg.message)
 		END
@@ -629,7 +630,7 @@ MODULE BugsCmds;
 			IF ~BugsMsg.error THEN
 				Services.DoLater(a, Services.now)
 			ELSE
-				BugsMsg.Lookup("BugsCmds.CommandError", errorMsg);
+				BugsMsg.Lookup("BugsCmds:CommandError", errorMsg);
 				errorMsg := errorMsg + " " + bugsCommand + " failed";
 				Dialog.ShowMsg(errorMsg)
 			END
@@ -638,7 +639,7 @@ MODULE BugsCmds;
 			errorMsg := errorMsg + " " + bugsCommand + " failed";
 			Dialog.ShowMsg(errorMsg)
 		ELSE
-			BugsMsg.Lookup("BugsCmds.ScriptFailed", errorMsg);
+			BugsMsg.Lookup("BugsCmds:ScriptFailed", errorMsg); 
 			Dialog.ShowMsg(errorMsg)
 		END
 	END Do;
@@ -1201,6 +1202,19 @@ MODULE BugsCmds;
 		HostMenus.Exit
 	END Quit;
 
+	PROCEDURE About*;
+		VAR
+			aboutDialog, title: Dialog.String;
+	BEGIN
+		aboutDialog := "System/Rsrc/About";
+		title := "About OpenBUGS";
+		IF Environment.RunningUnderMPI() THEN
+			aboutDialog := aboutDialog + "Multi";
+			title := "About MultiBUGS"
+		END;
+		StdCmds.OpenToolDialog(aboutDialog, title)
+	END About;
+	
 	PROCEDURE Debug*;
 	BEGIN
 		BugsCPCompiler.debug := ~BugsCPCompiler.debug;
@@ -1313,15 +1327,6 @@ MODULE BugsCmds;
 		Dialog.Update(dialogBox)
 	END Update;
 
-	PROCEDURE OpenSpecificationDialog*;
-	BEGIN
-		IF Environment.RunningUnderMPI() THEN
-			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialog', 'Specification Tool');
-		ELSE
-			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
-		END;
-	END OpenSpecificationDialog;
-
 	PROCEDURE (dialogBox: UpdateDialog) Update-;
 	BEGIN
 		Dialog.Update(dialogBox)
@@ -1390,7 +1395,16 @@ MODULE BugsCmds;
 	BEGIN
 		BugsFiles.SetDest(displayDialog.whereOut)
 	END DisplayNotifier;
-
+	
+	PROCEDURE AboutGuard* (VAR par: Dialog.Par);
+	BEGIN
+		IF Environment.RunningUnderMPI() THEN
+			par.label := "About MultiBUGS"
+		ELSE
+			par.label := "About OpenBUGS"
+		END
+	END AboutGuard;
+	
 	PROCEDURE CompileGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsParsed() OR BugsInterface.IsCompiled();

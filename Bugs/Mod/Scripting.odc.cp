@@ -113,7 +113,7 @@ MODULE BugsScripting;
 			END;
 			BugsInterpreter.CmdInterpreter(pascalCommand, res); 
 		ELSE
-			res := 6
+			res := 6 
 		END
 	END Script;
 
