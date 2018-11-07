@@ -229,11 +229,11 @@ MODULE SamplesCmds;
 		pos := f[0].Pos();
 		SamplesFormatted.CODA(string, beg, end, thin, firstChain, lastChain, f);
 		IF f[0].Pos() > pos THEN
-			BugsFiles.Save("CODAindex_" + stemName, text[0]);
+			BugsFiles.Save(stemName + "_CODAindex" + ".txt", text[0]);
 			i := 1;
 			WHILE i <= numChains DO
 				Strings.IntToString(i + firstChain - 1, numAsString);
-				BugsFiles.Save("CODAchain" + numAsString + "_" + stemName, text[i]);
+				BugsFiles.Save(stemName + "_CODAchain" + numAsString + ".txt", text[i]);
 				INC(i)
 			END;
 			BugsMsg.Lookup("SamplesCmds:CODAFilesWritten", msg);
