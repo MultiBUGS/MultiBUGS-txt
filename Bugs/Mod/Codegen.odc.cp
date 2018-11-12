@@ -370,7 +370,7 @@ MODULE BugsCodegen;
 
 	PROCEDURE WriteDensityArgs* (density: BugsParser.Density; VAR args: GraphStochastic.Args);
 		VAR
-			i, numPar: INTEGER;
+			i, j, numPar: INTEGER;
 			descriptor: GraphGrammar.External;
 			variable: BugsParser.Variable;
 			parents: POINTER TO ARRAY OF BugsParser.Node;
@@ -384,28 +384,37 @@ MODULE BugsCodegen;
 		fact.Signature(signature);
 		numPar := fact.NumParam();
 		i := 0;
+		j := 0;
 		parents := density.parents;
 		WHILE i < numPar DO
-			IF parents[i] IS BugsParser.Variable THEN
-				variable := parents[i](BugsParser.Variable);
+			IF parents[j] IS BugsParser.Variable THEN
 				IF signature[i] = "v" THEN
+					variable := parents[j](BugsParser.Variable);
 					vector := Vector(variable);
 					IF vector = NIL THEN args.valid := FALSE; RETURN END;
 					args.vectors[args.numVectors] := vector;
 					INC(args.numVectors)
+				ELSIF signature[i] = "F" THEN
+					args.scalars[args.numScalars] := BugsEvaluate.RHScalar(parents[j]);
+					IF ~args.valid THEN RETURN END;
+					INC(args.numScalars);
+					INC(j);
+					args.scalars[args.numScalars] := BugsEvaluate.RHScalar(parents[j]);
+					INC(args.numScalars)
 				ELSE
-					scalar := BugsEvaluate.RHScalar(variable);
+					scalar := BugsEvaluate.RHScalar(parents[j]);
 					IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
 					args.scalars[args.numScalars] := scalar;
 					INC(args.numScalars)
 				END
 			ELSE
-				scalar := BugsEvaluate.RHScalar(parents[i]);
+				scalar := BugsEvaluate.RHScalar(parents[j]);
 				IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
 				args.scalars[args.numScalars] := scalar;
 				INC(args.numScalars)
 			END;
-			INC(i)
+			INC(i);
+			INC(j)
 		END;
 		IF density.leftCen # NIL THEN
 			args.leftCen := BugsEvaluate.RHScalar(density.leftCen);

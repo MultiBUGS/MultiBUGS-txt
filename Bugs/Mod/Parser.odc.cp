@@ -396,7 +396,8 @@ MODULE BugsParser;
 		ExternalizeBase(function, wr);
 		wr.WriteString(function.descriptor.name);
 		i := 0;
-		len := function.descriptor.fact.NumParam();
+		IF function.parents # NIL THEN len := LEN(function.parents) ELSE len := 0 END;
+		wr.WriteInt(len);
 		WHILE i < len DO
 			ExternalizeNode(function.parents[i], wr);
 			INC(i)
@@ -412,7 +413,7 @@ MODULE BugsParser;
 		rd.ReadString(string);
 		function.descriptor := GraphGrammar.FindFunction(string);
 		i := 0;
-		len := function.descriptor.fact.NumParam();
+		rd.ReadInt(len);
 		IF len > 0 THEN NEW(function.parents, len) END;
 		WHILE i < len DO
 			InternalizeNode(function.parents[i], rd);
@@ -422,9 +423,11 @@ MODULE BugsParser;
 
 	PROCEDURE NewDensity (pos: INTEGER; descriptor: GraphGrammar.External): Density;
 		VAR
-			numPar: INTEGER;
+			i, numPar: INTEGER;
 			density: Density;
 			fact: GraphNodes.Factory;
+			string: ARRAY 124 OF CHAR;
+			signature: ARRAY 64 OF CHAR;
 	BEGIN
 		NEW(density);
 		density.label := 0;
@@ -434,9 +437,22 @@ MODULE BugsParser;
 		density.parents := NIL;
 		density.descriptor := descriptor;
 		fact := descriptor.fact;
+		fact.Signature(signature);
 		numPar := fact.NumParam();
-		IF numPar # 0 THEN
-			NEW(density.parents, numPar)
+		i := 0;
+		WHILE i < numPar DO
+			IF signature[i] = "F" THEN	(*	functional	*)
+				INC(numPar) 
+			END;
+			INC(i)
+		END;
+		IF numPar > 0 THEN
+			NEW(density.parents, numPar);
+			i := 0;
+			WHILE i < numPar DO
+				density.parents[i] := NIL;
+				INC(i)
+			END
 		ELSE
 			density.parents := NIL
 		END;
@@ -454,7 +470,8 @@ MODULE BugsParser;
 		ExternalizeBase(density, wr);
 		wr.WriteString(density.descriptor.name);
 		i := 0;
-		len := density.descriptor.fact.NumParam();
+		IF density.parents # NIL THEN len := LEN(density.parents ) ELSE len := 0 END;
+		wr.WriteInt(len);
 		WHILE i < len DO
 			ExternalizeNode(density.parents[i], wr);
 			INC(i)
@@ -474,7 +491,7 @@ MODULE BugsParser;
 		rd.ReadString(string);
 		density.descriptor := GraphGrammar.FindDensity(string);
 		i := 0;
-		len := density.descriptor.fact.NumParam();
+		rd.ReadInt(len);
 		IF len > 0 THEN NEW(density.parents, len) END;
 		WHILE i < len DO
 			InternalizeNode(density.parents[i], rd);
@@ -1104,11 +1121,12 @@ MODULE BugsParser;
 
 	PROCEDURE ParseDensity* (loops: Statement; VAR s: BugsMappers.Scanner): Density;
 		VAR
-			i, numPar: INTEGER;
+			i, j, numPar: INTEGER;
 			descriptor: GraphGrammar.External;
 			density: Density;
 			fact: GraphNodes.Factory;
 			signature: ARRAY 64 OF CHAR;
+			independent, functionVar: Variable;
 	BEGIN
 		descriptor := GraphGrammar.FindDensity(s.string);
 		IF descriptor = NIL THEN (*	unknown type of probability density	*)
@@ -1128,25 +1146,33 @@ MODULE BugsParser;
 		numPar := fact.NumParam();
 		s.Scan;
 		i := 0;
+		j := 0;
 		WHILE i < numPar DO
 			CASE signature[i] OF
 			|"s":
-				density.parents[i] := Param(loops, s, FALSE);
-				IF density.parents[i] = NIL THEN RETURN NIL END;
+				density.parents[j] := Param(loops, s, FALSE);
+				IF density.parents[j] = NIL THEN RETURN NIL END;
 				s.Scan
 			|"v":
 				IF s.type # BugsMappers.string THEN (*	expected variable name	*)
 					Error(21); RETURN NIL
 				END;
-				density.parents[i] := ParseVariable(loops, s);
-				IF density.parents[i] = NIL THEN RETURN NIL END;
+				density.parents[j] := ParseVariable(loops, s);
+				IF density.parents[j] = NIL THEN RETURN NIL END;
 				s.Scan
+			|"F":
+				ParseFnotation(loops, s, functionVar, independent);
+				IF functionVar = NIL THEN RETURN NIL END;
+				density.parents[j] := functionVar;
+				density.parents[j + 1] := independent;
+				INC(j)
 			ELSE
 				Error(22); (*	unknown type of argument for probability density	*)
 				RETURN NIL
 			END;
 			density.parents[i].pos := s.Pos();
 			INC(i);
+			INC(j);
 			IF i # numPar THEN
 				IF (s.type # BugsMappers.char) OR (s.char # ",") THEN (*	expected comma	*)
 					Error(23); RETURN NIL
