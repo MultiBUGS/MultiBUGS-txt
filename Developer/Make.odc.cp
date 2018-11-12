@@ -68,7 +68,7 @@ GraphBern GraphBinomial GraphCat GraphCat2 GraphFounder GraphGeometric GraphHype
 
 GraphMultinom
 
-GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphFlat GraphGeneric GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphLogistic GraphLognorm GraphNormal GraphPriorNP GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
+GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphFlat GraphGeneric GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphHazard GraphLogistic GraphLognorm GraphNormal GraphPriorNP GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
 
 GraphDirichlet GraphGPprior GraphMVNormal GraphMVT GraphRENormal GraphRandwalk GraphSample GraphStochtrend GraphWishart GraphFlexWishart
 
@@ -77,15 +77,15 @@ GraphUnivariatetemp1
 
 GraphCoSelection GraphSpline GraphSplinecon
 
+UpdaterAM UpdaterDE UpdaterHamiltonian 
+
 UpdaterForward
 
 UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial UpdaterSlicebase
 
 UpdaterICM
 
-UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P
-
-UpdaterAM UpdaterDE UpdaterHamiltonian UpdaterVD
+UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 
 UpdaterAMblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet
 UpdaterElliptical UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
@@ -124,7 +124,7 @@ UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfig
+BugsCmds BugsBatch BugsConfig 
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 

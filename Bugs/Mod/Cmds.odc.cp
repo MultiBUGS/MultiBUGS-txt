@@ -1191,7 +1191,7 @@ MODULE BugsCmds;
 
 	PROCEDURE Quit* (option: ARRAY OF CHAR);
 		VAR
-			i, res: INTEGER;
+			i: INTEGER;
 	BEGIN
 		i := 0; WHILE i < LEN(option) DO option[i] := CAP(option[i]); INC(i) END;
 		IF (option = "YES") OR (option = "Y") THEN
@@ -1207,10 +1207,12 @@ MODULE BugsCmds;
 			aboutDialog, title: Dialog.String;
 	BEGIN
 		aboutDialog := "System/Rsrc/About";
-		title := "About OpenBUGS";
 		IF Environment.RunningUnderMPI() THEN
-			aboutDialog := aboutDialog + "Multi";
+			aboutDialog := aboutDialog + "MultiBUGS";
 			title := "About MultiBUGS"
+		ELSE
+			aboutDialog := aboutDialog + "OpenBUGS";
+			title := "About OpenBUGS"		
 		END;
 		StdCmds.OpenToolDialog(aboutDialog, title)
 	END About;
@@ -1327,20 +1329,19 @@ MODULE BugsCmds;
 		Dialog.Update(dialogBox)
 	END Update;
 
+	PROCEDURE OpenSpecificationDialog*;
+	BEGIN
+		IF Environment.RunningUnderMPI() THEN
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogMultiBUGS', 'Specification Tool');
+		ELSE
+			StdCmds.OpenToolDialog('Bugs/Rsrc/SpecificationDialogOpenBUGS', 'Specification Tool');
+		END;
+	END OpenSpecificationDialog;
+
 	PROCEDURE (dialogBox: UpdateDialog) Update-;
 	BEGIN
 		Dialog.Update(dialogBox)
 	END Update;
-	
-	PROCEDURE OpenSpecificationDialog*;
-	VAR specificationDialog: Dialog.String;
-	BEGIN
-		specificationDialog := "Bugs/Rsrc/SpecificationDialog";
-		IF Environment.RunningUnderMPI() THEN
-			specificationDialog := specificationDialog + "Multi"
-		END;
-		StdCmds.OpenToolDialog(specificationDialog, 'Specification Tool');
-	END OpenSpecificationDialog;
 
 	PROCEDURE (dialogBox: UpdateDialog) Init-;
 	BEGIN
