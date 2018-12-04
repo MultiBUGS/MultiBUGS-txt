@@ -1,7 +1,7 @@
 
 	model 
 	{
-		solution[1:ngrid, 1:ndim] <- ode(init[1:ndim], tgrid[1:ngrid], D(C[1:ndim], t), 
+		solution[1:ngrid, 1:ndim] <- ode.solution(init[1:ndim], tgrid[1:ngrid], D(C[1:ndim], t), 
                               origin, tol) 
 
 		alpha <- exp(log.alpha)

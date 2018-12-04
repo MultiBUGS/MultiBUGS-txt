@@ -1,5 +1,3 @@
-
-
 	model {
 		for (i in 1:n.ind) {
 			for (j in 1:n.grid) {
@@ -8,7 +6,7 @@
 				model[i, j] <-  solution[i, j, 1] / V[i]
 			}
 			solution[i, 1:n.grid, 1:dim] <- ode.block(inits[i, 1:2, 1:dim],                                      
-				                 grid[1:n.grid], D(A[i, 1:dim], t[i]), origins[i, 1:n.block], tol)
+				                 grid[1:n.grid], D(A[i, 1:dim], t[i]), origins[i, 1:n.block], tol[])
 				
 			D(A[i, 1], t[i]) <- R31[i] - CL[i] * A[i, 1] / V[i]
 			D(A[i, 2], t[i]) <- 0
@@ -30,6 +28,7 @@
 			inits[i, 1, 3] <- dose[i]
 			inits[i, 2, 1] <- A[i, 2]
 			inits[i, 2, 2] <- -A[i, 2]
+			inits[i, 2, 3] <- 0
 			
 			origins[i, 1] <- 0
 			origins[i, 2] <- second.bolus.time
@@ -43,4 +42,3 @@
 		omega[1:p, 1:p] <- inverse(omega.inv[1:p, 1:p])
 		tau ~ dgamma(0.001, 0.001)
 	}
-
