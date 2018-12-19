@@ -61,13 +61,19 @@ MODULE GraphConjugateMV;
 	PROCEDURE (node: Node) InternalizeMultivariate- (VAR rd: Stores.Reader);
 		VAR
 			children: GraphStochastic.Vector;
+			p: GraphMultivariate.Node;
+			i, size: INTEGER;
 	BEGIN
 		IF node.index = 0 THEN
 			children := GraphStochastic.InternalizeVector(rd);
-		ELSE
-			children := node.components[0].children;
+			i := 0;
+			size := node.Size();
+			WHILE i < size DO
+				p := node.components[i](GraphMultivariate.Node);
+				p.SetChildren(children);
+				INC(i)
+			END
 		END;
-		node.SetChildren(children);
 		node.InternalizeConjugateMV(rd)
 	END InternalizeMultivariate;
 

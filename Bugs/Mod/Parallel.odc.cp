@@ -104,6 +104,23 @@ MODULE BugsParallel;
 		p.SetProps(props)
 	END Externalize;
 
+	PROCEDURE MarkMultivariate (node: GraphStochastic.Node);
+		VAR
+			p: GraphStochastic.Node;
+			i, size: INTEGER;
+	BEGIN
+		WITH node: GraphConjugateMV.Node DO
+			i := 0;
+			size := node.Size();
+			WHILE i < size DO
+				p := node.components[i];
+				p.SetProps(p.props + {write});
+				INC(i)
+			END
+		ELSE
+		END
+	END MarkMultivariate;
+	
 	PROCEDURE (v: Clearer) Do (name: BugsNames.Name);
 		VAR
 			p: GraphNodes.Node;
@@ -113,7 +130,6 @@ MODULE BugsParallel;
 			IF p # NIL THEN p.SetProps(p.props - {write, thisCore, logical}) END
 		END
 	END Do;
-
 
 	PROCEDURE (v: MarkLogical) Do (name: BugsNames.Name);
 		VAR
@@ -393,12 +409,15 @@ MODULE BugsParallel;
 									this := this & ThisCore(p);
 									Externalize(p, wr)
 								ELSE
-									(*	not updated on this core so do not need its likelihood but need its prior	*)
+									(*	not updated on this core so do not need its likelihood but need its prior
+									except for multivariate case of mixed data/stochastic	*)
 									temp := p.children;
-									p.SetChildren(NIL);
+									IF (temp # NIL) & ~(write IN temp[0].props) THEN
+										p.SetChildren(NIL)
+									END;
 									this := this & ThisCore(p);
 									Externalize(p, wr);
-									p.SetChildren(temp);
+									p.SetChildren(temp)
 								END
 							ELSE
 								(*	not updated on this core and not used as likelihood, therefore dummy node	*)
@@ -547,6 +566,7 @@ MODULE BugsParallel;
 				WHILE k < size DO
 					p := u.Node(k);
 					p.SetProps(p.props + {write, thisCore});
+					MarkMultivariate(p);
 					list := GraphLogical.Parents(p, all);
 					WHILE list # NIL DO
 						log := list.node;

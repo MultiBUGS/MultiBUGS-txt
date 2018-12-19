@@ -332,7 +332,6 @@ MODULE GraphNodes;
 				node := NIL
 			END;
 			nodes[label] := node;
-			(*node.Init;*)
 			IF deep THEN node.Internalize(rd) END
 		END;
 		RETURN node
