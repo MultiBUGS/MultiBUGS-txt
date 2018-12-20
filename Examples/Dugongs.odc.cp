@@ -46,3 +46,23 @@ Results
 	gamma	0.8626	0.8667	0.03457	0.001207	0.7828	0.9184	1001	20000	821
 	sigma	0.09917	0.09733	0.01503	1.541E-4	0.07478	0.1331	1001	20000	9513
 
+
+
+
+	model
+	{
+		for( i in 1 : N ) {
+			Y[i] ~ dnorm(mu[i], tau)
+			mu[i] <- alpha - beta * pow(gamma,x[i])
+			diffMuAlpha[i] <- diff(mu[i], alpha)
+			diffMuBeta[i] <- diff(mu[i], beta)
+			diffMuGamma[i] <- diff(mu[i], gamma)
+			pow[i] <- pow(gamma,x[i])
+		}
+		alpha ~ dunif(0, 100)
+		beta ~ dunif(0, 100)
+		gamma ~ dunif(0.5, 1.0)
+		tau ~ dgamma(0.001, 0.001)
+		sigma <- 1 / sqrt(tau)
+		U3 <- logit(gamma)	
+	}

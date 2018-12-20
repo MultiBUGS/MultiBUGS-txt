@@ -14,10 +14,9 @@ MODULE DevianceCmds;
 
 	IMPORT
 		Dialog, Ports,
-		BugsDialog, BugsIndex, BugsInterface, BugsFiles, BugsMsg, 
-		DevianceFormatted, DevianceIndex, DevianceInterface, DeviancePlugin,
-		DeviancePluginS,
-		TextMappers, TextModels;
+		TextMappers, TextModels, BugsDialog, BugsFiles, BugsIndex,
+		BugsCmds, BugsInterface, BugsMsg, 
+		DevianceFormatted, DevianceIndex, DevianceInterface, DeviancePlugin, DeviancePluginS;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
@@ -31,8 +30,8 @@ MODULE DevianceCmds;
 		maintainer-: ARRAY 40 OF CHAR;
 
 	CONST
-		stochastic* = 1;
-		non* = 2;
+		stochastic = 1;
+		non = 2;
 
 	PROCEDURE Notifier;
 	BEGIN
@@ -88,7 +87,7 @@ MODULE DevianceCmds;
 		f.ConnectTo(text);
 		f.SetPos(0);
 		IF ~BugsInterface.IsDistributed() THEN
-			IF DevianceInterface.PluginSet() THEN numTabs := 7 ELSE numTabs := 4 END;
+			IF DevianceInterface.PluginSet() THEN numTabs := 7 ELSE numTabs := 6 END;
 			NEW(tabs, numTabs);
 			i := 0;
 			WHILE i < numTabs DO
@@ -109,7 +108,7 @@ MODULE DevianceCmds;
 			END;
 			BugsFiles.WriteRuler(tabs, f);
 			pos := f.Pos();
-			DevianceFormatted.DistributedWAIC(f)
+			DevianceFormatted.DistributedStats(f)
 		END;
 		IF f.Pos() > pos THEN BugsFiles.Open("Information Criterion", text) END
 	END Stats;
@@ -117,6 +116,7 @@ MODULE DevianceCmds;
 	PROCEDURE (dialog: DialogBox) Init-;
 	BEGIN
 		SetFactory;
+		Clear
 	END Init;
 
 	PROCEDURE (dialog: DialogBox) Update-;
@@ -124,77 +124,45 @@ MODULE DevianceCmds;
 		SetFactory;
 	END Update;
 
-	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
-		VAR
-			msg: ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsIndex.Find("deviance") # NIL;
-		IF ~ok THEN
-			BugsMsg.Show("DevianceEmbed:NoDeviance");
-			RETURN
-		END;
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("DevianceEmbed:NotInitialized");
-			RETURN
-		END;
-		ok := ~BugsInterface.IsAdapting();
-		IF ~ok THEN
-			BugsMsg.Show("DevianceEmbed:Adapting");
-			RETURN
-		END;
-		ok := DevianceInterface.state = DevianceInterface.notSet;
-		IF ~ok THEN
-			BugsMsg.Show("DevianceEmbed:AlreadyMonitored");
-			RETURN
-		END
-	END SetGuard;
-
-	PROCEDURE StatsGuard* (OUT ok: BOOLEAN);
-		VAR
-			variable: Dialog.String;
-			msg: ARRAY 1024 OF CHAR;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := DevianceInterface.IsUpdated();
-		IF ~ok THEN
-			BugsMsg.Show("DevianceCmds:NoIterations");
-			RETURN
-		END
-	END StatsGuard;
-
-	PROCEDURE SetGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE SetGuard* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := FALSE;
 		IF BugsIndex.Find("deviance") = NIL THEN
 			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("DevianceCmds:NoDeviance", par.label) END;
 			RETURN
 		END;
 		IF ~BugsInterface.IsInitialized() THEN
 			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("DevianceCmds:NotInitialized", par.label) END;
 			RETURN
 		END;
 		IF BugsInterface.IsAdapting() THEN
 			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("DevianceCmds:Adapting", par.label) END;
+			IF par.disabled & BugsCmds.script THEN
+				BugsMsg.Lookup("DevianceCmds:AlreadyMonitored", par.label)
+			END;
 			RETURN
 		END;
 		par.disabled := DevianceInterface.state # DevianceInterface.notSet
-	END SetGuardWin;
+	END SetGuard;
 
-	PROCEDURE StatsGuardWin* (VAR par: Dialog.Par);
+	PROCEDURE StatsGuard* (VAR par: Dialog.Par);
 		VAR
 			variable: Dialog.String;
 	BEGIN
 		par.disabled := FALSE;
 		IF ~DevianceInterface.IsUpdated() THEN
 			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("DevianceCmds:NoIterations", par.label) END;
 			RETURN
 		END
-	END StatsGuardWin;
+	END StatsGuard;
 
 	PROCEDURE ParentsGuard* (VAR par: Dialog.Par);
 	BEGIN
-		par.readOnly := DevianceIndex.Plugin() # NIL;
+		par.readOnly := DevianceInterface.state # DevianceInterface.notSet;
 		IF ~par.readOnly THEN
 			par.readOnly := BugsInterface.IsDistributed()
 		END
@@ -202,7 +170,12 @@ MODULE DevianceCmds;
 
 	PROCEDURE ParentsNotifier* (op, from, to: INTEGER);
 	BEGIN
-		IF op = Dialog.changed THEN Notifier END
+		IF dialog.parents = stochastic THEN
+			DeviancePluginS.Install
+		ELSE
+			DeviancePlugin.SetFact(NIL)
+		END;
+		Dialog.Update(dialog)
 	END ParentsNotifier;
 
 	PROCEDURE Maintainer;

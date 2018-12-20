@@ -105,7 +105,7 @@ MODULE MathMatrix;
 		END;
 		j := 0;
 		WHILE j < size DO
-			i := 0; WHILE i < j DO a[i, j] := 0; INC(i) END;
+			i := 0; WHILE i < j DO a[i, j] := 0.0; INC(i) END;
 			INC(j)
 		END
 	END Cholesky;

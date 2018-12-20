@@ -29,11 +29,12 @@ MODULE UpdaterContinuous;
 			location: REAL;
 		CONST
 			bounds = {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
+			univariate = FALSE;
 	BEGIN
 		res := {};
 		prior := updater.prior;
 		IF GraphStochastic.initialized IN prior.props THEN RETURN END;
-		IF ~prior.CanEvaluate() THEN res := {GraphNodes.lhs}; RETURN END;
+		IF ~prior.CanSample(univariate) THEN res := {GraphNodes.lhs}; RETURN END;
 		IF ~fixFounder OR (prior.depth # 1) OR (prior.props * bounds # {}) THEN
 			prior.Sample(res);
 			IF res # {} THEN RETURN END

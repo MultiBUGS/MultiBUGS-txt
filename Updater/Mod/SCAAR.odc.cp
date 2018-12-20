@@ -15,12 +15,12 @@ MODULE UpdaterSCAAR;
 	IMPORT
 		Math, Stores,
 		BugsRegistry,
-		GraphStochastic,
+		GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterRandWalkUV, UpdaterUpdaters;
 
 	TYPE
-		Updater = POINTER TO RECORD (UpdaterRandWalkUV.Updater)
+		Updater = POINTER TO RECORD (UpdaterRandWalkUV.Updater) 
 			logSigma: REAL
 		END;
 
@@ -125,7 +125,9 @@ MODULE UpdaterSCAAR;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF GraphStochastic.bounds * prior.props # {} THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.wishart THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

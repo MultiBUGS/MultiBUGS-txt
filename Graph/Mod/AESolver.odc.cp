@@ -13,32 +13,23 @@ MODULE GraphAESolver;
 
 	IMPORT
 		MathFunctional, MathAESolver,
-		GraphFunctional, GraphLogical, GraphNodes;
+		GraphFunctional, GraphLogical, GraphNodes, GraphScalar;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphFunctional.Node) END;
-
-		Factory = POINTER TO RECORD(GraphLogical.Factory) END;
+		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	VAR
-		fact-: GraphLogical.Factory;
+		fact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphAESolver.Install"
-	END Install;
-
-	PROCEDURE (f: Factory) New (): GraphLogical.Node;
+	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
-			node: Node;
+			node: GraphScalar.Node;
 			functional: MathFunctional.Functional;
 	BEGIN
-		NEW(node);
-		node.Init;
 		functional := MathAESolver.factPegasus.New();
-		node.SetFunctional(functional);
+		node := GraphFunctional.New(functional);
 		RETURN node
 	END New;
 

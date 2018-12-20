@@ -18,14 +18,14 @@ MODULE DoodleMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		RegisterKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		StoreKey("DoodleParser1", "loop index must be a name");
-		StoreKey("DoodleParser2", "unknown type of density");
-		StoreKey("DoodleParser3", "unknown type of link function");
-		StoreKey("DoodleParser4", "node has undefined parent");
+		RegisterKey("DoodleParser1", "loop index must be a name");
+		RegisterKey("DoodleParser2", "unknown type of density");
+		RegisterKey("DoodleParser3", "unknown type of link function");
+		RegisterKey("DoodleParser4", "node has undefined parent");
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -37,7 +37,7 @@ MODULE DoodleMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		StoreKey := BugsMsg.StoreKey
+		RegisterKey := BugsMsg.RegisterKey
 	END Init;
 
 BEGIN

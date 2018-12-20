@@ -42,14 +42,15 @@ MODULE BugsPrettyprinter;
 			real: BugsParser.Real;
 			integer: BugsParser.Integer;
 			operator: BugsParser.Internal;
-			i, j, len, numPar, skip: INTEGER;
+			i, j, len, numPar, op, skip: INTEGER;
 			string: ARRAY 256 OF CHAR;
 			descriptor: GraphGrammar.External;
 			fact: GraphNodes.Factory;
 	BEGIN
 		IF node IS BugsParser.Binary THEN
 			binary := node(BugsParser.Binary);
-			CASE binary.op OF
+			op := binary.op MOD GraphGrammar.modifier;
+			CASE op OF
 			|GraphGrammar.add:
 				PrintNode(binary.left, f);
 				f.WriteString(" + ");
@@ -265,8 +266,8 @@ MODULE BugsPrettyprinter;
 				PrintNode(statement.expression, f)
 			END;
 			f.WriteLn
-		ELSIF statement.density # NIL THEN
-			IF statement.density.descriptor.name # "dummy" THEN
+		ELSIF statement.density # NIL THEN 
+			IF statement.density.descriptor.name # "_dummy_" THEN
 				j := 0; WHILE j <= loopDepth DO f.WriteTab; INC(j) END;
 				PrintNode(statement.variable, f);
 				f.WriteString(" ~ ");
@@ -395,6 +396,8 @@ MODULE BugsPrettyprinter;
 			plate: BugsParser.Index;
 			f: TextMappers.Formatter;
 			i, j, loopDepth, numClosedLoops, numNewLoops: INTEGER;
+			min: BugsParser.Internal;
+			condition: BugsParser.Node;
 	BEGIN
 		ok := TRUE;
 		f := visitor.f;
@@ -423,12 +426,19 @@ MODULE BugsPrettyprinter;
 			INC(loopDepth);
 			plate := visitor.newLoops[i];
 			f.WriteTab;
-			f.WriteString("for( ");
-			f.WriteString(plate.name);
-			f.WriteString(" in ");
-			PrintNode(plate.lower, f);
-			f.WriteString(" : ");
-			PrintNode(plate.upper, f);
+			IF plate.name[0] # "$" THEN
+				f.WriteString("for( ");
+				f.WriteString(plate.name);
+				f.WriteString(" in ");
+				PrintNode(plate.lower, f);
+				f.WriteString(" : ");
+				PrintNode(plate.upper, f);
+			ELSE
+				f.WriteString("if(");
+				min := plate.upper(BugsParser.Internal);
+				condition := min.parents[1];
+				PrintNode(condition, f)
+			END;
 			f.WriteString(" ) {");
 			f.WriteLn;
 			INC(i)

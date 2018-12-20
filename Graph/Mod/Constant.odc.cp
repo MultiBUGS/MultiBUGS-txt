@@ -25,6 +25,7 @@ MODULE GraphConstant;
 
 	VAR
 		fact-: GraphNodes.Factory;
+		constant: GraphNodes.Node;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -119,6 +120,12 @@ MODULE GraphConstant;
 		RETURN node
 	END New;
 
+	PROCEDURE Old* (value: REAL): GraphNodes.Node;
+	BEGIN
+		constant(Node).value := value;
+		RETURN constant
+	END Old;
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
@@ -131,7 +138,8 @@ MODULE GraphConstant;
 	BEGIN
 		Maintainer;
 		NEW(f);
-		fact := f
+		fact := f;
+		constant := fact.New()
 	END Init;
 
 BEGIN

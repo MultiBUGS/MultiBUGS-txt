@@ -14,8 +14,8 @@ MODULE GraphPi;
 	
 
 	IMPORT
-		GraphConstant, GraphNodes, GraphRules, GraphScalar, 
-		Math, Stores;
+		GraphConstant, GraphNodes, 
+		Math;
 
 	TYPE
 

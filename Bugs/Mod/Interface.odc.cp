@@ -13,7 +13,7 @@ MODULE BugsInterface;
 	
 
 	IMPORT
-		Files, Kernel, Meta, Services, Strings, BugsCPCompiler,
+		Dialog, Files, Kernel, Services, Strings, BugsCPCompiler, 
 		BugsData, BugsEvaluate, BugsGraph, BugsIndex,
 		BugsMappers, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		BugsVariables, GraphDeviance,
@@ -23,14 +23,14 @@ MODULE BugsInterface;
 
 	TYPE
 		DistributeHook* = POINTER TO ABSTRACT RECORD
-			numChains-, numWorker-: INTEGER;
+			numChains-, workersPerChain-: INTEGER;
 			writeTime*, linkTime*, fileSize*, masterMemory*: INTEGER;
 			rank*, setupTime*, memory*: POINTER TO ARRAY OF INTEGER;
 			modules*: POINTER TO ARRAY OF Files.Name
 		END;
 
 		Command* = ARRAY 5 OF INTEGER;
-		
+
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -40,7 +40,7 @@ MODULE BugsInterface;
 
 	PROCEDURE (h: DistributeHook) Deviance- (chain: INTEGER): REAL, NEW, ABSTRACT;
 
-	PROCEDURE (h: DistributeHook) Distribute- (mpiImplementation: ARRAY OF CHAR), NEW, ABSTRACT;
+	PROCEDURE (h: DistributeHook) Distribute-, NEW, ABSTRACT;
 
 	PROCEDURE (h: DistributeHook) RecvMCMCState-, NEW, ABSTRACT;
 
@@ -48,25 +48,19 @@ MODULE BugsInterface;
 
 	PROCEDURE (h: DistributeHook) SendCommand- (IN command: Command), NEW, ABSTRACT;
 
-		PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
+	PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
 	VAR endOfAdating: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE DeleteFiles;
 		VAR
 			loc: Files.Locator;
 			fileInfo: Files.FileInfo;
-			pos: INTEGER;
-			timeStamp: ARRAY 64 OF CHAR;
 	BEGIN
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
 		loc := Files.dir.This("Dynamic");
 		loc := loc.This("Code");
 		fileInfo := Files.dir.FileList(loc);
 		WHILE fileInfo # NIL DO
-			Strings.Find(fileInfo.name, "_" + timeStamp, 0, pos);
-			IF pos #  - 1 THEN
-				Files.dir.Delete(loc, fileInfo.name)
-			END;
+			Files.dir.Delete(loc, fileInfo.name);
 			fileInfo := fileInfo.next
 		END;
 	END DeleteFiles;
@@ -80,42 +74,37 @@ MODULE BugsInterface;
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
 		BugsMsg.LookupParam("BugsInterface" + numToString, p, errorMsg);
-		BugsMsg.Store(errorMsg)
+		BugsMsg.StoreError(errorMsg)
 	END Error;
 
 	PROCEDURE Clear*;
-		VAR
-			timeStamp: LONGINT;
 	BEGIN
 		IF hook # NIL THEN
 			hook.Clear;
 			hook := NIL
 		END;
+		BugsMsg.Clear;
 		DeleteFiles;
-		GraphStochastic.SetStochastics(NIL);
+		GraphStochastic.Clear;
 		BugsParser.Clear;
 		BugsVariables.Clear;
 		UpdaterActions.Clear;
 		MonitorMonitors.Clear;
 		GraphNodes.SetFactory(NIL);
+		BugsRandnum.Clear;
 		BugsCPCompiler.Clear;
-		timeStamp := Services.Ticks();
-		GraphNodes.SetTimeStamp(timeStamp)
 	END Clear;
 
-	PROCEDURE Distribute* (mpiImplementation: ARRAY OF CHAR; numProc, numChains: INTEGER);
-		VAR
-			numWorker: INTEGER;
+	PROCEDURE Distribute* (workersPerChain, numChains: INTEGER);
 	BEGIN
 		ASSERT(hook # NIL, 20);
-		numWorker := (numProc DIV numChains) * numChains;
-		IF numWorker = 0 THEN
+		IF workersPerChain = 0 THEN
 			hook := NIL;
 			RETURN
 		END;
 		hook.numChains := numChains;
-		hook.numWorker := numWorker;
-		hook.Distribute(mpiImplementation)
+		hook.workersPerChain := workersPerChain;
+		hook.Distribute
 	END Distribute;
 
 	PROCEDURE GenerateInitsForChain* (chain: INTEGER; fixFounder: BOOLEAN; OUT ok: BOOLEAN);
@@ -126,10 +115,7 @@ MODULE BugsInterface;
 			trials: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 			p: GraphStochastic.Node;
-			item: Meta.Item;
-			len: INTEGER;
-			msg, name, typeName: ARRAY 128 OF CHAR;
-			mod, type: Meta.Name;
+			msg, name, name1: ARRAY 128 OF CHAR;
 	BEGIN
 		res := {};
 		trials := 0;
@@ -144,17 +130,15 @@ MODULE BugsInterface;
 			ELSE
 				UpdaterActions.LoadSamples(chain);
 				INC(trials);
-				IF trials > maxTrials THEN 
+				IF trials > maxTrials THEN
 					p := updater.Prior(0);
-					Meta.GetItem(updater, item);
-					item.GetTypeName(mod, type);
-					len := LEN(type$);
-					type[len - 1] := 0X;
-					typeName := mod + "." + type;
 					BugsIndex.FindGraphNode(p, name);
 					name[0] := " ";
-					name[LEN(name$) - 2] := 0X;
-					msg := name + "of type " + typeName;
+					name[LEN(name$) - 1] := " ";
+					msg := name + "with updater of type ";
+					updater.Install(name);
+					BugsMsg.Lookup(name, name1);
+					msg := msg + name1;
 					Error(1, msg);
 					ok := FALSE;
 					EXIT
@@ -329,7 +313,8 @@ MODULE BugsInterface;
 		REPEAT
 			s.Scan
 		UNTIL ((s.type = BugsMappers.char) & (s.char = "{")) OR s.eot;
-		BugsParser.ParseModel(s); 
+		BugsParser.ParseModel(s);
+		BugsParser.MarkVariables;
 		ok := ~BugsParser.error;
 		IF ~ok THEN BugsParser.Clear END
 	END ParseModel;
@@ -359,12 +344,9 @@ MODULE BugsInterface;
 		VAR
 			res: SET;
 			chain, endOfAdapting, i, iteration, j, len: INTEGER;
-			error, name, typeName: ARRAY 120 OF CHAR;
-			msg: ARRAY 1024 OF CHAR;
-			mod, type: Meta.Name;
+			error, name, name1, msg, install: Dialog.String;
 			updater: UpdaterUpdaters.Updater;
 			p: GraphNodes.Node;
-			item: Meta.Item;
 	BEGIN
 		ok := TRUE;
 		IF hook # NIL THEN
@@ -389,14 +371,12 @@ MODULE BugsInterface;
 				ELSE
 					UpdaterActions.LoadSamples(chain);
 					p := updater.Prior(0);
-					Meta.GetItem(updater, item);
-					item.GetTypeName(mod, type);
-					len := LEN(type$);
-					type[len - 1] := 0X;
-					typeName := mod + "." + type;
-					BugsMsg.Lookup(typeName, typeName);
+					updater.Install(name);
+					BugsMsg.Lookup(name, name1);
 					BugsIndex.FindGraphNode(p, name);
-					msg := "update error for node " + name + " algorithm " + typeName + " error";
+					updater.Install(install);
+					BugsMsg.Lookup(install, install);
+					msg := "update error for node " + name + " algorithm " + install + " error";
 					i := 0;
 					WHILE i < MAX(SET) DO
 						IF i IN res THEN
@@ -407,7 +387,7 @@ MODULE BugsInterface;
 						END;
 						INC(i)
 					END;
-					BugsMsg.Store(msg);
+					BugsMsg.StoreError(msg);
 				END
 			END;
 			MathRandnum.SetGenerator(BugsRandnum.generators[0]);
@@ -484,6 +464,7 @@ MODULE BugsInterface;
 				END
 			END
 		END
+		; ASSERT(ok, 99);
 	END ReplaceSampler;
 
 	PROCEDURE ChangeSampler* (IN string: ARRAY OF CHAR; factIndex: INTEGER; OUT ok: BOOLEAN);
@@ -497,7 +478,7 @@ MODULE BugsInterface;
 			ok1: BOOLEAN;
 	BEGIN
 		ok := FALSE;
-		IF (factIndex #  - 1) & (factIndex < LEN(UpdaterMethods.factories)) THEN
+		IF (factIndex # - 1) & (factIndex < LEN(UpdaterMethods.factories)) THEN
 			fact := UpdaterMethods.factories[factIndex];
 			var := BugsParser.StringToVariable(string);
 			IF var # NIL THEN

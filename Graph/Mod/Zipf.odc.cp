@@ -59,7 +59,7 @@ MODULE GraphZipf;
 
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
-		RETURN GraphRules.poisson
+		RETURN GraphRules.descrete
 	END ClassifyPrior;
 
 	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate (parent: GraphStochastic.Node): INTEGER;

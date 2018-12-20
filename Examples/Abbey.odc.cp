@@ -16,6 +16,7 @@ Buckle considers the price of Abbey National shares on 50 conscutive working day
 		
 		mean.z <- mean(z[2:50])
 		sd.z <- sd(z[2:50])
+		#z.pred ~ dstable(alpha, beta, gamma, delta)
 	}
 
 

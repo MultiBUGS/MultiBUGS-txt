@@ -188,9 +188,9 @@ Stores.Reader.ReadStore.104	file format corrupted or not a Stores.Store in file
 Stores.Reader.ReadStore.105	file format corrupted or not a Stores.Store in file
 Stores.Reader.ReadStore.106	file format corrupted or not a Stores.Store in file
 
-title1	MultiBUGS
-copyright1	MRC Biostatistics Unit, University of Cambridge 2018
-version	version 1.0.0 rev 000
-release	2018-10-10
+title1	OpenBUGS
 title2	MultiBUGS
+copyright1	MRC-BSU University of Cambridge 2017
+version	version 2.0.0 rev 000
+release	2018-10-09
 

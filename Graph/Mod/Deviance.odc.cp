@@ -19,8 +19,7 @@ MODULE GraphDeviance;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphScalar.Node)
-			terms: GraphStochastic.Vector;
-			parents: GraphNodes.Vector;
+			terms, parents: GraphStochastic.Vector;
 			value: REAL
 		END;
 
@@ -78,7 +77,8 @@ MODULE GraphDeviance;
 		rd.ReadInt(len);
 		IF len > 0 THEN NEW(node.parents, len) ELSE node.parents := NIL END;
 		WHILE i < len DO
-			node.parents[i] := GraphNodes.Internalize(rd);
+			p := GraphNodes.Internalize(rd);
+			node.parents[i] := p(GraphStochastic.Node);
 			INC(i)
 		END
 	END InternalizeLogical;
@@ -166,7 +166,7 @@ MODULE GraphDeviance;
 		RETURN isObserved
 	END IsObserved;
 
-	PROCEDURE DevianceExists* (stochastic: GraphStochastic.Node): BOOLEAN;
+	PROCEDURE DevianceExists (stochastic: GraphStochastic.Node): BOOLEAN;
 		VAR
 			devianceExists: BOOLEAN;
 			i, size: INTEGER;
@@ -205,7 +205,7 @@ MODULE GraphDeviance;
 			stoch := stochastics[i];
 			p := stoch.Representative();
 			IF p = stoch THEN
-				children := stoch.Children();
+				children := stoch.children;
 				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 				j := 0;
 				WHILE j < num DO
@@ -239,7 +239,7 @@ MODULE GraphDeviance;
 			observed := FALSE;
 			p := stoch.Representative();
 			IF p = stoch THEN
-				children := stoch.Children();
+				children := stoch.children;
 				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 				j := 0;
 				WHILE j < num DO
@@ -275,7 +275,7 @@ MODULE GraphDeviance;
 			END;
 			p := stoch.Representative();
 			IF p = stoch THEN
-				children := stoch.Children();
+				children := stoch.children;
 				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 				j := 0;
 				WHILE j < num DO

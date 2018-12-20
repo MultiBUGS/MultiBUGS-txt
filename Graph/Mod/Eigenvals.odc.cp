@@ -20,6 +20,7 @@ MODULE GraphEigenvals;
 	TYPE
 		Node = POINTER TO RECORD (GraphVector.Node)
 			matrix: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL;
 			start, step: INTEGER
 		END;
 
@@ -41,6 +42,7 @@ MODULE GraphEigenvals;
 			dim, form, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
+		IF node.constant # NIL THEN RETURN GraphRules.const END;
 		dim := node.Size();
 		start := node.start;
 		step := node.step;
@@ -75,8 +77,12 @@ MODULE GraphEigenvals;
 			j := 0;
 			WHILE j < dim DO
 				off := start + (i * dim + j) * step;
-				p := node.matrix[off];
-				tau[i, j] := p.Value();
+				IF node.matrix # NIL THEN
+					p := node.matrix[off];
+					tau[i, j] := p.Value()
+				ELSE
+					tau[i, j] := node.constant[off]
+				END;
 				INC(j)
 			END;
 			INC(i)
@@ -92,7 +98,7 @@ MODULE GraphEigenvals;
 		IF node.index = 0 THEN
 			nElem := node.Size();
 			v := GraphNodes.NewVector();
-			v.components := node.matrix;
+			v.components := node.matrix; v.values := node.constant;
 			v.start := node.start; v.step := node.step; v.nElem := nElem * nElem;
 			GraphNodes.ExternalizeSubvector(v, wr)
 		END
@@ -102,17 +108,22 @@ MODULE GraphEigenvals;
 		VAR
 			v: GraphNodes.SubVector;
 			p: Node;
+			i, dim: INTEGER;
 	BEGIN
 		IF node.index = 0 THEN
 			GraphNodes.InternalizeSubvector(v, rd);
-			node.matrix := v.components;
+			node.matrix := v.components; node.constant := v.values;
 			node.start := v.start;
-			node.step := v.step
-		END;
-		p := node.components[0](Node);
-		node.matrix := p.matrix;
-		node.start := p.start;
-		node.step := p.step
+			node.step := v.step;
+			i := 1;
+			WHILE i < dim DO
+				p := node.components[i](Node);
+				p.matrix := node.matrix; p.constant := node.constant;
+				p.start := node.start;
+				p.step := node.step;
+				INC(i)
+			END
+		END
 	END InternalizeVector;
 
 	PROCEDURE (node: Node) InitLogical;
@@ -131,6 +142,7 @@ MODULE GraphEigenvals;
 			p: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
+		IF node.constant # NIL THEN RETURN NIL END;
 		list := NIL;
 		dim := node.Size();
 		start := node.start;
@@ -154,11 +166,12 @@ MODULE GraphEigenvals;
 		VAR
 			dim, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
+			isData: BOOLEAN;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
 			dim := node.Size();
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.matrix := args.vectors[0].components;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			node.start := args.vectors[0].start;
@@ -175,19 +188,28 @@ MODULE GraphEigenvals;
 			i := 0;
 			start := node.start;
 			step := node.step;
+			isData := TRUE;
 			WHILE i < dim DO
 				j := 0;
 				WHILE j < dim DO
 					off := start + (i * dim + j) * step;
-					p := node.matrix[off];
-					IF p = NIL THEN
-						res := {GraphNodes.nil, GraphNodes.arg1};
-						RETURN
+					IF node.matrix # NIL THEN
+						p := node.matrix[off];
+						IF p = NIL THEN
+							res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+						ELSE
+							isData := isData & (GraphNodes.data IN p.props)
+						END
+					ELSE
+						IF node.constant[off] = INF THEN
+							res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+						END
 					END;
 					INC(j)
 				END;
 				INC(i)
-			END
+			END;
+			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
 		END
 	END Set;
 

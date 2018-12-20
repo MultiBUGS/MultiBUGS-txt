@@ -1,43 +1,46 @@
- Compiling MultiBUGS
+ Compiling OpenBUGS
 
-This document contains a list of source code modules which constitute the MultiBUGS software.
+This document contains a list of source code modules which constitute the OpenBUGS software.
 
-To produce an executable version of MultiBUGS the compiled form of some of these modules must be linked with certain compiled modules of Oberonmicrosystems BlackBox software. See the Linking document for details.
+To produce an executable version of OpenBUGS the compiled form of some of these modules must be linked with certain compiled modules of Oberonmicrosystems BlackBox software. See the Linking document for details.
 
-List of MultiBUGS modules:
+List of OpenBUGS modules:
 
-DevCompiler.CompileThis 
+DevCompiler.CompileThis
 
-MPI MPImslib MPImsimp MPIworker
+HostMenus
+
+Environment MPI MPIlib MPIimp MPIworker MPImaster
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth
 
-BugsMsg BugsRegistry BugsMappers BugsFiles 
+BugsMsg BugsRegistry BugsMappers BugsFiles
 
 BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
-GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphVector GraphWeight GraphUnivariate  GraphConjugateUV GraphVD GraphMultivariate GraphConjugateMV GraphChain GraphMRF GraphUVMRF GraphFunctional GraphMessages GraphResources 
+GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
+GraphFunctional GraphMessages GraphResources
 
-GraphDummy GraphDeviance
+GraphDummy GraphDummyMV GraphSentinel GraphDeviance
 
-MonitorMonitors MonitorSamples MonitorSummary MonitorDeviance MonitorPlugin MonitorRanks MonitorModel
+MonitorMonitors MonitorSamples MonitorSamplesDisc MonitorSummary MonitorDeviance MonitorPlugin MonitorRanks MonitorModel
 
 UpdaterUpdaters UpdaterMethods UpdaterUnivariate UpdaterMultivariate UpdaterContinuous
-UpdaterConjugateUV UpdaterConjugateMV UpdaterMetropolisUV UpdaterMetropolisMV UpdaterRandWalkUV UpdaterAuxillary UpdaterEmpty UpdaterActions UpdaterParallel UpdaterMessages UpdaterExternal UpdaterResources
+UpdaterConjugateMV UpdaterMetropolisUV UpdaterMetropolisMV UpdaterRandWalkUV UpdaterAuxillary UpdaterEmpty UpdaterActions UpdaterMessages UpdaterExternal UpdaterResources
 
-GraphConstant GraphSentinel GraphPi  GraphHalf GraphMixture GraphGeneric GraphFlat GraphMAP  
+GraphConstant GraphMixture GraphMAP
 
 DeviancePlugin
 
-BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData  BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects 
-BugsInfo BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources BugsComponents
+BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
+BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsInfo BugsComponents
 
 BugsRectData BugsSplusData
 
-SamplesMonitors SamplesIndex SamplesStatistics SamplesInterface SamplesFormatted 
+SamplesMonitors SamplesIndex SamplesStatistics SamplesInterface SamplesFormatted
 SamplesMessages SamplesResources
 
 SummaryMonitors SummaryIndex SummaryInterface SummaryFormatted SummaryMessages SummaryResources
@@ -45,80 +48,83 @@ SummaryMonitors SummaryIndex SummaryInterface SummaryFormatted SummaryMessages S
 RanksMonitors RanksIndex RanksInterface RanksFormatted
 RanksMessages RanksResources
 
-ModelsMonitors ModelsIndex ModelsInterface ModelsFormatted 
+ModelsMonitors ModelsIndex ModelsInterface ModelsFormatted
 ModelsMessages ModelsResources
 
-DevianceMonitors DeviancePluginS DevianceParents 
+DevianceMonitors DeviancePluginS DevianceParents
 DevianceIndex DevianceInterface DevianceFormatted DevianceMessages DevianceResources
 
 CorrelInterface CorrelFormatted CorrelMessages CorrelResources
 
-BugsParallel BugsMaster
+BugsMaster
 
-GraphAESolver GraphCloglog GraphCut GraphValDiff GraphDensity GraphEigenvals GraphGammap GraphInprod GraphIntegrate GraphInverse GraphKepler GraphLog GraphLogdet GraphLogit GraphProbit GraphProduct GraphRanks GraphSumation GraphTable GraphODEmath GraphODElang GraphODElangRK45 GraphPValue GraphReplicate GraphItermap GraphPiecewise GraphODEBlockL GraphODEBlockLRK45 GraphODEBlockM
+GraphPiecewise GraphODEmath GraphODElang GraphODEBlockL GraphODEBlockM
+
+GraphAESolver GraphCloglog GraphCut GraphHalf GraphDensity GraphGammap GraphInprod GraphIntegrate GraphKepler GraphLog GraphLogdet GraphLogit GraphMapped GraphProbit GraphProduct GraphRanks GraphSumation GraphTable GraphPValue GraphReplicate GraphPi GraphValDiff
+
+GraphEigenvals GraphInverse GraphItermap GraphODElangRK45 GraphODEBlockLRK45 
 
 GraphBern GraphBinomial GraphCat GraphCat2 GraphFounder GraphGeometric GraphHypergeometric GraphMendelian GraphNegbin GraphPoisson GraphRecessive GraphZipf
 
 GraphMultinom
 
-GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphLogistic GraphLognorm GraphNormal GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
+GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphFlat GraphGeneric GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphHazard GraphLogistic GraphLognorm GraphNormal GraphPriorNP GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
 
-GraphSample GraphPriorNP
-
-GraphDirichlet GraphMVNormal GraphMVT GraphRENormal GraphRandwalk GraphStochtrend GraphWishart GraphFlexWishart
-
-GraphCoSelection GraphSpline
+GraphDirichlet GraphGPprior GraphMVNormal GraphMVT GraphRENormal GraphRandwalk GraphSample GraphStochtrend GraphWishart GraphFlexWishart
 
 GraphScalarT GraphVectorT GraphUnivariateT GraphScalartemp1 GraphVectortemp1
 GraphUnivariatetemp1
 
-UpdaterAM UpdaterDE UpdaterHamiltonian
+GraphCoSelection GraphSpline GraphSplinecon
+
+UpdaterAM UpdaterDE UpdaterHamiltonian 
 
 UpdaterForward
 
-UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial
+UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial UpdaterSlicebase
 
 UpdaterICM
 
-UpdaterBeta UpdaterGriddy UpdaterGamma UpdaterMetover  UpdaterMetnormal UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRejection UpdaterMALA1D UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterNaivemet UpdaterAMblock  UpdaterDEblock UpdaterDirichlet UpdaterDirichletprior UpdaterDirichletpriorRW UpdaterGLM UpdaterGMRF UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterWishart UpdaterMRFConstrain UpdaterHamiltonianglm UpdaterMAPproposal UpdaterDelayedDirectional1D
+UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 
-UpdaterVD UpdaterVDMVN UpdaterVDMVNDescrete UpdaterVDMVNContinuous
-
-UpdaterStage1 UpdaterStage1M UpdaterStage1P
+UpdaterAMblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet
+UpdaterElliptical UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
 
 UpdaterUnivariateT UpdaterMultivariateT
 
-SpatialExternal SpatialResources
-SpatialBound SpatialUVCAR SpatialCARl1 SpatialCARNormal SpatialCARProper SpatialStrucMVN SpatialDiscKrig SpatialExpKrig SpatialMaternKrig SpatialPoissconv SpatialMVCAR
+SpatialExternal SpatialResources SpatialUVCAR
+SpatialBound SpatialCARl1 SpatialCARNormal SpatialCARProper SpatialDiscKrig SpatialExpKrig SpatialMaternKrig SpatialPoissconv SpatialMVCAR
 
-PharmacoInputs PharmacoSum PharmacoModel
-PharmacoExternal PharmacoResources 
+ReliabilityBS ReliabilityBurrXII ReliabilityBurrX ReliabilityExpPower ReliabilityExpoWeibull ReliabilityExtExp ReliabilityExtendedWeibull ReliabilityFlexibleWeibull ReliabilityGenExp ReliabilityGPWeibull ReliabilityGompertz ReliabilityGumbel ReliabilityInvGauss ReliabilityInvWeibull ReliabilityLinearFailure ReliabilityLogisticExp ReliabilityLogLogistic ReliabilityLogWeibull ReliabilityModifiedWeibull ReliabilitySystem ReliabilityWrapper ReliabilityExternal ReliabilityResources
 
-PharmacoPKIVbol1 PharmacoPKIVbol2  PharmacoPKIVbol3 PharmacoPKIVinf1 PharmacoPKIVinf2 PharmacoPKIVinf3 PharmacoPKFO1 PharmacoPKFO2 
-PharmacoPKFO3 PharmacoPKZO1 PharmacoPKZO2  PharmacoPKFOlag1
+PharmacoInputs PharmacoModel PharmacoExternal PharmacoResources
+
+PharmacoPKIVbol1 PharmacoPKIVbol2 PharmacoPKIVbol3 PharmacoPKIVinf1 PharmacoPKIVinf2 PharmacoPKIVinf3 PharmacoPKFO1 PharmacoPKFO2
+PharmacoPKFO3 PharmacoPKZO1 PharmacoPKZO2 PharmacoPKFOlag1
 PharmacoPKFOlag2 PharmacoPKZOlag1 PharmacoPKZOlag2 PharmacoPKIVbol1ss
 PharmacoPKIVbol2ss PharmacoPKIVbol3ss PharmacoPKIVinf1ss PharmacoPKIVinf2ss
 PharmacoPKIVinf3ss PharmacoPKFO1ss PharmacoPKFO2ss PharmacoPKZO1ss
 PharmacoPKZO2ss PharmacoPKFOlag1ss PharmacoPKFOlag2ss PharmacoPKZOlag1ss
-PharmacoPKZOlag2ss
+PharmacoPKZOlag2ss PharmacoSum
 
 PKBugsScanners PKBugsNames PKBugsData PKBugsParse PKBugsCovts
 PKBugsPriors PKBugsNodes PKBugsTree PKBugsMessages PKBugsResources
 
-DiffExternal DiffResources DiffLotkaVolterra DiffFiveCompModel DiffExponential
-DiffChangePoints DiffHPS_V2_FB
+DiffExternal DiffResources
+
+DiffLotkaVolterra DiffFiveCompModel DiffExponential DiffChangePoints DiffHPS_V2_FB
 
 MapsMessages MapsResources
 
-BugsStartup Init
-
 BugsDialog
+
+BugsStartup Init
 
 UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfig
+BugsCmds BugsBatch BugsConfig 
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 
@@ -145,17 +151,26 @@ MapsMap MapsImporter MapsIndex MapsAdjacency MapsViews MapsViews1 MapsCmds MapsA
 
 PKBugsCmds
 
-BugsC
-
 StdCmds1
+
+BugsC
 
 TestScript
 
-BugsDistribute 
+BugsDistribute
 
-MathSeeds 
+BugsPackage
 
-ParallelTraphandler ParallelRandnum ParallelActions ParallelDebug ParallelWorker 
+MathSeeds
+
+ParallelTraphandler ParallelRandnum ParallelActions ParallelWorker
+
+ParallelDebug 
+
+PlotsWindows
+
+BugsTraphandler
+
 
 
 

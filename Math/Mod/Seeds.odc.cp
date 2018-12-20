@@ -9,6 +9,7 @@ MODULE MathSeeds;
 		TextControllers, TextMappers, TextModels, TextViews;
 
 	CONST
+		numSeeds = 256;
 		M = 7;
 		N = 25;
 		s = 7;
@@ -35,7 +36,7 @@ MODULE MathSeeds;
 			loc: Files.Locator;
 	BEGIN
 		j := 0;
-		WHILE j < 256 DO
+		WHILE j < numSeeds DO
 			count := 0;
 			k := 0;
 			WHILE count < trillion DO
@@ -65,7 +66,7 @@ MODULE MathSeeds;
 			i := 0;
 			WHILE i < N DO
 				StdLog.String("x["); StdLog.Int(j+1); StdLog.String(" , "); StdLog.Int(i); StdLog.String("] := ");
-				StdLog.Set(x[i]); StdLog.Ln;
+				StdLog.Set(x[i]); StdLog.String(";"); StdLog.Ln;
 				INC(i)
 			END;
 			Strings.IntToString(j + 1, string);

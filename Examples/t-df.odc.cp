@@ -30,6 +30,14 @@ Model:
 			}
 			d ~ dunif(2, 100)			# degrees of freedom must be at least two
 		}
+		
+		#	test truncation
+		model {
+			for (i in 1:1000) {
+				y[i] ~ dt(0, 1, d)T(-50, 50)
+			}
+			d ~ dunif(2, 100)			# degrees of freedom must be at least two
+		}
 
 Data	( click to open )
 

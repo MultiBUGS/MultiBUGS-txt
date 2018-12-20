@@ -19,10 +19,7 @@ MODULE MathODE;
 			equations-: Equations
 		END;
 
-		SolverFactory* = POINTER TO ABSTRACT RECORD END;
-
 	VAR
-		solverFact-: SolverFactory;
 		version-: INTEGER;
 		maintainer-: ARRAY 20 OF CHAR;
 
@@ -105,12 +102,12 @@ MODULE MathODE;
 
 	PROCEDURE (solver: Solver) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 	
-	PROCEDURE (f: SolverFactory) New* (): Solver, NEW, ABSTRACT;
+(*	PROCEDURE (f: SolverFactory) New* (): Solver, NEW, ABSTRACT;*)
 
-	PROCEDURE SetSolverFactory* (f: SolverFactory);
+(*	PROCEDURE SetSolverFactory* (f: SolverFactory);
 	BEGIN
 		solverFact := f
-	END SetSolverFactory;
+	END SetSolverFactory;*)
 
 	PROCEDURE Maintainer;
 	BEGIN

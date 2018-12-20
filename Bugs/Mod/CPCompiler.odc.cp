@@ -16,11 +16,11 @@ MODULE BugsCPCompiler;
 	
 
 	IMPORT
-		Files, Kernel, Meta, Services, Stores, Strings, Views, 
+		Dialog, Files, Kernel, Services, Stores, Strings, Views,
+		TextMappers, TextModels, TextViews,
 		BugsCPWrite, 
-		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486, 
-		GraphLogical, GraphNodes, GraphStochastic, 
-		TextMappers, TextModels, TextViews;
+		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486,
+		GraphLogical, GraphNodes, GraphStochastic;
 
 	TYPE
 		FactoryList = POINTER TO RECORD
@@ -31,14 +31,13 @@ MODULE BugsCPCompiler;
 		END;
 
 	VAR
-		numDynamic: INTEGER;
 		factoryList: FactoryList;
 		debug*: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
 
-	PROCEDURE Compile (source: TextModels.Reader; OUT ok: BOOLEAN);
+	PROCEDURE Compile (source: TextModels.Reader);
 		CONST
 			checks = 0; assert = 2; obj = 3; ref = 4; allref = 5; srcpos = 6;
 			defOpts = {checks, assert, obj, ref, allref, srcpos};
@@ -57,7 +56,7 @@ MODULE BugsCPCompiler;
 			DevCPM.InsertMarks(source.Base());
 			Views.OpenAux(TextViews.dir.New(source.Base()), "Error in compiling");
 			HALT(0)
-		END;		
+		END;
 		IF DevCPM.noerr THEN
 			IF DevCPT.libName # "" THEN EXCL(opts, obj) END;
 			DevCPV486.Init(opts); DevCPV486.Allocate; DevCPT.Export(ext, new);
@@ -68,7 +67,6 @@ MODULE BugsCPCompiler;
 		END;
 		DevCPM.DeleteNewSym;
 		DevCPT.Close;
-		ok := DevCPM.noerr;
 		DevCPM.Close;
 		p := NIL;
 		Services.Collect
@@ -77,35 +75,53 @@ MODULE BugsCPCompiler;
 	(*	Writes new Component Pascal module to represent stack node. Compiles this module and
 	then loads module so that the factory object to create new nodes of this type can be accessed. 	*)
 
-	PROCEDURE CreateFactory (IN args: GraphStochastic.ArgsLogical): GraphNodes.Factory;
+	PROCEDURE CreateFactory (IN args: GraphStochastic.ArgsLogical; numDynamic: INTEGER): GraphNodes.Factory;
 		VAR
 			rd: TextModels.Reader;
 			f: TextMappers.Formatter;
-			ok: BOOLEAN;
-			modName, timeStamp: ARRAY 128 OF CHAR;
+			res: INTEGER;
+			modName: ARRAY 128 OF CHAR;
 			factory: GraphNodes.Factory;
 			text: TextModels.Model;
-			item: Meta.Item;
 	BEGIN
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
 		Strings.IntToString(numDynamic, modName);
-		modName := "DynamicNode" + modName + "_" + timeStamp;
+		modName := "DynamicNode" + modName;
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		BugsCPWrite.WriteModule(args, numDynamic, f);
-		IF debug THEN 
-			Views.OpenAux(TextViews.dir.New(text), modName$); 
-			Meta.LookupPath("CpcBeautifier.Beautify", item);
-			 item.Call(ok)
+		IF debug THEN
+			Views.OpenAux(TextViews.dir.New(text), modName$);
+			Dialog.Call("CpcBeautifier.Beautify", "", res);
 		END;
 		rd := text.NewReader(NIL);
 		rd.SetPos(0);
-		Compile(rd, ok);
-		ASSERT(ok, 54);
+		Compile(rd);
 		factory := GraphNodes.InstallFactory(modName + ".Install");
 		ASSERT(factory # NIL, 55);
 		RETURN factory
 	END CreateFactory;
+
+	PROCEDURE CompileDynamicOpt (IN args: GraphStochastic.ArgsLogical; numDynamic: INTEGER);
+		VAR
+			rd: TextModels.Reader;
+			f: TextMappers.Formatter;
+			res: INTEGER;
+			modName: ARRAY 128 OF CHAR;
+			text: TextModels.Model;
+	BEGIN
+		Strings.IntToString(numDynamic, modName);
+		modName := "DynamicNode" + modName;
+		text := TextModels.dir.New();
+		f.ConnectTo(text);
+		BugsCPWrite.WriteModule(args, numDynamic, f);
+		IF debug THEN
+			Views.OpenAux(TextViews.dir.New(text), modName$);
+			Dialog.Call("CpcBeautifier.Beautify", "", res);
+		END;
+		rd := text.NewReader(NIL);
+		rd.SetPos(0);
+		Compile(rd);
+	END CompileDynamicOpt;
 
 	PROCEDURE StoreFactory (fact: GraphNodes.Factory; IN args: GraphStochastic.ArgsLogical);
 		VAR
@@ -122,8 +138,7 @@ MODULE BugsCPCompiler;
 		i := 0; WHILE i < numOps DO elem.ops[i] := args.ops[i]; INC(i) END;
 		elem.factory := fact;
 		elem.next := factoryList;
-		factoryList := elem;
-		INC(numDynamic)
+		factoryList := elem
 	END StoreFactory;
 
 	PROCEDURE FindFactory (IN args: GraphStochastic.ArgsLogical): GraphNodes.Factory;
@@ -147,14 +162,30 @@ MODULE BugsCPCompiler;
 		RETURN factory
 	END FindFactory;
 
+	PROCEDURE NumberDynamic* (): INTEGER;
+		VAR
+			num: INTEGER;
+			cursor: FactoryList;
+	BEGIN
+		num := 0;
+		cursor := factoryList;
+		WHILE cursor # NIL DO
+			INC(num);
+			cursor := cursor.next
+		END;
+		RETURN num
+	END NumberDynamic;
+
 	PROCEDURE CreateLogical* (IN args: GraphStochastic.ArgsLogical): GraphLogical.Node;
 		VAR
 			fact: GraphNodes.Factory;
 			p: GraphLogical.Node;
+			numDynamic: INTEGER;
 	BEGIN
 		fact := FindFactory(args);
 		IF fact = NIL THEN
-			fact := CreateFactory(args);
+			numDynamic := NumberDynamic();
+			fact := CreateFactory(args, numDynamic);
 			StoreFactory(fact, args)
 		END;
 		p := fact.New()(GraphLogical.Node);
@@ -167,10 +198,9 @@ MODULE BugsCPCompiler;
 			i: INTEGER;
 			cursor: FactoryList;
 			mod: Kernel.Module;
-			modName, timeStamp, label: ARRAY 128 OF CHAR;
+			modName, label: ARRAY 128 OF CHAR;
 			loc, locSub: Files.Locator;
 			fileInfo: Files.FileInfo;
-			pos: INTEGER;
 	BEGIN
 		cursor := factoryList;
 		WHILE cursor # NIL DO cursor.factory := NIL; cursor := cursor.next END;
@@ -179,37 +209,31 @@ MODULE BugsCPCompiler;
 		i := 0;
 		loc := Files.dir.This("Dynamic");
 		locSub := loc.This("Code");
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
 		cursor := factoryList;
 		WHILE cursor # NIL DO
 			Strings.IntToString(i, label);
-			label := label + "_" + timeStamp;
 			modName := "DynamicNode" + label;
 			mod := Kernel.ThisLoadedMod(SHORT(modName));
-			IF mod # NIL THEN Kernel.UnloadMod(mod); END;
+			IF mod # NIL THEN Kernel.UnloadMod(mod) END;
 			INC(i);
 			cursor := cursor.next
 		END;
-		(*	delete code files with current time stamp	*)
+		(*	delete code files	*)
 		fileInfo := Files.dir.FileList(locSub);
 		WHILE fileInfo # NIL DO
-			Strings.Find(fileInfo.name, "_" + timeStamp, 0, pos);
-			IF pos #  - 1 THEN
-				Files.dir.Delete(locSub, fileInfo.name)
-			END;
+			Files.dir.Delete(locSub, fileInfo.name);
 			fileInfo := fileInfo.next
 		END;
 		factoryList := NIL;
-		numDynamic := 0
 	END Clear;
 
-	(*	Write out array of operators.	*)
+	(*	Write out arrays of operators.	*)
 	PROCEDURE Externalize* (VAR wr: Stores.Writer);
 		VAR
 			cursor: FactoryList;
-			i, len: INTEGER;
+			i, len, numDynamic: INTEGER;
 	BEGIN
-		wr.WriteLong(GraphNodes.timeStamp);
+		numDynamic := NumberDynamic();
 		wr.WriteInt(numDynamic);
 		cursor := factoryList;
 		WHILE cursor # NIL DO
@@ -226,18 +250,14 @@ MODULE BugsCPCompiler;
 	(*	Read in array of operators	*)
 	PROCEDURE Internalize* (VAR rd: Stores.Reader);
 		VAR
-			i, j, len, op, totalNumDynamic: INTEGER;
+			i, j, len, op, numDynamic: INTEGER;
 			cursor: FactoryList;
 			args: GraphStochastic.ArgsLogical;
-			timeStamp: LONGINT;
 	BEGIN
-		rd.ReadLong(timeStamp);
-		GraphNodes.SetTimeStamp(timeStamp);
-		rd.ReadInt(totalNumDynamic);
+		rd.ReadInt(numDynamic);
 		i := 0;
 		factoryList := NIL;
-		numDynamic := 0;
-		WHILE i < totalNumDynamic DO
+		WHILE i < numDynamic DO
 			NEW(cursor);
 			rd.ReadInt(cursor.numConsts);
 			rd.ReadInt(cursor.numLogicals);
@@ -257,6 +277,7 @@ MODULE BugsCPCompiler;
 		(*	create new factories by generating and compiling CP code	*)
 		cursor := factoryList;
 		factoryList := NIL;
+		numDynamic := 0;
 		WHILE cursor # NIL DO
 			(*	set up the args data structure	*)
 			args.Init;
@@ -268,46 +289,58 @@ MODULE BugsCPCompiler;
 			WHILE j < cursor.numOps DO
 				args.ops[j] := cursor.ops[j]; INC(j)
 			END;
-			cursor.factory := CreateFactory(args);
+			cursor.factory := CreateFactory(args, numDynamic);
 			StoreFactory(cursor.factory, args);
+			INC(numDynamic);
 			cursor := cursor.next
 		END
 	END Internalize;
 
-	PROCEDURE CreateTimeStamp*;
+	PROCEDURE OptDynamic*;
 		VAR
-			text: TextModels.Model;
-			ok: BOOLEAN;
-			rd: TextModels.Reader;
-			f: TextMappers.Formatter;
-			timeStamp: ARRAY 64 OF CHAR;
+			i, j, len, op, numDynamic: INTEGER;
+			cursor, elem, list: FactoryList;
+			args: GraphStochastic.ArgsLogical;
 	BEGIN
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
-		text := TextModels.dir.New();
-		f.ConnectTo(text);
-		f.WriteString("MODULE DynamicTime_" + timeStamp + ";");
-		f.WriteString("IMPORT GraphNodes;");
-		f.WriteString("BEGIN ");
-		f.WriteString("GraphNodes.SetTimeStamp(" + timeStamp + ") ");
-		f.WriteString("END DynamicTime_" + timeStamp + ".");
-		rd := text.NewReader(NIL);
-		rd.SetPos(0);
-		Compile(rd, ok); ASSERT(ok, 55);
-	END CreateTimeStamp;
-
-	PROCEDURE NumberDynamic* (): INTEGER;
-		VAR
-			num: INTEGER;
-			cursor: FactoryList;
-	BEGIN
-		num := 0;
+		(*	reverse list	*)
 		cursor := factoryList;
+		list := NIL;
 		WHILE cursor # NIL DO
-			INC(num);
+			NEW(elem);
+			elem.numConsts := cursor.numConsts;
+			elem.numLogicals := cursor.numLogicals;
+			elem.numStochs := cursor.numStochs;
+			elem.numOps := cursor.numOps;
+			len := cursor.numOps;
+			NEW(elem.ops, len);
+			j := 0;
+			WHILE j < len DO
+				elem.ops[j] := cursor.ops[j]; INC(j)
+			END;
+			elem.factory := cursor.factory;
+			elem.next := list;
+			list := elem;
 			cursor := cursor.next
 		END;
-		RETURN num
-	END NumberDynamic;
+		(*	compile optimized CP code	*)
+		numDynamic := 0;
+		cursor := list;
+		WHILE cursor # NIL DO
+			(*	set up the args data structure	*)
+			args.Init;
+			args.numConsts := cursor.numConsts;
+			args.numLogicals := cursor.numLogicals;
+			args.numStochs := cursor.numStochs;
+			args.numOps := cursor.numOps;
+			j := 0;
+			WHILE j < cursor.numOps DO
+				args.ops[j] := cursor.ops[j]; INC(j)
+			END;
+			CompileDynamicOpt(args, numDynamic);
+			INC(numDynamic);
+			cursor := cursor.next
+		END;
+	END OptDynamic;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -319,7 +352,6 @@ MODULE BugsCPCompiler;
 	BEGIN
 		Maintainer;
 		debug := FALSE;
-		numDynamic := 0;
 		factoryList := NIL
 	END Init;
 

@@ -43,12 +43,20 @@ MODULE ParallelRandnum;
 		MathRandnum.SetGenerator(privateStream)
 	END UsePrivateStream;
 
-	PROCEDURE SetUp* (chain, numChains, worldRank: INTEGER);
+	PROCEDURE SetUp* (chain, worldRank, numChains, worldSize: INTEGER);
+		VAR
+			offset: INTEGER;
 	BEGIN
 		(*	set up the random number streams for each chain and each process	*)
 		MathTT800.Install;
-		privateStream := MathRandnum.NewGenerator(numChains + worldRank);
-		sameStream := BugsRandnum.generators[chain]
+		offset := BugsRandnum.offset;
+		privateStream := MathRandnum.NewGenerator(numChains + offset + worldRank);
+		sameStream := BugsRandnum.generators[chain];
+		IF numChains = worldSize THEN
+			MathRandnum.SetGenerator(sameStream)
+		ELSE
+			MathRandnum.SetGenerator(privateStream)
+		END
 	END SetUp;
 
 	PROCEDURE Maintainer;

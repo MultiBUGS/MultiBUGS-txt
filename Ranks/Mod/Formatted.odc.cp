@@ -12,7 +12,6 @@ MODULE RanksFormatted;
 	
 
 	IMPORT
-		Fonts,
 		BugsFiles, BugsIndex, BugsNames,
 		RanksIndex, RanksInterface, RanksMonitors,
 		TextMappers, TextModels;
@@ -21,6 +20,9 @@ MODULE RanksFormatted;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	CONST
+		bold = 700;
+		
 	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
@@ -36,7 +38,7 @@ MODULE RanksFormatted;
 	BEGIN
 		numFrac := LEN(fractions);
 		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr, Fonts.bold);
+		newAttr := TextModels.NewWeight(oldAttr, bold);
 		f.rider.SetAttr(newAttr);
 		f.WriteTab;
 		f.WriteTab;

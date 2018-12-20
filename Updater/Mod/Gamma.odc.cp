@@ -20,9 +20,7 @@ MODULE UpdaterGamma;
 		UpdaterContinuous, UpdaterUpdaters;
 
 	TYPE
-		Updater = POINTER TO RECORD(UpdaterContinuous.Updater)
-			optimized: BOOLEAN
-		END;
+		Updater = POINTER TO RECORD(UpdaterContinuous.Updater) END;
 
 		Factory = POINTER TO RECORD(UpdaterUpdaters.Factory) END;
 
@@ -31,6 +29,51 @@ MODULE UpdaterGamma;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		values: POINTER TO ARRAY OF REAL;
+
+	PROCEDURE GammaLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
+		CONST
+			eps = 1.0E-5;
+		VAR
+			as, i, num: INTEGER;
+			p0, p1, val, weight: REAL;
+			x: GraphNodes.Node;
+			children: GraphStochastic.Vector;
+			node: GraphStochastic.Node;
+	BEGIN
+		as := GraphRules.gamma;
+		p[0] := 0.0;
+		p[1] := 0.0;
+		children := prior.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		prior.SetValue(1.0);
+		WHILE i < num DO
+			node := children[i];
+			WITH node: GraphConjugateUV.Node DO
+				node.LikelihoodForm(as, x, p0, p1)
+			|node: GraphMultivariate.Node DO
+				node.LikelihoodForm(as, x, p0, p1)
+			END;
+			IF x = prior THEN
+				p[0] := p[0] + p0;
+				p[1] := p[1] + p1
+			ELSIF GraphStochastic.continuous IN prior.props THEN
+				weight := x.Value();
+				p[0] := p[0] + p0;
+				p[1] := p[1] + weight * p1
+			ELSE (*	might have mixture model	*)
+				x.ValDiff(prior, val, weight);
+				IF weight > eps THEN
+					p[0] := p[0] + p0;
+					p[1] := p[1] + weight * p1
+				END
+			END;
+			INC(i)
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			MPIworker.SumReals(p)
+		END
+	END GammaLikelihood;
 
 	PROCEDURE (updater: Updater) Clone (): Updater;
 		VAR
@@ -41,11 +84,7 @@ MODULE UpdaterGamma;
 	END Clone;
 
 	PROCEDURE (updater: Updater) CopyFromUnivariate (source: UpdaterUpdaters.Updater);
-		VAR
-			s: Updater;
 	BEGIN
-		s := source(Updater);
-		updater.optimized := s.optimized
 	END CopyFromUnivariate;
 
 	PROCEDURE (updater: Updater) ExternalizeUnivariate- (VAR wr: Stores.Writer);
@@ -54,27 +93,17 @@ MODULE UpdaterGamma;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
 		VAR
-			all, continous: BOOLEAN;
 			prior: GraphStochastic.Node;
-			children: GraphStochastic.Vector;
-			parList: GraphStochastic.List;
-			i, num: INTEGER;
+			coParents: GraphStochastic.List;
 	BEGIN
 		prior := updater.prior;
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		all := FALSE;
-		continous := TRUE;
-		WHILE (i < num) & continous DO
-			parList := GraphStochastic.Parents(children[i], all);
-			WHILE (parList # NIL) & continous DO
-				continous := ~(GraphStochastic.integer IN parList.node.props);
-				parList := parList.next
-			END;
-			INC(i)
+		coParents := prior.CoParents();
+		WHILE (coParents # NIL) & ~(GraphStochastic.integer IN coParents.node.props) DO
+			coParents := coParents.next
 		END;
-		updater.optimized := continous
+		IF coParents = NIL THEN
+			prior.SetProps(prior.props + {GraphStochastic.continuous})
+		END
 	END InitializeUnivariate;
 
 	PROCEDURE (updater: Updater) InternalizeUnivariate- (VAR rd: Stores.Reader);
@@ -91,49 +120,6 @@ MODULE UpdaterGamma;
 		RETURN FALSE
 	END IsAdapting;
 
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL), NEW;
-		CONST
-			eps = 1.0E-5;
-		VAR
-			as, i, num: INTEGER;
-			p0, p1, val, weight: REAL;
-			x: GraphNodes.Node;
-			children: GraphStochastic.Vector;
-			node, prior: GraphStochastic.Node;
-	BEGIN
-		as := GraphRules.gamma;
-		prior := updater.prior;
-		p[0] := 0.0;
-		p[1] := 0.0;
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		prior.SetValue(1.0);
-		WHILE i < num DO
-			node := children[i];
-			WITH node: GraphConjugateUV.Node DO
-				node.LikelihoodForm(as, x, p0, p1)
-			|node: GraphMultivariate.Node DO
-				node.LikelihoodForm(as, x, p0, p1)
-			END;
-			IF x = prior THEN
-				p[0] := p[0] + p0;
-				p[1] := p[1] + p1
-			ELSIF updater.optimized THEN
-				weight := x.Value();
-				p[0] := p[0] + p0;
-				p[1] := p[1] + weight * p1
-			ELSE (*	might have mixture model	*)
-				x.ValDiff(prior, val, weight);
-				IF weight > eps THEN
-					p[0] := p[0] + p0;
-					p[1] := p[1] + weight * p1
-				END
-			END;
-			INC(i)
-		END
-	END LikelihoodForm;
-
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		CONST
 			rMin = 0.005;
@@ -149,10 +135,7 @@ MODULE UpdaterGamma;
 		prior := updater.prior(GraphConjugateUV.Node);
 		oldValue := prior.value;
 		as := GraphRules.gamma;
-		updater.LikelihoodForm(p);
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(p)
-		END;
+		GammaLikelihood(updater.prior, p);
 		prior.PriorForm(as, r, lambda);
 		r := p[0] + r;
 		lambda := p[1] + lambda;
@@ -161,7 +144,7 @@ MODULE UpdaterGamma;
 			RETURN
 		END;
 		IF lambda < lambdaMin THEN
-			res := {GraphNodes.arg2, GraphNodes.invalidPosative};
+			res := {GraphNodes.arg2, GraphNodes.invalidPosative}; 
 			RETURN
 		END;
 		bounds := prior.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};

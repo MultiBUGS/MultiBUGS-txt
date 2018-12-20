@@ -21,8 +21,10 @@ MODULE DevianceIndex;
 
 	IMPORT
 		Stores,
+		BugsIndex, BugsNames,
 		DevianceMonitors, DevianceParents, DeviancePlugin,
-		MonitorMonitors;
+		MonitorMonitors,
+		SummaryMonitors;
 
 	TYPE
 		List = POINTER TO LIMITED RECORD
@@ -33,7 +35,8 @@ MODULE DevianceIndex;
 		Monitor = POINTER TO RECORD(MonitorMonitors.Monitor)
 			updated: BOOLEAN;
 			parentMonitor: DevianceParents.Monitor;
-			devianceMonitors: List
+			devianceMonitors: List;
+			deviance: SummaryMonitors.Monitor
 		END;
 
 		Factory = POINTER TO RECORD(MonitorMonitors.Factory) END;
@@ -102,7 +105,8 @@ MODULE DevianceIndex;
 		IF monitor # NIL THEN
 			monitor.updated := FALSE;
 			monitor.parentMonitor := NIL;
-			monitor.devianceMonitors := NIL
+			monitor.devianceMonitors := NIL;
+			monitor.deviance := NIL
 		END
 	END Clear;
 
@@ -112,16 +116,23 @@ MODULE DevianceIndex;
 			plugin: DeviancePlugin.Plugin;
 			parentMonitor: DevianceParents.Monitor;
 			monitor: Monitor;
+			name: BugsNames.Name;
 	BEGIN
 		fact := DeviancePlugin.fact;
+		monitor := GetMonitor();
 		IF fact # NIL THEN
-			monitor := GetMonitor();
+			monitor.deviance := NIL;
 			plugin := fact.New();
 			IF (plugin = NIL) OR ~plugin.IsValid() THEN
 				monitor.parentMonitor := NIL;
 			ELSE
 				parentMonitor := DevianceParents.fact.New(plugin);
-				monitor.parentMonitor := parentMonitor;
+				monitor.parentMonitor := parentMonitor
+			END
+		ELSE
+			name := BugsIndex.Find("deviance");
+			IF name # NIL THEN
+				monitor.deviance := SummaryMonitors.fact.New(name)
 			END
 		END
 	END InitMonitor;
@@ -213,7 +224,7 @@ MODULE DevianceIndex;
 		IF numMonitors > 0 THEN
 			i := 0;
 			WHILE i < numMonitors DO
-				rd.ReadInt(filePos); ASSERT(filePos #  - 1, 66);
+				rd.ReadInt(filePos); ASSERT(filePos # - 1, 66);
 				INC(i)
 			END;
 			i := 0;
@@ -257,6 +268,9 @@ MODULE DevianceIndex;
 		monitor.updated := TRUE;
 		IF monitor.parentMonitor # NIL THEN
 			monitor.parentMonitor.Update
+		END;
+		IF monitor.deviance # NIL THEN
+			monitor.deviance.Update
 		END;
 		cursor := monitor.devianceMonitors;
 		WHILE cursor # NIL DO
@@ -369,6 +383,17 @@ MODULE DevianceIndex;
 		monitor := GetMonitor();
 		RETURN monitor.parentMonitor.Means()
 	END Means;
+
+	PROCEDURE VarianceOfDeviance* (): REAL;
+		VAR
+			monitor: Monitor;
+			mean, sd, skew, exKur, lower, median, upper: REAL;
+	BEGIN
+		monitor := GetMonitor();
+		ASSERT(monitor.deviance # NIL, 21);
+		monitor.deviance.Statistics(0, mean, sd, skew, exKur, lower, median, upper);
+		RETURN sd * sd
+	END VarianceOfDeviance;
 
 	PROCEDURE SetValues* (IN values: ARRAY OF REAL);
 		VAR

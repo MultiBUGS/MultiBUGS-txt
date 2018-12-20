@@ -37,6 +37,26 @@ MODULE GraphGamma;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
+	BEGIN
+		left := 0.0;
+		right := INF
+	END BoundsUnivariate;
+
+	PROCEDURE (node: Node) CheckUnivariate (): SET;
+	BEGIN
+		IF node.value < - eps THEN
+			RETURN {GraphNodes.posative, GraphNodes.lhs}
+		END;
+		IF node.r.Value() < - eps THEN
+			RETURN {GraphNodes.posative, GraphNodes.arg1}
+		END;
+		IF node.mu.Value() < - eps THEN
+			RETURN {GraphNodes.posative, GraphNodes.arg2}
+		END;
+		RETURN {}
+	END CheckUnivariate;
+
 	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate (parent: GraphStochastic.Node): INTEGER;
 		VAR
 			density, density0, density1, f0, f1: INTEGER;
@@ -123,10 +143,47 @@ MODULE GraphGamma;
 		RETURN differential
 	END DiffLogPrior;
 
+	PROCEDURE (node: Node) ExternalizeUnivariate (VAR wr: Stores.Writer);
+	BEGIN
+		GraphNodes.Externalize(node.r, wr);
+		GraphNodes.Externalize(node.mu, wr)
+	END ExternalizeUnivariate;
+
+	PROCEDURE (node: Node) InitUnivariate;
+	BEGIN
+		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		node.mu := NIL;
+		node.r := NIL
+	END InitUnivariate;
+
+	PROCEDURE (node: Node) InternalizeUnivariate (VAR rd: Stores.Reader);
+	BEGIN
+		node.r := GraphNodes.Internalize(rd);
+		node.mu := GraphNodes.Internalize(rd)
+	END InternalizeUnivariate;
+
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphGamma.Install"
 	END Install;
+
+	PROCEDURE (offspring: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
+	OUT p0, p1: REAL);
+	BEGIN
+		ASSERT(as = GraphRules.gamma, 21);
+		x := offspring.mu;
+		p0 := offspring.r.Value();
+		p1 := offspring.value
+	END LikelihoodForm;
+
+	PROCEDURE (node: Node) Location (): REAL;
+		VAR
+			r, mu: REAL;
+	BEGIN
+		r := node.r.Value();
+		mu := node.mu.Value();
+		RETURN r / mu
+	END Location;
 
 	PROCEDURE (node: Node) LogLikelihoodUnivariate (): REAL;
 		VAR
@@ -143,15 +200,6 @@ MODULE GraphGamma;
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
 
-	PROCEDURE (offspring: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
-	OUT p0, p1: REAL);
-	BEGIN
-		ASSERT(as = GraphRules.gamma, 21);
-		x := offspring.mu;
-		p0 := offspring.r.Value();
-		p1 := offspring.value
-	END LikelihoodForm;
-
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
 			logPrior, mu, r, x: REAL;
@@ -163,61 +211,6 @@ MODULE GraphGamma;
 		RETURN logPrior
 	END LogPrior;
 
-	PROCEDURE (node: Node) Location (): REAL;
-		VAR
-			r, mu: REAL;
-	BEGIN
-		r := node.r.Value();
-		mu := node.mu.Value();
-		RETURN r / mu
-	END Location;
-
-	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
-	BEGIN
-		ASSERT(as = GraphRules.gamma, 21);
-		p0 := prior.r.Value();
-		p1 := prior.mu.Value()
-	END PriorForm;
-
-	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
-	BEGIN
-		left := 0.0;
-		right := INF
-	END BoundsUnivariate;
-
-	PROCEDURE (node: Node) CheckUnivariate (): SET;
-	BEGIN
-		IF node.value < - eps THEN
-			RETURN {GraphNodes.posative, GraphNodes.lhs}
-		END;
-		IF node.r.Value() < - eps THEN
-			RETURN {GraphNodes.posative, GraphNodes.arg1}
-		END;
-		IF node.mu.Value() < - eps THEN
-			RETURN {GraphNodes.posative, GraphNodes.arg2}
-		END;
-		RETURN {}
-	END CheckUnivariate;
-
-	PROCEDURE (node: Node) ExternalizeUnivariate (VAR wr: Stores.Writer);
-	BEGIN
-		GraphNodes.Externalize(node.r, wr);
-		GraphNodes.Externalize(node.mu, wr)
-	END ExternalizeUnivariate;
-
-	PROCEDURE (node: Node) InternalizeUnivariate (VAR rd: Stores.Reader);
-	BEGIN
-		node.r := GraphNodes.Internalize(rd);
-		node.mu := GraphNodes.Internalize(rd)
-	END InternalizeUnivariate;
-
-	PROCEDURE (node: Node) InitUnivariate;
-	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
-		node.mu := NIL;
-		node.r := NIL
-	END InitUnivariate;
-
 	PROCEDURE (node: Node) ParentsUnivariate (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
@@ -228,16 +221,12 @@ MODULE GraphGamma;
 		RETURN list
 	END ParentsUnivariate;
 
-	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
-		res := {};
-		WITH args: GraphStochastic.Args DO
-			ASSERT(args.scalars[0] # NIL, 21);
-			node.r := args.scalars[0];
-			ASSERT(args.scalars[1] # NIL, 21);
-			node.mu := args.scalars[1]
-		END
-	END SetUnivariate;
+		ASSERT(as = GraphRules.gamma, 21);
+		p0 := prior.r.Value();
+		p1 := prior.mu.Value()
+	END PriorForm;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
@@ -270,6 +259,17 @@ MODULE GraphGamma;
 		node.SetValue(x);
 		res := {}
 	END Sample;
+
+	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
+	BEGIN
+		res := {};
+		WITH args: GraphStochastic.Args DO
+			ASSERT(args.scalars[0] # NIL, 21);
+			node.r := args.scalars[0];
+			ASSERT(args.scalars[1] # NIL, 21);
+			node.mu := args.scalars[1]
+		END
+	END SetUnivariate;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

@@ -15,7 +15,7 @@ MODULE SummaryCmds;
 	IMPORT
 		Dialog, Ports,
 		TextMappers, TextModels,
-		BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg, 
+		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg, 
 		SummaryFormatted, SummaryIndex, SummaryInterface, SummaryMonitors;
 
 	TYPE
@@ -62,6 +62,7 @@ MODULE SummaryCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		IF SummaryInterface.IsStar(name) THEN
@@ -72,7 +73,8 @@ MODULE SummaryCmds;
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -86,13 +88,15 @@ MODULE SummaryCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		SummaryInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -118,13 +122,15 @@ MODULE SummaryCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		SummaryInterface.Set(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -220,107 +226,71 @@ MODULE SummaryCmds;
 		IF f.Pos() > pos THEN BugsFiles.Open("Summary statistics", text) END
 	END StatsNoPercentiles;
 
-	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
+	PROCEDURE SetGuard* (VAR par: Dialog.Par);
 		VAR
 			variable: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("SummaryCmds:NotInitialized");
+		par.disabled := FALSE;
+		IF ~BugsInterface.IsInitialized() THEN
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("SummaryCmds:NotInitialized", par.label) END
 		ELSE
-			ok := ~BugsInterface.IsAdapting();
-			IF ~ok THEN
-				BugsMsg.Show("SummaryCmds:Adapting");
+			IF BugsInterface.IsAdapting() THEN
+				par.disabled := TRUE;
+				IF BugsCmds.script THEN BugsMsg.Lookup("SummaryCmds:Adapting", par.label) END
 			ELSE
 				variable := dialog.node.item;
-				ok := BugsIndex.Find(variable) # NIL;
-				IF ~ok THEN
-					p[0] := variable$;
-					BugsMsg.ShowParam("SummaryCmds:NotVariable", p);
-				ELSE
-					ok := SummaryIndex.Find(variable) = NIL;
-					IF ~ok THEN
+				IF BugsIndex.Find(variable) = NIL THEN
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN
 						p[0] := variable$;
-						BugsMsg.ShowParam("SummaryCmds:AlreadySet", p);
+						BugsMsg.LookupParam("SummaryCmds:NotVariable", p, par.label)
+					END
+				ELSE
+					IF SummaryIndex.Find(variable) # NIL THEN
+						par.disabled := TRUE;
+						IF BugsCmds.script THEN
+							p[0] := variable$;
+							BugsMsg.LookupParam("SummaryCmds:AlreadySet", p, par.label)
+						END
 					END
 				END
 			END
 		END
 	END SetGuard;
 
-	PROCEDURE StatsGuard* (OUT ok: BOOLEAN);
+	PROCEDURE StatsGuard* (VAR par: Dialog.Par);
 		VAR
 			numMonitors: INTEGER;
 			variable: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("SummaryCmds:NotInitialized");
-		ELSE
-			variable := dialog.node.item;
-			IF~SummaryInterface.IsStar(variable) THEN
-				ok := SummaryIndex.Find(variable) # NIL;
-				IF ~ok THEN
-					p[0] := variable$;
-					BugsMsg.ShowParam("SummaryCmds:NotSet", p);
-				END
-			ELSE
-				numMonitors := SummaryIndex.NumberOfMonitors();
-				ok := numMonitors # 0;
-				IF ~ok THEN
-					BugsMsg.Show("SummaryCmds:NoMonitors");
-				END
-			END
-		END
-	END StatsGuard;
-
-	PROCEDURE SetGuardWin* (VAR par: Dialog.Par);
-		VAR
-			variable: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := FALSE;
 		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
-		ELSE
-			IF BugsInterface.IsAdapting() THEN
-				par.disabled := TRUE
-			ELSE
-				variable := dialog.node.item;
-				IF BugsIndex.Find(variable) = NIL THEN
-					par.disabled := TRUE
-				ELSE
-					IF SummaryIndex.Find(variable) # NIL THEN
-						par.disabled := TRUE
-					END
-				END
-			END
-		END
-	END SetGuardWin;
-
-	PROCEDURE StatsGuardWin* (VAR par: Dialog.Par);
-		VAR
-			numMonitors: INTEGER;
-			variable: Dialog.String;
-	BEGIN
-		par.disabled := FALSE;
-		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("SummaryCmds:NotInitialized", par.label) END
 		ELSE
 			variable := dialog.node.item;
 			IF~SummaryInterface.IsStar(variable) THEN
 				IF SummaryIndex.Find(variable) = NIL THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN 
+						p[0] := variable$;
+						BugsMsg.LookupParam("SummaryCmds:NotSet", p, par.label)
+					END
 				END
 			ELSE
 				numMonitors := SummaryIndex.NumberOfMonitors();
 				IF numMonitors = 0 THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN 
+						BugsMsg.Lookup("SummaryCmds:NoMonitors", par.label)
+					END
 				END
 			END
 		END
-	END StatsGuardWin;
+	END StatsGuard;
 
 	PROCEDURE InitDialog;
 	BEGIN

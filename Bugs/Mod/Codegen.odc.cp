@@ -12,10 +12,10 @@ MODULE BugsCodegen;
 
 	
 
-	IMPORT 
-		Meta, Strings,
+	IMPORT
+		Strings,
 		BugsEvaluate, BugsMsg, BugsParser,
-		GraphGrammar, GraphLogical, GraphMultivariate, GraphNodes, GraphStochastic;
+		GraphGrammar, GraphLogical, GraphNodes, GraphStochastic;
 
 	VAR
 		version-: INTEGER;
@@ -32,50 +32,41 @@ MODULE BugsCodegen;
 			numToString: ARRAY 8 OF CHAR;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
-		BugsMsg.Lookup("BugsCodegen" + numToString, errorMsg); 
-		BugsMsg.Store(errorMsg)
+		BugsMsg.Lookup("BugsCodegen" + numToString, errorMsg);
+		BugsMsg.StoreError(errorMsg) 
 	END Error;
 
-	PROCEDURE GraphError (node: GraphNodes.Node; error: SET; name: ARRAY OF CHAR);
+	PROCEDURE NodeError (error: SET; node: GraphNodes.Node);
 		VAR
-			i, len: INTEGER;
-			mod, type: Meta.Name;
+			i, pos: INTEGER;
 			numToString: ARRAY 8 OF CHAR;
-			context, errorMes, param, install: ARRAY 1024 OF CHAR;
-			item: Meta.Item;
+			errorMes, param, install: ARRAY 1024 OF CHAR;
 			external: GraphGrammar.External;
 	BEGIN
-		context := BugsMsg.message$;
-		Meta.GetItem(node, item);
-		item.GetTypeName(mod, type);
-		len := LEN(type$);
-		type[len - 1] := 0X;
-		install := mod + ".Install";
+		node.Install(install);
 		external := GraphGrammar.FindInstalled(install);
-		IF external = NIL THEN
-			install := install + type;
-			external := GraphGrammar.FindInstalled(install)
-		END;
 		IF external # NIL THEN
 			errorMes := external.name$
 		ELSE
-			errorMes := mod + "." + type
+			Strings.Find(install, "DynamicNode", 0, pos);
+			IF pos # - 1 THEN
+				errorMes := "logical"
+			ELSE
+				errorMes := "unknown type"
+			END;
 		END;
-		errorMes := "error for node " + name + " of type " + errorMes;
+		errorMes := "error for node of type " + errorMes;
 		i := 0;
 		WHILE i <= MAX(SET) DO
 			IF i IN error THEN
 				Strings.IntToString(i, numToString);
 				BugsMsg.Lookup("Graph" + numToString, param);
 				errorMes := errorMes + " " + param;
-				IF i IN {GraphNodes.arg1 .. GraphNodes.arg10} THEN
-					errorMes := errorMes + context
-				END
 			END;
 			INC(i)
 		END;
-		BugsMsg.Store(errorMes)
-	END GraphError;
+		BugsMsg.StoreError(errorMes)
+	END NodeError;
 
 	PROCEDURE Vector (t: BugsParser.Node): GraphNodes.SubVector;
 		VAR
@@ -85,25 +76,26 @@ MODULE BugsCodegen;
 		var := t(BugsParser.Variable);
 		vector := BugsEvaluate.RHVector(var);
 		IF vector = NIL THEN RETURN NIL END;
-		ASSERT(vector.components # NIL, 66);
 		RETURN vector
 	END Vector;
 
 	PROCEDURE WriteVectorToFunc (t: BugsParser.Node; VAR args: GraphStochastic.ArgsLogical);
 		VAR
-			var: BugsParser.Variable;
 			vector: GraphNodes.SubVector;
 			i, nElem, start, step: INTEGER;
 	BEGIN
-		var := t(BugsParser.Variable);
-		vector := BugsEvaluate.RHVector(var);
+		vector := Vector(t);
 		IF vector = NIL THEN args.valid := FALSE; RETURN END;
 		i := 0;
 		start := vector.start;
 		step := vector.step;
 		nElem := vector.nElem;
 		WHILE i < nElem DO
-			IF vector.components[start + i * step] = NIL THEN args.valid := FALSE; RETURN END;
+			IF (vector.components # NIL) & (vector.components[start + i * step] = NIL) THEN 
+				args.valid := FALSE; RETURN 
+			ELSIF (vector.values # NIL) & (vector.values[start + i * step] = INF) THEN
+				args.valid := FALSE; RETURN 
+			END;
 			INC(i)
 		END;
 		args.vectors[args.numVectors] := vector;
@@ -125,7 +117,7 @@ MODULE BugsCodegen;
 			scalar: GraphNodes.Node;
 			i: INTEGER;
 	BEGIN
-		scalar := BugsEvaluate.RHScalar(tree);
+		scalar := BugsEvaluate.RHScalarOpt(tree);
 		IF scalar = NIL THEN args.valid := FALSE; RETURN END;
 		IF args.numOps = LEN(args.ops) THEN
 			args.valid := FALSE; Error(tooManyOperators); RETURN
@@ -173,7 +165,7 @@ MODULE BugsCodegen;
 		END
 	END WriteScalarToStack;
 
-	PROCEDURE WriteFunctionArgs* (function: BugsParser.Function; 
+	PROCEDURE WriteFunctionArgs* (function: BugsParser.Function;
 	VAR args: GraphStochastic.ArgsLogical);
 		VAR
 			i, j, numPar: INTEGER;
@@ -226,7 +218,7 @@ MODULE BugsCodegen;
 			CONST
 				eps = 1.0E-20;
 			VAR
-				i: INTEGER;
+				i, modifier: INTEGER;
 				res: SET;
 				bin: BugsParser.Binary;
 				func: BugsParser.Function;
@@ -271,7 +263,13 @@ MODULE BugsCodegen;
 						IF args.numOps = LEN(args.ops) THEN
 							args.valid := FALSE; Error(tooManyOperators); RETURN
 						END;
-						args.ops[args.numOps] := bin.op;
+						IF bin.left.evaluated THEN
+							args.ops[args.numOps] := bin.op + GraphGrammar.leftConst
+						ELSIF bin.right.evaluated THEN
+							args.ops[args.numOps] := bin.op + GraphGrammar.rightConst
+						ELSE
+							args.ops[args.numOps] := bin.op
+						END;
 						INC(args.numOps)
 					END
 				ELSIF bin.op = GraphGrammar.add THEN
@@ -289,7 +287,13 @@ MODULE BugsCodegen;
 						IF args.numOps = LEN(args.ops) THEN
 							args.valid := FALSE; Error(tooManyOperators); RETURN
 						END;
-						args.ops[args.numOps] := bin.op;
+						IF bin.left.evaluated THEN
+							args.ops[args.numOps] := bin.op + GraphGrammar.leftConst
+						ELSIF bin.right.evaluated THEN
+							args.ops[args.numOps] := bin.op + GraphGrammar.rightConst
+						ELSE
+							args.ops[args.numOps] := bin.op
+						END;
 						INC(args.numOps)
 					END
 				ELSE	(*	div and sub	*)
@@ -300,7 +304,13 @@ MODULE BugsCodegen;
 					IF args.numOps = LEN(args.ops) THEN
 						args.valid := FALSE; Error(tooManyOperators); RETURN
 					END;
-					args.ops[args.numOps] := bin.op;
+					IF bin.left.evaluated THEN
+						args.ops[args.numOps] := bin.op + GraphGrammar.leftConst
+					ELSIF bin.right.evaluated THEN
+						args.ops[args.numOps] := bin.op + GraphGrammar.rightConst
+					ELSE
+						args.ops[args.numOps] := bin.op
+					END;
 					INC(args.numOps)
 				END
 			ELSIF t IS BugsParser.Internal THEN
@@ -314,17 +324,27 @@ MODULE BugsCodegen;
 				IF args.numOps = LEN(args.ops) THEN
 					args.valid := FALSE; Error(tooManyOperators); RETURN
 				END;
-				args.ops[args.numOps] := operator.descriptor.key;
+				IF operator.descriptor.key = GraphGrammar.pow THEN 
+					IF operator.parents[0].evaluated THEN 
+						args.ops[args.numOps] := GraphGrammar.pow + GraphGrammar.leftConst
+					ELSIF operator.parents[1].evaluated THEN 
+						args.ops[args.numOps] := GraphGrammar.pow + GraphGrammar.rightConst
+					ELSE
+						args.ops[args.numOps] := GraphGrammar.pow
+					END
+				ELSE
+				args.ops[args.numOps] := operator.descriptor.key
+				END;
 				INC(args.numOps)
 			ELSIF t IS BugsParser.Function THEN
 				func := t(BugsParser.Function);
 				funcNode := func.descriptor.fact.New();
 				funcArgs.Init;
-				WriteFunctionArgs(func, funcArgs); 
+				WriteFunctionArgs(func, funcArgs);
 				IF ~funcArgs.valid THEN args.valid := FALSE; RETURN END;
 				funcNode.Set(funcArgs, res);
 				IF res # {} THEN
-					args.valid := FALSE; GraphError(funcNode, res, ""); RETURN
+					args.valid := FALSE; NodeError(res, funcNode); RETURN
 				END;
 				IF args.numOps = LEN(args.ops) THEN
 					args.valid := FALSE; Error(tooManyOperators); RETURN
@@ -350,7 +370,7 @@ MODULE BugsCodegen;
 
 	PROCEDURE WriteDensityArgs* (density: BugsParser.Density; VAR args: GraphStochastic.Args);
 		VAR
-			i, numPar: INTEGER;
+			i, j, numPar: INTEGER;
 			descriptor: GraphGrammar.External;
 			variable: BugsParser.Variable;
 			parents: POINTER TO ARRAY OF BugsParser.Node;
@@ -364,75 +384,55 @@ MODULE BugsCodegen;
 		fact.Signature(signature);
 		numPar := fact.NumParam();
 		i := 0;
+		j := 0;
 		parents := density.parents;
 		WHILE i < numPar DO
-			IF parents[i] IS BugsParser.Variable THEN
-				variable := parents[i](BugsParser.Variable);
+			IF parents[j] IS BugsParser.Variable THEN
 				IF signature[i] = "v" THEN
+					variable := parents[j](BugsParser.Variable);
 					vector := Vector(variable);
 					IF vector = NIL THEN args.valid := FALSE; RETURN END;
 					args.vectors[args.numVectors] := vector;
 					INC(args.numVectors)
+				ELSIF signature[i] = "F" THEN
+					args.scalars[args.numScalars] := BugsEvaluate.RHScalar(parents[j]);
+					IF ~args.valid THEN RETURN END;
+					INC(args.numScalars);
+					INC(j);
+					args.scalars[args.numScalars] := BugsEvaluate.RHScalar(parents[j]);
+					INC(args.numScalars)
 				ELSE
-					scalar := BugsEvaluate.RHScalar(variable);
-					IF scalar = NIL THEN args.valid := FALSE; RETURN END;
+					scalar := BugsEvaluate.RHScalar(parents[j]);
+					IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
 					args.scalars[args.numScalars] := scalar;
 					INC(args.numScalars)
 				END
 			ELSE
-				scalar := BugsEvaluate.RHScalar(parents[i]);
-				IF scalar = NIL THEN args.valid := FALSE; RETURN END;
+				scalar := BugsEvaluate.RHScalar(parents[j]);
+				IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
 				args.scalars[args.numScalars] := scalar;
 				INC(args.numScalars)
 			END;
-			INC(i)
+			INC(i);
+			INC(j)
 		END;
 		IF density.leftCen # NIL THEN
-			IF fact IS GraphMultivariate.Factory THEN
-				variable := density.leftCen(BugsParser.Variable);
-				vector := Vector(variable);
-				IF vector = NIL THEN args.valid := FALSE; RETURN END;
-				args.leftVectorCen := vector
-			ELSE
-				args.leftCen := BugsEvaluate.RHScalar(density.leftCen);
-				IF args.leftCen = NIL THEN args.valid := FALSE; RETURN END
-			END
+			args.leftCen := BugsEvaluate.RHScalar(density.leftCen);
+			IF args.leftCen = NIL THEN args.valid := FALSE; RETURN END
 		END;
 		IF density.rightCen # NIL THEN
-			IF fact IS GraphMultivariate.Factory THEN
-				variable := density.rightCen(BugsParser.Variable);
-				vector := Vector(variable);
-				IF vector = NIL THEN args.valid := FALSE; RETURN END;
-				args.rightVectorCen := vector
-			ELSE
-				args.rightCen := BugsEvaluate.RHScalar(density.rightCen);
-				IF args.rightCen = NIL THEN args.valid := FALSE; RETURN END
-			END
+			args.rightCen := BugsEvaluate.RHScalar(density.rightCen);
+			IF args.rightCen = NIL THEN args.valid := FALSE; RETURN END
 		END;
 		IF density.leftTrunc # NIL THEN
-			IF fact IS GraphMultivariate.Factory THEN
-				variable := density.leftTrunc(BugsParser.Variable);
-				vector := Vector(variable);
-				IF vector = NIL THEN args.valid := FALSE; RETURN END;
-				args.leftVectorTrunc := vector
-			ELSE
-				args.leftTrunc := BugsEvaluate.RHScalar(density.leftTrunc);
-				IF args.leftTrunc = NIL THEN args.valid := FALSE; RETURN END
-			END
+			args.leftTrunc := BugsEvaluate.RHScalar(density.leftTrunc);
+			IF args.leftTrunc = NIL THEN args.valid := FALSE; RETURN END
 		END;
 		IF density.rightTrunc # NIL THEN
-			IF fact IS GraphMultivariate.Factory THEN
-				variable := density.rightTrunc(BugsParser.Variable);
-				vector := Vector(variable);
-				IF vector = NIL THEN args.valid := FALSE; RETURN END;
-				args.rightVectorTrunc := vector
-			ELSE
-				args.rightTrunc := BugsEvaluate.RHScalar(density.rightTrunc);
-				IF args.rightTrunc = NIL THEN args.valid := FALSE; RETURN END
-			END
+			args.rightTrunc := BugsEvaluate.RHScalar(density.rightTrunc);
+			IF args.rightTrunc = NIL THEN args.valid := FALSE; RETURN END
 		END
 	END WriteDensityArgs;
-
 
 	PROCEDURE Maintainer;
 	BEGIN

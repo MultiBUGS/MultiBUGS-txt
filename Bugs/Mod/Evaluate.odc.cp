@@ -14,7 +14,7 @@ MODULE BugsEvaluate;
 
 	IMPORT
 		Strings,
-		BugsMsg, BugsNames, BugsParser, 
+		BugsMsg, BugsNames, BugsParser,
 		GraphConstant, GraphGrammar, GraphLogical, GraphMixture, GraphNodes, GraphStochastic;
 
 	TYPE
@@ -38,14 +38,14 @@ MODULE BugsEvaluate;
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
 		BugsMsg.LookupParam("BugsEvaluate" + numToString, p, errorMsg);
-		BugsMsg.Store(errorMsg)
+		BugsMsg.StoreError(errorMsg)
 	END Error;
 
 	PROCEDURE Index* (t: BugsParser.Node): INTEGER;
 		CONST
 			eps = 1.0E-5;
 		VAR
-			i, intValue, left, numSlots, offset, right: INTEGER;
+			i, intValue, left, numSlots, offset, right, key: INTEGER;
 			abs, value: REAL;
 			indices: ARRAY 20 OF INTEGER;
 			string: ARRAY 80 OF CHAR;
@@ -55,6 +55,7 @@ MODULE BugsEvaluate;
 			name: BugsNames.Name;
 			variable: BugsParser.Variable;
 			node: GraphNodes.Node;
+			internal: BugsParser.Internal;
 	BEGIN
 		IF t IS BugsParser.Binary THEN
 			bin := t(BugsParser.Binary);
@@ -81,10 +82,30 @@ MODULE BugsEvaluate;
 				END;
 				RETURN left DIV right
 			END
+		ELSIF t IS BugsParser.Internal THEN
+			internal := t(BugsParser.Internal);
+			left := Index(internal.parents[0]);
+			key := internal.descriptor.key;
+			IF left = error THEN RETURN error END;
+			IF LEN(internal.parents) = 2 THEN
+				right := Index(internal.parents[1]);
+				IF right = error THEN RETURN error END;
+				CASE key  OF
+				|GraphGrammar.equals:
+					IF left = right THEN RETURN 1 ELSE RETURN 0 END
+				|GraphGrammar.max:
+					RETURN MAX(left, right)
+				|GraphGrammar.min:
+					RETURN MIN(left, right)
+				END
+			ELSE
+				ASSERT(key = GraphGrammar.step, 21);
+				IF left >= right THEN RETURN 1 ELSE RETURN 0 END
+			END;
 		ELSIF t IS BugsParser.Variable THEN
 			variable := t(BugsParser.Variable);
 			name := variable.name;
-			IF name.components = NIL THEN
+			IF name.isVariable & (name.components = NIL) THEN
 				Error(2, name.string); (*	variable not defined	*)
 				RETURN error
 			END;
@@ -109,14 +130,19 @@ MODULE BugsEvaluate;
 				Error(5, name.string); (*	index out of range	*)
 				RETURN error
 			END;
-			node := name.components[offset];
-			IF GraphNodes.data IN node.props THEN
-				value := node.Value()
-			ELSE
-				name.Indices(offset, string);
-				Error(6, name.string + string); (*	variable not data	*)
+			IF ~name.IsDefined(offset) THEN
+				Error(2, name.string); (*	variable not defined	*)
 				RETURN error
 			END;
+			IF name.isVariable THEN
+				node := name.components[offset];
+				IF ~(GraphNodes.data IN node.props) THEN
+					name.Indices(offset, string);
+					Error(6, name.string + string); (*	variable not data	*)
+					RETURN error
+				END
+			END;
+			value := name.Value(offset);
 			abs := ABS(value);
 			intValue := SHORT(ENTIER(abs + eps));
 			IF (abs - intValue) > eps THEN
@@ -176,11 +202,11 @@ MODULE BugsEvaluate;
 					RETURN NIL
 				END;
 				IF lower[i] < 1 THEN
-					Error(1, name.string);
+					Error(11, name.string);
 					RETURN NIL
 				END;
 				IF lower[i] > name.slotSizes[i] THEN
-					Error(2, name.string);
+					Error(13, name.string);
 					RETURN NIL
 				END
 			END;
@@ -196,11 +222,11 @@ MODULE BugsEvaluate;
 					RETURN NIL
 				END;
 				IF upper[i] < lower[i] THEN
-					Error(3, name.string); (*	invalid range specified	*)
+					Error(16, name.string); (*	invalid range specified	*)
 					RETURN NIL
 				END;
 				IF upper[i] > name.slotSizes[i] THEN
-					Error(4, name.string); (*	array index greater than array bounds	*)
+					Error(13, name.string); (*	array index greater than array bounds	*)
 					RETURN NIL
 				END
 			END;
@@ -297,7 +323,6 @@ MODULE BugsEvaluate;
 		vector := GraphNodes.NewVector();
 		name := variable.name;
 		IF name.components = NIL THEN Error(2, name.string); RETURN NIL END;
-		ASSERT(name.components # NIL, 21);
 		i := 0;
 		vector.nElem := 1;
 		vector.step := 1;
@@ -335,9 +360,10 @@ MODULE BugsEvaluate;
 		RETURN vector
 	END LHVariable;
 
-	PROCEDURE RHScalar* (tree: BugsParser.Node): GraphNodes.Node;
+	PROCEDURE RHRef (tree: BugsParser.Node; optimizeData: BOOLEAN): GraphNodes.Node;
 		VAR
 			i, k, numSlots, numVarIndex, offset: INTEGER;
+			value: REAL;
 			res: SET;
 			indices: ARRAY 20 OF INTEGER;
 			argL: GraphStochastic.ArgsLogical;
@@ -355,10 +381,10 @@ MODULE BugsEvaluate;
 			numVarIndex := 0;
 			argL.Init;
 			numSlots := name.numSlots;
-			WHILE (i < numSlots) DO
+			WHILE i < numSlots DO
 				IF variable.lower[i] = NIL THEN RETURN NIL END;
 				IF variable.lower[i] IS BugsParser.Variable THEN
-					node := RHScalar(variable.lower[i]);
+					node := RHRef(variable.lower[i], FALSE);
 					IF node = NIL THEN RETURN NIL END;
 					IF ~(node IS GraphLogical.Node) & (GraphNodes.data IN node.props) THEN
 						indices[i] := Index(variable.lower[i]);
@@ -386,8 +412,18 @@ MODULE BugsEvaluate;
 			END;
 			IF numVarIndex = 0 THEN
 				offset := name.Offset(indices);
-				node := variable.name.components[offset];
-				IF node = NIL THEN RETURN NIL END
+				IF name.isVariable THEN
+					node := variable.name.components[offset];
+					IF node = NIL THEN Error(14, name.string); RETURN NIL END
+				ELSE
+					IF ~variable.name.IsDefined(offset) THEN Error(14, name.string); RETURN NIL END;
+					value := variable.name.Value(offset);
+					IF optimizeData THEN
+						node := GraphConstant.Old(value);
+					ELSE
+						node := GraphConstant.New(value)
+					END;
+				END
 			ELSE
 				argL.vectors[0] := GraphNodes.NewVector();
 				argL.vectors[0].components := name.components;
@@ -395,22 +431,44 @@ MODULE BugsEvaluate;
 				argL.numScalars := numVarIndex;
 				node := GraphMixture.fact.New();
 				node.Set(argL, res);
-				IF res # {} THEN RETURN NIL END
+				IF res # {} THEN Error(14, name.string); RETURN NIL END
 			END
 		ELSIF tree IS BugsParser.Integer THEN
 			integer := tree(BugsParser.Integer);
-			node := GraphConstant.New(integer.integer);
+			IF optimizeData THEN
+				node := GraphConstant.Old(integer.integer);
+			ELSE
+				node := GraphConstant.New(integer.integer)
+			END;
 		ELSIF tree IS BugsParser.Real THEN
 			real := tree(BugsParser.Real);
-			node := GraphConstant.New(real.real);
+			IF optimizeData THEN
+				node := GraphConstant.Old(real.real);
+			ELSE
+				node := GraphConstant.New(real.real)
+			END;
 		ELSIF tree IS BugsParser.Index THEN
 			index := tree(BugsParser.Index);
-			node := GraphConstant.New(index.intVal);
+			IF optimizeData THEN
+				node := GraphConstant.Old(index.intVal);
+			ELSE
+				node := GraphConstant.New(index.intVal)
+			END
 		ELSE
 			RETURN NIL
 		END;
 		RETURN node
+	END RHRef;
+
+	PROCEDURE RHScalar* (tree: BugsParser.Node): GraphNodes.Node;
+	BEGIN
+		RETURN RHRef(tree, FALSE)
 	END RHScalar;
+
+	PROCEDURE RHScalarOpt* (tree: BugsParser.Node): GraphNodes.Node;
+	BEGIN
+		RETURN RHRef(tree, TRUE)
+	END RHScalarOpt;
 
 	PROCEDURE RHVector* (variable: BugsParser.Variable): GraphNodes.SubVector;
 		VAR
@@ -424,7 +482,9 @@ MODULE BugsEvaluate;
 	BEGIN
 		vector := GraphNodes.NewVector();
 		name := variable.name;
-		IF name.components = NIL THEN Error(2, name.string); RETURN NIL END;
+		IF (name.components = NIL) & (name.values = NIL) THEN 
+			Error(2, name.string); RETURN NIL 
+		END;
 		i := 0;
 		vector.nElem := 1;
 		vector.step := 1;
@@ -473,7 +533,11 @@ MODULE BugsEvaluate;
 			INC(i)
 		END;
 		IF numVarIndex = 0 THEN
-			vector.components := name.components;
+			IF name.isVariable THEN
+				vector.components := name.components
+			ELSE
+				vector.values := name.values
+			END;
 			vector.start := name.Offset(lower);
 			finish := name.Offset(upper);
 			IF (finish - vector.start + vector.step) DIV vector.step # vector.nElem THEN

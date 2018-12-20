@@ -239,7 +239,7 @@ MODULE BugsRegistry;
 	BEGIN
 		loc := Files.dir.This("Bugs/Rsrc");
 		IF loc = NIL THEN res := 2; RETURN END;
-		name := "Registry";
+		name := "Registry.rrr";
 		res := loc.res; IF res # 0 THEN RETURN END;
 		f := Files.dir.Old(loc, name, Files.shared);
 		IF f = NIL THEN res := 2; RETURN END;
@@ -262,7 +262,7 @@ MODULE BugsRegistry;
 				rd.ReadString(string);
 				WriteString(key, string)
 			ELSE
-				HALT(100)
+				HALT(101)
 			END;
 			rd.ReadString(string)
 		END;
@@ -314,7 +314,7 @@ MODULE BugsRegistry;
 			cursor := cursor.next
 		END;
 		wr.WriteString("END");
-		f.Register(name, "txt", Files.dontAsk, res)
+		f.Register(name, "rrr", Files.dontAsk, res)
 	END Store;
 
 	PROCEDURE Maintainer;

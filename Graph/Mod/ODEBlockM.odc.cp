@@ -27,7 +27,7 @@ MODULE GraphODEBlockM;
 		maintainer: ARRAY 20 OF CHAR;
 
 	TYPE
-		Node* = POINTER TO RECORD (GraphVector.Node)
+		Node = POINTER TO RECORD (GraphVector.Node)
 			tol, atol: REAL;
 			x0, x1, thetaVal: POINTER TO ARRAY OF REAL;
 			solver: MathODE.Solver;
@@ -39,8 +39,6 @@ MODULE GraphODEBlockM;
 			block: GraphNodes.Node
 		END;
 
-		Factory* = POINTER TO ABSTRACT RECORD (GraphVector.Factory) END;
-
 	PROCEDURE (equations: Equations) Block* (): INTEGER, NEW;
 		CONST
 			eps = 1.0E-6;
@@ -51,7 +49,7 @@ MODULE GraphODEBlockM;
 	PROCEDURE (equations: Equations) Adjust- (IN theta: ARRAY OF REAL; VAR x: ARRAY OF REAL;
 	numEq: INTEGER; t: REAL), NEW, EMPTY;
 
-	PROCEDURE (node: Node) Check* (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
 		RETURN {};
 	END Check;
@@ -176,14 +174,14 @@ MODULE GraphODEBlockM;
 		node.solver.equations(Equations).block := node.block
 	END Internalize;
 
-	PROCEDURE (node: Node) ExternalizeVector- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 	BEGIN
 		IF node.index = 0 THEN
 			Externalize(node, wr);
 		END
 	END ExternalizeVector;
 
-	PROCEDURE (node: Node) InternalizeVector- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeVector (VAR rd: Stores.Reader);
 		VAR
 			rep: Node;
 	BEGIN
@@ -205,7 +203,7 @@ MODULE GraphODEBlockM;
 		END
 	END InternalizeVector;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			form, numEq, numBlocks, gridSize, numPar, i: INTEGER;
 			p: GraphNodes.Node;
@@ -242,7 +240,7 @@ MODULE GraphODEBlockM;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate- (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
 		CONST
 			eps = 1.0E-10;
 		VAR
@@ -315,7 +313,7 @@ MODULE GraphODEBlockM;
 		END
 	END Evaluate;
 
-	PROCEDURE (node: Node) InitLogical-;
+	PROCEDURE (node: Node) InitLogical;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.tol := 0.0;
@@ -330,12 +328,12 @@ MODULE GraphODEBlockM;
 		node.inits := NIL;
 	END InitLogical;
 
-	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR);
+	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		node.solver.equations.Install(install)
 	END Install;
 
-	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			numEq, numBlocks, gridSize, numPar, i: INTEGER;
 			p: GraphNodes.Node;
@@ -374,7 +372,7 @@ MODULE GraphODEBlockM;
 		RETURN list;
 	END Parents;
 
-	PROCEDURE (node: Node) Set* (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			numEq, numBlocks, gridSize, numPar, i, off: INTEGER;
 			rep: Node;
@@ -474,12 +472,12 @@ MODULE GraphODEBlockM;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
 	BEGIN
 		HALT(126)
 	END ValDiff;
 
-	PROCEDURE New* (solver: MathODE.Solver; equations: MathODE.Equations; numEq: INTEGER): Node;
+	PROCEDURE New* (solver: MathODE.Solver; equations: MathODE.Equations; numEq: INTEGER): GraphVector.Node;
 		VAR
 			node: Node;
 	BEGIN
@@ -492,7 +490,7 @@ MODULE GraphODEBlockM;
 
 	PROCEDURE Maintainer ();
 	BEGIN
-		maintainer := "   ";
+		maintainer := "---";
 		version := 500;
 	END Maintainer;
 

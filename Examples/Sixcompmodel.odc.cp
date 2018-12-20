@@ -1,6 +1,6 @@
 	model 
 	{
-		solution[1:n.grid, 1:dim] <- ode(init[1:dim], grid[1:n.grid], D(C[1:dim], t),  0, tol)
+		solution[1:n.grid, 1:dim] <- ode.solution(init[1:dim], grid[1:n.grid], D(C[1:dim], t),  0, tol)
 
 		D(C[1], t) <- PER1 * C[7] - R * kT1 * C[1]
 		D(C[2], t) <- PER2 * C[8] - R * kT2 * C[2] - CLR * C[8] / V2

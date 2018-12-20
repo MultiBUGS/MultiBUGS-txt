@@ -81,7 +81,8 @@ TRY USING CONTINUOUS PARAMETERISATION
 			beta[j] ~ dnorm(0.0,1.0E-6)
 		}
 		sigma <- 1 / sqrt(tau)
-		x.change ~ dunif(-1.3,1.1)
+		#x.change ~ dunif(-1.3,1.1)
+		x.change ~ dunif(x[5],x[26])
 	}
  
  

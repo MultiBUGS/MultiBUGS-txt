@@ -46,13 +46,13 @@ MODULE GraphMultinom;
 		rand: POINTER TO ARRAY OF INTEGER;
 		prob: POINTER TO ARRAY OF REAL;
 
-	PROCEDURE (node: Node) BoundsConjugateMV (OUT left, right: REAL);
+	PROCEDURE (node: Node) Bounds (OUT left, right: REAL);
 	BEGIN
 		left := 0;
 		right := node.order
-	END BoundsConjugateMV;
+	END Bounds;
 
-	PROCEDURE (node: Node) CheckConjugateMV (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 		VAR
 			i, order, r, nData, nElem, start, step, sumX: INTEGER;
 			prob, sum: REAL;
@@ -101,7 +101,7 @@ MODULE GraphMultinom;
 			RETURN {GraphNodes.invalidProportions, GraphNodes.arg1}
 		END;
 		RETURN {}
-	END CheckConjugateMV;
+	END Check;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 		VAR
@@ -198,12 +198,6 @@ MODULE GraphMultinom;
 		RETURN - 2.0 * logLikelihood
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
-	BEGIN
-		HALT(126);
-		RETURN 0
-	END DiffLogConditionalMap;
-
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
 			i, r, nElem, start, step: INTEGER;
@@ -248,7 +242,7 @@ MODULE GraphMultinom;
 		END
 	END ExternalizeConjugateMV;
 
-	PROCEDURE (node: Node) InitConjugateMV;
+	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
 		node.SetProps(node.props + {GraphStochastic.integer, GraphStochastic.leftNatural,
 		GraphStochastic.rightNatural, GraphStochastic.noMean});
@@ -256,7 +250,7 @@ MODULE GraphMultinom;
 		node.start := - 1;
 		node.step := 0;
 		node.order := - 1
-	END InitConjugateMV;
+	END InitStochastic;
 
 	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
 		VAR
@@ -320,11 +314,11 @@ MODULE GraphMultinom;
 		RETURN location
 	END Location;
 
-	PROCEDURE (node: Node) LogJacobian (): REAL;
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
 	BEGIN
 		HALT(126);
 		RETURN 0
-	END LogJacobian;
+	END LogDetJacobian;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
@@ -383,7 +377,7 @@ MODULE GraphMultinom;
 		p1[0, 0] := node.order
 	END MVLikelihoodForm;
 
-	PROCEDURE (node: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 	BEGIN
 		HALT(126)
@@ -461,7 +455,7 @@ MODULE GraphMultinom;
 		HALT(126)
 	END PriorForm;
 
-	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -481,7 +475,7 @@ MODULE GraphMultinom;
 		END;
 		GraphNodes.ClearList(list);
 		RETURN list
-	END ParentsConjugateMV;
+	END Parents;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
@@ -508,53 +502,7 @@ MODULE GraphMultinom;
 		END;
 	END Sample;
 
-	(*	PROCEDURE (node: Node) Sample (OUT res: SET);
-	CONST
-	maxIts = 100;
-	VAR
-	i, index, iterations, lastStoch, n, nElem, start, step: INTEGER;
-	newLast, oldLast, oldX, p, sumP, sumX, x: REAL;
-	components: GraphStochastic.Vector;
-	BEGIN
-	components := node.components;
-	nElem := LEN(components);
-	start := node.start;
-	step := node.step;
-	i := 0;
-	index := node.index;
-	sumX := 0;
-	sumP := 0.0;
-	WHILE i < nElem DO
-	IF (GraphNodes.data IN components[i].props) OR (i < index) THEN
-	sumP := sumP + node.p[start + i * step].Value();
-	sumX := sumX + components[i].value
-	END;
-	IF ~(GraphNodes.data IN components[i].props) THEN lastStoch := i END;
-	INC(i)
-	END;
-	p := node.p[start + index * step].Value();
-	IF 1.0 - sumP > eps THEN p := p / (1.0 - sumP) END;
-	n := node.order - SHORT(ENTIER(sumX + eps));
-	oldX := node.value;
-	oldLast := node.components[lastStoch].value;
-	iterations := maxIts;
-	LOOP
-	DEC(iterations);
-	x := MathRandnum.Binomial(p, n);
-	newLast := oldX + oldLast - x;
-	IF newLast >= 0 THEN
-	node.SetValue(x);
-	node.components[lastStoch].SetValue(x);
-	res := {};
-	EXIT
-	ELSIF iterations = 0 THEN
-	res := {GraphNodes.tooManyIts};
-	EXIT
-	END
-	END
-	END Sample;*)
-
-	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			nElem: INTEGER;
 	BEGIN
@@ -581,7 +529,7 @@ MODULE GraphMultinom;
 			END;
 			node.order := SHORT(ENTIER(args.scalars[0].Value() + eps))
 		END
-	END SetConjugateMV;
+	END Set;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR

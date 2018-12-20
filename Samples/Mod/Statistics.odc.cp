@@ -145,7 +145,9 @@ MODULE SamplesStatistics;
 			exKur := (mean4 - 4 * mean3 * mean + 6 * mean2 * mean * mean - 3 * mean * mean * mean * mean) / 
 			(sd * sd * sd * sd) - 3
 		ELSE
-			sd := 0
+			sd := 0;
+			skew := 0;
+			exKur := 0
 		END;
 		binSize := SHORT(ENTIER(Math.Sqrt(sampleSize)));
 		numBins := sampleSize DIV binSize;

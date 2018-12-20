@@ -16,12 +16,13 @@ MODULE GraphValDiff;
 
 	IMPORT
 		Stores,
-		GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate;
+		GraphMultivariate, GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate,
+		MathFunc;
 
 	TYPE
 
 		NodeStochastic = POINTER TO ABSTRACT RECORD (GraphScalar.Node)
-			prior: GraphNodes.Node
+			prior: GraphStochastic.Node
 		END;
 
 		NodeLogical = POINTER TO ABSTRACT RECORD(GraphScalar.Node)
@@ -34,6 +35,8 @@ MODULE GraphValDiff;
 		ADLogCondNode = POINTER TO RECORD (NodeStochastic) END;
 
 		FDLogCondNode = POINTER TO RECORD (NodeStochastic) END;
+
+		FDLogCondMapNode = POINTER TO RECORD (NodeStochastic) END;
 
 		ADNode = POINTER TO RECORD(NodeLogical) END;
 
@@ -49,10 +52,49 @@ MODULE GraphValDiff;
 
 		FDLogCondFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
+		FDLogCondMapFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+
 	VAR
-		aDFact-, fDFact-, aDLogCondFact-, fDLogCondFact-, logCondFact-: GraphScalar.Factory;
+		aDFact-, fDFact-, aDLogCondFact-, 
+		fDLogCondFact-, fDLogCondMapFact-, logCondFact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+
+		values: POINTER TO ARRAY OF REAL;
+
+	PROCEDURE DiffLogConditional (node: GraphStochastic.Node): REAL;
+		VAR
+			diff: REAL;
+			children: GraphStochastic.Vector;
+			i, num: INTEGER;
+	BEGIN
+		diff := node.DiffLogPrior();
+		children := node.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE i < num DO
+			diff := diff + children[i].DiffLogLikelihood(node);
+			INC(i)
+		END;
+		RETURN diff
+	END DiffLogConditional;
+
+	PROCEDURE LogConditional (node: GraphStochastic.Node): REAL;
+		VAR
+			log: REAL;
+			children: GraphStochastic.Vector;
+			i, num: INTEGER;
+	BEGIN
+		log := node.LogPrior();
+		children := node.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE (i < num) & (log > 0.50 * MathFunc.logOfZero) DO
+			log := log + children[i].LogLikelihood();
+			INC(i)
+		END;
+		RETURN log
+	END LogConditional;
 
 	PROCEDURE (node: NodeLogical) Check (): SET;
 	BEGIN
@@ -181,8 +223,11 @@ MODULE GraphValDiff;
 	END ExternalizeLogical;
 
 	PROCEDURE (node: NodeStochastic) InternalizeLogical (VAR rd: Stores.Reader);
+		VAR
+			p: GraphNodes.Node;
 	BEGIN
-		node.prior := GraphNodes.Internalize(rd)
+		p := GraphNodes.Internalize(rd);
+		node.prior := p(GraphStochastic.Node);
 	END InternalizeLogical;
 
 	PROCEDURE (node: NodeStochastic) InitLogical;
@@ -203,11 +248,17 @@ MODULE GraphValDiff;
 	END Parents;
 
 	PROCEDURE (node: NodeStochastic) Set (IN args: GraphNodes.Args; OUT res: SET);
+		VAR
+			p: GraphNodes.Node;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
 			ASSERT(args.scalars[0] # NIL, 21);
-			node.prior := args.scalars[0];
+			p := args.scalars[0];
+			IF ~(p IS GraphStochastic.Node) THEN
+				res := {GraphNodes.arg1, GraphNodes.notStochastic}
+			END;
+			node.prior := p(GraphStochastic.Node)
 		END
 	END Set;
 
@@ -223,20 +274,9 @@ MODULE GraphValDiff;
 
 	PROCEDURE (node: ADLogCondNode) Value (): REAL;
 		VAR
-			prior: GraphUnivariate.Node;
-			children: GraphStochastic.Vector;
 			diff: REAL;
-			i, num: INTEGER;
 	BEGIN
-		prior := node.prior(GraphUnivariate.Node);
-		diff := prior.DiffLogPrior();
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diff := diff +  children[i].DiffLogLikelihood(prior);
-			INC(i)
-		END;
+		diff := DiffLogConditional(node.prior);
 		RETURN diff
 	END Value;
 
@@ -247,33 +287,72 @@ MODULE GraphValDiff;
 
 	PROCEDURE (node: FDLogCondNode) Value (): REAL;
 		VAR
-			prior: GraphUnivariate.Node;
+			prior: GraphStochastic.Node;
 			diff, x: REAL;
-			children: GraphStochastic.Vector;
-			i, num: INTEGER;
 		CONST
 			delta = 0.001;
 	BEGIN
-		prior := node.prior(GraphUnivariate.Node);
+		prior := node.prior;
 		x := prior.value;
 		prior.SetValue(x + delta);
-		diff := prior.LogPrior();
-		children := prior.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diff := diff + children[i].LogLikelihood();
-			INC(i)
-		END;
+		diff := LogConditional(prior);
 		prior.SetValue(x - delta);
-		diff := diff - prior.LogPrior();
-		i := 0;
-		WHILE i < num DO
-			diff := diff - children[i].LogLikelihood();
-			INC(i)
-		END;
+		diff := diff - LogConditional(prior);
 		diff := diff / (2 * delta);
 		prior.SetValue(x);
+		RETURN diff
+	END Value;
+
+	PROCEDURE (node: FDLogCondMapNode) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphValDiff.FDLogCondMapInstall"
+	END Install;
+
+	PROCEDURE (node: FDLogCondMapNode) Value (): REAL;
+		VAR
+			prior: GraphStochastic.Node;
+			components: GraphStochastic.Vector;
+			diff, val: REAL;
+			i, index, size: INTEGER;
+			CONST
+			delta = 0.001;
+	BEGIN
+		prior := node.prior;
+		WITH prior: GraphMultivariate.Node DO
+			index := prior.index;
+			components := prior.components;
+			size := LEN(components);
+			IF size > LEN(values) THEN NEW(values, size) END;
+			i := 0;
+			WHILE i < size DO
+				values[i] := components[i].Map();
+				INC(i)
+			END;
+			values[index] := values[index] + delta;
+			i := 0;
+			WHILE i < size DO
+				components[i].InvMap(values[i]);
+				INC(i)
+			END;
+			diff := LogConditional(prior);
+			values[index] := values[index] - 2.0 * delta;
+			i := 0;
+			WHILE i < size DO
+				components[i].InvMap(values[i]);
+				INC(i)
+			END;
+			diff := diff - LogConditional(prior);
+			diff := diff / (2.0 * delta)
+		ELSE
+			val := prior.Map();
+			val := val + delta;
+			prior.InvMap(val);
+			diff := LogConditional(prior);
+			val := val - 2.0 * delta;
+			prior.InvMap(val);
+			diff := diff - LogConditional(prior);
+			diff := diff / (2.0 * delta)
+		END;
 		RETURN diff
 	END Value;
 
@@ -291,7 +370,7 @@ MODULE GraphValDiff;
 	BEGIN
 		prior := node.prior(GraphUnivariate.Node);
 		log := prior.LogPrior();
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < num DO
@@ -357,6 +436,20 @@ MODULE GraphValDiff;
 		signature := "s"
 	END Signature;
 
+	PROCEDURE (f: FDLogCondMapFactory) New (): GraphScalar.Node;
+		VAR
+			node: FDLogCondMapNode;
+	BEGIN
+		NEW(node);
+		node.Init;
+		RETURN node
+	END New;
+
+	PROCEDURE (f: FDLogCondMapFactory) Signature (OUT signature: ARRAY OF CHAR);
+	BEGIN
+		signature := "s"
+	END Signature;
+
 	PROCEDURE (f: LogCondFactory) New (): GraphScalar.Node;
 		VAR
 			node: LogCondNode;
@@ -391,6 +484,11 @@ MODULE GraphValDiff;
 		GraphNodes.SetFactory(fDLogCondFact)
 	END FDLogCondInstall;
 
+	PROCEDURE FDLogCondMapInstall*;
+	BEGIN
+		GraphNodes.SetFactory(fDLogCondMapFact)
+	END FDLogCondMapInstall;
+
 	PROCEDURE LogCondInstall*;
 	BEGIN
 		GraphNodes.SetFactory(logCondFact)
@@ -408,6 +506,7 @@ MODULE GraphValDiff;
 			fFD: FDFactory;
 			diffLogCondF: ADLogCondFactory;
 			diffLogCondFDF: FDLogCondFactory;
+			diffLogCondMapFDF: FDLogCondMapFactory;
 			logCondF: LogCondFactory;
 	BEGIN
 		Maintainer;
@@ -419,8 +518,11 @@ MODULE GraphValDiff;
 		aDLogCondFact := diffLogCondF;
 		NEW(diffLogCondFDF);
 		fDLogCondFact := diffLogCondFDF;
+		NEW(diffLogCondMapFDF);
+		fDLogCondMapFact := diffLogCondMapFDF;
 		NEW(logCondF);
-		logCondFact := logCondF
+		logCondFact := logCondF;
+		NEW(values, 10)
 	END Init;
 
 BEGIN

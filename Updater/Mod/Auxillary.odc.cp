@@ -39,7 +39,7 @@ MODULE UpdaterAuxillary;
 			prior: GraphStochastic.Node;
 	BEGIN
 		prior := updater.Node(0);
-		RETURN prior.Children()
+		RETURN prior.children
 	END Children;
 
 	PROCEDURE (updater: UpdaterUV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
@@ -128,14 +128,15 @@ MODULE UpdaterAuxillary;
 		RETURN 0.0
 	END LogLikelihood;
 
+	PROCEDURE (updater: UpdaterUV) LogPrior* (): REAL;
+	BEGIN
+		RETURN 0.0
+	END LogPrior;
+
 	PROCEDURE (updater: UpdaterUV) Prior* (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		RETURN updater.node
 	END Prior;
-
-	PROCEDURE (updater: UpdaterUV) SetChildren* (children: GraphStochastic.Vector);
-	BEGIN
-	END SetChildren;
 
 	PROCEDURE (updater: UpdaterUV) SetPrior- (prior: GraphStochastic.Node);
 	BEGIN
@@ -292,14 +293,15 @@ MODULE UpdaterAuxillary;
 		RETURN 0.0
 	END LogLikelihood;
 
+	PROCEDURE (updater: UpdaterMV) LogPrior* (): REAL;
+	BEGIN
+		RETURN 0.0
+	END LogPrior;
+
 	PROCEDURE (updater: UpdaterMV) Prior* (index: INTEGER): GraphStochastic.Node;
 	BEGIN
 		RETURN updater.node
 	END Prior;
-
-	PROCEDURE (updater: UpdaterMV) SetChildren* (children: GraphStochastic.Vector);
-	BEGIN
-	END SetChildren;
 
 	PROCEDURE (updater: UpdaterMV) SetPrior- (prior: GraphStochastic.Node);
 		VAR

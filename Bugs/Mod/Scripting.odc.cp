@@ -12,8 +12,8 @@ MODULE BugsScripting;
 	
 
 	IMPORT 
-		Strings, StdLog,
-		BugsInterpreter, BugsMappers, BugsMsg, BugsScripts;
+		Strings, 
+		BugsInterpreter, BugsMappers, BugsScripts;
 
 	VAR
 		version-: INTEGER;
@@ -85,10 +85,11 @@ MODULE BugsScripting;
 		END
 	END ParseCommand;
 
-	PROCEDURE Script* (VAR s: BugsMappers.Scanner; OUT res: INTEGER);
+	PROCEDURE Script* (VAR s: BugsMappers.Scanner; OUT bugsCommand: ARRAY OF CHAR;
+	OUT res: INTEGER);
 		VAR
 			pos, pos1, i, numPar: INTEGER;
-			bugsCommand, pascalCommand, pat: ARRAY 1024 OF CHAR;
+			pascalCommand, pat: ARRAY 1024 OF CHAR;
 			p: ARRAY 10 OF ARRAY 1024 OF CHAR;
 	BEGIN
 		ParseCommand(s, bugsCommand, p);
@@ -110,18 +111,17 @@ MODULE BugsScripting;
 				END;
 				INC(i)
 			END;
-			StdLog.Ln;StdLog.String(pascalCommand); StdLog.Ln;
 			BugsInterpreter.CmdInterpreter(pascalCommand, res); 
 		ELSE
-			BugsMsg.Show("BugsScript6");
+			res := 6 
 		END
 	END Script;
 
 	PROCEDURE Command* (command: ARRAY OF CHAR; OUT res: INTEGER);
 		VAR
 			beg: INTEGER;
-			pat: ARRAY 1024 OF CHAR;
 			s: BugsMappers.Scanner;
+			bugsCommand: ARRAY 1024 OF CHAR;
 	BEGIN
 		IF command = "" THEN RETURN END;
 		s.ConnectToString(command);
@@ -129,7 +129,7 @@ MODULE BugsScripting;
 		s.SetPos(beg);
 		s.Scan;
 		IF s.eot THEN res := -2; RETURN END;
-		Script(s, res)
+		Script(s, bugsCommand, res)
 	END Command;
 
 	PROCEDURE Maintainer;

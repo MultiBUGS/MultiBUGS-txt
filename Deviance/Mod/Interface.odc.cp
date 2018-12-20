@@ -13,10 +13,9 @@ MODULE DevianceInterface;
 	
 
 	IMPORT
-		Math, BugsIndex, BugsInterface, 
-		BugsNames, DevianceIndex, DevianceMonitors, DevianceParents,
-		DeviancePlugin,
-		GraphStochastic;
+		Math, 
+		BugsIndex, BugsInterface, BugsNames, 
+		DevianceIndex, DevianceMonitors, DeviancePlugin;
 
 	TYPE
 		SetDeviance = POINTER TO RECORD(BugsNames.Visitor)
@@ -41,7 +40,7 @@ MODULE DevianceInterface;
 			toggleWAIC = 4;
 	BEGIN
 		IF ~BugsInterface.IsDistributed() THEN
-			DevianceIndex.Clear
+			DevianceIndex.Clear;
 		ELSIF state = setDistributed THEN
 			lpdGlobal := NIL;
 			pWGlobal := NIL;
@@ -52,7 +51,7 @@ MODULE DevianceInterface;
 			command[4] := -1;
 			BugsInterface.SendCommand(command)
 		END;
-		state := notSet;
+		state := notSet
 	END Clear;
 
 	PROCEDURE NumComponents* (IN name: ARRAY OF CHAR): INTEGER;
@@ -175,12 +174,15 @@ MODULE DevianceInterface;
 		IF plugin # NIL THEN DevianceIndex.SetValues(values) END
 	END Stats;
 
-	PROCEDURE NodeStats* (IN name: ARRAY OF CHAR; OUT dBarTot, dHatTot, dicTot, waicTot, pDTot, pWTot: REAL);
+	PROCEDURE NodeStats* (IN name: ARRAY OF CHAR; OUT dBarTot, dHatTot, dicTot, 
+	waicTot, pDTot, pWTot: REAL);
 		VAR
 			i, len: INTEGER;
+			plugin: DeviancePlugin.Plugin;
 			offsets: POINTER TO ARRAY OF INTEGER;
-			dBar, dHat, dic, waic, pD, pW, variance: POINTER TO ARRAY OF REAL;
+			dBar, dHat, dic, waic, pD, pW: POINTER TO ARRAY OF REAL;
 	BEGIN
+		plugin := DevianceIndex.Plugin();
 		dBarTot := 0.0;
 		dHatTot := 0.0;
 		dicTot := 0.0;
@@ -196,7 +198,7 @@ MODULE DevianceInterface;
 			dBarTot := dBarTot + dBar[i];
 			waicTot := waicTot + waic[i];
 			pWTot := pWTot + pW[i];
-			IF dHat # NIL THEN
+			IF plugin # NIL THEN
 				pDTot := pDTot + pD[i];
 				dHatTot := dHatTot + dHat[i];
 				dicTot := dicTot + dic[i]
@@ -217,7 +219,10 @@ MODULE DevianceInterface;
 			monitor: DevianceMonitors.Monitor;
 			i, size: INTEGER;
 	BEGIN
-		monitor := DevianceMonitors.fact.New(node, v.termOffset);
+		monitor := NIL;
+		IF node.isVariable THEN
+			monitor := DevianceMonitors.fact.New(node, v.termOffset)
+		END;
 		IF monitor # NIL THEN
 			DevianceIndex.Register(monitor);
 			i := 0;
@@ -232,9 +237,7 @@ MODULE DevianceInterface;
 	PROCEDURE Set*;
 		VAR
 			v: SetDeviance;
-			parents: DevianceParents.Monitor;
 			name: BugsNames.Name;
-			ok: BOOLEAN;
 			i, numChains: INTEGER;
 			command: BugsInterface.Command;
 		CONST

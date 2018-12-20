@@ -36,6 +36,9 @@ MODULE GraphMultivariate;
 
 	PROCEDURE (node: Node) LogMVPrior* (): REAL, NEW, ABSTRACT;
 
+	PROCEDURE (node: Node) MVPriorForm* (OUT p0: ARRAY OF REAL;
+	OUT p1: ARRAY OF ARRAY OF REAL), NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) MVSample* (OUT res: SET), NEW, ABSTRACT;
 
 		(*	concrete node methods	*)
@@ -71,7 +74,7 @@ MODULE GraphMultivariate;
 			NEW(components, size);
 			WHILE i < size DO
 				p := GraphNodes.InternalizePointer(rd);
-				components[i] := p(Node);
+				components[i] := p(GraphStochastic.Node);
 				components[i](Node).components := components;
 				components[i](Node).index := i;
 				INC(i)
@@ -79,6 +82,27 @@ MODULE GraphMultivariate;
 		END;
 		node.InternalizeMultivariate(rd)
 	END InternalizeStochastic;
+
+	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
+		CONST
+			informative = {GraphNodes.data, GraphStochastic.censored, GraphStochastic.hasLikelihood};
+		VAR
+			isLikelihoodTerm: BOOLEAN;
+			i, size: INTEGER;
+			com: GraphStochastic.Vector;
+	BEGIN
+		isLikelihoodTerm := informative * node.props # {};
+		IF ~isLikelihoodTerm THEN
+			com := node.components;
+			i := 0;
+			size := node.Size();
+			WHILE (i < size) & ~isLikelihoodTerm DO
+				isLikelihoodTerm := informative * com[i].props # {};
+				INC(i)
+			END
+		END;
+		RETURN isLikelihoodTerm
+	END IsLikelihoodTerm;
 
 	PROCEDURE (node: Node) LikelihoodForm* (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL), NEW, ABSTRACT;

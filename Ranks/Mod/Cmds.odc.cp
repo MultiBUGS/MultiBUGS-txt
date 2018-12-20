@@ -13,10 +13,9 @@ MODULE RanksCmds;
 
 	IMPORT
 		Dialog, Ports, Strings,
-		BugsDialog,
-		BugsFiles, BugsIndex, BugsInterface, BugsMsg, PlotsViews,
-		RanksDensity,
-		RanksFormatted, RanksIndex, RanksInterface, RanksMonitors, 
+		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg, 
+		PlotsViews,
+		RanksDensity, RanksFormatted, RanksIndex, RanksInterface, RanksMonitors, 
 		TextMappers, TextModels;
 
 	TYPE
@@ -112,6 +111,7 @@ MODULE RanksCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		IF RanksInterface.IsStar(name) THEN
@@ -122,7 +122,8 @@ MODULE RanksCmds;
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -136,13 +137,15 @@ MODULE RanksCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		RanksInterface.Clear(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -232,13 +235,15 @@ MODULE RanksCmds;
 			errorMes: ARRAY 1024 OF CHAR;
 			name: ARRAY 128 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
+			msg: ARRAY 1024 OF CHAR;
 	BEGIN
 		name := dialog.node.item$;
 		RanksInterface.Set(name, ok);
 		IF ~ok THEN
 			p[0] := name$;
 			errorMes := BugsMsg.message$;
-			BugsMsg.ShowParam(errorMes, p);
+			BugsMsg.LookupParam(errorMes, p, msg);
+			BugsFiles.ShowStatus(msg);
 			RETURN
 		END;
 		UpdateNames;
@@ -281,34 +286,40 @@ MODULE RanksCmds;
 
 	(*	Guards	*)
 
-	PROCEDURE SetGuard* (OUT ok: BOOLEAN);
+	PROCEDURE SetGuard* (VAR par: Dialog.Par);
 		VAR
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 			variable: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("RanksCmds:NotInitialized");
+		par.disabled := FALSE;
+		IF ~BugsInterface.IsInitialized() THEN
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("RanksCmds:NotInitialized", par.label) END
 		ELSE
-			variable := dialog.node.item;
-			ok := ~BugsInterface.IsAdapting();
-			IF ~ok THEN
-				BugsMsg.Show("RanksCmds:Adapting");
+			IF BugsInterface.IsAdapting() THEN
+				par.disabled := TRUE;
+				IF BugsCmds.script THEN BugsMsg.Lookup("RanksCmds:Adapting", par.label) END
 			ELSE
-				ok := BugsIndex.Find(variable) # NIL;
-				IF ~ok THEN
-					p[0] := variable$;
-					BugsMsg.ShowParam("RanksCmds:NotVariable", p);
+				variable := dialog.node.item;
+				IF BugsIndex.Find(variable) = NIL THEN
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN 
+						BugsMsg.LookupParam("RanksCmds:NotVariable", p, par.label)
+					END
 				ELSE
-					ok := BugsIndex.Find(variable).numSlots = 1;
-					IF ~ok THEN
-						p[0] := variable$;
-						BugsMsg.ShowParam("RanksCmds:NotVector", p);
-					ELSE
-						ok := RanksIndex.Find(variable) = NIL;
-						IF ~ok THEN
+					IF BugsIndex.Find(variable).numSlots # 1 THEN
+						par.disabled := TRUE;
+						IF BugsCmds.script THEN 
 							p[0] := variable$;
-							BugsMsg.ShowParam("RanksCmds:AlreadySet", p);
+							BugsMsg.LookupParam("RanksCmds:NotVector", p, par.label)
+						END
+					ELSE
+						IF RanksIndex.Find(variable) # NIL THEN
+							par.disabled := TRUE;
+							IF BugsCmds.script THEN 
+								p[0] := variable$;
+								BugsMsg.LookupParam("RanksCmds:AlreadySet", p, par.label)
+							END
 						END
 					END
 				END
@@ -316,82 +327,37 @@ MODULE RanksCmds;
 		END
 	END SetGuard;
 
-	PROCEDURE StatsGuard* (OUT ok: BOOLEAN);
+	PROCEDURE StatsGuard* (VAR par: Dialog.Par);
 		VAR
 			numMonitors: INTEGER;
 			variable: Dialog.String;
-			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
-	BEGIN
-		ok := BugsInterface.IsInitialized();
-		IF ~ok THEN
-			BugsMsg.Show("RanksCmds:NotInitialized");
-		ELSE
-			variable := dialog.node.item;
-			IF~RanksInterface.IsStar(variable) THEN
-				ok := RanksIndex.Find(variable) # NIL;
-				IF ~ok THEN
-					p[0] := variable$;
-					BugsMsg.ShowParam("RanksCmds:NotSet", p);
-				END
-			ELSE
-				numMonitors := RanksIndex.NumberOfMonitors();
-				ok := numMonitors # 0; ;
-				IF ~ok THEN
-					BugsMsg.Show("RanksCmds:NoMonitors");
-				END
-			END
-		END
-	END StatsGuard;
-
-	PROCEDURE SetGuardWin* (VAR par: Dialog.Par);
-		VAR
-			variable: Dialog.String;
+			p: ARRAY 1 OF Dialog.String;
 	BEGIN
 		par.disabled := FALSE;
 		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
-		ELSE
-			IF BugsInterface.IsAdapting() THEN
-				par.disabled := TRUE
-			ELSE
-				variable := dialog.node.item;
-				IF BugsIndex.Find(variable) = NIL THEN
-					par.disabled := TRUE
-				ELSE
-					IF BugsIndex.Find(variable).numSlots # 1 THEN
-						par.disabled := TRUE
-					ELSE
-						IF RanksIndex.Find(variable) # NIL THEN
-							par.disabled := TRUE
-						END
-					END
-				END
-			END
-		END
-	END SetGuardWin;
-
-	PROCEDURE StatsGuardWin* (VAR par: Dialog.Par);
-		VAR
-			numMonitors: INTEGER;
-			variable: Dialog.String;
-	BEGIN
-		par.disabled := FALSE;
-		IF ~BugsInterface.IsInitialized() THEN
-			par.disabled := TRUE
+			par.disabled := TRUE;
+			IF BugsCmds.script THEN BugsMsg.Lookup("RanksCmds:NotInitialized", par.label) END
 		ELSE
 			variable := dialog.node.item;
 			IF~RanksInterface.IsStar(variable) THEN
 				IF RanksIndex.Find(variable) = NIL THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN
+						p[0] := variable$;
+						BugsMsg.LookupParam("RanksCmds:NotSet", p, par.label);
+					END
 				END
 			ELSE
 				numMonitors := RanksIndex.NumberOfMonitors();
 				IF numMonitors = 0 THEN
-					par.disabled := TRUE
+					par.disabled := TRUE;
+					IF BugsCmds.script THEN
+						BugsMsg.Lookup("RanksCmds:NoMonitors", par.label)
+					END
 				END
 			END
 		END
-	END StatsGuardWin;
+	END StatsGuard;
 
 	PROCEDURE (dialogBox0: DialogBox) Init-;
 	BEGIN

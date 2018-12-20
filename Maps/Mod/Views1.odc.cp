@@ -15,7 +15,7 @@ MODULE MapsViews1;
 	IMPORT
 		Controllers, Dialog, Files, Ports, Properties, Stores, Strings, Views,
 		TextMappers, TextModels, 
-		BugsMappers, 
+		BugsFiles, BugsMappers, 
 		MapsAdjacency, MapsIndex, MapsMap, 
 		PlotsAxis, PlotsViews;
 
@@ -268,7 +268,7 @@ MODULE MapsViews1;
 		f.ConnectTo(t);
 		f.SetPos(0);
 		v.map.Print(f);
-		(*f.Register("Splus map")*)
+		BugsFiles.Open("Splus map", t)
 	END ShowData;
 
 	PROCEDURE New* (IN title: ARRAY OF CHAR; map: MapsMap.Map): PlotsViews.View;

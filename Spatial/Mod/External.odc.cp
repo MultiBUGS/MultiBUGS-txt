@@ -34,12 +34,15 @@ MODULE SpatialExternal;
 		Function("min.bound", "SpatialBound.MinInstall");
 		Density("car.proper", "SpatialCARProper.Install");
 
-		Density("spatial.disc", "SpatialDiscKrig.Install");
-		Density("spatial.exp", "SpatialExpKrig.Install");
-		Density("spatial.matern", "SpatialMaternKrig.Install");
+		Density("spatial.disc", "SpatialDiscKrig.Install2");
+		Density("spatial.exp", "SpatialExpKrig.Install2");
+		Density("spatial.matern", "SpatialMaternKrig.Install2");
 
-		Density("spatial.pred", "SpatialStrucMVN.PredMultiInstall");
-		Density("spatial.unipred", "SpatialStrucMVN.PredUniInstall");
+		Density("GPexp", "SpatialExpKrig.Install1");
+		
+		Density("line.pred", "GraphGPprior.PredMultiInstall1");
+		Density("spatial.pred", "GraphGPprior.PredMultiInstall2");
+		Density("spatial.unipred", "GraphGPprior.PredUniInstall2");
 
 		Density("dpois.conv", "SpatialPoissconv.Install");
 		

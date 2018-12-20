@@ -30,7 +30,7 @@ MODULE DiffFiveCompModel;
 		PP = 0; RP = 1; GU = 2; LI = 3; LU = 4; VEN = 5; ART = 6;
 
 	VAR
-		fact-: GraphNodes.Factory;
+		fact-: GraphVector.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -91,7 +91,7 @@ MODULE DiffFiveCompModel;
 			solver: MathODE.Solver;
 	BEGIN
 		NEW(equations);
-		solver := MathRungeKutta45.fact.New();
+		solver := MathRungeKutta45.New();
 		node := GraphODEmath.New(solver, equations, nEq);
 		RETURN node
 	END New;

@@ -13,17 +13,14 @@ MODULE GraphUVMRF;
 	
 
 	IMPORT
-		Math, Stores, 
-		GraphMRF, GraphNodes, GraphRules,
-		GraphStochastic,
+		Math, Stores,
+		GraphMRF, GraphNodes, GraphRules, GraphStochastic,
 		MathFunc, MathRandnum, MathSparsematrix;
 
 	TYPE
 		Node* = POINTER TO ABSTRACT RECORD(GraphMRF.Node)
 			tau-: GraphNodes.Node
 		END;
-
-		Normal* = POINTER TO ABSTRACT RECORD(Node) END;
 
 	CONST
 		eps = 1.0E-10;
@@ -33,9 +30,14 @@ MODULE GraphUVMRF;
 		maintainer-: ARRAY 40 OF CHAR;
 		log2Pi: REAL;
 
+	PROCEDURE (node: Node) BlockSize* (): INTEGER;
+	BEGIN
+		RETURN 1
+	END BlockSize;
+
 	PROCEDURE (node: Node) CheckUVMRF- (): SET, NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) Check* (): SET;
+	PROCEDURE (node: Node) CheckChain- (): SET;
 	BEGIN
 		IF node.index # - 1 THEN
 			IF node.tau.Value() < - eps THEN
@@ -43,7 +45,7 @@ MODULE GraphUVMRF;
 			END
 		END;
 		RETURN node.CheckUVMRF()
-	END Check;
+	END CheckChain;
 
 	PROCEDURE (node: Node) ClassifyLikelihoodUVMRF- (parent: GraphStochastic.Node): INTEGER, NEW, ABSTRACT;
 
@@ -95,49 +97,65 @@ MODULE GraphUVMRF;
 		RETURN differential
 	END DiffLogLikelihood;
 
-	PROCEDURE (node: Node) ExternalizeChainUVMRF- (VAR wr: Stores.Writer), NEW, ABSTRACT;
+	PROCEDURE (node: Node) ExternalizeUVMRF- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer);
 	BEGIN
 		IF node.index = 0 THEN
 			GraphNodes.Externalize(node.tau, wr)
 		END;
-		node.ExternalizeChainUVMRF(wr);
+		node.ExternalizeUVMRF(wr)
 	END ExternalizeChain;
 
-	PROCEDURE (node: Node) InitStochasticUVMRF-, NEW, ABSTRACT;
+	PROCEDURE (node: Node) InitUVMRF-, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) InitStochastic-;
 	BEGIN
 		node.tau := NIL;
 		node.SetProps(node.props + {GraphStochastic.noMean});
-		node.InitStochasticUVMRF
+		node.InitUVMRF
 	END InitStochastic;
 
-	PROCEDURE (node: Node) InternalizeChainUVMRF- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+	PROCEDURE (node: Node) InternalizeUVMRF- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) InternalizeChain- (VAR rd: Stores.Reader);
 		VAR
 			i, size: INTEGER;
-			p: Node;
+			p: GraphStochastic.Node;
 	BEGIN
 		IF node.index = 0 THEN
 			size := node.Size();
 			node.tau := GraphNodes.Internalize(rd);
 			i := 1;
 			WHILE i < size DO
-				p := node.components[i](Node);
-				p.tau := node.tau;
+				p := node.components[i];
+				IF p IS Node THEN p(Node).tau := node.tau END;
 				INC(i)
 			END
 		END;
-		node.InternalizeChainUVMRF(rd)
+		node.InternalizeUVMRF(rd)
 	END InternalizeChain;
 
 	PROCEDURE (node: Node) Location* (): REAL;
 	BEGIN
 		RETURN 0.0
 	END Location;
+
+	PROCEDURE (node: Node) LogLikelihoodUVMRF- (): REAL, NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) LogLikelihood* (): REAL;
+		VAR
+			as: INTEGER;
+			lambda, logLikelihood, logTau, r, tau: REAL;
+			x: GraphNodes.Node;
+	BEGIN
+		as := GraphRules.gamma;
+		node.LikelihoodForm(as, x, r, lambda);
+		tau := x.Value();
+		logTau := MathFunc.Ln(tau);
+		logLikelihood := r * logTau - tau * lambda + node.LogLikelihoodUVMRF();
+		RETURN logLikelihood
+	END LogLikelihood;
 
 	PROCEDURE (node: Node) LogMVPrior* (): REAL;
 		VAR
@@ -159,8 +177,9 @@ MODULE GraphUVMRF;
 			i, nElements, size, type, classPrior: INTEGER;
 			aX, aZ, constraint: REAL;
 			rowInd, colPtr: POINTER TO ARRAY OF INTEGER;
-			elements, eps, x, z: POINTER TO ARRAY OF REAL;
+			elements, eps, x, z, mu: POINTER TO ARRAY OF REAL;
 			constraints: POINTER TO ARRAY OF ARRAY OF REAL;
+			p1: ARRAY 1 OF ARRAY 1 OF REAL;
 			m: MathSparsematrix.Matrix;
 			llt: MathSparsematrix.LLT;
 		CONST
@@ -180,6 +199,8 @@ MODULE GraphUVMRF;
 		NEW(x, size);
 		NEW(z, size);
 		NEW(eps, size);
+		NEW(mu, size);
+		node.MVPriorForm(mu, p1);
 		node.MatrixMap(rowInd, colPtr);
 		node.MatrixElements(elements);
 		m := MathSparsematrix.New(size, nElements);
@@ -190,7 +211,7 @@ MODULE GraphUVMRF;
 		llt := MathSparsematrix.LLTFactor(m);
 		i := 0;
 		WHILE i < size DO
-			x[i] := MathRandnum.StandardNormal();
+			x[i] := mu[i] + MathRandnum.StandardNormal();
 			INC(i)
 		END;
 		MathSparsematrix.BackSub(llt, x, size);
@@ -255,16 +276,11 @@ MODULE GraphUVMRF;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.Args DO
-			ASSERT(args.scalars[args.numScalars - 1] # NIL, 21);
-			node.tau := args.scalars[args.numScalars - 1]
+			ASSERT(args.scalars[0] # NIL, 21);
+			node.tau := args.scalars[0]
 		END;
 		node.SetUVMRF(args, res);
 	END Set;
-
-	PROCEDURE (node: Normal) ClassifyPrior* (): INTEGER;
-	BEGIN
-		RETURN GraphRules.normal
-	END ClassifyPrior;
 
 	PROCEDURE Maintainer;
 	BEGIN

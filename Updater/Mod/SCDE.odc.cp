@@ -120,22 +120,21 @@ MODULE UpdaterSCDE;
 
 	PROCEDURE (updater: Updater) MetTest (): REAL, NEW, ABSTRACT;
 
-	PROCEDURE (updater: Updater) Sample (overRelax
-	: BOOLEAN; OUT res: SET);
+	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			logAlpha, newLogDen, newVal, oldLogDen: REAL;
+			logAlpha, newLogDen, newVal, oldLogDen, oldVal: REAL;
 			prior: GraphStochastic.Node;
 	BEGIN
 		IF updater.updaters =  NIL THEN BuildProposal(updater) END;
 		prior := updater.prior;
-		updater.StoreOldValue;
-		oldLogDen := prior.LogConditional() + prior.LogJacobian();
+		oldVal := prior.value;
+		oldLogDen := updater.LogConditional() + prior.LogDetJacobian();
 		newVal := SampleProposal(updater);
 		prior.SetValue(newVal);
-		newLogDen := prior.LogConditional() + prior.LogJacobian();
+		newLogDen := updater.LogConditional() + prior.LogDetJacobian();
 		logAlpha := newLogDen - oldLogDen;
 		IF logAlpha < updater.MetTest() THEN
-			prior.SetValue(updater.oldVal);
+			prior.SetValue(oldVal);
 			INC(updater.rejectCount);
 		END;
 		INC(updater.iteration);
@@ -184,7 +183,7 @@ MODULE UpdaterSCDE;
 	PROCEDURE (f: FactoryMet) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -215,7 +214,7 @@ MODULE UpdaterSCDE;
 	PROCEDURE (f: FactoryMAP) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

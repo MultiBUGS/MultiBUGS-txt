@@ -1,7 +1,7 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
@@ -13,19 +13,18 @@ MODULE SpatialMaternKrig;
 	
 
 	IMPORT
-		Math, 
-		GraphMultivariate, GraphNodes, GraphStochastic,
-		MathFunc,
-		SpatialStrucMVN;
+		Math,
+		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes, GraphStochastic,
+		MathFunc;
 
 	TYPE
 
 		Factory = POINTER TO RECORD(GraphMultivariate.Factory) END;
 
-		Kernel = POINTER TO RECORD(SpatialStrucMVN.SpatialKernel) END;
+		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
 	VAR
-		fact-: GraphMultivariate.Factory;
+		fact2-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		kernel: Kernel;
@@ -35,7 +34,7 @@ MODULE SpatialMaternKrig;
 		install := "SpatialMaternKrig.Install"
 	END Install;
 
-	PROCEDURE (kernel: Kernel) Element (x1, x2: SpatialStrucMVN.Point; params: ARRAY OF REAL): REAL;
+	PROCEDURE (kernel: Kernel) Element (x1, x2: GraphGPprior.Point; params: ARRAY OF REAL): REAL;
 		CONST
 			eps = 1.0E-10;
 		VAR
@@ -61,15 +60,11 @@ MODULE SpatialMaternKrig;
 		RETURN 2
 	END NumParams;
 
-	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
+	PROCEDURE (f: Factory) New (): GraphChain.Node;
 		VAR
-			node: SpatialStrucMVN.Node;
-			p: GraphStochastic.Node;
+			node: GraphChain.Node;
 	BEGIN
-		p := SpatialStrucMVN.fact.New();
-		node := p(SpatialStrucMVN.Node);
-		node.Init;
-		node.SetKernel(kernel);
+		node := GraphGPprior.New(kernel);
 		RETURN node
 	END New;
 
@@ -86,10 +81,10 @@ MODULE SpatialMaternKrig;
 		END
 	END Signature;
 
-	PROCEDURE Install*;
+	PROCEDURE Install2*;
 	BEGIN
-		GraphNodes.SetFactory(fact)
-	END Install;
+		GraphNodes.SetFactory(fact2)
+	END Install2;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -99,11 +94,11 @@ MODULE SpatialMaternKrig;
 
 	PROCEDURE Init;
 		VAR
-			f: Factory;
+			f2: Factory;
 	BEGIN
 		Maintainer;
-		NEW(f);
-		fact := f;
+		NEW(f2);
+		fact2 := f2;
 		NEW(kernel)
 	END Init;
 

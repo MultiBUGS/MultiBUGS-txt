@@ -41,22 +41,27 @@ MODULE GraphWishart;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		value, s: POINTER TO ARRAY OF ARRAY OF REAL;
+		value, r: POINTER TO ARRAY OF ARRAY OF REAL;
+		indVals: POINTER TO ARRAY OF REAL;
 
-	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
+	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
 	BEGIN
 		lower := - INF;
 		upper := INF
-	END BoundsConjugateMV;
+	END Bounds;
 
-	PROCEDURE (node: Node) CheckConjugateMV (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
-		RETURN {}
-	END CheckConjugateMV;
+		IF GraphNodes.data IN node.props THEN
+			RETURN {GraphNodes.lhs, GraphNodes.notStochastic}
+		ELSE
+			RETURN {}
+		END
+	END Check;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0
 	END ClassifyLikelihood;
 
@@ -67,25 +72,19 @@ MODULE GraphWishart;
 
 	PROCEDURE (node: Node) Deviance (): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0);
 		RETURN 0.0
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
-	BEGIN
-		HALT(126);
-		RETURN 0
-	END DiffLogConditionalMap;
-
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0); (*	need to implement ???	*)
 		RETURN 0.0
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 	BEGIN
-		HALT(126);
+		HALT(0); (*	need to implement ???	*)
 		RETURN 0.0
 	END DiffLogPrior;
 
@@ -116,7 +115,8 @@ MODULE GraphWishart;
 			rd.ReadInt(dim);
 			IF dim > LEN(value, 0) THEN
 				NEW(value, dim, dim);
-				NEW(s, dim, dim);
+				NEW(r, dim, dim);
+				NEW(indVals, (dim * (dim + 1)) DIV 2)
 			END;
 			GraphNodes.InternalizeSubvector(v, rd);
 			node.r := v.components;
@@ -126,7 +126,7 @@ MODULE GraphWishart;
 			node.k := GraphNodes.Internalize(rd);
 			i := 1;
 			WHILE i < size DO
-				p := node.components[0](Node);
+				p := node.components[i](Node);
 				p.start := node.start;
 				p.step := node.step;
 				p.r := node.r;
@@ -137,14 +137,14 @@ MODULE GraphWishart;
 		END
 	END InternalizeConjugateMV;
 
-	PROCEDURE (node: Node) InitConjugateMV;
+	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
 		node.r := NIL;
 		node.k := NIL;
 		node.dim := 0;
 		node.start := - 1;
 		node.step := 0
-	END InitConjugateMV;
+	END InitStochastic;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -152,26 +152,202 @@ MODULE GraphWishart;
 	END Install;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
+		VAR
+			i, j, k, dim, indSize, index, offset: INTEGER;
+			sum: REAL;
 	BEGIN
-		HALT(126);
+		dim := node.dim;
+		indSize := (dim * (dim + 1)) DIV 2;
+		index := node.index;
+		indVals[index] := y;
+		IF index = indSize - 1 THEN
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					value[i, j] := 0;
+					INC(j)
+				END;
+				INC(i)
+			END;
+			i := 0;
+			offset := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j <= i DO
+					value[i, j] := indVals[offset];
+					INC(offset);
+					INC(j)
+				END;
+				INC(i)
+			END;
+			i := 0;
+			WHILE i < dim DO
+				value[i, i] := Math.Exp(value[i, i]);
+				INC(i)
+			END;
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					sum := 0.0;
+					k := 0;
+					WHILE k < dim DO
+						sum := sum + value[i, k] * value[j, k];
+						INC(k)
+					END;
+					node.components[i * dim + j].SetValue(sum);
+					INC(j)
+				END;
+				INC(i)
+			END
+		END
 	END InvMap;
-
-	PROCEDURE (node: Node) LogJacobian (): REAL;
-	BEGIN
-		HALT(126);
-		RETURN 0
-	END LogJacobian;
 
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
 	BEGIN
-		HALT(126)
+		HALT(0)
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) Map (): REAL;
+	PROCEDURE (node: Node) Location (): REAL;
+		VAR
+			dim, i, j, start, step, index: INTEGER;
+			k: REAL;
 	BEGIN
-		HALT(126);
-		RETURN node.value
+		dim := node.dim;
+		start := node.start;
+		step := node.step;
+		i := 0;
+		WHILE i < dim DO
+			j := 0;
+			WHILE j < dim DO
+				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				INC(j)
+			END;
+			INC(i)
+		END;
+		k := node.k.Value();
+		MathMatrix.Invert(r, dim);
+		index := node.index;
+		i := index DIV dim;
+		j := index MOD dim;
+		RETURN k * r[i, j]
+	END Location;
+
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
+		VAR
+			i, j, dim, index: INTEGER;
+			log: REAL;
+	BEGIN
+		log := 0.0;
+		index := node.index;
+		dim := node.dim;
+		IF index = 0 THEN
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					value[i, j] := node.components[i * dim + j].value;
+					INC(j)
+				END;
+				INC(i)
+			END;
+			MathMatrix.Cholesky(value, dim);
+			i := 0;
+			WHILE i < dim DO
+				log := log + (1 + dim - i) * Math.Ln(value[i, i]);
+				INC(i)
+			END
+		END;
+		RETURN log
+	END LogDetJacobian;
+
+	PROCEDURE (node: Node) LogLikelihood (): REAL;
+	BEGIN
+		RETURN node.LogPrior()
+	END LogLikelihood;
+
+	PROCEDURE (node: Node) LogMVPrior (): REAL;
+	BEGIN
+		RETURN node.LogPrior()
+	END LogMVPrior;
+
+	PROCEDURE (node: Node) LogPrior (): REAL;
+		VAR
+			i, j, dim, start, step: INTEGER;
+			k, log, trace: REAL;
+	BEGIN
+		dim := node.dim;
+		start := node.start;
+		step := node.step;
+		k := node.k.Value();
+		i := 0;
+		WHILE i < dim DO
+			j := 0;
+			WHILE j < dim DO
+				value[i, j] := node.components[i * dim + j].value;
+				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				INC(j)
+			END;
+			INC(i)
+		END;
+		trace := 0;
+		i := 0;
+		WHILE i < dim DO
+			j := 0;
+			WHILE j < dim DO
+				trace := trace + r[i, j] * value[j, i];
+				INC(j)
+			END;
+			INC(i)
+		END;
+		log := 0.5 * (k - dim - 1) * MathMatrix.LogDet(value, dim) - 0.5 * trace;
+		RETURN log
+	END LogPrior;
+
+	PROCEDURE (node: Node) Map (): REAL;
+		VAR
+			i, j, dim, index, indSize, offset: INTEGER;
+	BEGIN
+		index := node.index;
+		dim := node.dim;
+		indSize := (dim * (dim + 1)) DIV 2;
+		IF index = 0 THEN
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < i DO
+					value[i, j] := node.components[i * dim + j].value;
+					value[j, i] := value[i, j];
+					INC(j)
+				END;
+				value[i, i] := node.components[i * dim + i].value;
+				INC(i)
+			END;
+			MathMatrix.Cholesky(value, dim);
+			i := 0;
+			WHILE i < dim DO
+				value[i, i] := Math.Ln(value[i, i]);
+				INC(i)
+			END;
+			i := 0;
+			offset := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j <= i DO
+					indVals[offset] := value[i, j];
+					INC(offset);
+					INC(j)
+				END;
+				INC(i)
+			END
+		END;
+		IF index < indSize THEN
+			RETURN indVals[index]
+		ELSE
+			RETURN 0.0
+		END
 	END Map;
 
 	PROCEDURE (node: Node) MVLikelihoodForm (as: INTEGER; OUT x: GraphNodes.Vector;
@@ -180,19 +356,12 @@ MODULE GraphWishart;
 		HALT(126)
 	END MVLikelihoodForm;
 
-	PROCEDURE (node: Node) LogMVPrior (): REAL;
-	BEGIN
-		HALT(126);
-		RETURN 0.0
-	END LogMVPrior;
-
-	PROCEDURE (prior: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	PROCEDURE (prior: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
 			dim, i, j, start, step: INTEGER;
 			node: GraphNodes.Node;
 	BEGIN
-		ASSERT(as = GraphRules.wishart, 21);
 		i := 0;
 		dim := prior.dim;
 		start := prior.start;
@@ -214,51 +383,14 @@ MODULE GraphWishart;
 		node.Sample(res)
 	END MVSample;
 
-	PROCEDURE (node: Node) LogLikelihood (): REAL;
-	BEGIN
-		HALT(126);
-		RETURN 0.0
-	END LogLikelihood;
-
-	PROCEDURE (node: Node) LogPrior (): REAL;
-	BEGIN
-		HALT(126);
-		RETURN 0.0
-	END LogPrior;
-
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL); BEGIN
 		HALT(126)
 	END PriorForm;
 
-	PROCEDURE (node: Node) Location (): REAL;
-		VAR
-			dim, i, j, start, step, index: INTEGER;
-			k: REAL;
-	BEGIN
-		dim := node.dim;
-		start := node.start;
-		step := node.step;
-		i := 0;
-		WHILE i < dim DO
-			j := 0;
-			WHILE j < dim DO
-				s[i, j] := node.r[start + (i + dim * j) * step].Value();
-				INC(j)
-			END;
-			INC(i)
-		END;
-		k := node.k.Value();
-		MathMatrix.Invert(s, dim);
-		index := node.index;
-		i := index DIV dim;
-		j := index MOD dim;
-		RETURN k * s[i, j]
-	END Location;
-
-	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 	BEGIN
 		RETURN NIL
-	END ParentsConjugateMV;
+	END Parents;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
@@ -272,15 +404,15 @@ MODULE GraphWishart;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				s[i, j] := node.r[start + (i + dim * j) * step].Value();
+				r[i, j] := node.r[start + (i + dim * j) * step].Value();
 				INC(j)
 			END;
 			INC(i)
 		END;
 		k := node.k.Value();
-		MathMatrix.Invert(s, dim);
-		MathMatrix.Cholesky(s, dim);
-		MathRandnum.Wishart(s, k, dim, value);
+		MathMatrix.Invert(r, dim);
+		MathMatrix.Cholesky(r, dim);
+		MathRandnum.Wishart(r, k, dim, value);
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
@@ -292,7 +424,7 @@ MODULE GraphWishart;
 		res := {}
 	END Sample;
 
-	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			dim, i, nElem, start, step: INTEGER;
 	BEGIN
@@ -305,9 +437,10 @@ MODULE GraphWishart;
 				RETURN
 			END;
 			node.dim := dim;
-			IF dim > LEN(s, 0) THEN
-				NEW(s, dim, dim);
-				NEW(value, dim, dim)
+			IF dim > LEN(r, 0) THEN
+				NEW(r, dim, dim);
+				NEW(value, dim, dim);
+				NEW(indVals, (dim * (dim + 1)) DIV 2)
 			END;
 			ASSERT(args.vectors[0].components # NIL, 21);
 			IF args.vectors[0].nElem # nElem THEN
@@ -336,7 +469,7 @@ MODULE GraphWishart;
 					res := {GraphNodes.data, GraphNodes.lhs};
 					RETURN
 				END;
-				IF node.r[start + i] = NIL THEN
+				IF node.r[start + i * step] = NIL THEN
 					res := {GraphNodes.nil, GraphNodes.arg1};
 					RETURN
 				END;
@@ -347,7 +480,7 @@ MODULE GraphWishart;
 				INC(i)
 			END
 		END
-	END SetConjugateMV;
+	END Set;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
@@ -382,8 +515,9 @@ MODULE GraphWishart;
 	BEGIN
 		Maintainer;
 		NEW(f);
-		NEW(s, nElem, nElem);
+		NEW(r, nElem, nElem);
 		NEW(value, nElem, nElem);
+		NEW(indVals, (nElem * (nElem + 1)) DIV 2);
 		fact := f
 	END Init;
 

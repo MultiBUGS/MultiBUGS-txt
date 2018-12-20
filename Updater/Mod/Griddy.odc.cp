@@ -110,12 +110,12 @@ MODULE UpdaterGriddy;
 		prior := updater.prior;
 		step := (right - left) / numBins;
 		prior.SetValue(left);
-		prop[0] := prior.LogConditional();
+		prop[0] := updater.LogConditional();
 		max := prop[0];
 		i := 1;
 		WHILE i <= numBins DO
 			prior.SetValue(left + step * i);
-			prop[i] := prior.LogConditional();
+			prop[i] := updater.LogConditional();
 			max := MAX(max, prop[i]);
 			INC(i)
 		END;
@@ -149,13 +149,13 @@ MODULE UpdaterGriddy;
 	BEGIN
 		prior := updater.prior;
 		oldValue := prior.value;
-		oldDen := prior.LogConditional();
+		oldDen := updater.LogConditional();
 		prior.Bounds(left, right);
 		updater.Proposal(left, right, prop, culm);
 		oldProp := Proposal(oldValue, left, right, prop);
 		newValue := Sample(left, right, prop, culm);
 		prior.SetValue(newValue);
-		newDen := prior.LogConditional();
+		newDen := updater.LogConditional();
 		newProp := Proposal(newValue, left, right, prop);
 		IF oldProp < eps THEN
 			acceptProb := newDen - Math.Ln(newProp)

@@ -20,6 +20,7 @@ MODULE GraphInverse;
 	TYPE
 		Node = POINTER TO RECORD (GraphVector.Node)
 			matrix: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL;
 			dim, start, step: INTEGER
 		END;
 
@@ -44,6 +45,7 @@ MODULE GraphInverse;
 			dim, form, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
+		IF node.constant # NIL THEN RETURN GraphRules.const END;
 		dim := node.dim;
 		start := node.start;
 		step := node.step;
@@ -78,8 +80,12 @@ MODULE GraphInverse;
 			j := 0;
 			WHILE j <= i DO
 				off := start + (i * dim + j) * step;
-				p := node.matrix[off];
-				tau[i, j] := p.Value();
+				IF node.matrix # NIL THEN
+					p := node.matrix[off];
+					tau[i, j] := p.Value()
+				ELSE
+					tau[i, j] := node.constant[off]
+				END;
 				tau[j, i] := tau[i, j];
 				INC(j)
 			END;
@@ -106,7 +112,7 @@ MODULE GraphInverse;
 			dim := node.dim;
 			wr.WriteInt(dim);
 			v := GraphNodes.NewVector();
-			v.components := node.matrix;
+			v.components := node.matrix; v.values := node.constant;
 			v.start := node.start; v.nElem := dim * dim; v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr)
 		END
@@ -126,6 +132,7 @@ MODULE GraphInverse;
 			node.dim := dim;
 			GraphNodes.InternalizeSubvector(v, rd);
 			node.matrix := v.components;
+			node.constant := v.values;
 			node.start := v.start;
 			node.step := v.step;
 			i := 1;
@@ -135,6 +142,7 @@ MODULE GraphInverse;
 				p.start := node.start;
 				p.step := node.step;
 				p.matrix := node.matrix;
+				p.constant := node.constant;
 				p.dim := node.dim;
 				INC(i)
 			END
@@ -157,6 +165,7 @@ MODULE GraphInverse;
 			p: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
+		IF node.constant # NIL THEN RETURN NIL END;
 		list := NIL;
 		dim := node.dim;
 		start := node.start;
@@ -191,8 +200,9 @@ MODULE GraphInverse;
 				RETURN
 			END;
 			node.dim := dim;
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.matrix := args.vectors[0].components;
+			node.constant := args.vectors[0].values;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			node.start := args.vectors[0].start;
 			node.step := args.vectors[0].step;
@@ -214,11 +224,17 @@ MODULE GraphInverse;
 				WHILE j < dim DO
 					IF j >= i THEN
 						off := start + (i * dim + j) * step;
-						p := node.matrix[off];
-						IF p = NIL THEN
-							res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+						IF node.matrix # NIL THEN
+							p := node.matrix[off];
+							IF p = NIL THEN
+								res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+							ELSE
+								isData := isData & (GraphNodes.data IN p.props)
+							END
 						ELSE
-							isData := isData & (GraphNodes.data IN p.props)
+							IF node.constant[off] = INF THEN 
+								res := {GraphNodes.nil, GraphNodes.arg1}; RETURN 
+							END
 						END
 					END;
 					INC(j)

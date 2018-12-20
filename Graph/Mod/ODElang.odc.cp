@@ -13,12 +13,13 @@ MODULE GraphODElang;
 	
 
 	IMPORT
-		Stores, 
+		Stores,
+		BugsMsg,
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathODE;
 
 	TYPE
-		Node* = POINTER TO ABSTRACT RECORD (GraphVector.Node)
+		Node = POINTER TO RECORD (GraphVector.Node)
 			t0, tol: REAL;
 			x0, x, deriv, tGrid: GraphNodes.Vector;
 			x0Start, xStart, derivStart, x0Step, xStep, derivStep: INTEGER;
@@ -63,6 +64,14 @@ MODULE GraphODElang;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.t, wr);
 	END Externalize;
+
+	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
+		VAR
+			install1: ARRAY 128 OF CHAR;
+	BEGIN
+		node.solver.Install(install1);
+		BugsMsg.Lookup(install1, install)
+	END Install;
 
 	PROCEDURE Internalize (node: Node; VAR rd: Stores.Reader);
 		VAR
@@ -121,12 +130,12 @@ MODULE GraphODElang;
 		node.t := rep.t
 	END Copy;
 
-	PROCEDURE (node: Node) Check* (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			i, form, nElem, numEq, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -168,7 +177,7 @@ MODULE GraphODElang;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate- (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
 		VAR
 			i, j, numEq, tGridSize, start, step: INTEGER;
 			t0, tol, solverStep: REAL;
@@ -203,14 +212,14 @@ MODULE GraphODElang;
 		END
 	END Evaluate;
 
-	PROCEDURE (node: Node) ExternalizeVector- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 	BEGIN
 		IF node.index = 0 THEN
 			Externalize(node, wr)
 		END
 	END ExternalizeVector;
 
-	PROCEDURE (node: Node) InternalizeVector- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeVector (VAR rd: Stores.Reader);
 	BEGIN
 		IF node. index = 0 THEN
 			Internalize(node, rd)
@@ -219,23 +228,23 @@ MODULE GraphODElang;
 		END
 	END InternalizeVector;
 
-	PROCEDURE (node: Node) InitLogical-;
+	PROCEDURE (node: Node) InitLogical;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.x0 := NIL;
-		node.x0Start :=  - 1;
+		node.x0Start := - 1;
 		node.x0Step := 0;
 		node.x := NIL;
-		node.xStart :=  - 1;
+		node.xStart := - 1;
 		node.xStep := 0;
 		node.deriv := NIL;
-		node.derivStart :=  - 1;
+		node.derivStart := - 1;
 		node.derivStep := 0;
 		node.tGrid := NIL;
 		node.t := NIL
 	END InitLogical;
 
-	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, numEq, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -270,7 +279,7 @@ MODULE GraphODElang;
 		RETURN list
 	END Parents;
 
-	PROCEDURE (node: Node) Set* (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			i, nElem, numEq, start, step, tGridStart, tGridStep, tGridSize: INTEGER;
 			equations: Equations;
@@ -351,12 +360,12 @@ MODULE GraphODElang;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) SetSolver* (solver: MathODE.Solver), NEW;
+	PROCEDURE (node: Node) SetSolver (solver: MathODE.Solver), NEW;
 	BEGIN
 		node.solver := solver
 	END SetSolver;
 
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
 	BEGIN
 		HALT(0)
 	END ValDiff;
@@ -407,6 +416,16 @@ MODULE GraphODElang;
 	OUT jacob: ARRAY OF ARRAY OF REAL);
 	BEGIN
 	END Jacobian;
+
+	PROCEDURE New* (solver: MathODE.Solver): GraphVector.Node;
+		VAR
+			node: Node;
+	BEGIN
+		NEW(node);
+		node.Init;
+		node.SetSolver(solver);
+		RETURN node
+	END New;
 
 	PROCEDURE Maintainer;
 	BEGIN

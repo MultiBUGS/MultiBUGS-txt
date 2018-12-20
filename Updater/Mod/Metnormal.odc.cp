@@ -50,7 +50,6 @@ MODULE UpdaterMetnormal;
 		END;
 		IF updater.iteration MOD batch = 0 THEN
 			rate := (batch - updater.rejectCount) / batch;
-			(*IF updater.delayedRejection THEN rate := rate / 1.5 END;*)
 			updater.rejectCount := 0;
 			IF updater.iteration <= adaptivePhase THEN
 				IF rate > 0.8 THEN
@@ -133,7 +132,7 @@ MODULE UpdaterMetnormal;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF GraphStochastic.bounds * prior.props # {} THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

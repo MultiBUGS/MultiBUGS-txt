@@ -14,7 +14,7 @@ MODULE BugsParser;
 
 	IMPORT
 		Stores, Strings,
-		BugsIndex, BugsMappers, BugsMsg, BugsNames, 
+		BugsIndex, BugsMappers, BugsMsg, BugsNames,
 		GraphGrammar, GraphLogical, GraphNodes, GraphStochastic;
 
 	CONST
@@ -91,7 +91,7 @@ MODULE BugsParser;
 		nodeLabel: INTEGER;
 		nodes: POINTER TO ARRAY OF Node;
 		nodeList: List;
-		startOfGraph: INTEGER;
+		startOfGraph, numIfs: INTEGER;
 
 	PROCEDURE (node: Node) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
@@ -145,7 +145,7 @@ MODULE BugsParser;
 		ELSIF label > 0 THEN
 			node := nodes[label]
 		ELSE
-			label :=  - label;
+			label := - label;
 			rd.ReadInt(type);
 			CASE type OF
 			|binary: NEW(binaryNode); node := binaryNode
@@ -222,7 +222,7 @@ MODULE BugsParser;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("BugsParser" + numToString, errorMes);
-		BugsMsg.Store(errorMes);
+		BugsMsg.StoreError(errorMes);
 		error := TRUE
 	END Error;
 
@@ -257,21 +257,21 @@ MODULE BugsParser;
 		InternalizeNode(binary.right, rd)
 	END Internalize;
 
-	PROCEDURE NewPlate (pos: INTEGER; IN name: ARRAY OF CHAR): Index;
+	PROCEDURE NewIndex (pos: INTEGER; IN name: ARRAY OF CHAR): Index;
 		VAR
-			plate: Index;
+			index: Index;
 	BEGIN
-		NEW(plate);
-		plate.label := 0;
-		plate.pos := pos;
-		plate.value := 0.0;
-		plate.evaluated := FALSE;
-		plate.name := name$;
-		plate.intVal :=  - 1;
-		plate.lower := NIL;
-		plate.upper := NIL;
-		RETURN plate
-	END NewPlate;
+		NEW(index);
+		index.label := 0;
+		index.pos := pos;
+		index.value := 0.0;
+		index.evaluated := FALSE;
+		index.name := name$;
+		index.intVal := - 1;
+		index.lower := NIL;
+		index.upper := NIL;
+		RETURN index
+	END NewIndex;
 
 	PROCEDURE (index: Index) Externalize- (VAR wr: Stores.Writer);
 	BEGIN
@@ -396,7 +396,8 @@ MODULE BugsParser;
 		ExternalizeBase(function, wr);
 		wr.WriteString(function.descriptor.name);
 		i := 0;
-		len := function.descriptor.fact.NumParam();
+		IF function.parents # NIL THEN len := LEN(function.parents) ELSE len := 0 END;
+		wr.WriteInt(len);
 		WHILE i < len DO
 			ExternalizeNode(function.parents[i], wr);
 			INC(i)
@@ -412,7 +413,7 @@ MODULE BugsParser;
 		rd.ReadString(string);
 		function.descriptor := GraphGrammar.FindFunction(string);
 		i := 0;
-		len := function.descriptor.fact.NumParam();
+		rd.ReadInt(len);
 		IF len > 0 THEN NEW(function.parents, len) END;
 		WHILE i < len DO
 			InternalizeNode(function.parents[i], rd);
@@ -422,9 +423,11 @@ MODULE BugsParser;
 
 	PROCEDURE NewDensity (pos: INTEGER; descriptor: GraphGrammar.External): Density;
 		VAR
-			numPar: INTEGER;
+			i, numPar: INTEGER;
 			density: Density;
 			fact: GraphNodes.Factory;
+			string: ARRAY 124 OF CHAR;
+			signature: ARRAY 64 OF CHAR;
 	BEGIN
 		NEW(density);
 		density.label := 0;
@@ -434,9 +437,22 @@ MODULE BugsParser;
 		density.parents := NIL;
 		density.descriptor := descriptor;
 		fact := descriptor.fact;
+		fact.Signature(signature);
 		numPar := fact.NumParam();
-		IF numPar # 0 THEN
-			NEW(density.parents, numPar)
+		i := 0;
+		WHILE i < numPar DO
+			IF signature[i] = "F" THEN	(*	functional	*)
+				INC(numPar) 
+			END;
+			INC(i)
+		END;
+		IF numPar > 0 THEN
+			NEW(density.parents, numPar);
+			i := 0;
+			WHILE i < numPar DO
+				density.parents[i] := NIL;
+				INC(i)
+			END
 		ELSE
 			density.parents := NIL
 		END;
@@ -454,7 +470,8 @@ MODULE BugsParser;
 		ExternalizeBase(density, wr);
 		wr.WriteString(density.descriptor.name);
 		i := 0;
-		len := density.descriptor.fact.NumParam();
+		IF density.parents # NIL THEN len := LEN(density.parents ) ELSE len := 0 END;
+		wr.WriteInt(len);
 		WHILE i < len DO
 			ExternalizeNode(density.parents[i], wr);
 			INC(i)
@@ -474,7 +491,7 @@ MODULE BugsParser;
 		rd.ReadString(string);
 		density.descriptor := GraphGrammar.FindDensity(string);
 		i := 0;
-		len := density.descriptor.fact.NumParam();
+		rd.ReadInt(len);
 		IF len > 0 THEN NEW(density.parents, len) END;
 		WHILE i < len DO
 			InternalizeNode(density.parents[i], rd);
@@ -592,7 +609,7 @@ MODULE BugsParser;
 	PROCEDURE ^ParseFactor (loops: Statement;
 	VAR s: BugsMappers.Scanner; integer: BOOLEAN): Node;
 
-		PROCEDURE ParseDnotation (loops: Statement;
+	PROCEDURE ParseDnotation (loops: Statement;
 	VAR s: BugsMappers.Scanner; OUT derivative, dependent, independent: Variable);
 		VAR
 			i, numSlots: INTEGER;
@@ -710,8 +727,8 @@ MODULE BugsParser;
 				Error(1); RETURN NIL
 			END;
 			fact := funcDesc.fact;
-			IF (fact = NIL) OR ~(fact IS GraphLogical.Factory) THEN 
-			(*	unknown type of logical function	*)
+			IF fact = NIL THEN
+				(*	unable to load logical function	*)
 				Error(1); RETURN NIL
 			END;
 			fact.Signature(signature);
@@ -856,13 +873,21 @@ MODULE BugsParser;
 			pos: INTEGER;
 			binary: Binary;
 			node: Node;
+			internal: GraphGrammar.Internal;
 	BEGIN
 		IF (s.type = BugsMappers.char) & (s.char = "+") THEN (*	unexpected token in factor	*)
 			Error(10); RETURN NIL
 		END;
 		IF s.type = BugsMappers.function THEN
 			IF integer THEN (*	logical function not allowed in integer expression	*)
-				Error(11); RETURN NIL
+				internal := GraphGrammar.FindInternal(s.string); 
+				IF internal # NIL THEN
+					CASE internal.key OF
+					|GraphGrammar.equals, GraphGrammar.max, GraphGrammar.min, GraphGrammar.step:
+					ELSE
+						Error(11); RETURN NIL
+					END
+				END
 			END;
 			node := ParseFunction(loops, s);
 			IF node = NIL THEN RETURN NIL END
@@ -922,13 +947,13 @@ MODULE BugsParser;
 				END
 			END;
 			INC(i);
-			IF(i # numSlots) & ((s.type # BugsMappers.char) OR (s.char # ",")) THEN 
-			(*	expected comma	*)
+			IF(i # numSlots) & ((s.type # BugsMappers.char) OR (s.char # ",")) THEN
+				(*	expected comma	*)
 				Error(14); RETURN NIL
 			END
 		END;
-		IF (numSlots > 0) & ((s.type # BugsMappers.char) OR (s.char # "]")) THEN 
-		(* right square braket	*)
+		IF (numSlots > 0) & ((s.type # BugsMappers.char) OR (s.char # "]")) THEN
+			(* right square braket	*)
 			Error(15); RETURN NIL
 		END;
 		RETURN variable
@@ -961,7 +986,7 @@ MODULE BugsParser;
 			END;
 			IF s.type = BugsMappers.int THEN
 				IF signed THEN
-					intVal :=  - s.int
+					intVal := - s.int
 				ELSE
 					intVal := s.int
 				END;
@@ -972,7 +997,7 @@ MODULE BugsParser;
 					RETURN NIL
 				END;
 				IF signed THEN
-					realVal :=  - s.real
+					realVal := - s.real
 				ELSE
 					realVal := s.real
 				END;
@@ -1016,10 +1041,10 @@ MODULE BugsParser;
 		len := LEN(signature$);
 		IF (s.type = BugsMappers.function) & ((s.string = "I") OR (s.string = "C")) THEN
 			IF (len = 0) OR (signature[numPar] # "C") & (signature[len - 1] # "C") THEN
-				Error(25); density := NIL; RETURN(*	can not be censored	*)
+				Error(25); density := NIL; RETURN	(*	can not be censored	*)
 			END;
-			IF (density.leftCen # NIL) OR (density.rightCen # NIL) THEN 
-			(*	this density alreay censored	*)
+			IF (density.leftCen # NIL) OR (density.rightCen # NIL) THEN
+				(*	this density already censored	*)
 				Error(47); density := NIL; RETURN
 			END;
 			s.Scan;
@@ -1046,7 +1071,7 @@ MODULE BugsParser;
 				END
 			END;
 			s.Scan
-		END;
+		END
 	END ParseCen;
 
 	PROCEDURE ParseTrunc* (loops: Statement; VAR s: BugsMappers.Scanner;
@@ -1096,11 +1121,12 @@ MODULE BugsParser;
 
 	PROCEDURE ParseDensity* (loops: Statement; VAR s: BugsMappers.Scanner): Density;
 		VAR
-			i, numPar: INTEGER;
+			i, j, numPar: INTEGER;
 			descriptor: GraphGrammar.External;
 			density: Density;
 			fact: GraphNodes.Factory;
 			signature: ARRAY 64 OF CHAR;
+			independent, functionVar: Variable;
 	BEGIN
 		descriptor := GraphGrammar.FindDensity(s.string);
 		IF descriptor = NIL THEN (*	unknown type of probability density	*)
@@ -1120,25 +1146,33 @@ MODULE BugsParser;
 		numPar := fact.NumParam();
 		s.Scan;
 		i := 0;
+		j := 0;
 		WHILE i < numPar DO
 			CASE signature[i] OF
 			|"s":
-				density.parents[i] := Param(loops, s, FALSE);
-				IF density.parents[i] = NIL THEN RETURN NIL END;
+				density.parents[j] := Param(loops, s, FALSE);
+				IF density.parents[j] = NIL THEN RETURN NIL END;
 				s.Scan
 			|"v":
 				IF s.type # BugsMappers.string THEN (*	expected variable name	*)
 					Error(21); RETURN NIL
 				END;
-				density.parents[i] := ParseVariable(loops, s);
-				IF density.parents[i] = NIL THEN RETURN NIL END;
+				density.parents[j] := ParseVariable(loops, s);
+				IF density.parents[j] = NIL THEN RETURN NIL END;
 				s.Scan
+			|"F":
+				ParseFnotation(loops, s, functionVar, independent);
+				IF functionVar = NIL THEN RETURN NIL END;
+				density.parents[j] := functionVar;
+				density.parents[j + 1] := independent;
+				INC(j)
 			ELSE
 				Error(22); (*	unknown type of argument for probability density	*)
 				RETURN NIL
 			END;
 			density.parents[i].pos := s.Pos();
 			INC(i);
+			INC(j);
 			IF i # numPar THEN
 				IF (s.type # BugsMappers.char) OR (s.char # ",") THEN (*	expected comma	*)
 					Error(23); RETURN NIL
@@ -1214,13 +1248,13 @@ MODULE BugsParser;
 		RETURN density
 	END BuildDensity;
 
-	PROCEDURE BuildIndex* (plate: Index; lower, upper: Node);
+	PROCEDURE BuildIndex* (index: Index; lower, upper: Node);
 	BEGIN
-		plate.lower := lower;
-		plate.upper := upper;
+		index.lower := lower;
+		index.upper := upper;
 	END BuildIndex;
 
-	PROCEDURE BuildForLoop* (plate: Index): Statement;
+	PROCEDURE BuildForLoop* (index: Index): Statement;
 		VAR
 			statement: Statement;
 	BEGIN
@@ -1228,7 +1262,7 @@ MODULE BugsParser;
 		statement.variable := NIL;
 		statement.expression := NIL;
 		statement.density := NIL;
-		statement.index := plate;
+		statement.index := index;
 		RETURN statement
 	END BuildForLoop;
 
@@ -1270,7 +1304,7 @@ MODULE BugsParser;
 				descriptor := GraphGrammar.FindFunction(name);
 				IF descriptor # NIL THEN
 					statement.expression := BuildFunction(parents, descriptor);
-					statement.expression.pos :=  - 1
+					statement.expression.pos := - 1
 				END
 			END
 		ELSE
@@ -1294,7 +1328,7 @@ MODULE BugsParser;
 	PROCEDURE ParseIndexName* (loops: Statement; VAR s: BugsMappers.Scanner): Index;
 		VAR
 			for: Statement;
-			plate: Index;
+			index: Index;
 	BEGIN
 		IF s.type # BugsMappers.string THEN (*	loop index must be a name	*)
 			Error(29); RETURN NIL
@@ -1307,8 +1341,8 @@ MODULE BugsParser;
 		IF for # NIL THEN (*	already used as loop index	*)
 			Error(31); RETURN NIL
 		END;
-		plate := NewPlate(s.Pos(), s.string);
-		RETURN plate
+		index := NewIndex(s.Pos(), s.string);
+		RETURN index
 	END ParseIndexName;
 
 	PROCEDURE ParseForLoop* (loops: Statement; VAR s: BugsMappers.Scanner): Statement;
@@ -1353,6 +1387,50 @@ MODULE BugsParser;
 		statement.index := index;
 		RETURN statement
 	END ParseForLoop;
+
+	PROCEDURE ParseIf* (loops: Statement; VAR s: BugsMappers.Scanner): Statement;
+		VAR
+			condition: Node;
+			if: Index;
+			statement: Statement;
+			one: Integer;
+			min: Internal;
+			descriptor: GraphGrammar.Internal;
+			ifName: ARRAY 32 OF CHAR;
+	BEGIN
+		IF (s.type # BugsMappers.char) OR (s.char # "(") THEN (*	expected left parenthesis	*)
+			Error(32); RETURN NIL
+		END;
+		s.Scan;
+		condition := ParseLimit(loops, s);
+		IF condition = NIL THEN RETURN NIL END;
+		IF (s.type # BugsMappers.char) OR (s.char # ")") THEN (*	expected right parenthesis	*)
+			Error(35); RETURN NIL
+		END;
+		s.Scan;
+		IF (s.type # BugsMappers.char) OR (s.char # "{") THEN (*	expected open brace	*)
+			Error(36); RETURN NIL
+		END;
+		Strings.IntToString(numIfs, ifName);
+		ifName := "$" + ifName;	(*	$ prevents clash with any for loop variable name	*)
+		INC(numIfs);
+		if := NewIndex(0, ifName);
+		one := NewInteger(0, 1);
+		if.lower := one;
+		one := NewInteger(0, 1);
+		descriptor := GraphGrammar.FindInternal("min");
+		min := NewInternal(0, descriptor);
+		min.parents[0] := one;
+		min.parents[1] := condition;
+		if.upper := min;
+		s.Scan;
+		NEW(statement);
+		statement.variable := NIL;
+		statement.expression := NIL;
+		statement.density := NIL;
+		statement.index := if;
+		RETURN statement
+	END ParseIf;
 
 	PROCEDURE ReverseList* (model: Statement): Statement;
 		VAR
@@ -1403,6 +1481,11 @@ MODULE BugsParser;
 				statement := ParseForLoop(loops, s);
 				IF statement = NIL THEN RETURN END;
 				statement.CopyToList(loops)	(*	push loop stack	*)
+			ELSIF ((s.type = BugsMappers.string) OR (s.type = BugsMappers.function)) & (s.string = "if") THEN
+				s.Scan;
+				statement := ParseIf(loops, s);
+				IF statement = NIL THEN RETURN END;
+				statement.CopyToList(loops)	(*	push loop stack	*)
 			ELSIF s.type = BugsMappers.string THEN
 				variable := ParseVariable(loops, s);
 				IF variable = NIL THEN RETURN END;
@@ -1442,6 +1525,8 @@ MODULE BugsParser;
 				IF descriptor = NIL THEN
 					IF s.string = "D" THEN
 						ParseDnotation(loops, s, derivative, dependent, independent);
+						derivative.name.isVariable := TRUE; dependent.name.isVariable := TRUE; 
+						independent.name.isVariable := TRUE;
 						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;
 						IF s.char # "-" THEN Error(38); RETURN END;
@@ -1453,7 +1538,7 @@ MODULE BugsParser;
 						IF loops # NIL THEN loops.MergeLists(model) END;
 						(*	set up dummy relationship for dependent variables	*)
 						NEW(density);
-						density.descriptor := GraphGrammar.FindDensity("dummy");
+						density.descriptor := GraphGrammar.FindDensity("_dummy_");
 						density.parents := NIL;
 						density.leftCen := NIL;
 						density.rightCen := NIL;
@@ -1461,8 +1546,8 @@ MODULE BugsParser;
 						statement.CopyToList(model);
 						IF loops # NIL THEN loops.MergeLists(model) END;
 						(*	put loops before statement	*)
-						IF ((independent.name.numSlots = 0) & (independent.name.components = NIL))
-							OR ((independent.name.numSlots > 0) & (independent.name.slotSizes[0] = 0))
+						IF (((independent.name.numSlots = 0) & (independent.name.components = NIL)
+							OR ((independent.name.numSlots > 0) & (independent.name.slotSizes[0] = 0))))
 							THEN
 							(*	only do this stuff once	*)
 							IF independent.name.numSlots = 0 THEN
@@ -1472,17 +1557,19 @@ MODULE BugsParser;
 							END;
 							(*	set up dummy relationship for independent variable	*)
 							NEW(density);
-							density.descriptor := GraphGrammar.FindDensity("dummy");
+							density.descriptor := GraphGrammar.FindDensity("_dummy_");
 							density.parents := NIL;
 							density.leftCen := NIL;
 							density.rightCen := NIL;
 							statement := BuildStochastic(independent, density);
-							statement.CopyToList(model); 
+							statement.CopyToList(model);
 							(*	put loops before statement	*)
 							IF loops # NIL THEN loops.MergeLists(model) END
 						END
 					ELSIF s.string = "F" THEN
 						ParseFnotation(loops, s, functionVar, independent);
+						functionVar.name.isVariable := TRUE; 
+						independent.name.isVariable := TRUE; 
 						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;
 						IF s.char # "-" THEN Error(38); RETURN END;
@@ -1490,17 +1577,17 @@ MODULE BugsParser;
 						expression := ParseExpression(loops, s);
 						IF expression = NIL THEN RETURN END;
 						statement := BuildLogical(functionVar, expression);
-						statement.CopyToList(model); 
+						statement.CopyToList(model);
 						(*	put loops before statement	*)
 						IF loops # NIL THEN loops.MergeLists(model) END;
 						(*	set up dummy relationship for independent variable	*)
 						NEW(density);
-						density.descriptor := GraphGrammar.FindDensity("dummy");
+						density.descriptor := GraphGrammar.FindDensity("_dummy_");
 						density.parents := NIL;
 						density.leftCen := NIL;
 						density.rightCen := NIL;
 						statement := BuildStochastic(independent, density);
-						statement.CopyToList(model); 
+						statement.CopyToList(model);
 						(*	put loops before statement	*)
 						IF loops # NIL THEN loops.MergeLists(model) END
 					ELSE
@@ -1561,17 +1648,32 @@ MODULE BugsParser;
 		s.SetPos(0);
 		s.Scan;
 		IF s.type # BugsMappers.string THEN
-			Error(5);
+			Error(13);
 			RETURN NIL
 		END;
 		name := BugsIndex.Find(s.string);
 		IF name = NIL THEN
-			Error(6);
+			Error(13);
 			RETURN NIL
 		END;
 		variable := ParseVariable(NIL, s);
 		RETURN variable
 	END StringToVariable;
+
+	PROCEDURE CountStatements* (OUT logical, stochastic: INTEGER);
+		VAR
+			list: Statement;
+	BEGIN
+		list := model;
+		logical := 0;
+		stochastic := 0;
+		WHILE list # NIL DO
+			IF list.expression # NIL THEN INC(logical)
+			ELSIF list.density # NIL THEN INC(stochastic)
+			END;
+			list := list.next
+		END
+	END CountStatements;
 
 	PROCEDURE BeginExternalize (VAR wr: Stores.Writer);
 	BEGIN
@@ -1687,6 +1789,110 @@ MODULE BugsParser;
 		RETURN statement
 	END Internalize;
 
+	PROCEDURE IsFunctional (IN signiture: ARRAY OF CHAR): BOOLEAN;
+		VAR
+			i, len: INTEGER;
+	BEGIN
+		i := 0;
+		len := LEN(signiture$);
+		WHILE (i < len) & (signiture[i] # "F") & (signiture[i] # "D") DO INC(i) END;
+		RETURN i < len
+	END IsFunctional;
+	
+	PROCEDURE MarkExpression (expression: Node);
+		VAR
+			parents: POINTER TO ARRAY OF Node;
+			index, parent: Node;
+			name: BugsNames.Name;
+			i, numParents, numSlots, numVarIndex: INTEGER;
+			signiture: ARRAY 64 OF CHAR;
+			isFunctional: BOOLEAN;
+	BEGIN
+		WITH expression: Function DO
+			parents := expression.parents;
+			IF parents # NIL THEN numParents := LEN(parents) ELSE numParents := 0 END;
+			expression.descriptor.fact.Signature(signiture);
+			isFunctional := IsFunctional(signiture);
+			i := 0;
+			WHILE i < numParents DO
+				parent := parents[i];
+				WITH parent: Variable DO
+					IF isFunctional OR (signiture[i] # "v") THEN parent.name.isVariable := TRUE END;
+				ELSE
+				END;
+				INC(i)
+			END
+		|expression: Binary DO
+			MarkExpression(expression.left); 
+			IF expression.right # NIL THEN MarkExpression(expression.right) END
+		|expression: Internal DO
+			parents := expression.parents;
+			IF parents # NIL THEN numParents := LEN(parents) ELSE numParents := 0 END;
+			i := 0;
+			WHILE i < numParents DO
+				parent := parents[i];
+				MarkExpression(parent);
+				INC(i)
+			END
+		|expression: Variable DO
+			name := expression.name;
+			i := 0;
+			numVarIndex := 0;
+			numSlots := name.numSlots;
+			WHILE i < numSlots DO
+				index := expression.lower[i];
+				IF index # NIL THEN
+					WITH index: Index DO
+					|index: Integer DO
+					|index: Real DO
+					ELSE
+						name.isVariable := TRUE	(*	possible mixture model	*)
+					END
+				END;
+				INC(i)
+			END
+		ELSE
+		END
+	END MarkExpression;
+
+	(*	mark names which must be passed by reference	*)
+	PROCEDURE MarkVariables*;
+		VAR
+			list: Statement;
+			variable: Variable;
+			density: Density;
+			expression: Node;
+			parents: POINTER TO ARRAY OF Node;
+			parent: Node;
+			i, numParents: INTEGER;
+	BEGIN
+		list := model;
+		WHILE list # NIL DO
+			IF list.expression # NIL THEN
+				variable := list.variable;
+				variable.name.isVariable := TRUE;
+				expression := list.expression;
+				MarkExpression(expression)
+			ELSIF list.density # NIL THEN
+				variable := list.variable;
+				variable.name.isVariable := TRUE;
+				density := list.density;
+				parents := density.parents;
+				IF parents # NIL THEN numParents := LEN(parents) ELSE numParents := 0 END;
+				i := 0;
+				WHILE i < numParents DO
+					parent := parents[i];
+					WITH parent: Variable DO
+						parent.name.isVariable := TRUE
+					ELSE
+					END;
+					INC(i)
+				END
+			END;
+			list := list.next
+		END
+	END MarkVariables;
+
 	PROCEDURE SetModel* (m: Statement);
 	BEGIN
 		model := m;
@@ -1698,9 +1904,10 @@ MODULE BugsParser;
 		nodes := NIL;
 		nodeLabel := 0;
 		error := FALSE;
-		model := NIL
+		model := NIL;
+		numIfs := 0
 	END Clear;
-	
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;
@@ -1716,4 +1923,5 @@ MODULE BugsParser;
 BEGIN
 	Init
 END BugsParser.
+
 	

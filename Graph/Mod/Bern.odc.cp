@@ -124,7 +124,8 @@ MODULE GraphBern;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.integer});
+		node.SetProps(node.props + 
+		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural});
 		node.p := NIL
 	END InitUnivariate;
 
@@ -222,8 +223,6 @@ MODULE GraphBern;
 	BEGIN
 		NEW(node);
 		node.Init;
-		node.SetProps(node.props + 
-		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural});
 		RETURN node
 	END New;
 
@@ -236,28 +235,6 @@ MODULE GraphBern;
 	BEGIN
 		GraphNodes.SetFactory(fact)
 	END Install;
-
-	PROCEDURE Vector* (size: INTEGER; p: REAL): GraphStochastic.Vector;
-		VAR
-			i: INTEGER;
-			args: GraphStochastic.Args;
-			bernoullis: GraphStochastic.Vector;
-			props, res: SET;
-	BEGIN
-		NEW(bernoullis, size);
-		args.Init;
-		args.numScalars := 1;
-		args.scalars[0] := GraphConstant.New(p);
-		i := 0;
-		WHILE i < size DO
-			bernoullis[i] := fact.New();
-			bernoullis[i].Set(args, res);
-			props := bernoullis[i].props;
-			bernoullis[i].SetProps(props + {GraphStochastic.hidden, GraphStochastic.initialized});
-			INC(i)
-		END;
-		RETURN bernoullis
-	END Vector;
 
 	PROCEDURE Maintainer;
 	BEGIN

@@ -19,7 +19,7 @@ We can model our coin tossing experiment by simulating a p from the uniform dist
                    }
            }
 
-When we run this model not all the updates will lead to exactly six heads. So we need to add a bit more code to model to pick out the cases where there are exactly six heads.
+When we run this model not all the updates will lead to exactly six heads. So we need to add a bit more code to the model to pick out the cases where there are exactly six heads.
 
            model{
                     p ~ dunif(0, 1)

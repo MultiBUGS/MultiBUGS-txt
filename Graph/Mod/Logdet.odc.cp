@@ -14,13 +14,14 @@ MODULE GraphLogdet;
 
 	IMPORT
 		Math, Stores,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic,
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathMatrix;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphMemory.Node)
 			dim, start, step: INTEGER;
-			matrix: GraphNodes.Vector
+			matrix: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
 		Factory = POINTER TO RECORD(GraphMemory.Factory) END;
@@ -29,7 +30,7 @@ MODULE GraphLogdet;
 		eps = 1.0E-10;
 
 	VAR
-		fact-: GraphNodes.Factory;
+		fact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		matrix: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -45,6 +46,7 @@ MODULE GraphLogdet;
 			dim, form, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
+		IF node.constant # NIL THEN RETURN GraphRules.const END;
 		i := 0;
 		dim := node.dim;
 		start := node.start;
@@ -80,8 +82,12 @@ MODULE GraphLogdet;
 			WHILE j < dim DO
 				IF j >= i THEN
 					off := start + (i * dim + j) * step;
-					p := node.matrix[off];
-					matrix[i, j] := p.Value()
+					IF node.matrix # NIL THEN
+						p := node.matrix[off];
+						matrix[i, j] := p.Value()
+					ELSE
+						matrix[i, j] := node.constant[off]
+					END
 				ELSE
 					matrix[i, j] := matrix[j, i]
 				END;
@@ -105,7 +111,7 @@ MODULE GraphLogdet;
 		dim := node.dim;
 		wr.WriteInt(dim);
 		v := GraphNodes.NewVector();
-		v.components := node.matrix;
+		v.components := node.matrix; v.values := node.constant;
 		v.start := node.start; v.step := node.step; v.nElem := dim * dim;
 		GraphNodes.ExternalizeSubvector(v, wr)
 	END ExternalizeMemory;
@@ -116,7 +122,7 @@ MODULE GraphLogdet;
 	BEGIN
 		rd.ReadInt(node.dim);
 		GraphNodes.InternalizeSubvector(v, rd);
-		node.matrix := v.components;
+		node.matrix := v.components; node.constant := v.values;
 		node.start := v.start; node.step := v.step;
 	END InternalizeMemory;
 
@@ -124,6 +130,7 @@ MODULE GraphLogdet;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.matrix := NIL;
+		node.constant := NIL;
 		node.start := - 1;
 		node.step := 0;
 		node.dim := - 1
@@ -140,6 +147,7 @@ MODULE GraphLogdet;
 			p: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
+		IF node.constant # NIL THEN RETURN NIL END;
 		list := NIL;
 		i := 0;
 		dim := node.dim;
@@ -167,8 +175,9 @@ MODULE GraphLogdet;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.matrix := args.vectors[0].components;
+			node.constant := args.vectors[0].values;
 			node.start := args.vectors[0].start;
 			node.step := args.vectors[0].step;
 			ASSERT(args.vectors[0].start >= 0, 21);
@@ -192,11 +201,17 @@ MODULE GraphLogdet;
 				WHILE j < dim DO
 					IF j >= i THEN
 						off := start + (i * dim + j) * step;
-						p := node.matrix[off];
-						IF p = NIL THEN
-							res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+						IF node.matrix # NIL THEN
+							p := node.matrix[off];
+							IF p = NIL THEN
+								res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+							ELSE
+								isData := isData & (GraphNodes.data IN p.props)
+							END
 						ELSE
-							isData := isData & (GraphNodes.data IN p.props)
+							IF node.constant[off] = INF THEN
+								res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+							END
 						END
 					END;
 					INC(j)

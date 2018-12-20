@@ -7,7 +7,7 @@ copyright:	"Rsrc/About"
 
 *)
 
-(*	
+(*
 Each logical node is uniquely defined by the array of operators 'ops' in the data type GraphStochastic.ArgsLogical. This module writes out Component Pascal code to represent this unique stack of operators. The CP code consists of a module defining a new type of GraphScalar.Node plus a factory object to create nodes of this new type. Only one new module is written for each unique stack of operators.	*)
 
 MODULE BugsCPWrite;
@@ -18,8 +18,7 @@ MODULE BugsCPWrite;
 	IMPORT
 		Strings,
 		TextMappers,
-		GraphGrammar, GraphNodes,
-		GraphStochastic;
+		GraphGrammar, GraphStochastic;
 
 
 	VAR
@@ -34,7 +33,7 @@ MODULE BugsCPWrite;
 		maxTop := 0;
 		top := - 1;
 		WHILE i < args.numOps DO
-			op := args.ops[i];
+			op := args.ops[i] MOD GraphGrammar.modifier;
 			CASE op OF
 			|GraphGrammar.ref, GraphGrammar.refStoch:
 				INC(top); INC(i)
@@ -113,153 +112,138 @@ MODULE BugsCPWrite;
 		VAR
 			i, op, stackSize, top: INTEGER;
 
+		PROCEDURE Out (string: ARRAY OF CHAR); BEGIN f.WriteString(string) END Out;
+
+		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
+
+		PROCEDURE Int (int: INTEGER); BEGIN f.WriteInt(int) END Int;
+
+		PROCEDURE Class; BEGIN Out("class"); Int(top) END Class;
+
+		PROCEDURE Class1; BEGIN Out("class"); Int(top + 1) END Class1;
+
 		PROCEDURE WriteRefStoch (j: INTEGER);
 		BEGIN
 			INC(top);
-			f.WriteString("p := node.s"); f.WriteInt(j); f. WriteString(";"); f.WriteLn;
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphStochastic.ClassFunction(p, parent);"); f.WriteLn;
+			Out("p := node.s"); Int(j); Out(";"); Ln;
+			Out("class"); Int(top);
+			Out(" := GraphStochastic.ClassFunction(p, parent);")
 		END WriteRefStoch;
 
 		PROCEDURE WriteRefLogical (j: INTEGER);
 		BEGIN
-			f.WriteString("p := node.l"); f.WriteInt(j); f.WriteString(";"); f.WriteLn;
-			f.WriteString("l"); f.WriteInt(j);
-			f.WriteString(" := GraphStochastic.ClassFunction(p, parent);"); f.WriteLn;
-			f.WriteString("CASE l"); f.WriteInt(j); f.WriteString(" OF"); f.WriteLn;
-			f.WriteString("GraphRules.logLink, GraphRules.logitLink,");
-			f.WriteString("GraphRules.probitLink, GraphRules.cloglogLink:");
-			f.WriteString("l"); f.WriteInt(j); f.WriteString(" := GraphRules.linkFun"); f.WriteLn;
-			f.WriteString("ELSE"); f.WriteLn;
-			f.WriteString("END;"); f.WriteLn
+			Out("p := node.l"); Int(j); Out(";"); Ln;
+			Out("l"); Int(j);
+			Out(" := GraphStochastic.ClassFunction(p, parent);"); Ln;
+			Out("CASE l"); Int(j); Out(" OF"); Ln;
+			Out("GraphRules.logLink, GraphRules.logitLink,");
+			Out("GraphRules.probitLink, GraphRules.cloglogLink:");
+			Out("l"); Int(j); Out(" := GraphRules.linkFun"); Ln;
+			Out("ELSE"); Ln;
+			Out("END;")
 		END WriteRefLogical;
 
 		PROCEDURE WriteRef (j: INTEGER);
 		BEGIN
-			INC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := l"); f.WriteInt(j); f.WriteString(";"); f.WriteLn;
+			INC(top); Class; Out(" := l"); Int(j); Out(";")
 		END WriteRef;
 
 		PROCEDURE WriteConst;
 		BEGIN
-			INC(top); f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.const;"); f.WriteLn;
+			INC(top); Class; Out(" := GraphRules.const;")
 		END WriteConst;
 
 		PROCEDURE WriteAdd;
 		BEGIN
-			DEC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphRules.addF[class"); f.WriteInt(top); f.WriteString(" , class");
-			f.WriteInt(top + 1); f.WriteString("];"); f.WriteLn;
+			DEC(top); Class; Out(" := GraphRules.addF["); Class; Out(" , "); Class1; Out("];")
 		END WriteAdd;
 
 		PROCEDURE WriteSub;
 		BEGIN
-			DEC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphRules.subF[class"); f.WriteInt(top); f.WriteString(" , class");
-			f.WriteInt(top + 1); f.WriteString("];"); f.WriteLn;
+			DEC(top); Class; Out(" := GraphRules.subF["); Class; Out(" , "); Class1; Out("];")
 		END WriteSub;
 
 		PROCEDURE WriteDiv;
 		BEGIN
-			DEC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphRules.divF[class"); f.WriteInt(top); f.WriteString(" , class");
-			f.WriteInt(top + 1); f.WriteString("];"); f.WriteLn;
+			DEC(top); Class; Out(" := GraphRules.divF["); Class; Out(" , "); Class1; Out("];")
 		END WriteDiv;
 
 		PROCEDURE WriteMult;
 		BEGIN
-			DEC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphRules.multF[class"); f.WriteInt(top); f.WriteString(" , class");
-			f.WriteInt(top + 1); f.WriteString("];"); f.WriteLn;
+			DEC(top); Class; Out(" := GraphRules.multF["); Class; Out(" , "); Class1; Out("];")
 		END WriteMult;
 
 		PROCEDURE WritePow;
 		BEGIN
-			DEC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphRules.powF[class"); f.WriteInt(top); f.WriteString(" , class");
-			f.WriteInt(top + 1); f.WriteString("];"); f.WriteLn;
+			DEC(top); Class; Out(" := GraphRules.powF["); Class; Out(" , "); Class1; Out("];")
 		END WritePow;
 
 		PROCEDURE WriteNonDiff2;
 		BEGIN
-			DEC(top);
-			f.WriteString("class"); f.WriteInt(top);
-			f.WriteString(" := GraphRules.nonDiff2F[class"); f.WriteInt(top); f.WriteString(" , class");
-			f.WriteInt(top + 1); f.WriteString("];"); f.WriteLn;
+			DEC(top); Class; Out(" := GraphRules.nonDiff2F["); Class; Out(" , "); Class1; Out("];")
 		END WriteNonDiff2;
 
 		PROCEDURE WriteUminus;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.uminusF[class");
-			f.WriteInt(top); f.WriteString("];"); f.WriteLn
+			Class; Out(" := GraphRules.uminusF["); Class; Out("];")
 		END WriteUminus;
 
 		PROCEDURE WriteExp;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.expF[class");
-			f.WriteInt(top); f.WriteString("];"); f.WriteLn
+			Class; Out(" := GraphRules.expF["); Class; Out("];")
 		END WriteExp;
 
 		PROCEDURE WriteLink;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.linkF[class");
-			f.WriteInt(top); f.WriteString("];"); f.WriteLn
+			Class; Out(" := GraphRules.linkF["); Class; Out("];")
 		END WriteLink;
 
 		PROCEDURE WriteNonDiff1;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.nonDiff1F[class");
-			f.WriteInt(top); f.WriteString("];"); f.WriteLn
+			Class; Out(" := GraphRules.nonDiff1F["); Class; Out("];")
 		END WriteNonDiff1;
 
 		PROCEDURE WriteOther;
 		BEGIN
-			f.WriteString("class"); f.WriteInt(top); f.WriteString(" := GraphRules.uopF[class");
-			f.WriteInt(top); f.WriteString("];"); f.WriteLn
+			Class; Out(" := GraphRules.uopF["); Class; Out("];")
 		END WriteOther;
 
 	BEGIN
 		stackSize := StackSize(args);
-		f.WriteString("PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;");
-		f.WriteLn;
-		f.WriteString("VAR"); f.WriteLn;
-		f.WriteString("class0");
+		Out("PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;");
+		Ln;
+		Out("VAR"); Ln;
+		Out("class0");
 		i := 1;
 		WHILE i < stackSize DO
-			f.WriteString(", class"); f.WriteInt(i); INC(i)
+			Out(", class"); Int(i); INC(i)
 		END;
-		f.WriteString(": INTEGER;"); f.WriteLn;
+		Out(": INTEGER;"); Ln;
 		IF args.numLogicals > 0 THEN
-			f.WriteString("l0");
+			Out("l0");
 			i := 1;
 			WHILE i < args.numLogicals DO
-				f.WriteString(", l"); f.WriteInt(i); INC(i)
+				Out(", l"); Int(i); INC(i)
 			END;
-			f.WriteString(": INTEGER;"); f.WriteLn;
+			Out(": INTEGER;"); Ln;
 		END;
-		f.WriteString("p: GraphNodes.Node;"); f.WriteLn;
-		f.WriteString("BEGIN"); f.WriteLn;
+		Out("p: GraphNodes.Node;"); Ln;
+		Out("BEGIN"); Ln;
 		IF args.numLogicals > 0 THEN
-			WriteRefLogical(0);
+			WriteRefLogical(0); Ln;
 			i := 1;
 			WHILE i < args.numLogicals DO
-				WriteRefLogical(i);
+				WriteRefLogical(i); Ln;
 				INC(i)
 			END;
 		END;
 		i := 0;
 		top := - 1;
 		WHILE i < args.numOps DO
-			op := args.ops[i];
+			op := args.ops[i] MOD GraphGrammar.modifier;
 			CASE op OF
-			|GraphGrammar.refStoch: INC(i); WriteRefStoch(args.ops[i]);
-			|GraphGrammar.ref: INC(i); WriteRef(args.ops[i]);
+			|GraphGrammar.refStoch: INC(i); WriteRefStoch(args.ops[i])
+			|GraphGrammar.ref: INC(i); WriteRef(args.ops[i])
 			|GraphGrammar.const: WriteConst
 			|GraphGrammar.add: WriteAdd
 			|GraphGrammar.sub: WriteSub
@@ -273,11 +257,12 @@ MODULE BugsCPWrite;
 			|GraphGrammar.abs, GraphGrammar.step: WriteNonDiff1
 			ELSE WriteOther
 			END;
+			Ln;
 			INC(i);
 		END;
-		f.WriteString("RETURN class0"); f.WriteLn;
-		f.WriteString("END ClassFunction;"); f.WriteLn;
-		f.WriteLn;
+		Out("RETURN class0"); Ln;
+		Out("END ClassFunction;"); Ln;
+		Ln
 	END WriteClassFunctionMethod;
 
 	PROCEDURE WriteExternalizeLogicalMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
@@ -450,55 +435,57 @@ MODULE BugsCPWrite;
 			trees: POINTER TO ARRAY OF Tree;
 			t: Tree;
 
-		PROCEDURE String (IN s: ARRAY OF CHAR);
-		BEGIN
-			f.WriteString(s)
-		END String;
+		PROCEDURE Out (IN s: ARRAY OF CHAR); BEGIN f.WriteString(s) END Out;
+		
+		PROCEDURE Int (int: INTEGER); BEGIN f.WriteInt(int) END Int;
 
 		(*	write CP code from tree	*)
 		PROCEDURE Write (t: Tree);
+			VAR
+				op: INTEGER;
 		BEGIN
-			CASE t.op OF
-			|GraphGrammar.refStoch: String("s"); f.WriteInt(t.label)
-			|GraphGrammar.ref: String("l"); f.WriteInt(t.label)
-			|GraphGrammar.const: String("node.c"); f.WriteInt(t.label)
-			|GraphGrammar.abs: String("ABS("); Write(t.left); String(")")
-			|GraphGrammar.add: String("("); Write(t.left); String(" + "); Write(t.right); String(")")
-			|GraphGrammar.sub: String("("); Write(t.left); String(" - "); Write(t.right); String(")")
-			|GraphGrammar.mult: String("("); Write(t.left); String(" * "); Write(t.right); String(")")
-			|GraphGrammar.div: String("("); Write(t.left); String(" / "); Write(t.right); String(")")
-			|GraphGrammar.uminus: String("(-("); Write(t.left); String("))")
-			|GraphGrammar.cloglog: String("Math.Ln(-Math.Ln(1.0 - "); Write(t.left); String("));")
-			|GraphGrammar.icloglog: String("(1.0 - Math.Exp( - Math.Exp(value[top])))");
-			|GraphGrammar.cos: String("Math.Cos("); Write(t.left); String(")")
+			op := t.op MOD GraphGrammar.modifier;
+			CASE op OF
+			|GraphGrammar.refStoch: Out("s"); Int(t.label)
+			|GraphGrammar.ref: Out("l"); Int(t.label)
+			|GraphGrammar.const: Out("node.c"); Int(t.label)
+			|GraphGrammar.abs: Out("ABS("); Write(t.left); Out(")")
+			|GraphGrammar.add: Out("("); Write(t.left); Out(" + "); Write(t.right); Out(")")
+			|GraphGrammar.sub: Out("("); Write(t.left); Out(" - "); Write(t.right); Out(")")
+			|GraphGrammar.mult: Out("("); Write(t.left); Out(" * "); Write(t.right); Out(")")
+			|GraphGrammar.div: Out("("); Write(t.left); Out(" / "); Write(t.right); Out(")")
+			|GraphGrammar.uminus: Out("(-("); Write(t.left); Out("))")
+			|GraphGrammar.cloglog: Out("Math.Ln(-Math.Ln(1.0 - "); Write(t.left); Out("));")
+			|GraphGrammar.icloglog: Out("(1.0 - Math.Exp( - Math.Exp("); Write(t.left); Out(")))");
+			|GraphGrammar.cos: Out("Math.Cos("); Write(t.left); Out(")")
 			|GraphGrammar.equals:
-				String("MathFunc.Equals("); Write(t.left); String(", "); Write(t.right); String(")")
-			|GraphGrammar.exp: String("Math.Exp("); Write(t.left); String(")")
-			|GraphGrammar.log: String("Math.Ln("); Write(t.left); String(")")
+				Out("MathFunc.Equals("); Write(t.left); Out(", "); Write(t.right); Out(")")
+			|GraphGrammar.exp: Out("Math.Exp("); Write(t.left); Out(")")
+			|GraphGrammar.log: Out("Math.Ln("); Write(t.left); Out(")")
 			|GraphGrammar.logfact:
-				String("MathFunc.LogFactorial(SHORT(ENTIER("); Write(t.left); String(" + eps)))")
-			|GraphGrammar.loggam: String("MathFunc.LogGammaFunc("); Write(t.left); String(")")
-			|GraphGrammar.logit: String("MathFunc.Logit("); Write(t.left); String(")")
-			|GraphGrammar.ilogit: String("MathFunc.ILogit("); Write(t.left); String(")")
-			|GraphGrammar.max: String("MAX("); Write(t.left); String(", "); Write(t.right); String(")")
-			|GraphGrammar.min: String("MIN("); Write(t.left); String(", "); Write(t.right); String(")")
-			|GraphGrammar.phi: String("MathFunc.Phi("); Write(t.left); String(")")
-			|GraphGrammar.pow: String("MathFunc.Power("); Write(t.left); String(", "); Write(t.right); String(")")
-			|GraphGrammar.round: String("Math.Round("); Write(t.left); String(")")
-			|GraphGrammar.sin: String("Math.Sin("); Write(t.left); String(")")
-			|GraphGrammar.sqrt: String("Math.Sqrt("); Write(t.left); String(")")
-			|GraphGrammar.step: String("MathFunc.Step("); Write(t.left); String(")")
-			|GraphGrammar.trunc: String("Math.Trunc("); Write(t.left); String(")")
-			|GraphGrammar.tan: String("Math.Tan("); Write(t.left); String(")")
-			|GraphGrammar.arcsin: String("Math.ArcSin("); Write(t.left); String(")")
-			|GraphGrammar.arccos: String("Math.ArcCos("); Write(t.left); String(")")
-			|GraphGrammar.arctan: String("Math.ArcTan("); Write(t.left); String(")")
-			|GraphGrammar.sinh: String("Math.Sinh("); Write(t.left); String(")")
-			|GraphGrammar.cosh: String("Math.Cosh("); Write(t.left); String(")")
-			|GraphGrammar.tanh: String("Math.Tanh("); Write(t.left); String(")")
-			|GraphGrammar.arcsinh: String("Math.ArcSinh("); Write(t.left); String(")")
-			|GraphGrammar.arccosh: String("Math.ArcCosh("); Write(t.left); String(")")
-			|GraphGrammar.arctanh: String("Math.ArcTanh("); Write(t.left); String(")")
+				Out("MathFunc.LogFactorial(SHORT(ENTIER("); Write(t.left); Out(" + eps)))")
+			|GraphGrammar.loggam: Out("MathFunc.LogGammaFunc("); Write(t.left); Out(")")
+			|GraphGrammar.logit: Out("MathFunc.Logit("); Write(t.left); Out(")")
+			|GraphGrammar.ilogit: Out("MathFunc.ILogit("); Write(t.left); Out(")")
+			|GraphGrammar.max: Out("MAX("); Write(t.left); Out(", "); Write(t.right); Out(")")
+			|GraphGrammar.min: Out("MIN("); Write(t.left); Out(", "); Write(t.right); Out(")")
+			|GraphGrammar.phi: Out("MathFunc.Phi("); Write(t.left); Out(")")
+			|GraphGrammar.pow: Out("MathFunc.Power("); Write(t.left); Out(", "); Write(t.right); Out(")")
+			|GraphGrammar.round: Out("Math.Round("); Write(t.left); Out(")")
+			|GraphGrammar.sin: Out("Math.Sin("); Write(t.left); Out(")")
+			|GraphGrammar.sqrt: Out("Math.Sqrt("); Write(t.left); Out(")")
+			|GraphGrammar.step: Out("MathFunc.Step("); Write(t.left); Out(")")
+			|GraphGrammar.trunc: Out("Math.Trunc("); Write(t.left); Out(")")
+			|GraphGrammar.tan: Out("Math.Tan("); Write(t.left); Out(")")
+			|GraphGrammar.arcsin: Out("Math.ArcSin("); Write(t.left); Out(")")
+			|GraphGrammar.arccos: Out("Math.ArcCos("); Write(t.left); Out(")")
+			|GraphGrammar.arctan: Out("Math.ArcTan("); Write(t.left); Out(")")
+			|GraphGrammar.sinh: Out("Math.Sinh("); Write(t.left); Out(")")
+			|GraphGrammar.cosh: Out("Math.Cosh("); Write(t.left); Out(")")
+			|GraphGrammar.tanh: Out("Math.Tanh("); Write(t.left); Out(")")
+			|GraphGrammar.arcsinh: Out("Math.ArcSinh("); Write(t.left); Out(")")
+			|GraphGrammar.arccosh: Out("Math.ArcCosh("); Write(t.left); Out(")")
+			|GraphGrammar.arctanh: Out("Math.ArcTanh("); Write(t.left); Out(")")
 			END;
 		END Write;
 
@@ -512,7 +499,7 @@ MODULE BugsCPWrite;
 		WHILE i < args.numOps DO
 			NEW(t);
 			t.left := NIL; t.right := NIL;
-			t.op := args.ops[i];
+			t.op := args.ops[i] MOD GraphGrammar.modifier;
 			CASE t.op OF
 			|GraphGrammar.refStoch, GraphGrammar.ref:
 				INC(i); t.label := args.ops[i]; INC(top); trees[top] := t
@@ -586,184 +573,166 @@ MODULE BugsCPWrite;
 		VAR
 			i, numC, op, stackSize, top: INTEGER;
 
-		PROCEDURE String (IN x: ARRAY OF CHAR);
-		BEGIN
-			f.WriteString(x)
-		END String;
+		PROCEDURE Out (IN x: ARRAY OF CHAR); BEGIN f.WriteString(x) END Out;
 
-		PROCEDURE Comment (IN x: ARRAY OF CHAR);
-		BEGIN
-			String(" (* " + x + " *)")
+		PROCEDURE Comment (IN x: ARRAY OF CHAR); BEGIN
+			Out(" (* " + x + " *)"); f.WriteLn
 		END Comment;
 
-		PROCEDURE If;
-		BEGIN
-			String("IF ")
-		END If;
+		PROCEDURE Int (i: INTEGER); BEGIN f.WriteInt(i) END Int;
 
-		PROCEDURE Then;
-		BEGIN
-			String(" THEN ")
-		END Then;
+		PROCEDURE Else; BEGIN Out(" ELSE ") END Else;
 
-		PROCEDURE Else;
-		BEGIN
-			String(" ELSE ")
-		END Else;
+		PROCEDURE End; BEGIN Out(" END; ") END End;
 
-		PROCEDURE End;
-		BEGIN
-			String(" END; ")
-		END End;
+		PROCEDURE Val; BEGIN Out("val"); f.WriteInt(top) END Val;
 
-		PROCEDURE Val;
-		BEGIN
-			String("val"); f.WriteInt(top)
-		END Val;
+		PROCEDURE Val1; BEGIN Out("val"); f.WriteInt(top + 1) END Val1;
 
-		PROCEDURE Val1;
-		BEGIN
-			String("val"); f.WriteInt(top + 1)
-		END Val1;
+		PROCEDURE Diff; BEGIN Out("diff"); f.WriteInt(top) END Diff;
 
-		PROCEDURE Diff;
-		BEGIN
-			String("diff"); f.WriteInt(top)
-		END Diff;
+		PROCEDURE Diff1; BEGIN Out("diff"); f.WriteInt(top + 1) END Diff1;
 
-		PROCEDURE Diff1;
-		BEGIN
-			String("diff"); f.WriteInt(top + 1)
-		END Diff1;
+		PROCEDURE Active; BEGIN Out("active"); f.WriteInt(top); END Active;
 
-		PROCEDURE Active;
-		BEGIN
-			String("active"); f.WriteInt(top)
-		END Active;
+		PROCEDURE Active1; BEGIN Out("active"); f.WriteInt(top + 1); END Active1;
 
-		PROCEDURE Active1;
-		BEGIN
-			String("active"); f.WriteInt(top + 1)
-		END Active1;
+		PROCEDURE IfActive; BEGIN Out("IF active"); f.WriteInt(top); Out(" THEN ") END IfActive;
 
-		PROCEDURE Ln;
-		BEGIN
-			f.WriteLn
-		END Ln;
+		PROCEDURE IfActive1; BEGIN Out("IF active"); f.WriteInt(top + 1); Out(" THEN ") END IfActive1;
+
+		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
 
 		PROCEDURE Assert;
 		BEGIN
-			String("ASSERT(~"); Active; String(", 0);"); Ln;
+			Out("ASSERT(~"); Active; Out(", 0);"); Ln;
 		END Assert;
 
-		PROCEDURE Assert1;
-		BEGIN
-			String("ASSERT(~"); Active1; String(", 0);"); Ln;
+		PROCEDURE Assert1; BEGIN
+			Out("ASSERT(~"); Active1; Out(", 0);"); Ln;
 		END Assert1;
 
 		PROCEDURE WriteRefStoch (j: INTEGER);
 		BEGIN
+			Comment("stochastic");
 			INC(top);
-			Val; String(" := node.s"); f.WriteInt(j); String(".value;"); Comment("stochastic"); Ln;
-			Active; String(" := node.s"); f.WriteInt(j); String(" = x;"); Ln;
-			If; Active; Then;
-			Diff; String(" := 1.0 ");
-			Else;
-			Diff; String(" := 0.0 ");
-			End; Ln
+			Active; Out(" := node.s"); Int(j); Out(" = x;"); Ln;
+			Val; Out(" := node.s"); Int(j); Out(".value;"); Ln;
+			IfActive; Diff; Out(" := 1.0 "); Else; Diff; Out(" := 0.0 "); End; Ln
 		END WriteRefStoch;
 
 		PROCEDURE WriteRefLogical (j: INTEGER);
 		BEGIN
-			String("node.l"); f.WriteInt(j); String(".ValDiff(x, l"); f.WriteInt(j); String(", d"); f.WriteInt(j); String(");");
-			Comment("logical intermediate"); Ln
+			Comment("logical intermediate");
+			Out("node.l"); Int(j); Out(".ValDiff(x, l"); Int(j); Out(", d"); Int(j); Out(");"); Ln
 		END WriteRefLogical;
 
 		PROCEDURE WriteRef (j: INTEGER);
 		BEGIN
+			Comment("logical");
 			INC(top);
-			Active; String(" := TRUE;"); Comment("logical"); Ln;
-			Val; String(" := l"); f.WriteInt(j); String(";"); Ln;
-			Diff; String(" := d"); f.WriteInt(j); String(";"); Ln;
+			Active; Out(" := TRUE;"); Ln;
+			Val; Out(" := l"); Int(j); Out(";"); Ln;
+			Diff; Out(" := d"); Int(j); Out(";"); Ln;
 		END WriteRef;
 
 		PROCEDURE WriteConst;
 		BEGIN
+			Comment("constant");
 			INC(top);
-			Val; String(" := node.c"); f.WriteInt(numC); String(";"); Comment("constant"); Ln;
-			Diff; String(" := 0.0;"); Ln;
-			Active; String(" := FALSE;"); Ln;
+			Active; Out(" := FALSE;"); Ln;
+			Val; Out(" := node.c"); Int(numC); Out(";"); Ln;
+			Diff; Out(" := 0.0;"); Ln;
 			INC(numC)
 		END WriteConst;
 
-		PROCEDURE WriteAdd;
+		PROCEDURE WriteAdd (op: INTEGER);
 		BEGIN
 			DEC(top);
-			Val; String(" :="); Val; String(" + "); Val1; String(";"); Comment("add"); Ln;
-			If; Active; Then; Ln;
-			If; Active1; Then;
-			Diff; String(" := "); Diff; String(" + "); Diff1; End; Ln;
-			Else; Ln;
-			If; Active1; Then;
-			Diff; String(" := "); Diff1; Else; Diff; String(" := "); String("0");
-			End; Ln;
-			End; Ln;
+			IF op = GraphGrammar.add + GraphGrammar.rightConst THEN
+				Comment("addR");
+			ELSIF op = GraphGrammar.add + GraphGrammar.leftConst THEN
+				Comment("addL");
+				Diff; Out(" := "); Diff1; Out(";"); Active; Out(" := TRUE;"); Ln;
+			ELSE
+				Comment("add");
+				IfActive; Ln;
+				IfActive1; Diff; Out(" := "); Diff; Out(" + "); Diff1; End; Ln;
+				Else; Ln;
+				IfActive1; Diff; Out(" := "); Diff1; Out(" ; "); Active; Out(" := TRUE;"); End; Ln;
+				End; Ln
+			END;
+			Val; Out(" :="); Val; Out(" + "); Val1; Out(";"); Ln;
 		END WriteAdd;
 
-		PROCEDURE WriteSub;
+		PROCEDURE WriteSub (op: INTEGER);
 		BEGIN
 			DEC(top);
-			Val; String(" := "); Val; String(" - "); Val1; String(";"); Comment("subtract"); Ln;
-			If; Active; Then; Ln;
-			If; Active1; Then;
-			Diff; String(" := "); Diff; String(" - "); Diff1; Else; Diff; String(" := "); Diff; End; Ln;
-			Else; Ln;
-			If; Active1; Then;
-			Diff; String(" := "); String(" - "); Diff1; Else; Diff; String(" := "); String("0");
-			End; Ln;
-			End; Ln;
+			IF op = GraphGrammar.sub + GraphGrammar.rightConst THEN
+				Comment("subtractR");
+			ELSIF op = GraphGrammar.sub + GraphGrammar.leftConst THEN
+				Comment("subtractL"); 
+				Diff; Out(" := -"); Diff1; Out(";"); Active; Out(" := TRUE;"); Ln;
+			ELSE
+				Comment("subtract");
+				IfActive; Ln;
+				IfActive1; Diff; Out(" := "); Diff; Out(" - "); Diff1; Else; Diff; Out(" := "); Diff; End; Ln;
+				Else; Ln;
+				IfActive1; Diff; Out(" := "); Out(" - "); Diff1; Out(" ; "); Active; Out(" := TRUE;"); End; Ln;
+				End; Ln
+			END;
+			Val; Out(" := "); Val; Out(" - "); Val1; Out(";"); Ln
 		END WriteSub;
 
-		PROCEDURE WriteMult;
+		PROCEDURE WriteMult (op: INTEGER);
 		BEGIN
 			DEC(top);
-			If; Active; Then; Comment("multiply"); Ln;
-			If; Active1; Then;
-			Diff; String(" := "); Diff1; String(" * "); Val; String(" + "); Diff; String(" * "); Val1;
-			Else;
-			Diff; String(" := "); Diff; String(" * "); Val1;
-			End; Ln;
-			Else; Ln;
-			If; Active1; Then;
-			Diff; String(" := "); Diff1; String(" * "); Val;
-			Else;
-			Diff; String(" := "); String("0");
-			End; Ln;
-			End; Ln;
-			Val; String(" := "); Val; String(" * "); Val1; String(";"); Ln;
+			IF op = GraphGrammar.mult + GraphGrammar.rightConst THEN
+				Comment("multiplyR");
+				IfActive; Diff; Out(" := "); Diff; Out(" * "); Val1; End; Ln
+			ELSIF op = GraphGrammar.mult + GraphGrammar.leftConst THEN
+				Comment("multiplyL");
+				IfActive1; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" ; "); Active; Out(" := TRUE;"); End; Ln
+			ELSE
+				Comment("multiply");
+				IfActive; Ln;
+				IfActive1; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" + "); Diff; Out(" * "); Val1;
+				Else;
+				Diff; Out(" := "); Diff; Out(" * "); Val1;
+				End; Ln;
+				Else; Ln;
+				IfActive1; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" ; "); Active; Out(" := TRUE;"); End; Ln;
+				End; Ln;
+			END;
+			Val; Out(" := "); Val; Out(" * "); Val1; Out(";"); Ln;
 		END WriteMult;
 
-		PROCEDURE WriteDiv;
+		PROCEDURE WriteDiv (op: INTEGER);
 		BEGIN
 			DEC(top);
-			If; Active; Then; Comment("divide"); Ln;
-			If; Active1; Then;
-			Diff; String(" := "); Diff; String(" / "); Val1;
-			String(" - "); Diff1; String(" * "); Val;
-			String("/ ("); Val1; String(" * "); Val1; String(");"); Ln;
-			Else;
-			Diff; String(" := "); Diff; String(" / "); Val1; Ln;
-			End; Ln;
-			Else; Ln;
-			If; Active1; Then;
-			Diff; String(" := ");
-			String(" - "); Diff1; String(" * "); Val;
-			String("/ ("); Val1; String(" * "); Val1; String(");"); Ln;
-			Else;
-			Diff; String(" := "); String("0"); Ln;
-			End; Ln;
-			End; Ln;
-			Val; String(" := "); Val; String(" / "); Val1; String(";"); Ln;
+			IF op = GraphGrammar.div + GraphGrammar.rightConst THEN
+				Comment("divideR");
+				IfActive; Diff; Out(" := "); Diff; Out(" / "); Val1; Ln; End; Ln
+			ELSIF op = GraphGrammar.div + GraphGrammar.leftConst THEN
+				Comment("divideL");
+				IfActive1; Diff; Out(" := "); Out(" - "); Diff1; Out(" * "); Val; Out("/ ("); Val1; Out(" * "); Val1; Out(");");
+				Active; Out(" := TRUE;");
+				End; Ln
+			ELSE
+				Comment("divide");
+				IfActive; Ln;
+				IfActive1; Diff; Out(" := "); Diff; Out(" / "); Val1; Out(" - "); Diff1; Out(" * "); Val;
+				Out("/ ("); Val1; Out(" * "); Val1; Out(");"); Ln;
+				Else;
+				Diff; Out(" := "); Diff; Out(" / "); Val1; End; Ln;
+				Else; Ln;
+				IfActive1;
+				Diff; Out(" := "); Out(" - "); Diff1; Out(" * "); Val; Out("/ ("); Val1; Out(" * "); Val1; Out("); ");
+				Active; Out(" := TRUE;");
+				End; Ln;
+				End; Ln
+			END;
+			Val; Out(" := "); Val; Out(" / "); Val1; Out(";"); Ln;
 		END WriteDiv;
 
 		PROCEDURE WriteEquals;
@@ -771,7 +740,7 @@ MODULE BugsCPWrite;
 			(*	no differential	*)
 			DEC(top);
 			Assert; Assert1;
-			Val; String(" := MathFunc.Equals("); Val; String(", "); Val1; String(");"); Ln
+			Val; Out(" := MathFunc.Equals("); Val; Out(", "); Val1; Out(");"); Ln
 		END WriteEquals;
 
 		PROCEDURE WriteMax;
@@ -779,7 +748,7 @@ MODULE BugsCPWrite;
 			(*	no differential	*)
 			DEC(top);
 			Assert; Assert1;
-			Val; String(" := MAX("); Val; String(" , "); Val1; String(");"); Ln
+			Val; Out(" := MAX("); Val; Out(" , "); Val1; Out(");"); Ln
 		END WriteMax;
 
 		PROCEDURE WriteMin;
@@ -787,288 +756,300 @@ MODULE BugsCPWrite;
 			(*	no differential	*)
 			DEC(top);
 			Assert; Assert1;
-			Val; String(" := MIN("); Val; String(" , "); Val1; String(");"); Ln
+			Val; Out(" := MIN("); Val; Out(" , "); Val1; Out(");"); Ln
 		END WriteMin;
 
-		PROCEDURE WritePow;
+		PROCEDURE WritePow (op: INTEGER);
 		BEGIN
 			DEC(top);
-			If; Active; Then; Comment("power"); Ln;
-			If; Active1; Then; Ln;
-			Diff; String(" := ("); Diff;
-			String(" * "); Val1; String(" / "); Val; String(") + ");
-			Diff1; String(" * Math.Ln("); Val; String(");"); Ln;
-			Val; String(" := MathFunc.Power("); Val; String(", "); Val1; String(");"); Ln;
-			Diff; String(" := "); Diff; String(" * "); Val; String(";"); Ln;
-			Else; Ln;
-			Diff; String(" := ("); Diff;
-			String(" * "); Val1; String(" / "); Val; String(");"); Ln;
-			Val; String(" := MathFunc.Power("); Val; String(", "); Val1; String(");"); Ln;
-			Diff; String(" := "); Diff; String(" * "); Val; String(";"); Ln;
-			End; Ln;
-			Else; Ln;
-			If; Active1; Then; Ln;
-			Diff; String(" :=  ");
-			Diff1; String(" * Math.Ln("); Val; String(");"); Ln;
-			Val; String(" := MathFunc.Power("); Val; String(", "); Val1; String(");"); Ln;
-			Diff; String(" := "); Diff; String(" * "); Val; String(";"); Ln;
-			Else; Ln;
-			Diff; String(" := 0;"); Ln;
-			Val; String(" := MathFunc.Power("); Val; String(", "); Val1; String(");"); Ln;
-			End; Ln;
-			End; Ln;
+			IF op = GraphGrammar.pow + GraphGrammar.rightConst THEN
+				Comment("powerR");
+				IfActive; Ln;
+				Diff; Out(" := ("); Diff;
+				Out(" * "); Val1; Out(" / "); Val; Out(");"); Ln;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
+				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Ln;
+				Else;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;	
+				End; Ln;
+			ELSIF op = GraphGrammar.pow + GraphGrammar.leftConst THEN
+				Comment("powerL");
+				IfActive1; Ln;
+				Diff; Out(" :=  "); Diff1; Out(" * Math.Ln("); Val; Out(");"); Ln;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
+				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Active; Out(" := TRUE;");
+				Else;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;	
+				End; Ln;
+			ELSE
+				Comment("power");
+				IfActive; Ln;
+				IfActive1; Ln;
+				Diff; Out(" := ("); Diff;
+				Out(" * "); Val1; Out(" / "); Val; Out(") + ");
+				Diff1; Out(" * Math.Ln("); Val; Out(");"); Ln;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
+				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Ln;
+				Else; Ln;
+				Diff; Out(" := ("); Diff;
+				Out(" * "); Val1; Out(" / "); Val; Out(");"); Ln;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
+				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Ln;
+				End; Ln;
+				Else; Ln;
+				IfActive1;
+				Diff; Out(" :=  ");
+				Diff1; Out(" * Math.Ln("); Val; Out(");"); Ln;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
+				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Active; Out(" := TRUE;"); Ln;
+				Else; Ln;
+				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
+				End; Ln;
+				End; Ln;
+			END
 		END WritePow;
 
 		PROCEDURE WriteUminus;
 		BEGIN
-			Val; String(" := -"); Val; String(";"); Comment("unary minus"); Ln;
-			If; Active; Then; Ln;
-			Diff; String(" := -"); Diff; String(";"); Ln;
-			End; Ln;
+			Comment("unary minus");
+			Val; Out(" := -"); Val; Out(";");
+			IfActive; Diff; Out(" := -"); Diff; Out(";"); End; Ln
 		END WriteUminus;
 
 		PROCEDURE WriteAbs;
 		BEGIN
 			(*	no differential	*)
 			Assert;
-			Val; String(" := ABS("); Val; String(");"); Ln
+			Val; Out(" := ABS("); Val; Out(");"); Ln
 		END WriteAbs;
 
 		PROCEDURE WriteCloglog;
 		BEGIN
-			If; Active; Then; Comment("cloglog"); Ln;
-			Diff; String(" := "); Diff; String(" * Math.Ln(1.0 - "); Val; String(") / (1.0 - "); Val; String(");"); End;
+			Comment("cloglog");
+			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Ln(1.0 - "); Val; Out(") / (1.0 - "); Val; Out(");");
 			End; Ln;
-			Val; String(" := MathFunc.Cloglog("); Val; String(");"); Ln
+			Val; Out(" := MathFunc.Cloglog("); Val; Out(");"); Ln
 		END WriteCloglog;
 
 		PROCEDURE WriteICloglog;
 		BEGIN
-			Val; String(" := Math.Exp("); Val; String(");"); Comment("inverse cloglog"); Ln;
-			If; Active; Then; Diff; String(" := "); Diff; String(" * "); Val; String(";"); End; Ln;
-			Val; String(" := Math.Exp(-"); Val; String(");"); Ln;
-			If; Active; Then; Diff; String(" := "); Diff; String(" * "); Val; String(";"); End; Ln;
-			Val; String(" := "); String("1.0 - "); Val; String(";"); Ln
+			Comment("inverse cloglog");
+			Val; Out(" := Math.Exp("); Val; Out(");");
+			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
+			Val; Out(" := Math.Exp(-"); Val; Out(");"); Ln;
+			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
+			Val; Out(" := "); Out("1.0 - "); Val; Out(";"); Ln
 		END WriteICloglog;
 
 		PROCEDURE WriteCos;
 		BEGIN
-			If; Active; Then; Comment("cosine"); Ln;
-			Diff; String(" := -"); Diff; String(" * Math.Sin("); Val; String(");"); Ln;
-			End; Ln;
-			Val; String(" := Math.Cos("); Val; String(");"); Ln
+			Comment("cosine");
+			IfActive; Diff; Out(" := -"); Diff; Out(" * Math.Sin("); Val; Out(");"); End; Ln;
+			Val; Out(" := Math.Cos("); Val; Out(");"); Ln
 		END WriteCos;
 
 		PROCEDURE WriteExp;
 		BEGIN
-			Val; String(" := Math.Exp("); Val; String(");"); Comment("exp"); Ln;
-			If; Active; Then; Ln;
-			Diff; String(" := "); Diff; String(" * "); Val; String(";");
-			End; Ln
+			Comment("exp");
+			Val; Out(" := Math.Exp("); Val; Out(");");
+			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln
 		END WriteExp;
 
 		PROCEDURE WriteLog;
 		BEGIN
-			If; Active; Then; Comment("log"); Ln;
-			Diff; String(" := "); Diff; String(" / "); Val; String(";"); Ln;
-			End; Ln;
-			Val; String(" := Math.Ln("); Val; String(");"); Ln
+			Comment("log");
+			IfActive; Diff; Out(" := "); Diff; Out(" / "); Val; Out(";"); End; Ln;
+			Val; Out(" := Math.Ln("); Val; Out(");"); Ln
 		END WriteLog;
 
 		PROCEDURE WriteLogFact;
 		BEGIN
 			(*	no differential	*)
 			Assert;
-			Val; String(" := MathFunc.LogFactorial(SHORT(ENTIER("); Val; String(" + eps)));"); Ln
+			Val; Out(" := MathFunc.LogFactorial(SHORT(ENTIER("); Val; Out(" + eps)));"); Ln
 		END WriteLogFact;
 
 		PROCEDURE WriteLogGamma;
 		BEGIN
-			If; Active; Then; Comment("log gamma"); Ln;
-			Diff; String(" := "); Diff; String(" * MathFunc.Digamma("); Val; String(");"); Ln;
-			End; Ln;
-			Val; String(" := MathFunc.LogGammaFunc("); Val; String(");"); Ln
+			Comment("log gamma");
+			IfActive; Diff; Out(" := "); Diff; Out(" * MathFunc.Digamma("); Val; Out(");"); End; Ln;
+			Val; Out(" := MathFunc.LogGammaFunc("); Val; Out(");"); Ln
 		END WriteLogGamma;
 
 		PROCEDURE WriteLogit;
 		BEGIN
-			If; Active; Then; Comment("logit"); Ln;
-			Diff; String(" := ");
-			Diff; String(" * ((1.0 / "); Val; String(") + 1.0 / (1.0 - "); Val; String("));"); Ln;
+			Comment("logit");
+			IfActive;
+			Diff; Out(" := "); Diff; Out(" * ((1.0 / "); Val; Out(") + 1.0 / (1.0 - "); Val; Out("));");
 			End; Ln;
-			Val; String(" := MathFunc.Logit("); Val; String(");"); Ln
+			Val; Out(" := MathFunc.Logit("); Val; Out(");"); Ln
 		END WriteLogit;
 
 		PROCEDURE WriteILogit;
 		BEGIN
-			Val; String(" := MathFunc.Ilogit("); Val; String(");"); Comment("inverse logit"); Ln;
-			If; Active; Then; Ln;
-			Diff; String(" := "); Diff; String(" * "); Val; String(" * (1.0 -  "); Val; String(");"); Ln;
+			Comment("inverse logit");
+			Val; Out(" := MathFunc.Ilogit("); Val; Out(");");
+			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(" * (1.0 -  "); Val; Out(");");
 			End; Ln;
 		END WriteILogit;
 
 		PROCEDURE WritePhi;
 		BEGIN
-			If; Active; Then; Comment("phi"); Ln;
-			Diff; String(" := "); Diff; String(" * Math.Exp(-0.5 * "); Val; String(" * "); Val;
-			String(") / Math.Sqrt(2 * Math.Pi());"); Ln;
+			Comment("phi");
+			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Exp(-0.5 * "); Val; Out(" * "); Val;
+			Out(") / Math.Sqrt(2 * Math.Pi());"); Ln;
 			End; Ln;
-			Val; String(" := MathFunc.Phi("); Val; String(");"); Ln
+			Val; Out(" := MathFunc.Phi("); Val; Out(");"); Ln
 		END WritePhi;
 
 		PROCEDURE WriteRound;
 		BEGIN
 			(*	no differential	*)
 			Assert;
-			Val; String(" := Math.Round("); Val; String(");"); Ln
+			Val; Out(" := Math.Round("); Val; Out(");"); Ln
 		END WriteRound;
 
 		PROCEDURE WriteSin;
 		BEGIN
-			If; Active; Then; Comment("sin"); Ln;
-			Diff; String(" := "); Diff; String(" * Math.Cos("); Val; String(");"); Ln;
-			End; Ln;
-			Val; String(" := Math.Sin("); Val; String(");"); Ln
+			Comment("sin");
+			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Cos("); Val; Out(");"); Ln; End; Ln;
+			Val; Out(" := Math.Sin("); Val; Out(");"); Ln
 		END WriteSin;
 
 		PROCEDURE WriteSqrt;
 		BEGIN
-			Val; String(" := Math.Sqrt("); Val; String(");"); Comment("sqrt"); Ln;
-			If; Active; Then; Ln;
-			Diff; String(" := 0.5 * "); Diff; String("/ "); Val; String(";"); Ln;
-			End; Ln;
+			Comment("sqrt");
+			Val; Out(" := Math.Sqrt("); Val; Out(");"); Ln;
+			IfActive; Diff; Out(" := 0.5 * "); Diff; Out("/ "); Val; Out(";"); End; Ln;
 		END WriteSqrt;
 
 		PROCEDURE WriteStep;
 		BEGIN
 			(* no differential	*)
 			Assert;
-			Val; String(" := MathFunc.Step("); Val; String(");"); Ln;
+			Val; Out(" := MathFunc.Step("); Val; Out(");"); Ln;
 		END WriteStep;
 
 		PROCEDURE WriteTrunc;
 		BEGIN
 			(* no differential	*)
 			Assert;
-			Val; String(" := Math.Trunc("); Val; String(");"); Ln
+			Val; Out(" := Math.Trunc("); Val; Out(");"); Ln
 		END WriteTrunc;
 
 		PROCEDURE WriteTan;
 		BEGIN
-			Val; String(" := Math.Tan("); Val; String(");"); Comment("tan"); Ln;
-			If; Active; Then; Ln;
-			Diff; String(" := "); Diff; String(" * (1.0 + "); Val; String(" * "); Val; String(");"); Ln;
+			Comment("tan");
+			Val; Out(" := Math.Tan("); Val; Out(");"); Ln;
+			IfActive; Diff; Out(" := "); Diff; Out(" * (1.0 + "); Val; Out(" * "); Val; Out(");");
 			End; Ln
 		END WriteTan;
 
 		PROCEDURE WriteArcSin;
 		BEGIN
-			If; Active; Then; Comment("arc sin"); Ln;
-			Diff; String(" := "); Diff; String(" / Math.Sqrt(1.0 - "); Val; String(" * "); Val; String(");"); Ln;
+			Comment("arc sin");
+			IfActive; Diff; Out(" := "); Diff; Out(" / Math.Sqrt(1.0 - "); Val; Out(" * "); Val; Out(");");
 			End; Ln;
-			Val; String(" := Math.ArcSin("); Val; String(");"); Ln
+			Val; Out(" := Math.ArcSin("); Val; Out(");"); Ln
 		END WriteArcSin;
 
 		PROCEDURE WriteArcCos;
 		BEGIN
-			If; Active; Then; Comment("arc cos"); Ln;
-			Diff; String(" := -"); Diff; String(" / Math.Sqrt(1.0 - "); Val; String(" * "); Val; String(");"); Ln;
+			Comment("arc cos");
+			IfActive; Diff; Out(" := -"); Diff; Out(" / Math.Sqrt(1.0 - "); Val; Out(" * "); Val; Out(");");
 			End; Ln;
-			Val; String(" := Math.ArcCos("); Val; String(");"); Ln
+			Val; Out(" := Math.ArcCos("); Val; Out(");"); Ln
 		END WriteArcCos;
 
 		PROCEDURE WriteArcTan;
 		BEGIN
-			If; Active; Then; Comment("arc tan"); Ln;
-			Diff; String(" := "); Diff; String(" / (1.0 + "); Val; String(" * "); Val; String(");"); Ln;
+			Comment("arc tan");
+			IfActive; Diff; Out(" := "); Diff; Out(" / (1.0 + "); Val; Out(" * "); Val; Out(");");
 			End; Ln;
-			Val; String(" := Math.ArcTan("); Val; String(");"); Ln
+			Val; Out(" := Math.ArcTan("); Val; Out(");"); Ln
 		END WriteArcTan;
 
 		PROCEDURE WriteSinh;
 		BEGIN
-			If; Active; Then; Comment("sinh"); Ln;
-			Diff; String(" := "); Diff; String(" * Math.Cosh("); Val; String(");"); Ln;
-			End; Ln;
-			Val; String(" := Math.Sinh("); Val; String(");"); Ln
+			Comment("sinh");
+			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Cosh("); Val; Out(");"); End; Ln;
+			Val; Out(" := Math.Sinh("); Val; Out(");"); Ln
 		END WriteSinh;
 
 		PROCEDURE WriteCosh;
 		BEGIN
-			If; Active; Then; Comment("cosh"); Ln;
-			Diff; String(" := "); Diff; String(" * Math.Sinh("); Val; String(");"); Ln;
-			End; Ln;
-			Val; String(" := Math.Cosh("); Val; String(");"); Ln
+			Comment("cosh");
+			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Sinh("); Val; Out(");"); End; Ln;
+			Val; Out(" := Math.Cosh("); Val; Out(");"); Ln
 		END WriteCosh;
 
 		PROCEDURE WriteTanh;
 		BEGIN
-			If; Active; Then; Comment("tanh"); Ln;
-			Diff; String(" := "); Diff; String(" * Math.IntPower(Math.Cosh("); Val; String(") , 2);"); Ln;
+			Comment("tanh"); Ln;
+			IfActive; Diff; Out(" := "); Diff; Out(" * Math.IntPower(Math.Cosh("); Val; Out(") , 2);");
 			End; Ln;
-			Val; String(" := Math.Tanh("); Val; String(");"); Ln
+			Val; Out(" := Math.Tanh("); Val; Out(");"); Ln
 		END WriteTanh;
 
 		PROCEDURE WriteArcSinh;
 		BEGIN
-			If; Active; Then; Comment("arc sinh"); Ln;
-			Diff; String(" := "); Diff; String(" / Math.Sqrt("); Val; String(" * "); Val; String(" + 1.0);"); Ln;
+			Comment("arc sinh");
+			IfActive; Diff; Out(" := "); Diff; Out(" / Math.Sqrt("); Val; Out(" * "); Val; Out(" + 1.0);");
 			End; Ln;
-			Val; String(" := Math.ArcSinh("); Val; String(");"); Ln
+			Val; Out(" := Math.ArcSinh("); Val; Out(");"); Ln
 		END WriteArcSinh;
 
 		PROCEDURE WriteArcCosh;
 		BEGIN
-			If; Active; Then; Comment("arc cosh"); Ln;
-			Diff; String(" := "); Diff; String(" / Math.Sqrt("); Val; String(" * "); Val; String(" - 1.0);");
+			Comment("arc cosh");
+			IfActive; Diff; Out(" := "); Diff; Out(" / Math.Sqrt("); Val; Out(" * "); Val; Out(" - 1.0);");
 			End; Ln;
-			Val; String(" := Math.ArcCosh("); Val; String(");"); Ln
+			Val; Out(" := Math.ArcCosh("); Val; Out(");"); Ln
 		END WriteArcCosh;
 
 		PROCEDURE WriteArcTanh;
 		BEGIN
-			If; Active; Then; Comment("arc tanh"); Ln;
-			Diff; String(" := "); Diff; String(" / ( 1.0 - "); Val; String(" * "); Val; String(");"); Ln;
+			Comment("arc tanh");
+			IfActive; Diff; Out(" := "); Diff; Out(" / ( 1.0 - "); Val; Out(" * "); Val; Out(");");
 			End; Ln;
-			Val; String(" := Math.ArcTanh("); Val; String(");"); Ln
+			Val; Out(" := Math.ArcTanh("); Val; Out(");"); Ln
 		END WriteArcTanh;
 
 	BEGIN
 		stackSize := StackSize(args);
-		String("PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val0, diff0: REAL);"); Ln;
-		IF stackSize > 0 THEN
-			String("VAR"); Ln
+		Out("PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val0, diff0: REAL);"); Ln;
+		IF (stackSize > 0) OR (args.numLogicals > 0)THEN
+			Out("VAR"); Ln
 		END;
 		IF stackSize > 1 THEN
-			String("val1, diff1");
+			Out("val1, diff1");
 			i := 2;
 			WHILE i < stackSize DO
-				String(", val"); f.WriteInt(i);
-				String(", diff"); f.WriteInt(i);
+				Out(", val"); f.WriteInt(i);
+				Out(", diff"); f.WriteInt(i);
 				INC(i)
 			END;
-			String(": REAL;"); Ln;
+			Out(": REAL;"); Ln;
 		END;
 		IF stackSize > 0 THEN
-			String("active0");
+			Out("active0");
 			i := 1;
 			WHILE i < stackSize DO
-				String(", active"); f.WriteInt(i); INC(i)
+				Out(", active"); f.WriteInt(i); INC(i)
 			END;
-			String(": BOOLEAN;"); Ln
+			Out(": BOOLEAN;"); Ln
 		END;
 		IF args.numLogicals > 0 THEN
-			IF stackSize < 2 THEN String("VAR"); Ln END;
-			String("l0, d0");
+			Out("l0, d0");
 			i := 1;
 			WHILE i < args.numLogicals DO
-				String(", l"); f.WriteInt(i);
-				String(", d"); f.WriteInt(i);
+				Out(", l"); f.WriteInt(i);
+				Out(", d"); f.WriteInt(i);
 				INC(i)
 			END;
-			String(": REAL;"); Ln;
+			Out(": REAL;"); Ln;
 		END;
-		String("BEGIN"); Ln;
+		Out("BEGIN"); Ln;
 		IF args.numLogicals > 0 THEN
 			WriteRefLogical(0);
 			i := 1;
@@ -1081,16 +1062,16 @@ MODULE BugsCPWrite;
 		top := - 1;
 		numC := 0;
 		WHILE i < args.numOps DO
-			op := args.ops[i];
+			op := args.ops[i] MOD GraphGrammar.modifier;
 			CASE op OF
 			|GraphGrammar.refStoch: INC(i); WriteRefStoch(args.ops[i]);
 			|GraphGrammar.ref: INC(i); WriteRef(args.ops[i]);
 			|GraphGrammar.const: WriteConst
 			|GraphGrammar.abs: WriteAbs
-			|GraphGrammar.add: WriteAdd
-			|GraphGrammar.sub: WriteSub
-			|GraphGrammar.mult: WriteMult
-			|GraphGrammar.div: WriteDiv
+			|GraphGrammar.add: WriteAdd(args.ops[i])
+			|GraphGrammar.sub: WriteSub(args.ops[i])
+			|GraphGrammar.mult: WriteMult(args.ops[i])
+			|GraphGrammar.div: WriteDiv(args.ops[i])
 			|GraphGrammar.uminus: WriteUminus
 			|GraphGrammar.cloglog: WriteCloglog
 			|GraphGrammar.icloglog: WriteICloglog
@@ -1105,7 +1086,7 @@ MODULE BugsCPWrite;
 			|GraphGrammar.max: WriteMax
 			|GraphGrammar.min: WriteMin
 			|GraphGrammar.phi: WritePhi
-			|GraphGrammar.pow: WritePow
+			|GraphGrammar.pow: WritePow(args.ops[i])
 			|GraphGrammar.round: WriteRound
 			|GraphGrammar.sin: WriteSin
 			|GraphGrammar.sqrt: WriteSqrt
@@ -1122,18 +1103,10 @@ MODULE BugsCPWrite;
 			|GraphGrammar.arccosh: WriteArcCosh
 			|GraphGrammar.arctanh: WriteArcTanh
 			END;
-			IF i < args.numOps - 1 THEN
-				CASE op OF
-				|GraphGrammar.add, GraphGrammar.sub, GraphGrammar.mult, GraphGrammar.div,
-					GraphGrammar.pow:
-					Active; String(" := "); Active; String(" OR "); Active1; String(";"); Ln;
-				ELSE
-				END
-			END;
 			INC(i);
 		END;
-		String(" END ValDiff;"); Ln;
-		f. WriteLn;
+		Out(" END ValDiff;"); Ln;
+		Ln;
 	END WriteValDiffMethod;
 
 	PROCEDURE WriteFactoryMethods (VAR f: TextMappers.Formatter);
@@ -1182,11 +1155,10 @@ MODULE BugsCPWrite;
 	PROCEDURE WriteModule* (IN args: GraphStochastic.ArgsLogical; index: INTEGER;
 	VAR f: TextMappers.Formatter);
 		VAR
-			fileName, timeStamp: ARRAY 128 OF CHAR;
+			fileName: ARRAY 128 OF CHAR;
 	BEGIN
 		Strings.IntToString(index, fileName);
-		Strings.IntToString(GraphNodes.timeStamp, timeStamp);
-		fileName := "Node" + fileName + "_" + timeStamp; ;
+		fileName := "Node" + fileName;
 		f.SetPos(0);
 		(*	write MODULE stuff	*)
 		WriteModuleHeader("Dynamic" + fileName, f);

@@ -84,7 +84,11 @@ MODULE GraphNegbin;
 
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
-		RETURN GraphRules.descrete
+		IF GraphStochastic.rightImposed IN node.props THEN
+			RETURN GraphRules.catagorical
+		ELSE
+			RETURN GraphRules.descrete
+		END
 	END ClassifyPrior;
 
 	PROCEDURE (node: Node) Cumulative (x: REAL): REAL;

@@ -20,7 +20,7 @@ MODULE BugsC;
 
 	IMPORT
 		SYSTEM,
-		Meta, Strings,
+		Strings,
 		BugsFiles, BugsInterpreter, BugsMsg, BugsScripting;
 
 	VAR
@@ -71,6 +71,11 @@ MODULE BugsC;
 		SetRFpu
 	END CharArray;
 
+	PROCEDURE[ccall] ClearError* ();
+	BEGIN
+		BugsMsg.Clear
+	END ClearError;
+
 	PROCEDURE[ccall] CmdInterpreter* (VAR command: POINTER TO ARRAY[untagged] OF SHORTCHAR;
 	VAR len, res: INTEGER);
 	VAR
@@ -83,6 +88,16 @@ MODULE BugsC;
 		BugsInterpreter.CmdInterpreter(string, res);
 		SetRFpu
 	END CmdInterpreter;
+
+	PROCEDURE[ccall] GetError* (): INTEGER;
+	BEGIN
+		IF BugsMsg.error THEN RETURN 1 ELSE RETURN 0 END
+	END GetError;
+
+	PROCEDURE[ccall] GetMsg* (VAR msg: POINTER TO ARRAY[untagged] OF SHORTCHAR);
+	BEGIN
+		msg^ := SHORT(BugsMsg.message$)
+	END GetMsg;
 
 	PROCEDURE[ccall] Guard* (VAR procedure: POINTER TO ARRAY[untagged] OF SHORTCHAR;
 	VAR len, x, res: INTEGER);
@@ -173,11 +188,6 @@ MODULE BugsC;
 		command := "infoData()";
 		BugsScripting.Command(command, res)
 	END infoData;
-
-	PROCEDURE[ccall] infoError* (VAR error: POINTER TO ARRAY[untagged] OF SHORTCHAR);
-	BEGIN
-		error^ := SHORT(BugsMsg.message$)
-	END infoError;
 
 	PROCEDURE[ccall] infoMetrics* ();
 		VAR
@@ -544,15 +554,9 @@ MODULE BugsC;
 	PROCEDURE Init;
 	VAR
 		ok: BOOLEAN;
-		item: Meta.Item;
 	BEGIN
 		SetBBFpu;
 		Maintainer;
-		(*	Initialize subsystems	*)
-		Meta.LookupPath("Startup.Setup", item);
-		IF item.obj = Meta.procObj THEN
-			item.Call(ok)
-		END;
 		BugsFiles.SetDest(BugsFiles.file);
 		SetRFpu
 	END Init;

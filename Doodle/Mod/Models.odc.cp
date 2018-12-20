@@ -115,7 +115,7 @@ MODULE DoodleModels;
 			IF p.parents = NIL THEN
 				len := 0
 			ELSE
-				len := LEN(p.parents^)
+				len := LEN(p.parents)
 			END;
 			i := 0;
 			WHILE i < len DO

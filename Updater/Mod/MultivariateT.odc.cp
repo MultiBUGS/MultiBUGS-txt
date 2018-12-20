@@ -120,7 +120,7 @@ MODULE UpdaterMultivariateT;
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		(*	if not able to (or unwilling to) update node prior return NIL	*)
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		IF FindBlock(prior) = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;

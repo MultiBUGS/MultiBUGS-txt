@@ -27,7 +27,7 @@ MODULE UpdaterExternal;
 
 	PROCEDURE Load*;
 	BEGIN
-		
+
 		(*	MLE for generic distribution using Differential Evolution needs multiple >= 5 chains *)
 		UpdaterMethods.LoadUpdater("UpdaterSCDE.InstallMAP");
 
@@ -63,33 +63,41 @@ MODULE UpdaterExternal;
 
 		(*	conjugate multivariate updaters	*)
 
-		(*	updates node with wishart conditional	*)
-		UpdaterMethods.LoadUpdater("UpdaterWishart.Install");
-		
 		(*	updates node with dirichlet conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterDirichlet.Install");
 
-		(*	updater for logit, loglinear, normal beta, gamma MVN	*)
-		UpdaterMethods.LoadUpdater("UpdaterHamiltonianglm.Install");
-		
-		(*	general updater based on MAP	*)
-		UpdaterMethods.LoadUpdater("UpdaterMAPproposal.Install");
-		
+		(*	updates node with dirichlet prior	*)
+		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallDirichlet");
+
+		(*	updates node with wishart conditional	*)
+		UpdaterMethods.LoadUpdater("UpdaterWishart.Install");
+
+		(*	updates node with wishart prior	*)
+		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallWishart");
+
 		(*	updater for MVN conditional with mean identical to prior	*)
 		UpdaterMethods.LoadUpdater("UpdaterMVNormal.Install");
-		
+
 		(*	updater for MVN conditional with mean linear function of prior	*)
 		UpdaterMethods.LoadUpdater("UpdaterMVNLinear.Install");
 
-		(*	updates node with dirichlet prior	*)
-		UpdaterMethods.LoadUpdater("UpdaterDirichletprior.Install");
+		(*	general updater based on MAP	*)
+		UpdaterMethods.LoadUpdater("UpdaterMAPproposal.Install");
 
-		(*	updater for chain graph prior and logit,  loglinear or normal likelihood	*)
-		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallNormal");
+		(*	eliptical slice updater for MVN prior	*)
+		UpdaterMethods.LoadUpdater("UpdaterElliptical.Install");
+
+		(*	eliptical slice updater for block of normal priors	*)
+		UpdaterMethods.LoadUpdater("UpdaterEllipticalD.Install");
 		
+		(*	updater for chain graph prior and normal likelihood	*)
+		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallNormal");
+
+		(*	updater for chain graph prior and logit or  loglinear likelihood	*)
 		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallGeneral");
 
-		(*	block updaters	*)
+		(*	eliptical slice updater for chain graph prior and logit or loglinear likelihood	*)
+		UpdaterMethods.LoadUpdater("UpdaterGMRFess.Install");
 
 		(*	updates fixed effect block of nodes with logit conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterGLM.InstallLogit");
@@ -110,54 +118,60 @@ MODULE UpdaterExternal;
 
 		(*	updates node with normal conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterNormal.Install");
-		
+
 		(*	updates node with gamma conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterGamma.Install");
-		
+
 		(*	updates node with beta conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterBeta.Install");
-		
+
 		(*	updates node with pareto conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterPareto.Install");
-		
+
 		(*	updater for logit conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterRejection.InstallLogit");
-		
+
 		(*	updater for log-linear conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterRejection.InstallLoglin");
-		
+
 		(*	sampler for generic distribution using Differential Evolution needs multiple >= 5 chains *)
 		UpdaterMethods.LoadUpdater("UpdaterSCDE.InstallMet");
 
-		(*	updater for generic distribution with support on whole of real line	*)
-		UpdaterMethods.LoadUpdater("UpdaterMALA1D.Install");
+(*		(*	updater for generic distribution with univariate normal prior	*)
+		UpdaterMethods.LoadUpdater("UpdaterRandEffect.Install");*)
 
 		(*	updater for generic distribution with support on whole of real line	*)
 		UpdaterMethods.LoadUpdater("UpdaterSCAAR.InstallMH");
 
-		(*	updater for generic distribution with support on whole of real line	*)
-		UpdaterMethods.LoadUpdater("UpdaterMetnormal.InstallMH");
-		
+(*		(*	updater for generic distribution with support on whole of real line	*)
+		UpdaterMethods.LoadUpdater("UpdaterMetnormal.InstallMH");*)
+
 		(*	updater for generic distribution with support on whole of real line	*)
 		UpdaterMethods.LoadUpdater("UpdaterSDScale.Install");
-			
+
+		(*	updater for generic distribution can have bounds	*)
+		UpdaterMethods.LoadUpdater("UpdaterSlicegamma.Install");
+
 		(*	updater for generic distribution can have bounds	*)
 		UpdaterMethods.LoadUpdater("UpdaterSlice.Install");
-		
+
 		(*	updater for generic distribution with bounded support	*)
-		UpdaterMethods.LoadUpdater("UpdaterGriddy.Install");	
+		UpdaterMethods.LoadUpdater("UpdaterGriddy.Install");
 
 		(*	descrete updaters	*)
 
 		(*	updates node with poisson conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterPoisson.Install");
-		
-		(*	updater for descrete prior with finite range	*)
+
+		(*	updater for descrete prior with infinite range	*)
 		UpdaterMethods.LoadUpdater("UpdaterDescreteSlice.Install");
-		
+
 		(*	updater for descrete prior with finite range	*)
 		UpdaterMethods.LoadUpdater("UpdaterCatagorical.Install");
-		
+
+		(*	updater for descrete prior with finite range	*)
+		UpdaterMethods.LoadUpdater("UpdaterDescreteSlice.IntervalInstall");
+
 		(*updater for descrete prior with infinite range	*)
 		UpdaterMethods.LoadUpdater("UpdaterMetbinomial.Install");
 

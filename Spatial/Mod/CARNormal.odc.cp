@@ -14,12 +14,11 @@ MODULE SpatialCARNormal;
 
 	IMPORT
 		Stores,
-		GraphMultivariate,
-		GraphNodes, GraphRules, GraphStochastic, MathFunc,
-		SpatialUVCAR;
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR,
+		MathFunc;
 
 	TYPE
-		Node = POINTER TO RECORD(SpatialUVCAR.Normal) END;
+		Node = POINTER TO RECORD(SpatialUVCAR.Node) END;
 
 		Factory = POINTER TO RECORD (GraphMultivariate.Factory) END;
 
@@ -74,7 +73,7 @@ MODULE SpatialCARNormal;
 				IF p.neighs # NIL THEN numNeigh1 := LEN(p.neighs) ELSE numNeigh1 := 0 END;
 				j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # thisArea) DO INC(j) END;
 				IF ABS(p.weights[j] - weight) > eps THEN
-					RETURN {GraphNodes.arg3, GraphNodes.notSymmetric}
+					RETURN {GraphNodes.arg2, GraphNodes.notSymmetric}
 				END;
 				INC(i)
 			END
@@ -87,42 +86,32 @@ MODULE SpatialCARNormal;
 		RETURN GraphRules.unif
 	END ClassifyLikelihoodUVMRF;
 
+	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
+	BEGIN
+		RETURN GraphRules.normal
+	END ClassifyPrior;
+
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
-			i, index, len: INTEGER;
-			mu, differential, tau, wPlus, x: REAL;
-			com: GraphStochastic.Vector;
+			differential, mu, tau, x: REAL;
 	BEGIN
-		com := node.components;
+		node.PriorForm(GraphRules.normal, mu, tau);
 		x := node.value;
-		tau := node.tau.Value();
-		len := LEN(node.neighs);
-		i := 0;
-		mu := 0.0;
-		wPlus := 0.0;
-		WHILE i < len DO
-			index := node.neighs[i];
-			mu := mu + com[index].value * node.weights[i];
-			wPlus := wPlus + node.weights[i];
-			INC(i)
-		END;
-		mu := mu / wPlus;
-		tau := tau * wPlus;
 		differential := - tau * (x - mu);
 		RETURN differential
 	END DiffLogPrior;
 
-	PROCEDURE (node: Node) ExternalizeChainUVCAR (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeUVCAR (VAR wr: Stores.Writer);
 	BEGIN
-	END ExternalizeChainUVCAR;
+	END ExternalizeUVCAR;
 
-	PROCEDURE (node: Node) InitStochasticUVCAR;
+	PROCEDURE (node: Node) InitUVCAR;
 	BEGIN
-	END InitStochasticUVCAR;
+	END InitUVCAR;
 
-	PROCEDURE (node: Node) InternalizeChainUVCAR (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeUVCAR (VAR rd: Stores.Reader);
 	BEGIN
-	END InternalizeChainUVCAR;
+	END InternalizeUVCAR;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -137,43 +126,18 @@ MODULE SpatialCARNormal;
 		x := node.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihood (): REAL;
-		VAR
-			as: INTEGER;
-			lambda, logLikelihood, logTau, r, tau: REAL;
-			x: GraphNodes.Node;
+	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
 	BEGIN
-		as := GraphRules.gamma;
-		node.LikelihoodForm(as, x, r, lambda);
-		tau := x.Value();
-		logTau := MathFunc.Ln(tau);
-		logLikelihood := r * logTau - tau * lambda;
-		RETURN logLikelihood
-	END LogLikelihood;
+		RETURN 0.0
+	END LogLikelihoodUVMRF;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
-			i, index, len: INTEGER;
-			mu, prior, tau, wPlus, x: REAL;
-			com: GraphStochastic.Vector;
+			mu, tau, x: REAL;
 	BEGIN
-		com := node.components;
+		node.PriorForm(GraphRules.normal, mu, tau);
 		x := node.value;
-		tau := node.tau.Value();
-		len := LEN(node.neighs);
-		i := 0;
-		mu := 0.0;
-		wPlus := 0.0;
-		WHILE i < len DO
-			index := node.neighs[i];
-			mu := mu + com[index].value * node.weights[i];
-			wPlus := wPlus + node.weights[i];
-			INC(i)
-		END;
-		mu := mu / wPlus;
-		tau := tau * wPlus;
-		prior := - 0.50 * tau * (x - mu) * (x - mu);
-		RETURN prior
+		RETURN - 0.50 * tau * (x - mu) * (x - mu)
 	END LogPrior;
 
 	PROCEDURE (node: Node) MatrixElements (OUT values: ARRAY OF REAL);
@@ -204,6 +168,19 @@ MODULE SpatialCARNormal;
 		END
 	END MatrixElements;
 
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
+	OUT p1: ARRAY OF ARRAY OF REAL);
+		VAR
+			i, size: INTEGER;
+	BEGIN
+		size := node.Size();
+		i := 0;
+		WHILE i < size DO
+			p0[i] := 0.0;
+			INC(i)
+		END
+	END MVPriorForm;
+
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
 	BEGIN
 		RETURN 1
@@ -219,23 +196,18 @@ MODULE SpatialCARNormal;
 			i, len: INTEGER;
 			mu, wPlus: REAL;
 	BEGIN
-		ASSERT(as IN {GraphRules.normal, GraphRules.mVN}, 21);
-		IF as = GraphRules.normal THEN
-			len := LEN(node.neighs);
-			i := 0;
-			mu := 0.0;
-			wPlus := 0.0;
-			WHILE i < len DO
-				mu := mu + node.components[node.neighs[i]].value * node.weights[i];
-				wPlus := wPlus + node.weights[i];
-				INC(i)
-			END;
-			p0 := mu / wPlus;
-			p1 := node.tau.Value() * wPlus
-		ELSE
-			p0 := 0.0;
-			p1 := 0.0
-		END
+		ASSERT(as = GraphRules.normal, 21);
+		len := LEN(node.neighs);
+		i := 0;
+		mu := 0.0;
+		wPlus := 0.0;
+		WHILE i < len DO
+			mu := mu + node.components[node.neighs[i]].value * node.weights[i];
+			wPlus := wPlus + node.weights[i];
+			INC(i)
+		END;
+		p0 := mu / wPlus;
+		p1 := node.tau.Value() * wPlus
 	END PriorForm;
 
 	PROCEDURE (node: Node) SetUVCAR (IN args: GraphNodes.Args; OUT res: SET);

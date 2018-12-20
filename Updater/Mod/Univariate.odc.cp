@@ -14,7 +14,7 @@ MODULE UpdaterUnivariate;
 	
 
 	IMPORT
-		Stores,
+		MPIworker, Stores,
 		GraphNodes, GraphStochastic,
 		UpdaterUpdaters;
 
@@ -30,13 +30,13 @@ MODULE UpdaterUnivariate;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	(*	returns children of updater	*)
+		(*	returns children of updater	*)
 	PROCEDURE (updater: Updater) Children* (): GraphStochastic.Vector;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
 		prior := updater.prior;
-		RETURN prior.Children()
+		RETURN prior.children
 	END Children;
 
 	PROCEDURE (updater: Updater) CopyFromUnivariate- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
@@ -60,12 +60,17 @@ MODULE UpdaterUnivariate;
 	BEGIN
 		prior := updater.prior;
 		depth := prior.depth;
-		IF (prior.likelihood = NIL) & (prior.Size() = 1) THEN
-			depth :=  - depth
+		IF (prior.children = NIL) & (prior.Size() = 1) THEN
+			depth := - depth
 		END;
 		RETURN depth
 	END Depth;
-
+	
+	PROCEDURE (updater: Updater) DiffLogConditional* (index: INTEGER): REAL;
+	BEGIN
+		RETURN UpdaterUpdaters.DiffLogConditional(updater.prior)
+	END DiffLogConditional;
+	
 	(*	writes the prior of updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer);
 	BEGIN
@@ -144,7 +149,7 @@ MODULE UpdaterUnivariate;
 		logConditional := prior.LogPrior() + updater.LogLikelihood();
 		RETURN logConditional
 	END LogConditional;
-	
+
 	(*	calculates log likelihood of updater	*)
 	PROCEDURE (updater: Updater) LogLikelihood* (): REAL;
 		VAR
@@ -155,21 +160,33 @@ MODULE UpdaterUnivariate;
 	BEGIN
 		logLikelihood := 0.0;
 		prior := updater.prior;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
-		WHILE (i < num) & (logLikelihood #  - INF) DO
+		WHILE (i < num) & (logLikelihood # - INF) DO
 			logLike := children[i].LogLikelihood();
-			IF logLike #  - INF THEN
+			IF logLike # - INF THEN
 				logLikelihood := logLikelihood + logLike
 			ELSE
-				logLikelihood :=  - INF
+				logLikelihood := - INF
 			END;
 			INC(i)
 		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			logLikelihood := MPIworker.SumReal(logLikelihood)
+		END;
 		RETURN logLikelihood
 	END LogLikelihood;
-	
+
+	(*	calculates log prior of updater	*)
+	PROCEDURE (updater: Updater) LogPrior* (): REAL;
+		VAR
+			prior: GraphStochastic.Node;
+	BEGIN
+		prior := updater.prior;
+		RETURN prior.LogPrior();
+	END LogPrior;
+
 	(*	node in graphical model that updater updates	*)
 	PROCEDURE (updater: Updater) Node* (index: INTEGER): GraphStochastic.Node;
 	BEGIN
@@ -190,11 +207,6 @@ MODULE UpdaterUnivariate;
 		END
 	END Prior;
 
-	PROCEDURE (updater: Updater) SetChildren* (children: GraphStochastic.Vector);
-	BEGIN
-		updater.prior.SetChildren(children)
-	END SetChildren;
-	
 	(*	associate node in graphical model with updater	*)
 	PROCEDURE (updater: Updater) SetPrior- (prior: GraphStochastic.Node);
 	BEGIN
@@ -220,6 +232,23 @@ MODULE UpdaterUnivariate;
 			updater.initialized := FALSE
 		END
 	END StoreSample;
+
+	PROCEDURE IsHomologous* (prior: GraphStochastic.Node): BOOLEAN;
+		VAR
+			class, i, num: INTEGER;
+			children: GraphStochastic.Vector;
+	BEGIN
+		children := prior.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		class := children[0].ClassifyLikelihood(prior);
+		LOOP
+			IF i = num THEN EXIT END;
+			IF class # children[i].ClassifyLikelihood(prior) THEN EXIT END;
+			INC(i)
+		END;
+		RETURN i = num
+	END IsHomologous;
 
 	PROCEDURE Maintainer;
 	BEGIN

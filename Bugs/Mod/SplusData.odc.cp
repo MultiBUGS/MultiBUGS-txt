@@ -11,9 +11,9 @@ MODULE BugsSplusData;
 	
 
 	IMPORT
-		Strings,
+		Strings, 
 		BugsData, BugsIndex, BugsMappers, BugsMsg, BugsNames,
-		GraphConstant, GraphNodes, GraphStochastic;
+		GraphNodes, GraphStochastic;
 
 	TYPE
 
@@ -54,7 +54,7 @@ MODULE BugsSplusData;
 
 	PROCEDURE (action: Action) Allocate, NEW, EMPTY;
 
-	PROCEDURE (action: Action) List (VAR s: BugsMappers.Scanner): INTEGER, NEW, ABSTRACT;
+	PROCEDURE (action: Action) Values (VAR s: BugsMappers.Scanner): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (action: Action) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN), NEW, ABSTRACT;
 
@@ -65,7 +65,7 @@ MODULE BugsSplusData;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("BugsSplusData" + numToString, errorMsg);
-		BugsMsg.Store(errorMsg);
+		BugsMsg.StoreError(errorMsg);
 	END Error;
 
 	PROCEDURE ErrorNode (errorNum: INTEGER; string: ARRAY OF CHAR);
@@ -76,10 +76,10 @@ MODULE BugsSplusData;
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("BugsSplusData" + numToString, errorMsg);
 		errorMsg := errorMsg + " " + string;
-		BugsMsg.Store(errorMsg);
+		BugsMsg.StoreError(errorMsg);
 	END ErrorNode;
 
-	PROCEDURE CheckItem (VAR s: BugsMappers.Scanner; OUT status: INTEGER);
+	PROCEDURE CheckValue (VAR s: BugsMappers.Scanner; OUT status: INTEGER);
 		VAR
 			signed: BOOLEAN;
 	BEGIN
@@ -98,38 +98,37 @@ MODULE BugsSplusData;
 				status := error; Error(2); RETURN
 			END;
 			status := na
-		ELSIF (s.type # BugsMappers.int) & (s.type # BugsMappers.real) THEN (*	expected number or NA	*)
+		ELSIF (s.type # BugsMappers.int) & (s.type # BugsMappers.real) THEN
+			(*	expected number or NA	*)
 			status := error; Error(3); RETURN
 		ELSE
 			status := number
 		END
-	END CheckItem;
+	END CheckValue;
 
-	PROCEDURE CreateDataNode (VAR s: BugsMappers.Scanner): GraphNodes.Node;
+	PROCEDURE ReadValue (VAR s: BugsMappers.Scanner; OUT value: REAL; OUT nA: BOOLEAN);
 		VAR
 			signed: BOOLEAN;
-			value: REAL;
 			constant: GraphNodes.Node;
 	BEGIN
 		signed := FALSE;
+		nA := FALSE;
 		s.Scan;
 		IF (s.type = BugsMappers.char) & (s.char = "-") THEN
 			signed := TRUE;
 			s.Scan
 		END;
 		IF (s.type = BugsMappers.string) & (s.string = "NA") THEN
-			RETURN NIL
+			value := INF; nA := TRUE;
 		ELSIF s.type = BugsMappers.int THEN
 			value := s.int
 		ELSIF s.type = BugsMappers.real THEN
 			value := s.real
 		END;
 		IF signed THEN
-			value :=  - value
+			value := - value
 		END;
-		constant := GraphConstant.New(value);
-		RETURN constant
-	END CreateDataNode;
+	END ReadValue;
 
 	PROCEDURE StoreInitValue (VAR s: BugsMappers.Scanner; node: GraphNodes.Node);
 		VAR
@@ -150,13 +149,13 @@ MODULE BugsSplusData;
 			value := s.real
 		END;
 		IF signed THEN
-			value :=  - value
+			value := - value
 		END;
 		node(GraphStochastic.Node).SetValue(value);
 		node.SetProps(node.props + {GraphStochastic.initialized})
 	END StoreInitValue;
 
-	PROCEDURE (action: DataChecker) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: DataChecker) Values (VAR s: BugsMappers.Scanner): INTEGER;
 		CONST
 			undefined = 0;
 		VAR
@@ -172,10 +171,10 @@ MODULE BugsSplusData;
 			len := undefined
 		END;
 		LOOP
-			CheckItem(s, status);
+			CheckValue(s, status);
 			IF status = error THEN RETURN 0 END;
-			IF (name.components # NIL) & (name.components[i] # NIL) & 
-				(status = number) THEN (*	data value already given for this component of node 	*)
+			IF name.IsDefined(i) & (status = number) THEN
+				(*	data value already given for this component of node 	*)
 				Error(4); RETURN 0
 			END;
 			INC(i);
@@ -193,16 +192,16 @@ MODULE BugsSplusData;
 			END
 		END;
 		RETURN i
-	END List;
+	END Values;
 
-	PROCEDURE (sratagey: DataChecker) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
+	PROCEDURE (action: DataChecker) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 		VAR
 			name: BugsNames.Name;
 	BEGIN
 		ok := TRUE;
-		name := sratagey.name;
-		IF (name.slotSizes[slot] # 0) & (name.slotSizes[slot] # slotSize) THEN 
-		(*	node dimension mis match	*)
+		name := action.name;
+		IF (name.slotSizes[slot] # 0) & (name.slotSizes[slot] # slotSize) THEN
+			(*	node dimension mis match	*)
 			ok := FALSE; Error(7);
 		END
 	END Slot;
@@ -212,19 +211,17 @@ MODULE BugsSplusData;
 			name: BugsNames.Name;
 	BEGIN
 		name := action.name;
-		IF name.components = NIL THEN
-			name.AllocateNodes
-		END
+		name.AllocateNodes
 	END Allocate;
 
-	PROCEDURE (action: Allocator) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: Allocator) Values (VAR s: BugsMappers.Scanner): INTEGER;
 		VAR
 			c: DataChecker;
 	BEGIN
 		NEW(c);
 		c.name := action.name;
-		RETURN c.List(s)
-	END List;
+		RETURN c.Values(s)
+	END Values;
 
 	PROCEDURE (action: Allocator) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 		VAR
@@ -235,7 +232,7 @@ MODULE BugsSplusData;
 		name.SetRange(slot, slotSize)
 	END Slot;
 
-	PROCEDURE (action: InitsChecker) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: InitsChecker) Values (VAR s: BugsMappers.Scanner): INTEGER;
 		VAR
 			name: BugsNames.Name;
 			status: INTEGER;
@@ -249,7 +246,7 @@ MODULE BugsSplusData;
 		i := 0;
 		len := name.Size();
 		LOOP
-			CheckItem(s, status);
+			CheckValue(s, status);
 			IF status = error THEN RETURN 0 END;
 			IF i = len THEN (*	number of  items not equal to length of vector	*)
 				Error(6); RETURN 0
@@ -280,7 +277,7 @@ MODULE BugsSplusData;
 			END
 		END;
 		RETURN i
-	END List;
+	END Values;
 
 	PROCEDURE (action: InitsChecker) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 		VAR
@@ -293,28 +290,34 @@ MODULE BugsSplusData;
 		END
 	END Slot;
 
-	PROCEDURE (startagey: DataLoader) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: DataLoader) Values (VAR s: BugsMappers.Scanner): INTEGER;
 		VAR
 			i, len: INTEGER;
 			name: BugsNames.Name;
+			value: REAL;
+			node: GraphNodes.Node;
+			nA: BOOLEAN;
 	BEGIN
-		name := startagey.name;
-		ASSERT(name.components # NIL, 21);
+		name := action.name;
 		i := 0;
-		len := name.Size();
+		len := name.Size(); 
 		LOOP
-			name.components[i] := CreateDataNode(s);
-			IF name.numSlots = 0 THEN
-				EXIT
+			ReadValue(s, value, nA);
+			IF name.isVariable THEN
+				IF ~nA THEN
+					name.StoreValue(i, value);
+					node := name.components[i];
+					node.SetProps(node.props + {GraphStochastic.data})
+				END
+			ELSE
+				name.StoreValue(i, value)
 			END;
-			s.Scan;
+			IF name.numSlots # 0 THEN s.Scan END;
 			INC(i);
-			IF i = len THEN
-				EXIT
-			END
+			IF i = len THEN EXIT END
 		END;
 		RETURN len
-	END List;
+	END Values;
 
 	(* Skip a vector of numbers for a variable in the data that isn't in the model *)
 
@@ -324,7 +327,7 @@ MODULE BugsSplusData;
 			signed: BOOLEAN;
 	BEGIN
 		LOOP
-			CheckItem(s, status); (* read and check number or NA *)
+			CheckValue(s, status); (* read and check number or NA *)
 			IF status = error THEN RETURN 0 END;
 			s.Scan;
 			IF (s.type # BugsMappers.char) THEN (* expected a comma or right parenthesis *)
@@ -343,7 +346,7 @@ MODULE BugsSplusData;
 		ok := TRUE
 	END Slot;
 
-	PROCEDURE (action: InitsLoader) List (VAR s: BugsMappers.Scanner): INTEGER;
+	PROCEDURE (action: InitsLoader) Values (VAR s: BugsMappers.Scanner): INTEGER;
 		VAR
 			i, len: INTEGER;
 			name: BugsNames.Name;
@@ -354,13 +357,12 @@ MODULE BugsSplusData;
 		len := name.Size();
 		LOOP
 			StoreInitValue(s, name.components[i]);
-			IF name.numSlots = 0 THEN EXIT END;
-			s.Scan;
 			INC(i);
-			IF i = len THEN EXIT END
+			IF name.numSlots # 0 THEN s.Scan END;
+			IF i = len THEN EXIT END;
 		END;
 		RETURN len
-	END List;
+	END Values;
 
 	PROCEDURE (action: InitsLoader) Slot (slot, slotSize: INTEGER; OUT ok: BOOLEAN);
 	BEGIN
@@ -481,7 +483,7 @@ MODULE BugsSplusData;
 		ok := TRUE;
 		indices := name.numSlots;
 		IF indices = 0 THEN
-			len := action.List(s);
+			len := action.Values(s);
 			IF len = 0 THEN
 				ok := FALSE; RETURN
 			ELSIF len # 1 THEN (*	scalar node must have size of one	*)
@@ -489,23 +491,27 @@ MODULE BugsSplusData;
 			END
 		ELSIF indices = 1 THEN
 			s.Scan;
-			IF (s.type # BugsMappers.function) OR (s.string # "c") THEN (*	expected the collection operator c	*)
+			IF (s.type # BugsMappers.function) OR (s.string # "c") THEN
+				(*	expected the collection operator c	*)
 				ok := FALSE; Error(26); RETURN
 			END;
 			s.Scan;
-			IF (s.type # BugsMappers.char) OR (s.char # "(") THEN (*	expected left parenthesis	*)
+			IF (s.type # BugsMappers.char) OR (s.char # "(") THEN
+				(*	expected left parenthesis	*)
 				ok := FALSE; Error(27); RETURN
 			END;
-			len := action.List(s);
+			len := action.Values(s);
 			IF len = 0 THEN
 				ok := FALSE; RETURN
-			ELSIF (name.components # NIL) & (len # name.Size()) THEN (*	node size # no of components	*)
+			ELSIF (name.components # NIL) & (len # name.Size()) THEN
+				(*	node size # no of components	*)
 				ok := FALSE; Error(28); RETURN
 			END;
 			action.Slot(0, len, ok)
 		ELSE
 			s.Scan;
-			IF (s.type # BugsMappers.function) OR (s.string # "structure") THEN (*	expected key word structure	*)
+			IF (s.type # BugsMappers.function) OR (s.string # "structure") THEN
+				(*	expected key word structure	*)
 				ok := FALSE; Error(29); RETURN
 			END;
 			s.Scan;
@@ -525,14 +531,15 @@ MODULE BugsSplusData;
 				ok := FALSE; Error(33); RETURN
 			END;
 			s.Scan;
-			IF (s.type # BugsMappers.function) OR (s.string # "c") THEN (*	expected the collection operator c	*)
+			IF (s.type # BugsMappers.function) OR (s.string # "c") THEN
+				(*	expected the collection operator c	*)
 				ok := FALSE; Error(34); RETURN
 			END;
 			s.Scan;
 			IF (s.type # BugsMappers.char) OR (s.char # "(") THEN (*	expected left parenthesis	*)
 				ok := FALSE; Error(35); RETURN
 			END;
-			len := action.List(s);
+			len := action.Values(s);
 			s.Scan;
 			IF len = 0 THEN
 				ok := FALSE; RETURN
@@ -644,11 +651,8 @@ MODULE BugsSplusData;
 			END;
 			varname := s.string$;
 			name := BugsIndex.Find(varname);
-			IF name = NIL THEN (*	undefined variable	*)
-				inModel := FALSE;
-			ELSE inModel := TRUE;
-			END;
-			(*				ok := FALSE; Error(39); RETURN *)
+			inModel := name # NIL;
+			(*	ok := FALSE; Error(39); RETURN *)
 			action.name := name;
 			s.Scan;
 			IF (s.type # BugsMappers.char) OR (s.char # "=") THEN (*	expected an equals sign	*)
@@ -670,7 +674,7 @@ MODULE BugsSplusData;
 					END;
 				END;
 			END;
-			(* 			l.Node(s, ok); *)
+			(* 	l.Node(s, ok); *)
 			IF ~ok THEN RETURN END;
 			s.Scan;
 			IF s.type # BugsMappers.char THEN (*	expected a comma or right parenthesis	*)
@@ -689,7 +693,7 @@ MODULE BugsSplusData;
 			checker: DataChecker;
 			allocator: Allocator;
 			loader: DataLoader;
-			errorMsg: ARRAY 1024 OF CHAR;
+			warningMsg: ARRAY 1024 OF CHAR;
 	BEGIN
 		missingVars := "";
 		nmissing := 0;
@@ -722,9 +726,9 @@ MODULE BugsSplusData;
 		l.Nodes(s, ok);
 		(* "variables not in the model" warning is concatenated with the list of such variable names *)
 		IF (nmissing > 0) THEN
-			BugsMsg.Lookup("BugsSplusData40", errorMsg);
-			errorMsg := " (" + errorMsg + missingVars + ")";
-			BugsMsg.Store(errorMsg);
+			BugsMsg.Lookup("BugsSplusData40", warningMsg);
+			warningMsg := " (" + warningMsg + missingVars + ")";
+			BugsMsg.StoreMsg(warningMsg);
 			nmissing := 0;
 			missingVars := "";
 		END;
@@ -735,7 +739,7 @@ MODULE BugsSplusData;
 			beg: INTEGER;
 			checker: InitsChecker;
 			loader: InitsLoader;
-			errorMsg: ARRAY 1024 OF CHAR;
+			warningMsg: ARRAY 1024 OF CHAR;
 	BEGIN
 		missingVars := "";
 		nmissing := 0;
@@ -762,9 +766,9 @@ MODULE BugsSplusData;
 		l.Nodes(s, ok);
 		(* "variables not in the model" warning is concatenated with the list of such variable names *)
 		IF (nmissing > 0) THEN
-			BugsMsg.Lookup("BugsSplusData40", errorMsg);
-			errorMsg := " (" + errorMsg + missingVars + ")";
-			BugsMsg.Store(errorMsg);
+			BugsMsg.Lookup("BugsSplusData40", warningMsg);
+			warningMsg := " (" + warningMsg + missingVars + ")";
+			BugsMsg.StoreMsg(warningMsg);
 			nmissing := 0;
 			missingVars := "";
 		END;

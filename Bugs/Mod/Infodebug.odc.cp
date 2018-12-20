@@ -25,7 +25,7 @@ MODULE BugsInfodebug;
 		
 	
 	
-	PROCEDURE MethodsState (IN variable: ARRAY OF CHAR; VAR f: TextMappers.Formatter);
+	PROCEDURE MethodsState (IN variable: ARRAY OF CHAR; OUT numUpdater: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			adr, chain, depth, i, index, len, numChains, size: INTEGER;
 			offsets: POINTER TO ARRAY OF INTEGER;
@@ -42,6 +42,7 @@ MODULE BugsInfodebug;
 				Do: PROCEDURE (adr: INTEGER; name: ARRAY OF CHAR): Views.View
 			END;
 	BEGIN
+		numUpdater := 0;
 		numChains := UpdaterActions.NumberChains();
 		var := BugsParser.StringToVariable(variable);
 		IF var = NIL THEN 
@@ -54,6 +55,7 @@ MODULE BugsInfodebug;
 			name := var.name;
 			offsets := BugsEvaluate.Offsets(var);
 		END;
+		IF ~name.isVariable THEN RETURN END;
 		IF offsets = NIL THEN RETURN END;
 		Meta.Lookup("DevDebug", item);
 		ok := item.obj = Meta.modObj;
@@ -85,6 +87,7 @@ MODULE BugsInfodebug;
 				stoch := p(GraphStochastic.Node);
 				updater := UpdaterActions.FindSampler(0, stoch);
 				IF updater # NIL THEN
+					INC(numUpdater);
 					size := updater.Size();
 					depth := updater.Depth();
 					name.Indices(index, string);
@@ -145,6 +148,7 @@ MODULE BugsInfodebug;
 			name := var.name;
 			offsets := BugsEvaluate.Offsets(var);
 		END;
+		IF ~name.isVariable THEN RETURN END;
 		IF offsets = NIL THEN RETURN END;
 		Meta.Lookup("DevDebug", item);
 		ok := item.obj = Meta.modObj;
@@ -172,13 +176,11 @@ MODULE BugsInfodebug;
 				IF descriptor # NIL THEN
 					 string := descriptor.name$ 
 				ELSE
-					Strings.Find(string, "_", 0, pos);
-					IF pos # -1 THEN 
-						string[pos] := 0X;
-						Strings.Find(string, "DynamicNode", 0, pos);
-						IF pos # -1 THEN
-							Strings.Replace(string, pos, LEN("DynamicNode"), "logical")
-						END
+					Strings.Find(string, "DynamicNode", 0, pos);
+					IF pos # -1 THEN
+						Strings.Replace(string, pos, LEN("DynamicNode"), "logical");
+						Strings.Find(string, ".", 0, pos);
+						IF pos # -1 THEN string[pos] := 0X END
 					ELSE
 						Strings.Find(string, "GraphConstant", 0, pos);
 						IF pos # -1 THEN string := "const" END
@@ -204,7 +206,7 @@ MODULE BugsInfodebug;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
-			chains, numChains: INTEGER;
+			chains, numChains, numUpdater: INTEGER;
 	BEGIN
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
@@ -222,8 +224,8 @@ MODULE BugsInfodebug;
 			INC(chains)
 		END;
 		BugsFiles.WriteRuler(tabs, f);
-		MethodsState(BugsCmds.infoDialog.node.item, f);
-		BugsFiles.Open("Updater types", text)
+		MethodsState(BugsCmds.infoDialog.node.item, numUpdater, f);
+		IF numUpdater > 0 THEN BugsFiles.Open("Updater types", text) END
 	END Methods;
 
 	PROCEDURE Types*;

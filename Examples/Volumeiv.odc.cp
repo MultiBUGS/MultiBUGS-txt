@@ -12,7 +12,12 @@
 	Beetles: differential evolution and MLEs
 	
 	Preeclampsia: a multistage approach	
-
+	
+	Hald: a reversible jump approach to covariate 
+	selection
+	
+	Curves: a reversible jump approach to curve fitting
+	
 	Beetles: probit regression and censoring	
 
 	Lotka-Volterra: a simple ODE model
@@ -22,9 +27,6 @@
 	Change points: an ODE model with change points
 	
 	Pollution: an autoregressive time series model
-	
-	Methadone: A large e-health random effects model	
-
 	
 	References: 	
 	Sorry - an on-line version of the references is currently unavailable. 

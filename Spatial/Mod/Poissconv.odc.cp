@@ -55,6 +55,11 @@ MODULE SpatialPoissconv;
 	PROCEDURE (updater: Multinomial) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
+	
+	PROCEDURE (updater: Multinomial) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN 0
+	END DiffLogConditional;
 
 	PROCEDURE (updater: Multinomial) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -363,12 +368,12 @@ MODULE SpatialPoissconv;
 				i := 0;
 				WHILE i < nElem DO
 					p := GraphPoisson.fact.New();
+					GraphStochastic.RegisterAuxillary(p);
 					p.Init;
 					argsPoiss.scalars[0] := node.lambda[start + i * step];
 					p.Set(argsPoiss, res);
-					p.SetProps(p.props + {GraphNodes.data, GraphStochastic.hidden});
-					p.BuildLikelihood;
-					IF ~zero THEN p.SetProps(p.props - {GraphNodes.data}) END;
+					p.SetProps(p.props + {GraphStochastic.hidden});
+					IF zero THEN p.SetProps(p.props + {GraphNodes.data}) END;
 					p.SetValue(0.0);
 					node.poissons[i] := p;
 					INC(i)

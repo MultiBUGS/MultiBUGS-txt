@@ -1,11 +1,9 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
-
-
-		 *)
+*)
 
 MODULE SpatialExpKrig;
 
@@ -13,18 +11,21 @@ MODULE SpatialExpKrig;
 	
 
 	IMPORT
-		Math, 
-		GraphMultivariate, GraphNodes, GraphStochastic,
-		SpatialStrucMVN;
+		Math,
+		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes, GraphStochastic;
 
 	TYPE
 
-		Factory = POINTER TO RECORD(GraphMultivariate.Factory) END;
+		Factory = POINTER TO ABSTRACT RECORD(GraphMultivariate.Factory) END;
 
-		Kernel = POINTER TO RECORD(SpatialStrucMVN.SpatialKernel) END;
+		Factory1 = POINTER TO RECORD(Factory) END;
+
+		Factory2 = POINTER TO RECORD(Factory) END;
+
+		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
 	VAR
-		fact-: GraphMultivariate.Factory;
+		fact1-, fact2-: GraphMultivariate.Factory;
 		maintainer-: ARRAY 40 OF CHAR;
 		version-: INTEGER;
 		kernel: Kernel;
@@ -34,7 +35,7 @@ MODULE SpatialExpKrig;
 		install := "SpatialExpKrig.Install"
 	END Install;
 
-	PROCEDURE (kernel: Kernel) Element (x1, x2: SpatialStrucMVN.Point; params: ARRAY OF REAL): REAL;
+	PROCEDURE (kernel: Kernel) Element (x1, x2: GraphGPprior.Point; params: ARRAY OF REAL): REAL;
 		VAR
 			dim, i: INTEGER;
 			dist, element: REAL;
@@ -56,23 +57,19 @@ MODULE SpatialExpKrig;
 		RETURN 2
 	END NumParams;
 
-	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
+	PROCEDURE (f: Factory) New (): GraphChain.Node;
 		VAR
-			node: SpatialStrucMVN.Node;
-			p: GraphStochastic.Node;
+			node: GraphChain.Node;
 	BEGIN
-		p := SpatialStrucMVN.fact.New();
-		node := p(SpatialStrucMVN.Node);
-		node.Init;
-		node.SetKernel(kernel);
+		node := GraphGPprior.New(kernel);
 		RETURN node
 	END New;
 
-	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
+	PROCEDURE (f: Factory1) Signature (OUT signature: ARRAY OF CHAR);
 		VAR
 			i, numParams: INTEGER;
 	BEGIN
-		signature := "vvvs";
+		signature := "vvs"; 	(*	mu[], x[], tau	*)
 		i := 0;
 		numParams := kernel.NumParams();
 		WHILE i < numParams DO
@@ -81,10 +78,28 @@ MODULE SpatialExpKrig;
 		END
 	END Signature;
 
-	PROCEDURE Install*;
+	PROCEDURE (f: Factory2) Signature (OUT signature: ARRAY OF CHAR);
+		VAR
+			i, numParams: INTEGER;
 	BEGIN
-		GraphNodes.SetFactory(fact)
-	END Install;
+		signature := "vvvs"; 	(*	mu[], x[], y[], tau	*)
+		i := 0;
+		numParams := kernel.NumParams();
+		WHILE i < numParams DO
+			signature := signature + "s";
+			INC(i)
+		END
+	END Signature;
+
+	PROCEDURE Install1*;
+	BEGIN
+		GraphNodes.SetFactory(fact1)
+	END Install1;
+
+	PROCEDURE Install2*;
+	BEGIN
+		GraphNodes.SetFactory(fact2)
+	END Install2;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -94,11 +109,14 @@ MODULE SpatialExpKrig;
 
 	PROCEDURE Init;
 		VAR
-			f: Factory;
+			f1: Factory1;
+			f2: Factory2;
 	BEGIN
 		Maintainer;
-		NEW(f);
-		fact := f;
+		NEW(f1);
+		fact1 := f1;
+		NEW(f2);
+		fact2 := f2;
 		NEW(kernel)
 	END Init;
 

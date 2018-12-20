@@ -18,14 +18,11 @@ MODULE MathRungeKutta45;
 			k1, k2, k3, k4, k5, k6, error: POINTER TO ARRAY OF REAL
 		END;
 
-		Factory = POINTER TO RECORD(MathODE.SolverFactory) END;
-
 	VAR
-		fact-: MathODE.SolverFactory;
 		version-: INTEGER;
 		maintainer-: ARRAY 20 OF CHAR;
 
-	PROCEDURE (solver: Solver) Step (IN theta, x0: ARRAY OF REAL;
+		PROCEDURE (solver: Solver) Step (IN theta, x0: ARRAY OF REAL;
 		numEq, order: INTEGER;
 		t0, step: REAL;
 	OUT x1, error: ARRAY OF REAL);
@@ -162,7 +159,7 @@ MODULE MathRungeKutta45;
 	BEGIN
 		install := "MathRungeKutta45.Install"
 	END Install;
-	
+
 	PROCEDURE (solver: Solver) InitStorage;
 		VAR
 			numEq: INTEGER;
@@ -177,18 +174,13 @@ MODULE MathRungeKutta45;
 		NEW(solver.error, numEq)
 	END InitStorage;
 
-	PROCEDURE (f: Factory) New (): MathODE.Solver;
+	PROCEDURE New* (): MathODE.Solver;
 		VAR
 			solver: Solver;
 	BEGIN
 		NEW(solver);
-		RETURN solver
+		RETURN solver;
 	END New;
-
-	PROCEDURE Install*;
-	BEGIN
-		MathODE.SetSolverFactory(fact)
-	END Install;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -196,16 +188,7 @@ MODULE MathRungeKutta45;
 		maintainer := "A.Thomas"
 	END Maintainer;
 
-	PROCEDURE Init;
-		VAR
-			f: Factory;
-	BEGIN
-		Maintainer;
-		NEW(f);
-		fact := f
-	END Init;
-
 BEGIN
-	Init
+	Maintainer
 END MathRungeKutta45.
 

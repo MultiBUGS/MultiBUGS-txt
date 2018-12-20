@@ -40,8 +40,19 @@ MODULE GraphMVNormal;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		log2Pi: REAL;
-		mu, value, left, right: POINTER TO ARRAY OF REAL;
+		mu, value: POINTER TO ARRAY OF REAL;
 		tau: POINTER TO ARRAY OF ARRAY OF REAL;
+
+	PROCEDURE (node: Node) Bounds (OUT left, right: REAL);
+	BEGIN
+		left := - INF;
+		right := INF;
+	END Bounds;
+
+	PROCEDURE (node: Node) Check (): SET;
+	BEGIN
+		RETURN {}
+	END Check;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 		VAR
@@ -192,23 +203,6 @@ MODULE GraphMVNormal;
 		RETURN - 2.0 * logDensity
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
-		VAR
-			diffCond: REAL;
-			children: GraphStochastic.Vector;
-			i, num: INTEGER;
-	BEGIN
-		diffCond := node.DiffLogPrior();
-		children := node.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diffCond := diffCond + children[i].DiffLogLikelihood(node);
-			INC(i)
-		END;
-		RETURN diffCond
-	END DiffLogConditionalMap;
-
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
 			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
@@ -268,6 +262,72 @@ MODULE GraphMVNormal;
 		RETURN differential
 	END DiffLogPrior;
 
+	PROCEDURE (node: Node) ExternalizeConjugateMV (VAR wr: Stores.Writer);
+		VAR
+			v: GraphNodes.SubVector;
+			size: INTEGER;
+	BEGIN
+		IF node.index = 0 THEN
+			size := node.Size();
+			v := GraphNodes.NewVector();
+			v.components := node.mu;
+			v.start := node.muStart; v.nElem := size; v.step := node.muStep;
+			GraphNodes.ExternalizeSubvector(v, wr);
+			v.components := node.tau;
+			v.start := node.tauStart; v.nElem := size * size; v.step := node.tauStep;
+			GraphNodes.ExternalizeSubvector(v, wr)
+		END
+	END ExternalizeConjugateMV;
+
+	PROCEDURE (node: Node) InitStochastic;
+	BEGIN
+		node.mu := NIL;
+		node.tau := NIL;
+		node.muStart := - 1;
+		node.tauStart := - 1;
+		node.muStep := 0;
+		node.tauStep := 0;
+	END InitStochastic;
+
+	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
+		VAR
+			i, size: INTEGER;
+			p: GraphStochastic.Node;
+			v: GraphNodes.SubVector;
+	BEGIN
+		IF node.index = 0 THEN
+			size := node.Size();
+			IF size > LEN(mu) THEN
+				NEW(mu, size);
+				NEW(value, size);
+				NEW(tau, size, size)
+			END;
+			GraphNodes.InternalizeSubvector(v, rd);
+			node.mu := v.components;
+			node.muStart := v.start;
+			node.muStep := v.step;
+			GraphNodes.InternalizeSubvector(v, rd);
+			node.tau := v.components;
+			node.tauStart := v.start;
+			node.tauStep := v.step;
+			i := 1;
+			size := node.Size();
+			WHILE i < size DO
+				p := node.components[i];
+				WITH p: Node DO
+					p.mu := node.mu;
+					p.muStart := node.muStart;
+					p.muStep := node.muStep;
+					p.tau := node.tau;
+					p.tauStart := node.tauStart;
+					p.tauStep := node.tauStep
+				ELSE
+				END; ;
+				INC(i)
+			END
+		END
+	END InternalizeConjugateMV;
+
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphMVNormal.Install"
@@ -277,43 +337,6 @@ MODULE GraphMVNormal;
 	BEGIN
 		node.SetValue(y)
 	END InvMap;
-
-	PROCEDURE (node: Node) LogJacobian (): REAL;
-	BEGIN
-		RETURN 0
-	END LogJacobian;
-
-	PROCEDURE (node: Node) LogLikelihood (): REAL;
-		VAR
-			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
-			logLikelihood, prec, x, y: REAL;
-	BEGIN
-		nElem := node.Size();
-		muStart := node.muStart;
-		muStep := node.muStep;
-		tauStart := node.tauStart;
-		tauStep := node.tauStep;
-		logLikelihood := 0.0;
-		i := 0;
-		WHILE i < nElem DO
-			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
-			j := 0;
-			WHILE j < i DO
-				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
-				tau[i, j] := prec;
-				tau[j, i] := prec;
-				logLikelihood := logLikelihood - x * prec * y;
-				INC(j)
-			END;
-			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
-			tau[i, i] := prec;
-			logLikelihood := logLikelihood - 0.50 * x * prec * x;
-			INC(i)
-		END;
-		logLikelihood := logLikelihood + 0.50 * MathMatrix.LogDet(tau, nElem) - 0.5 * nElem * log2Pi;
-		RETURN logLikelihood
-	END LogLikelihood;
 
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
@@ -350,11 +373,6 @@ MODULE GraphMVNormal;
 		p0 := x(GraphStochastic.Node).value - diff1 / diff2;
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) Map (): REAL;
-	BEGIN
-		RETURN node.value
-	END Map;
-
 	PROCEDURE (node: Node) Location (): REAL;
 		VAR
 			start, step, index: INTEGER;
@@ -366,6 +384,99 @@ MODULE GraphMVNormal;
 		mean := node.mu[start + index * step].Value();
 		RETURN mean
 	END Location;
+
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
+	BEGIN
+		RETURN 0.0
+	END LogDetJacobian;
+
+	PROCEDURE (node: Node) LogLikelihood (): REAL;
+		VAR
+			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
+			logLikelihood, x, y: REAL;
+	BEGIN
+		nElem := node.Size();
+		muStart := node.muStart;
+		muStep := node.muStep;
+		tauStart := node.tauStart;
+		tauStep := node.tauStep;
+		logLikelihood := 0.0;
+		i := 0;
+		WHILE i < nElem DO
+			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
+			j := 0;
+			WHILE j < nElem DO
+				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
+				tau[i, j] := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				logLikelihood := logLikelihood - 0.5 * x * tau[i, j] * y;
+				INC(j)
+			END;
+			INC(i)
+		END;
+		logLikelihood := logLikelihood + 0.50 * MathMatrix.LogDet(tau, nElem) - 0.5 * nElem * log2Pi;
+		RETURN logLikelihood
+	END LogLikelihood;
+
+	PROCEDURE (node: Node) LogMVPrior (): REAL;
+		VAR
+			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
+			logPrior, prec, x, y: REAL;
+	BEGIN
+		nElem := node.Size();
+		muStart := node.muStart;
+		muStep := node.muStep;
+		tauStart := node.tauStart;
+		tauStep := node.tauStep;
+		logPrior := 0.0;
+		i := 0;
+		WHILE i < nElem DO
+			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
+			j := 0;
+			WHILE j < i DO
+				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
+				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				logPrior := logPrior - x * prec * y;
+				INC(j)
+			END;
+			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
+			logPrior := logPrior - 0.50 * x * prec * x;
+			INC(i)
+		END;
+		RETURN logPrior
+	END LogMVPrior;
+
+	PROCEDURE (node: Node) LogPrior (): REAL;
+		VAR
+			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
+			logPrior, prec, x, y: REAL;
+	BEGIN
+		nElem := node.Size();
+		muStart := node.muStart;
+		muStep := node.muStep;
+		tauStart := node.tauStart;
+		tauStep := node.tauStep;
+		logPrior := 0.0;
+		i := 0;
+		WHILE i < nElem DO
+			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
+			j := 0;
+			WHILE j < i DO
+				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
+				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				logPrior := logPrior - x * prec * y;
+				INC(j)
+			END;
+			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
+			logPrior := logPrior - 0.50 * x * prec * x;
+			INC(i)
+		END;
+		RETURN logPrior
+	END LogPrior;
+
+	PROCEDURE (node: Node) Map (): REAL;
+	BEGIN
+		RETURN node.value
+	END Map;
 
 	PROCEDURE (node: Node) MVLikelihoodForm (as: INTEGER; OUT x: GraphNodes.Vector;
 	OUT start, step: INTEGER; OUT p0: ARRAY OF REAL; OUT p1: ARRAY OF ARRAY OF REAL);
@@ -414,40 +525,11 @@ MODULE GraphMVNormal;
 		END
 	END MVLikelihoodForm;
 
-	PROCEDURE (node: Node) LogMVPrior (): REAL;
-		VAR
-			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
-			logPrior, prec, x, y: REAL;
-	BEGIN
-		nElem := node.Size();
-		muStart := node.muStart;
-		muStep := node.muStep;
-		tauStart := node.tauStart;
-		tauStep := node.tauStep;
-		logPrior := 0.0;
-		i := 0;
-		WHILE i < nElem DO
-			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
-			j := 0;
-			WHILE j < i DO
-				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
-				logPrior := logPrior - x * prec * y;
-				INC(j)
-			END;
-			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
-			logPrior := logPrior - 0.50 * x * prec * x;
-			INC(i)
-		END;
-		RETURN logPrior
-	END LogMVPrior;
-
-	PROCEDURE (node: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
 			i, j, nElem, start, step: INTEGER;
 	BEGIN
-		ASSERT(as = GraphRules.mVN, 21);
 		nElem := node.Size();
 		i := 0;
 		start := node.tauStart;
@@ -468,34 +550,6 @@ MODULE GraphMVNormal;
 			INC(i)
 		END
 	END MVPriorForm;
-
-	PROCEDURE (node: Node) LogPrior (): REAL;
-		VAR
-			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
-			logPrior, prec, x, y: REAL;
-	BEGIN
-		nElem := node.Size();
-		muStart := node.muStart;
-		muStep := node.muStep;
-		tauStart := node.tauStart;
-		tauStep := node.tauStep;
-		logPrior := 0.0;
-		i := 0;
-		WHILE i < nElem DO
-			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
-			j := 0;
-			WHILE j < i DO
-				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
-				logPrior := logPrior - x * prec * y;
-				INC(j)
-			END;
-			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
-			logPrior := logPrior - 0.50 * x * prec * x;
-			INC(i)
-		END;
-		RETURN logPrior
-	END LogPrior;
 
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
@@ -525,82 +579,6 @@ MODULE GraphMVNormal;
 		p0 := - p0 / p1
 	END PriorForm;
 
-	PROCEDURE (node: Node) BoundsConjugateMV (OUT left, right: REAL);
-	BEGIN
-		left := - INF;
-		right := INF;
-	END BoundsConjugateMV;
-
-	PROCEDURE (node: Node) CheckConjugateMV (): SET;
-	BEGIN
-		RETURN {}
-	END CheckConjugateMV;
-
-	PROCEDURE (node: Node) ExternalizeConjugateMV (VAR wr: Stores.Writer);
-		VAR
-			v: GraphNodes.SubVector;
-			size: INTEGER;
-	BEGIN
-		IF node.index = 0 THEN
-			size := node.Size();
-			v := GraphNodes.NewVector();
-			v.components := node.mu;
-			v.start := node.muStart; v.nElem := size; v.step := node.muStep;
-			GraphNodes.ExternalizeSubvector(v, wr);
-			v.components := node.tau;
-			v.start := node.tauStart; v.nElem := size * size; v.step := node.tauStep;
-			GraphNodes.ExternalizeSubvector(v, wr)
-		END
-	END ExternalizeConjugateMV;
-
-	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
-		VAR
-			i, size: INTEGER;
-			p: Node;
-			v: GraphNodes.SubVector;
-	BEGIN
-		IF node.index = 0 THEN
-			size := node.Size();
-			IF size > LEN(mu) THEN
-				NEW(mu, size);
-				NEW(value, size);
-				NEW(left, size);
-				NEW(right, size);
-				NEW(tau, size, size)
-			END;
-			GraphNodes.InternalizeSubvector(v, rd);
-			node.mu := v.components;
-			node.muStart := v.start;
-			node.muStep := v.step;
-			GraphNodes.InternalizeSubvector(v, rd);
-			node.tau := v.components;
-			node.tauStart := v.start;
-			node.tauStep := v.step;
-			i := 1;
-			size := node.Size();
-			WHILE i < size DO
-				p := node.components[i](Node);
-				p.mu := node.mu;
-				p.muStart := node.muStart;
-				p.muStep := node.muStep;
-				p.tau := node.tau;
-				p.tauStart := node.tauStart;
-				p.tauStep := node.tauStep;
-				INC(i)
-			END
-		END
-	END InternalizeConjugateMV;
-
-	PROCEDURE (node: Node) InitConjugateMV;
-	BEGIN
-		node.mu := NIL;
-		node.tau := NIL;
-		node.muStart := - 1;
-		node.tauStart := - 1;
-		node.muStep := 0;
-		node.tauStep := 0;
-	END InitConjugateMV;
-
 	PROCEDURE (node: Node) MVSample (OUT res: SET);
 		VAR
 			ok: BOOLEAN;
@@ -626,27 +604,8 @@ MODULE GraphMVNormal;
 			END;
 			INC(i)
 		END;
-		i := 0;
-		WHILE i < nElem DO
-			node.Bounds(left[i], right[i]);
-			INC(i)
-		END;
 		MathMatrix.Cholesky(tau, nElem);
-		its := maxIts;
-		REPEAT
-			MathRandnum.MNormal(tau, mu, nElem, value);
-			ok := TRUE;
-			i := 0;
-			WHILE ok & (i < nElem) DO
-				ok := (value[i] > left[i]) & (value[i] < right[i]);
-				INC(i)
-			END;
-			DEC(its)
-		UNTIL ok OR (its = 0);
-		IF its = 0 THEN
-			res := {GraphNodes.lhs, GraphNodes.tooManyIts};
-			RETURN
-		END;
+		MathRandnum.MNormal(tau, mu, nElem, value);
 		i := 0;
 		WHILE i < nElem DO
 			node.components[i].SetValue(value[i]);
@@ -654,7 +613,7 @@ MODULE GraphMVNormal;
 		END
 	END MVSample;
 
-	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -679,10 +638,10 @@ MODULE GraphMVNormal;
 				p.AddParent(list);
 				INC(i)
 			END;
-			RETURN list
+			GraphNodes.ClearList(list)
 		END;
 		RETURN list
-	END ParentsConjugateMV;
+	END Parents;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
@@ -704,7 +663,7 @@ MODULE GraphMVNormal;
 		END
 	END Sample;
 
-	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			nElem: INTEGER;
 	BEGIN
@@ -714,8 +673,6 @@ MODULE GraphMVNormal;
 			IF nElem > LEN(mu) THEN
 				NEW(mu, nElem);
 				NEW(value, nElem);
-				NEW(left, nElem);
-				NEW(right, nElem);
 				NEW(tau, nElem, nElem)
 			END;
 			ASSERT(args.vectors[0].components # NIL, 21);
@@ -739,7 +696,7 @@ MODULE GraphMVNormal;
 				RETURN
 			END
 		END;
-	END SetConjugateMV;
+	END Set;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
@@ -752,7 +709,7 @@ MODULE GraphMVNormal;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := "vvC"
+		signature := "vv"
 	END Signature;
 
 	PROCEDURE Install*;
@@ -777,8 +734,6 @@ MODULE GraphMVNormal;
 		log2Pi := Math.Ln(2.0 * Math.Pi());
 		NEW(mu, len);
 		NEW(value, len);
-		NEW(left, 2);
-		NEW(right, len);
 		NEW(tau, len, len);
 		fact := f
 	END Init;

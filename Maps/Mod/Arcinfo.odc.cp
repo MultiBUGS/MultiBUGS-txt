@@ -34,7 +34,7 @@ MODULE MapsArcinfo;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("MapsArcinfo" + numToString, errorMes);
-		BugsMsg.Store(errorMes)
+		BugsMsg.StoreError(errorMes)
 	END Error;
 
 	PROCEDURE FindPolygon (map: MapsMap.Map; id: INTEGER;

@@ -18,43 +18,38 @@ MODULE DiffHPS_V2_FB;
 		Factory = POINTER TO RECORD(GraphVector.Factory) END;
 
 	CONST
-		nEq = 6; S =0; C1 = 1; C2 = 2; I = 3; F1 = 4; F2 = 5;
+		nEq = 6; S = 0; C1 = 1; C2 = 2; I = 3; F1 = 4; F2 = 5;
 
 	VAR
-		fact-: GraphNodes.Factory;
+		fact-: GraphVector.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-(*6*)		PROCEDURE (e: Equations) Derivatives (IN theta, P: ARRAY OF REAL; n: INTEGER; t: REAL;
-(*7*)																	
-																	OUT dPdt: ARRAY OF REAL);
-(*10*)		CONST
-(*10*)			numTimes = 11; 
-(*10*)		VAR
-			 rs, rc, ri, vc, vi, beta, alpha, k, delta, rho1, rho2, ms, mc, mi, epsilon, N, C, T1, T2, D1, D2: REAL;
-(*15*)		BEGIN
+		PROCEDURE (e: Equations) Derivatives (IN theta, P: ARRAY OF REAL; n: INTEGER; t: REAL;
+	OUT dPdt: ARRAY OF REAL);
+		VAR
+			rs, rc, ri, vc, vi, beta, alpha, k, delta, rho1, rho2, ms, mc, mi, epsilon, N, C, T1, T2, D1, D2: REAL;
+	BEGIN
 
-			rs := theta[0]; rc := theta[1]; ri := theta[2]; vc := theta[3]; vi := theta[4]; beta := theta[5]; 
-			alpha := theta[6]; k := theta[7]; delta := theta[8]; rho1 := theta[9]; rho2 := theta[10];
-			ms := theta[11]; mc := theta[12]; mi := theta[13]; epsilon := theta[14];
-			
-			N := P[S] + P[C1] + P[C2] + P[I];
-			C := P[C1] + P[C2];
-			T1 := beta*P[F1]/(1+alpha*P[F1]);
-			T2 := beta*P[F2]/(1+alpha*P[F2]);
-			D1 := MAX(1.0E-10, delta*(N/k-rho1)/(1-rho1));
-			D2 := MAX(1.0E-10, delta*(N/k-rho2)/(1-rho2));
+		rs := theta[0]; rc := theta[1]; ri := theta[2]; vc := theta[3]; vi := theta[4]; beta := theta[5];
+		alpha := theta[6]; k := theta[7]; delta := theta[8]; rho1 := theta[9]; rho2 := theta[10];
+		ms := theta[11]; mc := theta[12]; mi := theta[13]; epsilon := theta[14];
 
+		N := P[S] + P[C1] + P[C2] + P[I];
+		C := P[C1] + P[C2];
+		T1 := beta * P[F1] / (1 + alpha * P[F1]);
+		T2 := beta * P[F2] / (1 + alpha * P[F2]);
+		D1 := MAX(1.0E-10, delta * (N / k - rho1) / (1 - rho1));
+		D2 := MAX(1.0E-10, delta * (N / k - rho2) / (1 - rho2));
 
-dPdt[S] := (rs*P[S]+rc*(1-vc)*C+ri*(1-vi)*P[I])*(1-N/k)-(T1 + T2) * P[S] - ms*P[S];
-dPdt[C1] := rc * vc * P[C1] * (1 - N / k) + T1*P[S] - D1 * P[C1] - mc * P[C1];
-dPdt[C2] := rc * vc * P[C2] * (1 - N / k) + T2*P[S] - D2 * P[C2] - mc * P[C2];
-dPdt[I] := ri * vi * P[I] * (1 - N / k) + D1 * P[C1] + D2 * P[C2] - mi * P[I];
-dPdt[F1] := -epsilon * P[F1];
-dPdt[F2] := P[I] - epsilon * P[F2];
+		dPdt[S] := (rs * P[S] + rc * (1 - vc) * C + ri * (1 - vi) * P[I]) * (1 - N / k) - (T1 + T2) * P[S] - ms * P[S];
+		dPdt[C1] := rc * vc * P[C1] * (1 - N / k) + T1 * P[S] - D1 * P[C1] - mc * P[C1];
+		dPdt[C2] := rc * vc * P[C2] * (1 - N / k) + T2 * P[S] - D2 * P[C2] - mc * P[C2];
+		dPdt[I] := ri * vi * P[I] * (1 - N / k) + D1 * P[C1] + D2 * P[C2] - mi * P[I];
+		dPdt[F1] := - epsilon * P[F1];
+		dPdt[F2] := P[I] - epsilon * P[F2];
+	END Derivatives;
 
-(*35*)		END Derivatives;
-		
 
 	PROCEDURE (e: Equations) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -81,8 +76,8 @@ dPdt[F2] := P[I] - epsilon * P[F2];
 			solver: MathODE.Solver;
 	BEGIN
 		NEW(equations);
-		solver := MathRungeKutta45.fact.New();
-		node := GraphODEmath.New(solver, equations, nEq); 
+		solver := MathRungeKutta45.New();
+		node := GraphODEmath.New(solver, equations, nEq);
 		RETURN node
 	END New;
 

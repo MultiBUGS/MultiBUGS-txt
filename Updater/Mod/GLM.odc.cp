@@ -46,7 +46,6 @@ MODULE UpdaterGLM;
 		factLogit-, factLoglin-, factNormal-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		logLik: REAL;
 		newValues, offset, mu, w, n, y, derivLogLik,
 		priorMu, propMu: POINTER TO ARRAY OF REAL;
 		choleskiDecomp, priorTau, deriv2LogLik, z: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -88,12 +87,11 @@ MODULE UpdaterGLM;
 	END FindBlock;
 
 	PROCEDURE (updater: Updater) ParamsSize (): INTEGER;
-	
 		VAR
 			size: INTEGER;
 	BEGIN
 		size := updater.Size();
-		RETURN 1 + size + size * size
+		RETURN size + size * size
 	END ParamsSize;
 
 	PROCEDURE (updater: Updater) CalculateGLMParams, NEW, ABSTRACT;
@@ -131,7 +129,7 @@ MODULE UpdaterGLM;
 		size := updater.Size();
 		children := updater.Children();
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		
+
 		j := 0;
 		WHILE j < size DO
 			derivLogLik[j] := 0.0;
@@ -159,25 +157,23 @@ MODULE UpdaterGLM;
 		END;
 
 		IF distributed THEN
-			updater.params[0] := logLik;
 			j := 0;
 			WHILE j < size DO
-				updater.params[1 + j] := derivLogLik[j];
+				updater.params[j] := derivLogLik[j];
 				k := 0;
 				WHILE k < size DO
-					updater.params[1 + size + j * size + k] := deriv2LogLik[j, k];
+					updater.params[size + j * size + k] := deriv2LogLik[j, k];
 					INC(k)
 				END;
 				INC(j)
 			END;
 			MPIworker.SumReals(updater.params);
-			logLik := updater.params[0];
 			j := 0;
 			WHILE j < size DO
-				derivLogLik[j] := updater.params[1 + j];
+				derivLogLik[j] := updater.params[j];
 				k := 0;
 				WHILE k < size DO
-					deriv2LogLik[j, k] := updater.params[1 + size + j * size + k];
+					deriv2LogLik[j, k] := updater.params[size + j * size + k];
 					INC(k)
 				END;
 				INC(j)
@@ -233,8 +229,11 @@ MODULE UpdaterGLM;
 	BEGIN
 		size := updater.Size();
 		children := updater.Children();
-		IF children # NIL THEN numLike := LEN(children) ELSE numLike := 0 END;
-		NEW(updater.predictors, numLike);
+		IF children # NIL THEN
+			numLike := LEN(children); NEW(updater.predictors, numLike);
+		ELSE
+			numLike := 0; updater.predictors := NIL
+		END;
 		i := 0;
 		WHILE i < numLike DO
 			updater.predictors[i] := NIL;
@@ -286,16 +285,16 @@ MODULE UpdaterGLM;
 
 	PROCEDURE (updater: Updater) PriorParameters, NEW;
 		VAR
-			as, i, j, size: INTEGER;
+			i, j, size: INTEGER;
 			p0, p1: REAL;
 			univariate: GraphConjugateUV.Node;
+		CONST
+			as = GraphRules.normal;
 	BEGIN
 		size := updater.Size();
 		IF updater.prior[0] IS GraphConjugateMV.Node THEN
-			as := GraphRules.mVN;
-			updater.prior[0](GraphConjugateMV.Node).MVPriorForm(as, priorMu, priorTau)
+			updater.prior[0](GraphConjugateMV.Node).MVPriorForm(priorMu, priorTau)
 		ELSE
-			as := GraphRules.normal;
 			i := 0;
 			WHILE i < size DO
 				univariate := updater.prior[i](GraphConjugateUV.Node);
@@ -380,13 +379,13 @@ MODULE UpdaterGLM;
 		VAR
 			j, size: INTEGER;
 			distributed: BOOLEAN;
-			acceptProb, newLD, newProp, oldLD, oldProp: REAL;
+			acceptProb, logLik, newLD, newProp, oldLD, oldProp: REAL;
 	BEGIN
 		res := {};
 		size := updater.Size();
 		distributed := GraphStochastic.distributed IN updater.prior[0].props;
 		IF (updater.iteration MOD batch # 0) & (updater.iteration > 100) THEN
-			updater.StoreOldValue;
+			updater.GetValue(updater.oldVals);
 			logLik := updater.LogLikelihood();
 			updater.PriorParameters;
 			updater.LikelihoodParameters;
@@ -579,7 +578,7 @@ MODULE UpdaterGLM;
 		i := 0;
 		children := updater.Children();
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i  < num DO
+		WHILE i < num DO
 			node := children[i](GraphConjugateUV.Node);
 			node.LikelihoodForm(as, x, p0, p1);
 			updater.predictors[i] := x;
@@ -597,7 +596,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		res := {};
 		distributed := GraphStochastic.distributed IN updater.prior[0].props;
-		updater.StoreOldValue;
+		updater.GetValue(updater.oldVals);
 		size := updater.Size();
 		updater.PriorParameters;
 		updater.LikelihoodParameters;
@@ -606,7 +605,7 @@ MODULE UpdaterGLM;
 		updater.CalculateGLMParams;
 		updater.CalculateDerivatives(distributed); ;
 		IF overRelax THEN
-			alpha :=  - (1 - 1 / Math.Sqrt(factNormal.overRelaxation));
+			alpha := - (1 - 1 / Math.Sqrt(factNormal.overRelaxation));
 			MathRandnum.RelaxedMNormal(choleskiDecomp, propMu, updater.oldVals, size, alpha, newValues)
 		ELSE
 			MathRandnum.MNormal(choleskiDecomp, propMu, size, newValues)
@@ -644,7 +643,8 @@ MODULE UpdaterGLM;
 		END;
 		block := FindBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
-		IF ~UpdaterMultivariate.IsGLMBlock(block) THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
+		IF UpdaterMultivariate.ClassifyBlock(block) # GraphRules.logitReg THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -675,7 +675,8 @@ MODULE UpdaterGLM;
 		END;
 		block := FindBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
-		IF ~UpdaterMultivariate.IsGLMBlock(block) THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
+		IF UpdaterMultivariate.ClassifyBlock(block) # GraphRules.logReg THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -724,12 +725,14 @@ MODULE UpdaterGLM;
 			block: GraphStochastic.Vector;
 			i, len: INTEGER;
 	BEGIN
+		IF ~UpdaterUpdaters.block THEN RETURN FALSE END;
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.normal THEN RETURN FALSE END;
 		block := FindBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
-		IF ~UpdaterMultivariate.IsGLMBlock(block) THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
+		IF UpdaterMultivariate.ClassifyBlock(block) # GraphRules.normal THEN RETURN FALSE END;
 		(*	only use this updater for fixed effects	*)
 		i := 0;
 		len := LEN(block);
@@ -819,7 +822,7 @@ MODULE UpdaterGLM;
 		factLoglin := fLoglin;
 		NEW(fNormal);
 		fNormal.Install(name);
-		fNormal.SetProps({UpdaterUpdaters.overRelaxation});
+		fNormal.SetProps({UpdaterUpdaters.enabled, UpdaterUpdaters.overRelaxation});
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)
 		ELSE

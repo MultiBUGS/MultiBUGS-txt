@@ -13,7 +13,7 @@ MODULE GraphPValue;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphMemory, GraphMultivariate, GraphNodes, GraphRules,
+		GraphLogical, GraphMemory, GraphMultivariate, GraphNodes, GraphRules, GraphScalar,
 		GraphStochastic, GraphVector;
 
 	TYPE
@@ -40,7 +40,8 @@ MODULE GraphPValue;
 		VectorPostFactory = POINTER TO RECORD(GraphVector.Factory) END;
 
 	VAR
-		scalarPostFact-, scalarPriorFact-, vectorPostFact-: GraphNodes.Factory;
+		scalarPostFact-, scalarPriorFact-: GraphScalar.Factory;
+		vectorPostFact-: GraphVector.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		oldValues: POINTER TO ARRAY OF REAL;

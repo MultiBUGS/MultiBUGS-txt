@@ -59,7 +59,7 @@ MODULE MapsMap;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("MapsMap" + numToString, errorMes);
-		BugsMsg.Store(errorMes)
+		BugsMsg.StoreError(errorMes)
 	END Error;
 
 	PROCEDURE (polygon: Polygon) Set* (id, len: INTEGER; centreX, centreY: REAL; IN x, y: ARRAY OF REAL), NEW;

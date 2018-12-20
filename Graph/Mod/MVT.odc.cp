@@ -63,6 +63,11 @@ MODULE GraphMVT;
 	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
+	
+	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
+	BEGIN
+		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).lambda)
+	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -93,7 +98,7 @@ MODULE GraphMVT;
 		t := auxillary.node(Node);
 		lambda := t.lambda;
 		lambda.PriorForm(GraphRules.gamma, r, lam);
-		IF (GraphNodes.data IN t.props) OR (t.likelihood # NIL) THEN
+		IF (GraphNodes.data IN t.props) OR (t.children # NIL) THEN
 			nElem := t.Size();
 			muStart := t.muStart;
 			muStep := t.muStep;
@@ -141,13 +146,13 @@ MODULE GraphMVT;
 	BEGIN
 	END GetDefaults;
 
-	PROCEDURE (node: Node) BoundsConjugateMV (OUT lower, upper: REAL);
+	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
 	BEGIN
 		lower := - INF;
 		upper := INF
-	END BoundsConjugateMV;
+	END Bounds;
 
-	PROCEDURE (node: Node) CheckConjugateMV (): SET;
+	PROCEDURE (node: Node) Check (): SET;
 		VAR
 			isData: BOOLEAN;
 			i, nElem: INTEGER;
@@ -162,7 +167,7 @@ MODULE GraphMVT;
 			INC(i)
 		END;
 		RETURN {}
-	END CheckConjugateMV;
+	END Check;
 
 	PROCEDURE (node: Node) ClassifyLikelihood (parent: GraphStochastic.Node): INTEGER;
 		VAR
@@ -322,23 +327,6 @@ MODULE GraphMVT;
 		RETURN - 2.0 * logDensity
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditionalMap (): REAL;
-		VAR
-			diffCond: REAL;
-			children: GraphStochastic.Vector;
-			i, num: INTEGER;
-	BEGIN
-		diffCond := node.DiffLogPrior();
-		children := node.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diffCond := diffCond + children[i].DiffLogLikelihood(node);
-			INC(i)
-		END;
-		RETURN diffCond
-	END DiffLogConditionalMap;
-
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
 			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
@@ -419,7 +407,7 @@ MODULE GraphMVT;
 		END
 	END ExternalizeConjugateMV;
 
-	PROCEDURE (node: Node) InitConjugateMV;
+	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
 		node.mu := NIL;
 		node.muStart := - 1;
@@ -428,7 +416,7 @@ MODULE GraphMVT;
 		node.tauStart := - 1;
 		node.tauStep := 0;
 		node.k := NIL
-	END InitConjugateMV;
+	END InitStochastic;
 
 	PROCEDURE (node: Node) InternalizeConjugateMV (VAR rd: Stores.Reader);
 		VAR
@@ -529,10 +517,10 @@ MODULE GraphMVT;
 		RETURN mean
 	END Location;
 
-	PROCEDURE (node: Node) LogJacobian (): REAL;
+	PROCEDURE (node: Node) LogDetJacobian (): REAL;
 	BEGIN
-		RETURN 0
-	END LogJacobian;
+		RETURN 0.0
+	END LogDetJacobian;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
@@ -660,13 +648,12 @@ MODULE GraphMVT;
 		END
 	END MVLikelihoodForm;
 
-	PROCEDURE (node: Node) MVPriorForm (as: INTEGER; OUT p0: ARRAY OF REAL;
+	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
 			i, j, nElem, start, step: INTEGER;
 			lambda: REAL;
 	BEGIN
-		ASSERT(as = GraphRules.mVN, 21);
 		nElem := node.Size();
 		lambda := node.lambda.value;
 		i := 0;
@@ -694,7 +681,7 @@ MODULE GraphMVT;
 		node.Sample(res)
 	END MVSample;
 
-	PROCEDURE (node: Node) ParentsConjugateMV (all: BOOLEAN): GraphNodes.List;
+	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -724,8 +711,9 @@ MODULE GraphMVT;
 			END;
 			GraphNodes.ClearList(list)
 		END;
+		GraphNodes.ClearList(list);
 		RETURN list
-	END ParentsConjugateMV;
+	END Parents;
 
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 		VAR
@@ -792,7 +780,7 @@ MODULE GraphMVT;
 		res := {}
 	END Sample;
 
-	PROCEDURE (node: Node) SetConjugateMV (IN args: GraphNodes.Args; OUT res: SET);
+	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			nElem: INTEGER;
 			firstNode: Node;
@@ -832,12 +820,10 @@ MODULE GraphMVT;
 				argsS.scalars[1] := halfK;
 				IF node.lambda = NIL THEN
 					lambda := GraphGamma.fact.New()(GraphConjugateUV.Node);
+					GraphStochastic.RegisterAuxillary(lambda);
 					lambda.Set(argsS, res); ASSERT(res = {}, 67);
 					lambda.SetValue(1.0);
-					lambda.SetProps(lambda.props + {GraphNodes.data, GraphStochastic.initialized,
-					GraphStochastic.hidden});
-					lambda.BuildLikelihood;
-					lambda.SetProps(lambda.props - {GraphNodes.data});
+					lambda.SetProps(lambda.props + {GraphStochastic.initialized, GraphStochastic.hidden});
 					node.lambda := lambda
 				ELSE
 					node.lambda.Set(argsS, res); ASSERT(res = {}, 67)
@@ -856,7 +842,7 @@ MODULE GraphMVT;
 				node.k := firstNode.k
 			END
 		END
-	END SetConjugateMV;
+	END Set;
 
 	PROCEDURE (f: Factory) New (): GraphMultivariate.Node;
 		VAR
@@ -869,7 +855,7 @@ MODULE GraphMVT;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := "vvsC"
+		signature := "vvs"
 	END Signature;
 
 	PROCEDURE Install*;

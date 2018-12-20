@@ -334,7 +334,7 @@ MODULE BugsLatexprinter;
 			real: BugsParser.Real;
 			integer: BugsParser.Integer;
 			operator: BugsParser.Internal;
-			i, j, len, numPar, skip: INTEGER;
+			i, j, len, numPar, op, skip: INTEGER;
 			subscript, writeParen: BOOLEAN;
 			string: ARRAY 1024 OF CHAR;
 			descriptor: GraphGrammar.External;
@@ -342,7 +342,8 @@ MODULE BugsLatexprinter;
 	BEGIN
 		IF node IS BugsParser.Binary THEN
 			binary := node(BugsParser.Binary);
-			CASE binary.op OF
+			op := binary.op MOD GraphGrammar.modifier;
+			CASE op OF
 			|add:
 				PrintNode(binary.left, f); f.WriteString(" + "); PrintNode(binary.right, f)
 			|sub, uminus:
@@ -443,11 +444,12 @@ MODULE BugsLatexprinter;
 		ELSIF node IS BugsParser.Internal THEN
 			operator := node(BugsParser.Internal);
 			(*	special handling of exponential and power and Phi functions	*)
-			IF operator.descriptor.key = GraphGrammar.exp THEN
+			op := operator.descriptor.key MOD GraphGrammar.modifier;
+			IF op = GraphGrammar.exp THEN
 				f.WriteString("e^{");
 				PrintNode(operator.parents[0], f);
 				f.WriteChar("}")
-			ELSIF operator.descriptor.key = GraphGrammar.pow THEN
+			ELSIF op = GraphGrammar.pow THEN
 				writeParen := ~IsLeaf(operator.parents[0]);
 				IF writeParen THEN f.WriteChar("(") END;
 				PrintNode(operator.parents[0], f);
@@ -455,7 +457,7 @@ MODULE BugsLatexprinter;
 				f.WriteString("^{");
 				PrintNode(operator.parents[1], f);
 				f.WriteChar("}")
-			ELSIF operator.descriptor.key = GraphGrammar.phi THEN
+			ELSIF op = GraphGrammar.phi THEN
 				f.WriteString("\Phi(");
 				PrintNode(operator.parents[0], f);
 				f.WriteChar("}")

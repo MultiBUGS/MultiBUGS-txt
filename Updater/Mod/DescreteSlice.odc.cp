@@ -15,7 +15,7 @@ MODULE UpdaterDescreteSlice;
 	IMPORT
 		Math, Stores,
 		BugsRegistry,
-		GraphNodes, GraphStochastic, GraphVD,
+		GraphNodes, GraphRules, GraphStochastic, GraphVD,
 		MathRandnum,
 		UpdaterUnivariate, UpdaterUpdaters;
 
@@ -78,26 +78,26 @@ MODULE UpdaterDescreteSlice;
 		right := x + MathRandnum.DiscreteUniform(0, step);
 		left := right - step;
 		IF left > l THEN
-			prior.SetValue(left); y := prior.LogConditional() - h;
+			prior.SetValue(left); y := updater.LogConditional() - h;
 			iter := factStd.iterations;
 			LOOP
 				DEC(iter); IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 				IF y < 0.0 THEN EXIT END;
 				DEC(left, step);
 				IF left <= l THEN left := l; EXIT
-				ELSE prior.SetValue(left); y := prior.LogConditional() - h
+				ELSE prior.SetValue(left); y := updater.LogConditional() - h
 				END
 			END
 		ELSE
 			left := l
 		END;
-		prior.SetValue(right); y := prior.LogConditional() - h;
+		prior.SetValue(right); y := updater.LogConditional() - h;
 		iter := factStd.iterations;
 		LOOP
 			DEC(iter); IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 			IF y < 0.0 THEN EXIT END;
 			INC(right, step);
-			prior.SetValue(right); y := prior.LogConditional() - h
+			prior.SetValue(right); y := updater.LogConditional() - h
 		END
 	END BracketSlice;
 
@@ -161,7 +161,7 @@ MODULE UpdaterDescreteSlice;
 		prior := updater.prior;
 		oldX := SHORT(ENTIER(prior.value + eps));
 		logRand := Math.Ln(MathRandnum.Rand());
-		h := prior.LogConditional() + logRand;
+		h := updater.LogConditional() + logRand;
 		updater.BracketSlice(h, oldX, updater.step, left, right, res);
 		IF res # {} THEN RETURN END;
 		iter := factStd.iterations;
@@ -170,7 +170,7 @@ MODULE UpdaterDescreteSlice;
 			IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 			rand := MathRandnum.DiscreteUniform(left, right);
 			prior.SetValue(rand);
-			cond := prior.LogConditional();
+			cond := updater.LogConditional();
 			IF (h < cond) OR (left = right) THEN EXIT
 			ELSIF rand <= oldX THEN left := rand
 			ELSE right := rand
@@ -236,7 +236,7 @@ MODULE UpdaterDescreteSlice;
 		right := SHORT(ENTIER(rightR + eps));
 		oldX := SHORT(ENTIER(prior.value + eps));
 		logRand := Math.Ln(MathRandnum.Rand());
-		h := prior.LogConditional() + logRand;
+		h := updater.LogConditional() + logRand;
 		iter := factInterval.iterations;
 		res := {};
 		LOOP
@@ -244,7 +244,7 @@ MODULE UpdaterDescreteSlice;
 			IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 			rand := MathRandnum.DiscreteUniform(left, right);
 			prior.SetValue(rand);
-			cond := prior.LogConditional();
+			cond := updater.LogConditional();
 			IF (h < cond) OR (left = right) THEN EXIT
 			ELSIF rand < oldX THEN left := rand
 			ELSE right := rand
@@ -256,15 +256,9 @@ MODULE UpdaterDescreteSlice;
 		CONST
 			rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 	BEGIN
-		IF ~(GraphStochastic.integer IN prior.props) THEN
-			RETURN FALSE
-		END;
-		IF GraphVD.Block(prior) # NIL THEN
-			RETURN FALSE
-		END;
-		IF prior.props * rightBounds # {} THEN
-			RETURN FALSE
-		END;
+		IF ~(GraphStochastic.integer IN prior.props) THEN RETURN FALSE END;
+		IF GraphVD.Block(prior) # NIL THEN RETURN FALSE END;
+		IF prior.classConditional # GraphRules.descrete THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -321,20 +315,12 @@ MODULE UpdaterDescreteSlice;
 	END Install;
 
 	PROCEDURE (f: IntervalFactory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
-		VAR
-			updater: Interval;
 		CONST
 			rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 	BEGIN
-		IF ~(GraphStochastic.integer IN prior.props) THEN
-			RETURN FALSE
-		END;
-		IF GraphVD.Block(prior) # NIL THEN
-			RETURN FALSE
-		END;
-		IF rightBounds * prior.props = {} THEN
-			RETURN FALSE
-		END;
+		IF ~(GraphStochastic.integer IN prior.props) THEN RETURN FALSE END;
+		IF GraphVD.Block(prior) # NIL THEN RETURN FALSE END;
+		IF prior.classConditional # GraphRules.catagorical THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 
@@ -368,6 +354,7 @@ MODULE UpdaterDescreteSlice;
 			res: INTEGER;
 			name: ARRAY 256 OF CHAR;
 			fStd: StdFactory;
+			fInterval: IntervalFactory;
 	BEGIN
 		Maintainer;
 		NEW(fStd);
@@ -384,7 +371,23 @@ MODULE UpdaterDescreteSlice;
 			BugsRegistry.WriteInt(name + ".overRelaxation", 4);
 			BugsRegistry.WriteSet(name + ".props", fStd.props)
 		END;
-		fStd.GetDefaults
+		fStd.GetDefaults;
+		
+		NEW(fInterval);
+		factInterval := fInterval;
+		fInterval.Install(name);
+		fInterval.SetProps({UpdaterUpdaters.iterations, UpdaterUpdaters.overRelaxation,
+		UpdaterUpdaters.adaptivePhase, UpdaterUpdaters.enabled});
+		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
+		IF res = 0 THEN ASSERT(isRegistered, 57)
+		ELSE
+			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
+			BugsRegistry.WriteInt(name + ".iterations", 100000);
+			BugsRegistry.WriteInt(name + ".adaptivePhase", 500);
+			BugsRegistry.WriteInt(name + ".overRelaxation", 4);
+			BugsRegistry.WriteSet(name + ".props", fInterval.props)
+		END;
+		fInterval.GetDefaults;
 	END Init;
 
 BEGIN

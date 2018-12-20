@@ -13,7 +13,7 @@ MODULE BugsMsg;
 	
 
 	IMPORT
-		Log, Dialog, Files, Strings; 
+		Strings;
 
 	TYPE
 		MsgList = POINTER TO RECORD
@@ -23,11 +23,19 @@ MODULE BugsMsg;
 
 	VAR
 		message-: ARRAY 1024 OF CHAR;
+		error-: BOOLEAN;
+		debug*: BOOLEAN; 
+		
 		msgList: MsgList;
 
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-	
+
+	PROCEDURE Clear*;
+	BEGIN
+		message := ""; error := FALSE
+	END Clear;
+
 	PROCEDURE InverseMapMsg* (IN msg: ARRAY OF CHAR; OUT key: ARRAY OF CHAR);
 		VAR
 			cursor: MsgList;
@@ -56,9 +64,10 @@ MODULE BugsMsg;
 		ELSE
 			mes := key$
 		END;
+		message := mes$
 	END Lookup;
 
-	PROCEDURE LookupParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR; 
+	PROCEDURE LookupParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR;
 	OUT msg: ARRAY OF CHAR);
 		VAR
 			i, len, pos: INTEGER;
@@ -77,9 +86,9 @@ MODULE BugsMsg;
 				Strings.IntToString(i, pat);
 				pat := "^" + pat;
 				pos := 0;
-				WHILE pos #  - 1 DO
+				WHILE pos # - 1 DO
 					Strings.Find(msg, pat, 0, pos);
-					IF pos #  - 1 THEN
+					IF pos # - 1 THEN
 						Strings.Replace(msg, pos, LEN(pat$), p[i])
 					END
 				END;
@@ -87,35 +96,24 @@ MODULE BugsMsg;
 			END
 		ELSE
 			msg := key$
-		END
+		END;
+		message := msg$
 	END LookupParam;
 
-	PROCEDURE Show* (IN key: ARRAY OF CHAR);
-		VAR
-			msg: ARRAY 1024 OF CHAR;
-	BEGIN
-		Lookup(key, msg);
-		Dialog.ShowStatus(msg);
-		Log.String(msg); Log.Ln;
-		message := msg$
-	END Show;
-	
-	PROCEDURE ShowParam* (IN key: ARRAY OF CHAR; IN p: ARRAY OF ARRAY OF CHAR);
-		VAR
-			msg: ARRAY 1024 OF CHAR;
-	BEGIN
-		LookupParam(key, p, msg);
-		Dialog.ShowStatus(msg);
-		Log.String(msg); Log.Ln;
-		message := msg$
-	END ShowParam;
-
-	PROCEDURE Store* (IN msg: ARRAY OF CHAR);
+	PROCEDURE StoreError* (IN msg: ARRAY OF CHAR);
 	BEGIN
 		message := msg$;
-	END Store;
+		error := TRUE; 
+		(*IF debug THEN HALT(0) END*)
+	END StoreError;
 
-	PROCEDURE StoreKey* (IN key, mes: ARRAY OF CHAR);
+	PROCEDURE StoreMsg* (IN msg: ARRAY OF CHAR);
+	BEGIN
+		error := FALSE;
+		message := msg$
+	END StoreMsg;
+
+	PROCEDURE RegisterKey* (IN key, mes: ARRAY OF CHAR);
 		VAR
 			len: INTEGER;
 			element: MsgList;
@@ -129,7 +127,7 @@ MODULE BugsMsg;
 		len := LEN(mes);
 		NEW(element.msg, len + 1);
 		element.msg^ := mes$;
-	END StoreKey;
+	END RegisterKey;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -141,6 +139,8 @@ MODULE BugsMsg;
 	BEGIN
 		msgList := NIL;
 		message := "";
+		error := FALSE;
+		debug := FALSE;
 		Maintainer
 	END Init;
 

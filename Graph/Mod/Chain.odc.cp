@@ -11,10 +11,10 @@ MODULE GraphChain;
 
 
 	
-
+	
 	IMPORT
 		Stores,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
+		GraphMultivariate, GraphNodes, GraphStochastic;
 
 	TYPE
 		Node* = POINTER TO ABSTRACT RECORD(GraphMultivariate.Node) END;
@@ -23,67 +23,57 @@ MODULE GraphChain;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) AddLikelihoodTerm- (offspring: GraphStochastic.Node);
-		VAR
-			likelihood: GraphStochastic.Likelihood;
-	BEGIN
-		likelihood := node.likelihood;
-		offspring.AddToLikelihood(likelihood);
-		node.SetLikelihood(likelihood)
-	END AddLikelihoodTerm;
+	PROCEDURE (node: Node) BlockSize* (): INTEGER, NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) AllocateLikelihood*;
+	PROCEDURE (node: Node) CanSample* (multiVar: BOOLEAN): BOOLEAN;
 		VAR
-			likelihood: GraphStochastic.Likelihood;
+			canSample: BOOLEAN;
+			i, size: INTEGER;
 	BEGIN
-		likelihood := GraphStochastic.AllocateLikelihood(node.likelihood);
-		node.SetLikelihood(likelihood)
-	END AllocateLikelihood;
-
-	PROCEDURE (node: Node) CanEvaluate* (): BOOLEAN;
-		VAR
-			canEvaluate: BOOLEAN;
-			class, i, size: INTEGER;
-	BEGIN
-		canEvaluate := node.components[0].ParentsInitialized();
-		class := node.ClassifyPrior();
-		IF (class # GraphRules.normal) & (class # GraphRules.mVN) THEN
+		canSample := node.components[0].ParentsInitialized();
+		IF canSample & ~multiVar THEN
 			i := 0;
 			size := node.Size();
-			WHILE canEvaluate & (i < size) DO
+			WHILE canSample & (i < size) DO
 				IF i # node.index THEN
-					canEvaluate := GraphStochastic.initialized IN node.components[i].props
+					canSample := GraphStochastic.initialized IN node.components[i].props
 				END;
 				INC(i)
 			END
 		END;
-		RETURN canEvaluate
-	END CanEvaluate;
+		RETURN canSample
+	END CanSample;
+
+	PROCEDURE (node: Node) CheckChain- (): SET, NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) Check* (): SET;
+		VAR
+			res: SET;
+			i, size: INTEGER;
+			isData: BOOLEAN;
+			com: GraphStochastic.Vector;
+	BEGIN
+		res := node.CheckChain();
+		size := node.Size();
+		IF (res = {}) & (node.index = size - 1) THEN
+			isData := GraphNodes.data IN node.props;
+			com := node.components;
+			i := 0;
+			WHILE (i < size) & ((GraphNodes.data IN com[i].props) = isData) DO INC(i) END;
+			IF i # size THEN
+				res := {GraphNodes.lhs, GraphNodes.mixedData}
+			END
+		END;
+		RETURN res
+	END Check;
 
 	PROCEDURE (node: Node) Constraints* (OUT constraints: ARRAY OF ARRAY OF REAL), NEW, ABSTRACT;
-
-	PROCEDURE (node: Node) DiffLogConditionalMap* (): REAL;
-		VAR
-			diffCond: REAL;
-			children: GraphStochastic.Vector;
-			i, num: INTEGER;
-	BEGIN
-		diffCond := node.DiffLogPrior();
-		children := node.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diffCond := diffCond + children[i].DiffLogLikelihood(node);
-			INC(i)
-		END;
-		RETURN diffCond
-	END DiffLogConditionalMap;
 
 	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) ExternalizeMultivariate- (VAR wr: Stores.Writer);
 	BEGIN
-		GraphStochastic.ExternalizeLikelihood(node.likelihood, wr);
+		GraphStochastic.ExternalizeVector(node.children, wr);
 		node.ExternalizeChain(wr)
 	END ExternalizeMultivariate;
 
@@ -91,10 +81,10 @@ MODULE GraphChain;
 
 	PROCEDURE (node: Node) InternalizeMultivariate- (VAR rd: Stores.Reader);
 		VAR
-			likelihood: GraphStochastic.Likelihood;
+			children: GraphStochastic.Vector;
 	BEGIN
-		likelihood := GraphStochastic.InternalizeLikelihood(rd);
-		node.SetLikelihood(likelihood);
+		children := GraphStochastic.InternalizeVector(rd);
+		node.SetChildren(children);
 		node.InternalizeChain(rd)
 	END InternalizeMultivariate;
 
@@ -103,20 +93,10 @@ MODULE GraphChain;
 		node.SetValue(y)
 	END InvMap;
 
-	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
-		CONST
-			observed = {GraphNodes.data, GraphStochastic.censored};
-		VAR
-			isLikelihoodTerm: BOOLEAN;
-	BEGIN
-		isLikelihoodTerm := (observed * node.props # {}) OR (node.likelihood # NIL);
-		RETURN isLikelihoodTerm
-	END IsLikelihoodTerm;
-
-	PROCEDURE (node: Node) LogJacobian* (): REAL;
+	PROCEDURE (node: Node) LogDetJacobian* (): REAL;
 	BEGIN
 		RETURN 0
-	END LogJacobian;
+	END LogDetJacobian;
 
 	PROCEDURE (node: Node) Map* (): REAL;
 	BEGIN
@@ -126,8 +106,17 @@ MODULE GraphChain;
 	PROCEDURE (node: Node) NumberConstraints* (): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) Representative* (): Node;
+		VAR
+			index, dim: INTEGER;
 	BEGIN
-		RETURN node
+		IF node.components # NIL THEN
+			index := node.index;
+			dim := node.BlockSize();
+			index := (index DIV dim) * dim;
+			RETURN node.components[index](Node)
+		ELSE
+			RETURN node
+		END
 	END Representative;
 
 	PROCEDURE Maintainer;

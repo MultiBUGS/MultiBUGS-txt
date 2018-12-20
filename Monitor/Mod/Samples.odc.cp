@@ -14,7 +14,7 @@ MODULE MonitorSamples;
 
 	IMPORT
 		Services, Stores,
-		GraphDeviance, GraphNodes, GraphStochastic,
+		GraphDeviance, GraphNodes,
 		MonitorMonitors;
 
 	CONST
@@ -24,13 +24,13 @@ MODULE MonitorSamples;
 	TYPE
 		Data = POINTER TO ARRAY blockSize OF SHORTREAL;
 
-		Monitor* = POINTER TO ABSTRACT RECORD
+		Monitor* = POINTER TO ABSTRACT RECORD END;
+
+		StdMonitor = POINTER TO RECORD(Monitor)
 			sampleSize, start: INTEGER;
 			blocks: POINTER TO ARRAY OF Data;
 			node: GraphNodes.Node
 		END;
-
-		StdMonitor = POINTER TO RECORD(Monitor) END;
 
 		Factory* = POINTER TO ABSTRACT RECORD END;
 
@@ -47,7 +47,7 @@ MODULE MonitorSamples;
 
 	PROCEDURE (monitor: Monitor) MarkMonitored*, NEW, ABSTRACT;
 
-		PROCEDURE (monitor: Monitor) Sample* (OUT sample: ARRAY OF REAL;
+	PROCEDURE (monitor: Monitor) Sample* (OUT sample: ARRAY OF REAL;
 	beg, end, step: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) SampleSize* (beg, end, step: INTEGER): INTEGER, NEW, ABSTRACT;
@@ -55,8 +55,6 @@ MODULE MonitorSamples;
 	PROCEDURE (monitor: Monitor) Start* (): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) Update*, NEW, ABSTRACT;
-
-	PROCEDURE (monitor: Monitor) Value* (index: INTEGER): REAL, NEW, ABSTRACT;
 
 	PROCEDURE (f: Factory) New* (node: GraphNodes.Node; start: INTEGER): Monitor, NEW, ABSTRACT;
 
@@ -179,14 +177,6 @@ MODULE MonitorSamples;
 		INC(monitor.sampleSize)
 	END Update;
 
-	PROCEDURE (monitor: StdMonitor) Value (index: INTEGER): REAL;
-		VAR
-			blockIndex, blockNum: INTEGER;
-	BEGIN
-		blockNum := index DIV blockSize; blockIndex := index MOD blockSize;
-		RETURN monitor.blocks[blockNum, blockIndex];
-	END Value;
-
 	PROCEDURE (f: StdFactory) New (node: GraphNodes.Node; start: INTEGER): Monitor;
 		VAR
 			i: INTEGER;
@@ -202,38 +192,9 @@ MODULE MonitorSamples;
 			monitor.blocks[i] := NIL;
 			INC(i)
 		END;
-		IF GraphDeviance.IsDeviance(node) THEN
-			MonitorMonitors.MarkDevianceMonitored
-		ELSE
-			MonitorMonitors.Mark(node)
-		END;
+		monitor.MarkMonitored;
 		RETURN monitor
 	END New;
-
-	PROCEDURE ReadMonitorData* (VAR rd: Stores.Reader; beg, end, step: INTEGER;
-	OUT samples: ARRAY OF REAL);
-		VAR
-			i, j, len, numBlocks, readPos, sampleSize, size, start: INTEGER;
-			sReal: SHORTREAL;
-	BEGIN
-		rd.ReadInt(size);
-		rd.ReadInt(start);
-		rd.ReadInt(numBlocks);
-		beg := MAX(beg, start);
-		end := MIN(end, start + size);
-		sampleSize := MAX(0, end - beg) DIV step;
-		len := LEN(samples);
-		len := MIN(len, sampleSize);
-		readPos := rd.Pos() + MAX(end - start - len * step, 0) * SIZE(SHORTREAL);
-		rd.SetPos(readPos);
-		i := 0;
-		WHILE i < len DO
-			rd.ReadSReal(sReal);
-			samples[i] := sReal;
-			j := 1; WHILE j < step DO rd.ReadSReal(sReal); INC(j) END;
-			INC(i)
-		END
-	END ReadMonitorData;
 
 	PROCEDURE Maintainer;
 	BEGIN

@@ -20,7 +20,8 @@ MODULE GraphProduct;
 
 		Node = POINTER TO RECORD(GraphScalar.Node)
 			start, step, nElem: INTEGER;
-			vector: GraphNodes.Vector
+			vector: GraphNodes.Vector;
+			constant: POINTER TO ARRAY OF SHORTREAL;
 		END;
 
 		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
@@ -40,6 +41,7 @@ MODULE GraphProduct;
 			i, f, form, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
+		IF node.constant # NIL THEN RETURN GraphRules.const END;
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -63,7 +65,7 @@ MODULE GraphProduct;
 			v: GraphNodes.SubVector;
 	BEGIN
 		v := GraphNodes.NewVector();
-		v.components := node.vector;
+		v.components := node.vector; v.values := node.constant;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step; 
 		GraphNodes.ExternalizeSubvector(v, wr)
 	END ExternalizeLogical;
@@ -73,13 +75,14 @@ MODULE GraphProduct;
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
-		node.vector := v.components;
+		node.vector := v.components; node.constant := v.values;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step
 	END InternalizeLogical;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
 		node.vector := NIL;
+		node.constant := NIL;
 		node.start := - 1;
 		node.nElem := - 1;
 		node.step := - 1
@@ -96,6 +99,7 @@ MODULE GraphProduct;
 			p: GraphNodes.Node;
 			list: GraphNodes.List;
 	BEGIN
+		IF node.constant # NIL THEN RETURN NIL END;
 		list := NIL;
 		i := 0;
 		nElem := node.nElem;
@@ -119,8 +123,9 @@ MODULE GraphProduct;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.vector := args.vectors[0].components;
+			node.constant := args.vectors[0].values;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			start := args.vectors[0].start;
 			node.start := start;
@@ -130,19 +135,21 @@ MODULE GraphProduct;
 			ASSERT(args.vectors[0].nElem > 0, 21);
 			nElem := args.vectors[0].nElem;
 			node.nElem := nElem;
-			isData := TRUE;
 			i := 0;
-			WHILE i < nElem DO
-				off := start + i * step;
-				p := node.vector[off];
-				IF p = NIL THEN
-					res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
-				ELSE
-					isData := isData & (GraphNodes.data IN p.props)
+			isData := TRUE;
+			IF node.vector # NIL THEN
+				WHILE i < nElem DO
+					off := start + i * step;
+					p := node.vector[off];
+					IF p = NIL THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+					ELSE
+						isData := isData & (GraphNodes.data IN p.props)
+					END;
+					INC(i)
 				END;
-				INC(i)
-			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+				IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			END
 		END
 	END Set;
 
@@ -159,8 +166,12 @@ MODULE GraphProduct;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			value := value * p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				value := value * p.Value()
+			ELSE
+				value := value * node.constant[off]
+			END;
 			INC(i)
 		END;
 		RETURN value
@@ -180,10 +191,14 @@ MODULE GraphProduct;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			p.ValDiff(x, value, differ);
-			diff := diff + differ / value;
-			val := val * p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				p.ValDiff(x, value, differ);
+				diff := diff + differ / value;
+				val := val * p.Value()
+			ELSE
+				val := val * node.constant[off]
+			END;
 			INC(i)
 		END;
 		diff := val * diff

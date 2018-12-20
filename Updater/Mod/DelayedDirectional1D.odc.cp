@@ -4,7 +4,7 @@ MODULE UpdaterDelayedDirectional1D;
 	
 
 	IMPORT
-		MPIworker, Math, Stores, 
+		Math, Stores, 
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
@@ -61,23 +61,8 @@ MODULE UpdaterDelayedDirectional1D;
 				END
 			END
 		END;
-		IF ~UpdaterMultivariate.IsNLBlock(block) THEN 
-			block := NIL 
-		END;
 		RETURN block
 	END FindNLBlock;
-
-	PROCEDURE LogConditional (updater: Updater): REAL;
-		VAR
-			logLike, logPrior: REAL;
-	BEGIN
-		logPrior := updater.LogPrior();
-		logLike := updater.LogLikelihood();
-		IF GraphStochastic.distributed IN updater.prior[0].props THEN
-			MPIworker.SumReal(logLike)
-		END;
-		RETURN logPrior + logLike
-	END LogConditional;
 
 	PROCEDURE CalculateSVD (updater: Updater);
 		VAR
@@ -165,7 +150,7 @@ MODULE UpdaterDelayedDirectional1D;
 			logAlpha, oldCond, newCond: REAL;
 	BEGIN
 		size := updater.Size();
-		oldCond := LogConditional(updater);
+		oldCond := updater.LogConditional();
 		updater.GetValue(oldX);
 		i := 0;
 		WHILE i < size DO
@@ -179,7 +164,7 @@ MODULE UpdaterDelayedDirectional1D;
 			var := updater.index[v];
 			newX[var] := MathRandnum.Normal(oldX[var], updater.precision[var]);
 			updater.SetValue(newX);
-			newCond := LogConditional(updater);
+			newCond := updater.LogConditional();
 			logAlpha := newCond - oldCond;
 			accept := logAlpha > Math.Ln(MathRandnum.Rand());
 			IF accept THEN
@@ -204,7 +189,7 @@ MODULE UpdaterDelayedDirectional1D;
 			prop1, prop2, logAlpha1, logAlpha2, oldCond, newCond1, newCond2, ry2y1, rxy1: REAL;
 	BEGIN
 		size := updater.Size();
-		oldCond := LogConditional(updater);
+		oldCond := updater.LogConditional();
 		updater.GetValue(oldX);
 		i := 0;
 		WHILE i < size DO
@@ -218,7 +203,7 @@ MODULE UpdaterDelayedDirectional1D;
 			var := updater.index[v];
 			prop1 := MathRandnum.Normal(oldX[var], updater.precision[var]);
 			updater.SetValue(newX);
-			newCond1 := LogConditional(updater);
+			newCond1 := updater.LogConditional();
 			logAlpha1 := newCond1 - oldCond;
 			accept := logAlpha1 > Math.Ln(MathRandnum.Rand());
 			(* accept/reject first proposal *)
@@ -288,7 +273,7 @@ MODULE UpdaterDelayedDirectional1D;
 			(* evaluate first proposal *)
 			newX[var] := prop1;
 			updater.SetValue(newX);
-			newCond1 := LogConditional(updater);
+			newCond1 := updater.LogConditional();
 			logAlpha1 := newCond1 - oldCond;
 			accept := logAlpha1 > Math.Ln(MathRandnum.Rand());
 			IF accept THEN
@@ -299,10 +284,10 @@ MODULE UpdaterDelayedDirectional1D;
 				INC(updater.rejectCount[var]);
 				newX[var] := prop3;
 				updater.SetValue(newX);
-				newCond3 := LogConditional(updater);
+				newCond3 := updater.LogConditional();
 				newX[var] := prop2;
 				updater.SetValue(newX);
-				newCond2 := LogConditional(updater);
+				newCond2 := updater.LogConditional();
 				correction := Math.Ln(1 - Math.Exp(MIN(0, newCond3 - newCond2))) - 
 				Math.Ln(1 - Math.Exp(MIN(0, logAlpha1)));
 				logAlpha2 := newCond2 - oldCond + correction;
@@ -353,7 +338,7 @@ MODULE UpdaterDelayedDirectional1D;
 			logAlpha, oldCond, newCond, prop: REAL;
 	BEGIN
 		size := updater.Size();
-		oldCond := LogConditional(updater);
+		oldCond := updater.LogConditional();
 		accept := TRUE;
 		Shuffle(updater.index);
 		(* loop over directions *)
@@ -372,7 +357,7 @@ MODULE UpdaterDelayedDirectional1D;
 				newX[i] := oldX[i] + prop * updater.svdMatrix[i, dir]; INC(i)
 			END;
 			updater.SetValue(newX);
-			newCond := LogConditional(updater);
+			newCond := updater.LogConditional();
 			logAlpha := newCond - oldCond;
 			accept := logAlpha > Math.Ln(MathRandnum.Rand());
 			(* accept/reject *)
@@ -399,7 +384,7 @@ MODULE UpdaterDelayedDirectional1D;
 	BEGIN
 		size := updater.Size();
 		updater.GetValue(oldX);
-		oldCond := LogConditional(updater);
+		oldCond := updater.LogConditional();
 		Shuffle(updater.index);
 		(* loop over directions *)
 		v := 0;
@@ -413,7 +398,7 @@ MODULE UpdaterDelayedDirectional1D;
 				newX[i] := oldX[i] + delta * updater.svdMatrix[i, dir]; INC(i)
 			END;
 			updater.SetValue(newX);
-			newCond1 := LogConditional(updater);
+			newCond1 := updater.LogConditional();
 			logAlpha1 := newCond1 - oldCond;
 			accept := logAlpha1 > Math.Ln(MathRandnum.Rand());
 			(* accept/reject *)
@@ -429,14 +414,14 @@ MODULE UpdaterDelayedDirectional1D;
 					newX[i] := oldX[i] - 2 * delta * updater.svdMatrix[i, dir]; INC(i)
 				END;
 				updater.SetValue(newX);
-				newCond3 := LogConditional(updater);
+				newCond3 := updater.LogConditional();
 				(* proposal 2 *)
 				i := 0;
 				WHILE i < size DO
 					newX[i] := oldX[i] - delta * updater.svdMatrix[i, dir]; INC(i)
 				END;
 				updater.SetValue(newX);
-				newCond2 := LogConditional(updater);
+				newCond2 := updater.LogConditional();
 				(* delayed rejection correction *)
 				correction := Math.Ln(1 - Math.Exp(MIN(0, newCond3 - newCond2))) - 
 				Math.Ln(1 - Math.Exp(MIN(0, logAlpha1)));
@@ -736,7 +721,6 @@ MODULE UpdaterDelayedDirectional1D;
 		block := FindNLBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
 		IF GraphStochastic.IsBounded(block) THEN RETURN FALSE END;
-		IF ~UpdaterMultivariate.IsNLBlock(block) THEN RETURN FALSE END;
 		RETURN TRUE		
 	END CanUpdate;
 

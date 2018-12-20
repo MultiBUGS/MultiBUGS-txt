@@ -9,7 +9,7 @@ MODULE MathFunc;
 
 	
 
-	IMPORT 
+	IMPORT
 		Math;
 
 	CONST
@@ -29,6 +29,7 @@ MODULE MathFunc;
 		i0Small, i0Large, i1Small, i1Large: ARRAY 9 OF REAL;
 		zeta_xgt1_data: ARRAY 30 OF REAL;
 		zetaN: ARRAY 42 OF REAL;
+		zetaCoeffs: ARRAY 15 OF REAL;
 
 		(*
 		Equations 9.8.1 and 9.8.2 from Abramowitz and Stegun.
@@ -795,6 +796,50 @@ MODULE MathFunc;
 	END HGprobs;
 
 
+	PROCEDURE HurwitzZeta* (s, a: REAL): REAL;
+		(* Adapted for BUGS by Marcel Jonker *)
+		(* Based on Pyton code received from Frederik Johansson *)
+		VAR
+			value, s1, s2, t, u: REAL;
+			k, N, M: INTEGER;
+	BEGIN
+		ASSERT(a >= 0, 20);
+
+		(* Initialize *)
+		s1 := 0.0;
+		s2 := 0.0;
+
+		(* set precision of algorithm - approx 4 for single and 9 for double precision *)
+		N := 9;
+		M := 9;
+
+		FOR k := 0 TO N - 1 DO
+			s1 := s1 + Math.Power(k + a, - s);
+		END;
+		s1 := s1 + Math.Power(a + N, 1 - s) / (s - 1);
+
+		u := 1.0 / (N + a);
+		t := s * u;
+		FOR k := 1 TO M DO
+			s2 := s2 + zetaCoeffs[k - 1] * t;
+			t := t * (s + 2 * k - 1) * (s + 2 * k);
+			t := t * (u * u);
+		END;
+
+		(* note: at this point, abs(coeffs[M] * t * u**s) is a good estimate of the error *)
+		RETURN s1 + (0.5 + s2) * Math.Power(u, s); ;
+
+	END HurwitzZeta;
+
+	PROCEDURE Test*;
+		VAR
+			x: REAL;
+	BEGIN
+		(* x = 430.6333385284565	*)
+		 x := 100 * Math.Power(20, 1.1) * (HurwitzZeta(1.1, 21) - HurwitzZeta(1.1, 26));
+		HALT(0)
+	END Test;
+	
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 323;
@@ -955,8 +1000,26 @@ MODULE MathFunc;
 			zetaN[1] := Digamma(1.0 + i * 0.005);
 			INC(i)
 		END;
+
+		zetaCoeffs[0] := 0.0833333333333333;
+		zetaCoeffs[1] := - 0.00138888888888889;
+		zetaCoeffs[2] := 3.30687830687831E-5;
+		zetaCoeffs[3] := - 8.26719576719577E-7;
+		zetaCoeffs[4] := 2.08767569878681E-8;
+		zetaCoeffs[5] := - 5.28419013868749E-10;
+		zetaCoeffs[6] := 1.33825365306847E-11;
+		zetaCoeffs[7] := - 3.38968029632258E-13;
+		zetaCoeffs[8] := 8.58606205627785E-15;
+		zetaCoeffs[9] := - 2.17486869855806E-16;
+		zetaCoeffs[10] := 5.50900282836023E-18;
+		zetaCoeffs[11] := - 1.39544646858125E-19;
+		zetaCoeffs[12] := 3.53470703962947E-21;
+		zetaCoeffs[13] := - 8.95351742703755E-23;
+		zetaCoeffs[14] := 2.26795245233768E-24;
 	END Init;
 
 BEGIN
 	Init
 END MathFunc.
+
+MathFunc.Test

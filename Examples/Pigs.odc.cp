@@ -87,13 +87,54 @@ Inits for chain 1 		Inits for chain 2	( click to open )
 
 Results 
 
-Time for 100000 updates 18s on 200MHz Pentium Pro. A 10000 update burn in followed by a further 100000 updates gave the parameter estimates
+One update took 0.06ms
 
-		mean	sd	MC_error	val2.5pc	median	val97.5pc	start	sample
-	i[1]	0.5717	0.4948	0.001697	0.0	1.0	1.0	5001	100000
-	i[2]	0.3685	0.4824	0.001532	0.0	0.0	1.0	5001	100000
-	i[3]	0.05981	0.2371	8.046E-4	0.0	0.0	1.0	5001	100000
-	p	0.6258	0.1608	7.127E-4	0.2935	0.636	0.9013	5001	100000
+Update methods
 
+		Updater type	Size	Depth
+	Ann1	discrete slice updater	1	2
+	Brian1	discrete slice updater	1	2
+	Clare	discrete slice updater	1	3
+	Diane	discrete slice updater	1	3
+	Eric1	discrete slice updater	1	2
+	Fred	discrete slice updater	1	4
+	Gene	discrete slice updater	1	4
+	Henry1	discrete slice updater	1	2
+	I1	univariate forward updater	1	-6
+	Ian	univariate forward updater	1	-5
+	Jane	discrete slice updater	1	5
+	q	conjugate beta updater	1	1
+
+		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
+	i[1]	0.5729	1.0	0.4947	0.001292	0.0	1.0	5001	200000	146575
+	i[2]	0.367	0.0	0.482	0.001155	0.0	1.0	5001	200000	174058
+	i[3]	0.06014	0.0	0.2377	6.045E-4	0.0	1.0	5001	200000	154670
+	p	0.6257	0.6365	0.1607	4.811E-4	0.2932	0.9007	5001	200000	111615
+
+
+DIC direct parents crashes
 
 We note a number of important tricks. First, each genotype is a 3-valued categorical variable with conditional probabilities either determined by the binomial (Hardy-Weinberg equilibrium) distribution (for founder nodes) or from the Mendelian inheritance probabilities which are stored as a 3-dimensional array p.mendelian. In the latter case, the genotype of the parents picks which row of the matrix is used for the distribution. However, the rows of this matrix are indexed by values 1, 2 or 3, whilst the genotypes of the founder nodes take  values 0, 1 or 2. Since BUGS does not allow subscripts to be functions of variables, we must first add 1 to the genotype of the parents (for example, Ann = Ann1 + 1) and use these new variables as subscripts to the matrix p.mendelian. The genotype-to-phenotype distribution is handled similarly in a matrix p.recessive. Second,  the equals function equals(Ann, 2) allows the calculation of  P(Ann's genotype = 2) (i.e. a carrier), whilst equals(Ian, J) calculates  P(Ian's genotype = J), where J=3 implies that Ian is affected.
+
+Check of externalization first process
+
+		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
+	i[1]	0.5717	1.0	0.4948	0.001695	0.0	1.0	5001	100000	85192
+	i[2]	0.3685	0.0	0.4824	0.00153	0.0	1.0	5001	100000	99367
+	i[3]	0.05981	0.0	0.2371	8.037E-4	0.0	1.0	5001	100000	87047
+	p	0.6258	0.636	0.1608	7.119E-4	0.2935	0.9013	5001	100000	51034
+
+second process
+
+		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
+	i[1]	0.5717	1.0	0.4948	0.001695	0.0	1.0	5001	100000	85192
+	i[2]	0.3685	0.0	0.4824	0.00153	0.0	1.0	5001	100000	99367
+	i[3]	0.05981	0.0	0.2371	8.037E-4	0.0	1.0	5001	100000	87047
+	p	0.6258	0.636	0.1608	7.119E-4	0.2935	0.9013	5001	100000	51034
+
+		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
+	i[1]	0.5729	1.0	0.4947	0.001292	0.0	1.0	5001	200000	146575
+	i[2]	0.367	0.0	0.482	0.001155	0.0	1.0	5001	200000	174058
+	i[3]	0.06014	0.0	0.2377	6.045E-4	0.0	1.0	5001	200000	154670
+	p	0.6257	0.6365	0.1607	4.811E-4	0.2932	0.9007	5001	200000	111615
+

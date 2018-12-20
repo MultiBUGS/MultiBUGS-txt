@@ -56,7 +56,6 @@ MODULE BugsScripts;
 		VAR
 			len: INTEGER;
 			command: ScriptCommand;
-			name: ARRAY 1024 OF CHAR;
 	BEGIN
 		NEW(command);
 		command.next := scriptCommands;
@@ -85,27 +84,27 @@ MODULE BugsScripts;
 
 		(*	check model in file s	*)
 		StoreKey("modelCheck(s)",
-		"BugsCmds.SetFilePath('^0' ); BugsCmds.ParseGuard; BugsCmds.Parse");
+		"BugsCmds.Parse('^0')");
 
 		(*	load data in files s	*)
 		StoreKey("modelData(s)",
-		"BugsCmds.SetFilePath( '^0' ); BugsCmds.LoadDataGuard; BugsCmds.LoadData");
+		"BugsCmds.LoadDataGuard; BugsCmds.LoadData('^0')");
 
 		(*	compile model using 1 chain	*)
 		StoreKey("modelCompile()",
-		"BugsCmds.CompileGuard; BugsCmds.specificationDialog.numChains := 1; BugsCmds.Compile");
+		"BugsCmds.CompileGuard; MathTT800.Install; BugsCmds.specificationDialog.numChains := 1; BugsCmds.Compile");
 
 		(*	compile model using i chains	*)
 		StoreKey("modelCompile(i)",
-		"BugsCmds.CompileGuard; BugsCmds.specificationDialog.numChains  := ^0; BugsCmds.Compile");
+		"BugsCmds.CompileGuard; MathTT800.Install; BugsCmds.specificationDialog.numChains  := ^0; BugsCmds.Compile");
 
 		(*	load initial values for current chain from file s	*)
 		StoreKey("modelInits(s)",
-		"BugsCmds.SetFilePath( '^0' ); BugsCmds.LoadInitsGuard; BugsCmds.LoadInits");
+		"BugsCmds.LoadInitsGuard; BugsCmds.LoadInits('^0')");
 
 		(*	load initial values for chaini  from file s	*)
 		StoreKey("modelInits(si)",
-		"BugsCmds.SetFilePath( '^0' ); BugsCmds.LoadInitsGuard; BugsCmds.specificationDialog.chain := ^1; BugsCmds.LoadInits");
+		"BugsCmds.LoadInitsGuard; BugsCmds.specificationDialog.chain := ^1; BugsCmds.LoadInits('^0')");
 
 		(*	generate initial values	*)
 		StoreKey("modelGenInits()",
@@ -117,7 +116,7 @@ MODULE BugsScripts;
 
 		(*	distribute model using i cores	*)
 		StoreKey("modelDistribute(i)",
-		"BugsCmds.UpdateGuard; BugsCmds.specificationDialog.numProc  := ^0; BugsMaster.Install('MPImsimp'); BugsCmds.Distribute('MPImsimp')");
+		"BugsCmds.DistributeGuard; BugsCmds.specificationDialog.numProc  := ^0; BugsMaster.Install; BugsCmds.Distribute");
 
 		(*	update model i iterations	*)
 		StoreKey("modelUpdate(i)",
@@ -139,7 +138,7 @@ MODULE BugsScripts;
 
 		(*	update model i iteration with over-relaxation s	*)
 		StoreKey("modelUpdate(is)",
-		"BugsDistribute.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.overRelax := ^1; BugsCmds.Update");
+		"BugsCmds.UpdateGuard; BugsCmds.updateDialog.updates  := ^0; BugsCmds.updateDialog.overRelax := ^1; BugsCmds.Update");
 
 		(*	update model i0 iteration with prospective thin of i1 and over-relaxation s	*)
 		StoreKey("modelUpdate(iis)",
@@ -205,7 +204,7 @@ MODULE BugsScripts;
 
 		(*	causes the BUGS program to close (with modal confirmation dialog in Windows)	*)
 		StoreKey("modelQuit()",
-		"HostMenus.Exit");
+		"BugsCmds.Quit('no')");
 
 		(*	causes the BUGS program to close if s = "yes" or "y" (without modal confirmation dialog	in Windows)	*)
 		StoreKey("modelQuit(s)",
@@ -336,24 +335,16 @@ MODULE BugsScripts;
 		StoreKey("modelsClear(s)",
 		"ModelsCmds.SetVariable('^0'); ModelsCmds.StatsGuard; ModelsCmds.Clear");
 
-		(*	sets monitor for DIC	*)
-		StoreKey("dicSet()",
-		"DevianceCmds.SetVariable('*'); DevianceCmds.SetGuard; DevianceCmds.Set");
-
-		(*	sets monitor for DIC with direct parents	*)
-		StoreKey("dicSetD()",
-		"DeviancePluginD.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
-
-		(*	sets monitor for DIC with stochastic parents should only run on worker	*)
-		StoreKey("dicSetS()",
+		(*	sets monitor for IC with stochastic parents should only use plugin on non distributed models 	*)
+		StoreKey("icSet()",
 		"DeviancePluginS.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
 
-		(*	displays DIC statistics	*)
-		StoreKey("dicStats()",
+		(*	displays IC statistics	*)
+		StoreKey("icStats()",
 		"DevianceCmds.StatsGuard; DevianceCmds.Stats");
 
-		(*	clears monitor for DIC	*)
-		StoreKey("dicClear()",
+		(*	clears monitor for IC	*)
+		StoreKey("icClear()",
 		"DevianceCmds.StatsGuard; DevianceCmds.Clear");
 
 		(*___________________________________________________________________________________________

@@ -36,8 +36,8 @@ The model code for fitting these two models is given below.
 					y[t] ~ dnorm(mu[t], tau.err)
 					mu[t] <- beta + theta[t]
 				}
-				#theta[1:T] ~ rand.walk(tau)    
-				theta[1:T] ~ stoch.trend(tau) 
+				theta[1:T] ~ rand.walk(tau)    
+				#theta[1:T] ~ stoch.trend(tau) 
 			  beta ~ dflat()
 			   # other priors
 				tau.err  ~ dgamma(0.01, 0.01)		  # measurement error precision

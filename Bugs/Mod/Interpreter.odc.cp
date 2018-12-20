@@ -12,8 +12,8 @@ MODULE BugsInterpreter;
 	
 
 	IMPORT
-		Meta, Strings,
-		BugsMappers;
+		Dialog, Meta, Strings,
+		BugsMappers, BugsMsg;
 
 	CONST
 		notModule* = 1;
@@ -68,6 +68,7 @@ MODULE BugsInterpreter;
 	PROCEDURE  CmdInterpreter* (command: ARRAY OF CHAR; OUT res: INTEGER);
 		VAR
 			ok: BOOLEAN;
+			par: Dialog.Par;
 			string: ARRAY 1024 OF CHAR;
 			s: BugsMappers.Scanner;
 			cmd: RECORD(Meta.Value) Do: PROCEDURE END;
@@ -75,8 +76,9 @@ MODULE BugsInterpreter;
 			realCmd: RECORD(Meta.Value) Do: PROCEDURE (arg: REAL) END;
 			intCmd: RECORD(Meta.Value) Do: PROCEDURE (arg: INTEGER) END;
 			boolCmd: RECORD(Meta.Value) Do: PROCEDURE (arg: BOOLEAN) END;
-			guard: RECORD(Meta.Value) Do: PROCEDURE (OUT ok: BOOLEAN) END;
+			guard: RECORD(Meta.Value) Do: PROCEDURE (VAR arg: Dialog.Par) END;
 			item, item0, item1: Meta.Item;
+			msg: Dialog.String;
 	BEGIN
 		res := 0;
 		Strip(command);
@@ -92,7 +94,7 @@ MODULE BugsInterpreter;
 				IF item0.obj = Meta.procObj THEN
 					item0.GetVal(cmd, ok);
 					IF ok THEN
-						cmd.Do
+						cmd.Do 
 					ELSE
 						item0.GetVal(stringCmd, ok);
 						IF ok THEN
@@ -105,7 +107,7 @@ MODULE BugsInterpreter;
 							item0.GetVal(intCmd, ok);
 							IF ok THEN
 								s.Scan;
-								IF s.type # BugsMappers.int THEN
+								IF s.type # BugsMappers.int THEN 
 									res := invalidArgument; RETURN
 								END;
 								intCmd.Do(s.int)
@@ -133,10 +135,16 @@ MODULE BugsInterpreter;
 											res := invalidArgument; RETURN
 										END
 									ELSE
-										item0.GetVal(guard, ok);
+										item0.GetVal(guard, ok); 
 										IF ok THEN
-											guard.Do(ok);
-											IF ~ok THEN res := failedGuard; RETURN END
+											par.disabled := FALSE;
+											guard.Do(par);
+											IF par.disabled THEN 
+												BugsMsg.Lookup(par.label, msg);
+												BugsMsg.StoreError(msg);
+												res := failedGuard; 
+												RETURN 
+											END
 										ELSE
 											res := invalidArgument; RETURN
 										END
@@ -166,7 +174,7 @@ MODULE BugsInterpreter;
 							ELSE
 								res := invalidArgument; RETURN
 							END
-						ELSIF item1.typ = Meta.boolTyp THEN 
+						ELSIF item1.typ = Meta.boolTyp THEN
 							s.Scan;
 							IF s.type = BugsMappers.int THEN
 								item1.PutBoolVal(s.int # 0)

@@ -13,7 +13,7 @@ MODULE BugsNodes;
 	
 
 	IMPORT
-		Meta, Strings,
+		Strings,
 		BugsCPCompiler, BugsCodegen, BugsEvaluate, BugsIndex, BugsMsg, BugsNames,
 		BugsOptimize, BugsParser,
 		GraphConstant, GraphGrammar, GraphLogical, GraphMultivariate, GraphNodes,
@@ -58,49 +58,43 @@ MODULE BugsNodes;
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
 		BugsMsg.LookupParam("BugsNodes" + numToString, p, errorMsg);
-		BugsMsg.Store(errorMsg)
+		BugsMsg.StoreError(errorMsg)
 	END Error;
 
-	PROCEDURE GraphError (node: GraphNodes.Node; error: SET; name: ARRAY OF CHAR);
+	PROCEDURE NodeError (error: SET; node: GraphNodes.Node);
 		VAR
-			i, len: INTEGER;
-			mod, type: Meta.Name;
+			i, pos: INTEGER;
 			numToString: ARRAY 8 OF CHAR;
-			context, errorMes, param, install: ARRAY 1024 OF CHAR;
-			item: Meta.Item;
+			errorMes, install, name, param: ARRAY 1024 OF CHAR;
 			external: GraphGrammar.External;
 	BEGIN
-		context := BugsMsg.message$;
-		Meta.GetItem(node, item);
-		item.GetTypeName(mod, type);
-		len := LEN(type$);
-		type[len - 1] := 0X;
-		install := mod + ".Install";
+		BugsIndex.FindGraphNode(node, name);
+		pos := LEN(name$);
+		Strings.Extract(name, 1, pos - 2, name);
+		node.Install(install);
 		external := GraphGrammar.FindInstalled(install);
-		IF external = NIL THEN
-			install := install + type;
-			external := GraphGrammar.FindInstalled(install)
-		END;
 		IF external # NIL THEN
 			errorMes := external.name$
 		ELSE
-			errorMes := mod + "." + type
+			Strings.Find(install, "DynamicNode", 0, pos);
+			IF pos # - 1 THEN
+				errorMes := "logical"
+			ELSE
+				errorMes := "unknown type"
+			END;
 		END;
-		errorMes := "error for node " + name + " of type " + errorMes;
+		errorMes := "error for node " + name + " of type " + errorMes + ", ";
 		i := 0;
 		WHILE i <= MAX(SET) DO
 			IF i IN error THEN
 				Strings.IntToString(i, numToString);
 				BugsMsg.Lookup("Graph" + numToString, param);
 				errorMes := errorMes + " " + param;
-				IF i IN {GraphNodes.arg1 .. GraphNodes.arg10} THEN
-					errorMes := errorMes + context
-				END
 			END;
 			INC(i)
 		END;
-		BugsMsg.Store(errorMes)
-	END GraphError;
+		BugsMsg.StoreError(errorMes)
+	END NodeError;
 
 	PROCEDURE (visitor: Dimensions) Node (statement: BugsParser.Statement; OUT ok: BOOLEAN);
 		VAR
@@ -180,7 +174,6 @@ MODULE BugsNodes;
 			function: BugsParser.Function;
 			node: GraphNodes.Node;
 			args: GraphStochastic.ArgsLogical;
-			ok: BOOLEAN;
 	BEGIN
 		IF expression IS BugsParser.Function THEN
 			function := expression(BugsParser.Function);
@@ -188,7 +181,8 @@ MODULE BugsNodes;
 		ELSE
 			args.Init;
 			BugsOptimize.FoldConstants(expression);
-			BugsCodegen.WriteTreeArgs(expression, args);
+			BugsCodegen.WriteTreeArgs(expression, args); 
+			IF ~args.valid THEN RETURN NIL END;
 			BugsOptimize.UnMark(expression);
 			node := BugsCPCompiler.CreateLogical(args);
 			ASSERT(node # NIL, 77);
@@ -214,7 +208,10 @@ MODULE BugsNodes;
 			end := vector.start + vector.nElem;
 			WHILE i < end DO
 				IF ~(GraphNodes.data IN vector.components[i].props) THEN
-					vector.components[i] := Logical(expression)
+					vector.components[i] := Logical(expression);
+					IF vector.components[i] = NIL THEN
+						ok := FALSE; RETURN
+					END
 				END;
 				INC(i)
 			END;
@@ -375,7 +372,6 @@ MODULE BugsNodes;
 			variable: BugsParser.Variable;
 			vector: GraphNodes.SubVector;
 			node: GraphNodes.Node;
-			ok1: BOOLEAN;
 	BEGIN
 		ok := TRUE;
 		expression := statement.expression;
@@ -424,6 +420,8 @@ MODULE BugsNodes;
 			vector: GraphNodes.SubVector;
 			fact: GraphNodes.Factory;
 			sig: ARRAY 64 OF CHAR;
+		CONST
+			undefined = {16};
 	BEGIN
 		ok := TRUE;
 		expression := statement.expression;
@@ -465,7 +463,7 @@ MODULE BugsNodes;
 				WHILE i < end DO
 					node := vector.components[i];
 					node.Set(args, res);
-					IF res # {} THEN ok := FALSE; GraphError(node, res, varName); RETURN END;
+					IF res # {} THEN ok := FALSE; NodeError(res, node); RETURN END;
 					INC(i)
 				END
 			END
@@ -473,9 +471,9 @@ MODULE BugsNodes;
 			ASSERT(vector.nElem = 1, 66);
 			IF node IS GraphLogical.Node THEN
 				BugsCodegen.WriteTreeArgs(expression, args);
-				IF~args.valid THEN ok := FALSE; RETURN END;
+				IF~args.valid THEN ok := FALSE; NodeError(undefined, node); RETURN END;
 				node.Set(args, res);
-				IF res # {} THEN ok := FALSE; GraphError(node, res, varName); RETURN END;
+				IF res # {} THEN ok := FALSE; NodeError(res, node); RETURN END;
 			END
 		END
 	END Node;
@@ -529,7 +527,7 @@ MODULE BugsNodes;
 		WHILE i < end DO
 			node := vector.components[i];
 			node.Set(args, res);
-			IF res # {} THEN ok := FALSE; GraphError(node, res, varName); RETURN END;
+			IF res # {} THEN ok := FALSE; NodeError(res, node); RETURN END;
 			INC(i)
 		END
 	END Node;
@@ -548,14 +546,16 @@ MODULE BugsNodes;
 			string: ARRAY 1024 OF CHAR;
 			res: SET;
 	BEGIN
-		node := name.components[v.index];
-		IF (node # NIL) & v.ok THEN
-			res := node.Check();
-			IF res # {} THEN
-				v.ok := FALSE;
-				name.Indices(v.index, string);
-				string := name.string + string;
-				GraphError(node, res, name.string)
+		IF name.isVariable THEN
+			node := name.components[v.index];
+			IF (node # NIL) & v.ok THEN
+				res := node.Check();
+				IF res # {} THEN
+					v.ok := FALSE;
+					name.Indices(v.index, string);
+					string := name.string + string;
+					NodeError(res, node)
+				END
 			END
 		END
 	END Do;

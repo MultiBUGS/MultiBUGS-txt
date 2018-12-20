@@ -175,10 +175,10 @@ MODULE UpdaterStage1M;
 	BEGIN
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
 		IF ~(prior IS GraphMultivariate.Node) THEN RETURN FALSE END;
-		IF prior.likelihood = NIL THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
 		size := prior.Size();
 		stage1 := NIL;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		j := 0;
 		WHILE j < num DO

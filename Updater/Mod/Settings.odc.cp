@@ -15,7 +15,7 @@ MODULE UpdaterSettings;
 	IMPORT
 		Dialog, Strings,
 		StdTabViews,
-		BugsDialog, BugsInterface, BugsMsg, BugsRegistry, 
+		BugsDialog, BugsFiles, BugsInterface, BugsMsg, BugsRegistry, 
 		UpdaterMethods, UpdaterUpdaters;
 
 
@@ -117,7 +117,7 @@ MODULE UpdaterSettings;
 	PROCEDURE FindAllFactory (): INTEGER;
 		VAR
 			name, name1: Dialog.String;
-			i, index, len, res: INTEGER;
+			i, index, len: INTEGER;
 	BEGIN
 		dialog.allMethods.GetItem(dialog.allMethods.index, name);
 		IF name[0] = "(" THEN
@@ -335,7 +335,7 @@ MODULE UpdaterSettings;
 	PROCEDURE ChangeSampler*;
 		VAR
 			ok: BOOLEAN;
-			s: ARRAY 1024 OF CHAR;
+			errorMsg: ARRAY 1024 OF CHAR;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 			index: INTEGER;
 	BEGIN
@@ -343,7 +343,8 @@ MODULE UpdaterSettings;
 		BugsInterface.ChangeSampler(dialog.node, index , ok);
 		IF ~ok THEN
 			p[0] := dialog.node$;
-			BugsMsg.ShowParam("BugsEmbed:couldNotChangeUpdater", p);
+			BugsMsg.LookupParam("BugsEmbed:couldNotChangeUpdater", p, errorMsg);
+			BugsFiles.ShowStatus(errorMsg)
 		END;
 		FillDialog;
 		Dialog.Update(dialog);
@@ -389,7 +390,6 @@ MODULE UpdaterSettings;
 		VAR
 			index: INTEGER;
 			fact: UpdaterUpdaters.Factory;
-			name: Dialog.String;
 	BEGIN
 		index := FindAllFactory();
 		fact := UpdaterMethods.factories[index];
@@ -402,9 +402,8 @@ MODULE UpdaterSettings;
 
 	PROCEDURE Enable*;
 		VAR
-			index, len: INTEGER;
+			index: INTEGER;
 			fact: UpdaterUpdaters.Factory;
-			name: Dialog.String;
 	BEGIN
 		index := FindAllFactory();
 		fact := UpdaterMethods.factories[index];

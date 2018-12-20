@@ -256,27 +256,6 @@ MODULE GraphUniform;
 		GraphNodes.SetFactory(fact)
 	END Install;
 
-	PROCEDURE Vector* (size: INTEGER; lower, upper: GraphNodes.Node): GraphStochastic.Vector;
-		VAR
-			i: INTEGER;
-			args: GraphStochastic.Args;
-			uniforms: GraphStochastic.Vector;
-			props, res: SET;
-	BEGIN
-		NEW(uniforms, size);
-		args.scalars[0] := lower;
-		args.scalars[1] := upper;
-		i := 0;
-		WHILE i < size DO
-			uniforms[i] := fact.New();
-			uniforms[i].Set(args, res);
-			props := uniforms[i].props;
-			uniforms[i].SetProps(props + {GraphStochastic.hidden, GraphStochastic.initialized});
-			INC(i)
-		END;
-		RETURN uniforms
-	END Vector;
-
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;

@@ -14,7 +14,7 @@ MODULE DoodleParser;
 
 	IMPORT
 		Controllers, Dialog, Models, Strings, Views,
-		BugsMappers, BugsMsg, BugsParser, BugsVariables, 
+		BugsDialog, BugsFiles, BugsMappers, BugsMsg, BugsParser, BugsVariables, 
 		DoodleMenus, DoodleModels, DoodleNodes, DoodlePlates, DoodleViews, 
 		GraphGrammar, GraphNodes;
 
@@ -51,7 +51,7 @@ MODULE DoodleParser;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("DoodleParser" + numToString, errorMes);
-		BugsMsg.Store(errorMes)
+		BugsMsg.StoreError(errorMes)
 	END Error;
 
 	PROCEDURE Nested (m: DoodleModels.Model; inner, outer: DoodlePlates.Plate): BOOLEAN;
@@ -602,7 +602,6 @@ MODULE DoodleParser;
 
 	PROCEDURE PrintError* (m: DoodleModels.Model);
 		VAR
-			errorMes: ARRAY 240 OF CHAR;
 			v: Views.View;
 			umsg: Models.UpdateMsg;
 	BEGIN
@@ -620,7 +619,7 @@ MODULE DoodleParser;
 			errorPlate.Select(TRUE);
 			errorPlate.SetCaret(errorCursor, errorIndex)
 		END;
-		BugsMsg.Show(BugsMsg.message);
+		BugsFiles.ShowStatus(BugsMsg.message);
 		Models.EndModification(Views.notUndoable, m);
 		Models.Broadcast(m, umsg)
 	END PrintError;

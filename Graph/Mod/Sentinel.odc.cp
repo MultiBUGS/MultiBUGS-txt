@@ -13,7 +13,7 @@ MODULE GraphSentinel;
 
 	IMPORT
 		Stores,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
+		GraphLogical, GraphNodes, GraphRules, GraphScalar;
 
 	TYPE
 

@@ -13,10 +13,9 @@ MODULE UpdaterNormal;
 	
 
 	IMPORT
-		MPIworker, Math, Stores, 
+		Math, MPIworker, Stores, 
 		BugsRegistry,
-		GraphConjugateMV, GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules,
-		GraphStochastic, 
+		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, 
 		MathRandnum,
 		UpdaterContinuous, UpdaterUpdaters;
 
@@ -38,31 +37,18 @@ MODULE UpdaterNormal;
 		kOR: INTEGER;
 		values: POINTER TO ARRAY OF REAL;
 
-	PROCEDURE (updater: Updater) CopyFromUnivariate (source: UpdaterUpdaters.Updater);
-	BEGIN
-	END CopyFromUnivariate;
-
-	PROCEDURE (updater: Updater) ExternalizeUnivariate (VAR wr: Stores.Writer);
-	BEGIN
-	END ExternalizeUnivariate;
-
-	PROCEDURE (updater: Updater) InternalizeUnivariate (VAR rd: Stores.Reader);
-	BEGIN
-	END InternalizeUnivariate;
-
-	PROCEDURE (updater: Updater) LikelihoodForm (OUT p: ARRAY OF REAL), NEW;
+	PROCEDURE NormalLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
 		VAR
 			as, i, num: INTEGER;
 			c, fMinus, fPlus, fZero, m, p0, p1: REAL;
-			node, prior: GraphStochastic.Node;
+			node: GraphStochastic.Node;
 			x: GraphNodes.Node;
 			children: GraphStochastic.Vector;
 	BEGIN
 		as := GraphRules.normal;
 		p[0] := 0.0;
 		p[1] := 0.0;
-		prior := updater.prior;
-		children := prior.Children();
+		children := prior.children;
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < num DO
@@ -89,8 +75,23 @@ MODULE UpdaterNormal;
 				p[1] := p[1] + 2.0 * fZero - fPlus - fMinus
 			END;
 			INC(i)
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			MPIworker.SumReals(p)
 		END
-	END LikelihoodForm;
+	END NormalLikelihood;
+
+	PROCEDURE (updater: Updater) CopyFromUnivariate (source: UpdaterUpdaters.Updater);
+	BEGIN
+	END CopyFromUnivariate;
+
+	PROCEDURE (updater: Updater) ExternalizeUnivariate (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeUnivariate;
+
+	PROCEDURE (updater: Updater) InternalizeUnivariate (VAR rd: Stores.Reader);
+	BEGIN
+	END InternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
 	BEGIN
@@ -126,23 +127,23 @@ MODULE UpdaterNormal;
 		prior := updater.prior;
 		oldValue := prior.value;
 		as := GraphRules.normal;
-		updater.LikelihoodForm(p);
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(p)
-		END;
-		IF prior IS GraphConjugateUV.Node THEN
-			prior(GraphConjugateUV.Node).PriorForm(as, mean, quadCoef)
-		ELSIF prior IS GraphConjugateMV.Node THEN
-			prior(GraphConjugateMV.Node).PriorForm(as, mean, quadCoef)
+		NormalLikelihood(prior, p);
+		WITH prior: GraphConjugateUV.Node DO
+			prior.PriorForm(as, mean, quadCoef)
+		|prior: GraphMultivariate.Node DO
+			prior.PriorForm(as, mean, quadCoef)
 		END;
 		linearCoef := mean * quadCoef;
 		linearCoef := p[0] + linearCoef;
 		quadCoef := p[1] + quadCoef;
 		mu := linearCoef / quadCoef;
 		tau := quadCoef;
-		bounds := prior.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
-		IF prior.props * {GraphStochastic.leftNatural, GraphStochastic.rightNatural} # {} THEN
-			bounds := {GraphStochastic.leftImposed, GraphStochastic.rightImposed}
+		bounds := {};
+		IF prior.props * {GraphStochastic.leftImposed, GraphStochastic.leftNatural} # {} THEN
+			INCL(bounds, GraphStochastic.leftImposed)
+		END;
+		IF prior.props * {GraphStochastic.rightImposed, GraphStochastic.rightNatural} # {} THEN
+			INCL(bounds, GraphStochastic.rightImposed)
 		END;
 		IF bounds = {} THEN
 			IF overRelax THEN
@@ -206,10 +207,7 @@ MODULE UpdaterNormal;
 		as := GraphRules.gamma;
 		prior := updater.prior(GraphConjugateUV.Node);
 		prior.PriorForm(as, p0, p1);
-		updater.LikelihoodForm(p);
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(p)
-		END;
+		NormalLikelihood(updater.prior, p);
 (*		mu := (p[0] - p1) / quadCoef;*)
 		tau := p[1];
 		rand := MathRandnum.NormalLB(mu, tau, 0);
@@ -222,7 +220,7 @@ MODULE UpdaterNormal;
 		IF GraphStochastic.integer IN prior.props THEN
 			RETURN FALSE
 		END;
-		IF prior.classConditional # GraphRules.normal THEN
+		IF ~(prior.classConditional IN {GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin}) THEN
 			RETURN FALSE
 		END;
 		RETURN TRUE
@@ -264,7 +262,7 @@ MODULE UpdaterNormal;
 		IF GraphStochastic.integer IN prior.props THEN
 			RETURN FALSE
 		END;
-		children := prior.Children();
+		children := prior.children;
 		IF children[0].ClassifyLikelihood(prior) # GraphRules.normal THEN
 			RETURN FALSE
 		END;

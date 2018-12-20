@@ -14,13 +14,14 @@ MODULE GraphSumation;
 
 	IMPORT
 		Math, Stores,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic;
+		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
 
 		Node = POINTER TO ABSTRACT RECORD(GraphMemory.Node)
 			start, step, nElem: INTEGER;
-			vector: GraphNodes.Vector
+			vector: GraphNodes.Vector;
+			values: POINTER TO ARRAY OF SHORTREAL;
 		END;
 
 		SumNode = POINTER TO RECORD(Node) END;
@@ -36,7 +37,7 @@ MODULE GraphSumation;
 		SdFactory = POINTER TO RECORD(GraphMemory.Factory) END;
 
 	VAR
-		sumFact-, meanFact-, sdFact-: GraphNodes.Factory;
+		sumFact-, meanFact-, sdFact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -50,6 +51,7 @@ MODULE GraphSumation;
 			i, f, form, off, nElem, step, start: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
+		IF node.vector = NIL THEN RETURN GraphRules.const END;
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -74,6 +76,7 @@ MODULE GraphSumation;
 	BEGIN
 		v := GraphNodes.NewVector();
 		v.components := node.vector;
+		v.values := node.values;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr)
 	END ExternalizeMemory;
@@ -84,6 +87,7 @@ MODULE GraphSumation;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.vector := v.components;
+		node.values := v.values;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step
 	END InternalizeMemory;
 
@@ -91,6 +95,7 @@ MODULE GraphSumation;
 	BEGIN
 		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
+		node.values := NIL;
 		node.start := - 1;
 		node.nElem := - 1;
 		node.step := - 1
@@ -125,8 +130,9 @@ MODULE GraphSumation;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0].components # NIL, 21);
+			ASSERT((args.vectors[0].components # NIL) OR (args.vectors[0].values # NIL), 21);
 			node.vector := args.vectors[0].components;
+			node.values := args.vectors[0].values;
 			ASSERT(args.vectors[0].start >= 0, 21);
 			start := args.vectors[0].start;
 			node.start := start;
@@ -138,16 +144,18 @@ MODULE GraphSumation;
 			node.nElem := nElem;
 			i := 0;
 			isData := TRUE;
-			WHILE i < nElem DO
-				off := start + i * step;
-				p := node.vector[off];
-				IF p = NIL THEN
-					res := {GraphNodes.nil, GraphNodes.arg1};
-					RETURN
-				ELSE
-					isData := isData & (GraphNodes.data IN p.props)
-				END;
-				INC(i)
+			IF node.vector # NIL THEN
+				WHILE i < nElem DO
+					off := start + i * step;
+					p := node.vector[off];
+					IF p = NIL THEN
+						res := {GraphNodes.nil, GraphNodes.arg1};
+						RETURN
+					ELSE
+						isData := isData & (GraphNodes.data IN p.props)
+					END;
+					INC(i)
+				END
 			END;
 			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
 		END
@@ -173,8 +181,12 @@ MODULE GraphSumation;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			value := value + p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				value := value + p.Value()
+			ELSE
+				value := value + node.values[off]
+			END;
 			INC(i)
 		END
 	END Evaluate;
@@ -192,9 +204,13 @@ MODULE GraphSumation;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			IF p = x THEN differ := differ + 1.0 END;
-			value := value + p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				IF p = x THEN differ := differ + 1.0 END;
+				value := value + p.Value()
+			ELSE
+				value := value + node.values[off]
+			END;
 			INC(i)
 		END
 	END EvaluateVD;
@@ -224,8 +240,12 @@ MODULE GraphSumation;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			value := value + p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				value := value + p.Value()
+			ELSE
+				value := value + node.values[off]
+			END;
 			INC(i)
 		END;
 		value := value / node.nElem
@@ -244,9 +264,13 @@ MODULE GraphSumation;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			IF p = x THEN differ := differ + 1.0 END;
-			value := value + p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				IF p = x THEN differ := differ + 1.0 END;
+				value := value + p.Value()
+			ELSE
+				value := value + node.values[off]
+			END;
 			INC(i)
 		END;
 		value := value / node.nElem;
@@ -264,6 +288,7 @@ MODULE GraphSumation;
 			p: GraphNodes.Node;
 	BEGIN
 		form := GraphRules.const;
+		IF node.vector = NIL THEN RETURN form END;
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -294,8 +319,12 @@ MODULE GraphSumation;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			value := p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				value := p.Value()
+			ELSE
+				value := node.values[off]
+			END;
 			node1 := node1 + value;
 			node2 := node2 + value * value;
 			INC(i)
@@ -321,14 +350,18 @@ MODULE GraphSumation;
 		step := node.step;
 		WHILE i < nElem DO
 			off := start + i * step;
-			p := node.vector[off];
-			value := p.Value();
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				value := p.Value();
+				IF p = x THEN
+					differ1 := differ1 + 1.0;
+					differ2 := differ2 + 2.0 * value
+				END
+			ELSE
+				value := node.values[off]
+			END;
 			node1 := node1 + value;
 			node2 := node2 + value * value;
-			IF p = x THEN
-				differ1 := differ1 + 1.0;
-				differ2 := differ2 + 2.0 * value
-			END;
 			INC(i)
 		END;
 		node1 := node1 / nElem;

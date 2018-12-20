@@ -18,126 +18,131 @@ MODULE UpdaterMessages;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		StoreKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
+		RegisterKey: PROCEDURE (IN key, mes: ARRAY OF CHAR);
 
 	PROCEDURE Load*;
 	BEGIN
-		StoreKey("UpdaterError11", "can not sample node ");
-		StoreKey("UpdaterError20", "too many iterations ");
-		StoreKey("UpdaterError1", "argument one ");
-		StoreKey("UpdaterError2", "argument two ");
-		StoreKey("UpdaterError26", "has too small a value ");
+		RegisterKey("UpdaterError11", "can not sample node ");
+		RegisterKey("UpdaterError20", "too many iterations ");
+		RegisterKey("UpdaterError1", "argument one ");
+		RegisterKey("UpdaterError2", "argument two ");
+		RegisterKey("UpdaterError26", "has too small a value ");
 
-		StoreKey("UpdaterMethods:notUpdateMethod", "update method not found");
-		StoreKey("UpdaterMethods:notAdaptive", "can not set updater's adaptive phase"); ;
-		StoreKey("UpdaterMethods.notIterations", "can not set updater's iterative parameter");
-		StoreKey("UpdaterMethods:notOverRelax", "can not set updater's over relax option");
+		RegisterKey("UpdaterMethods:notUpdateMethod", "update method not found");
+		RegisterKey("UpdaterMethods:notAdaptive", "can not set updater's adaptive phase"); ;
+		RegisterKey("UpdaterMethods.notIterations", "can not set updater's iterative parameter");
+		RegisterKey("UpdaterMethods:notOverRelax", "can not set updater's over relax option");
 
 		(*	mapping between TYPE names and user friendly names	*)
 
-		StoreKey("UpdaterAMblock.InstallNL", "adaptive metropolis block");
-		StoreKey("UpdaterAMblock.InstallGLM", "adaptive metropolis (glm) block");
+		RegisterKey("UpdaterAMblock.InstallNL", "adaptive metropolis block");
+		RegisterKey("UpdaterAMblock.InstallGLM", "adaptive metropolis (glm) block");
+		RegisterKey("UpdaterAMblock.InstallDirichlet", "adaptive metropolis (dirichlet) block");
+		RegisterKey("UpdaterAMblock.InstallWishart", "adaptive metropolis (wishart) block");
 
-		StoreKey("UpdaterAMNLLS.Install", "adaptive metropolis NLLS");
+		RegisterKey("UpdaterBeta.Install", "conjugate beta");
 
-		StoreKey("UpdaterBeta.Install", "conjugate beta");
+		RegisterKey("UpdaterCatagorical.Install", "categorical");
 
-		StoreKey("UpdaterCatagorical.Install", "categorical");
+		RegisterKey("UpdaterDEblock.InstallHetro", "differential evolution (mixed) block");
+		RegisterKey("UpdaterDEblock.InstallGLM", "differential evolution (glm) block");
 
-		StoreKey("UpdaterDEblock.InstallHetro", "differential evolution (mixed) block");
-		StoreKey("UpdaterDEblock.InstallGLM", "differential evolution (glm) block");
+		RegisterKey("UpdaterDescreteSlice.Interval", "discrete slice (with upper bound) updater");
+		RegisterKey("UpdaterDescreteSlice.Install", "discrete slice");
 
-		StoreKey("UpdaterDescreteSlice.Interval", "discrete slice (with upper bound) updater");
-		StoreKey("UpdaterDescreteSlice.Install", "discrete slice");
+		RegisterKey("UpdaterDirichlet.Install", "conjugate dirichlet");
 
-		StoreKey("UpdaterDirichlet.Install", "conjugate dirichlet");
+		RegisterKey("UpdaterElliptical.Install", "ESS for MVN prior");
+		RegisterKey("UpdaterEllipticalD.Install", "ESS for block of univariate normal priors");
+		RegisterKey("UpdaterRandEffect.Install", " ESS univariate normal");
+		RegisterKey("UpdaterGMRFess.Install", "ESS for GMRF prior");
 
-		StoreKey("UpdaterDirichletprior.Install", "non conjugate dirichlet");
 
-		StoreKey("UpdaterEmpty.Install", "dummy");
+		RegisterKey("UpdaterEmpty.Install", "dummy");
 
-		StoreKey("UpdaterForward.InstallUV", "univariate forward");
-		StoreKey("UpdaterForward.InstallMV", "multivariate forward");
-	
-		StoreKey("UpdaterGLM.InstallLogit", "logit block glm updater");
-		StoreKey("UpdaterGLM.InstallLoglin", "log-linear block glm updater");
-		StoreKey("UpdaterGLM.InstallNormal", "normal block glm updater");
+		RegisterKey("UpdaterForward.InstallUV", "univariate forward");
+		RegisterKey("UpdaterForward.InstallMV", "multivariate forward");
 
-		StoreKey("UpdaterGMRF.InstallGeneral", "general GMRF");
-		StoreKey("UpdaterGMRF.InstallNormal", "normal GMRF");
+		RegisterKey("UpdaterGLM.InstallLogit", "logit block glm updater");
+		RegisterKey("UpdaterGLM.InstallLoglin", "log-linear block glm updater");
+		RegisterKey("UpdaterGLM.InstallNormal", "normal block glm updater");
 
-		StoreKey("UpdaterGamma.Install", "conjugate gamma");
+		RegisterKey("UpdaterGMRF.InstallGeneral", "general GMRF");
+		RegisterKey("UpdaterGMRF.InstallNormal", "normal GMRF");
 
-		StoreKey("UpdaterGriddy.Install", "griddy gibbs");
+		RegisterKey("UpdaterGamma.Install", "conjugate gamma");
 
-		StoreKey("UpdaterHamiltonianglm.Install", "hamiltonian");
-		
-		StoreKey("UpdaterICM.Install", "iterative conditional mode");
+		RegisterKey("UpdaterGriddy.Install", "griddy gibbs");
 
-		StoreKey("UpdaterMetover.Install", "over-relaxed metropolis");
+		RegisterKey("UpdaterHamiltonianglm.Install", "hamiltonian");
 
-		StoreKey("UpdaterMAPproposal.Install", "random walk MAP");
+		RegisterKey("UpdaterICM.Install", "iterative conditional mode");
 
-		StoreKey("UpdaterMVNormal.Install", "conjugate mv normal (identity link)");
+		RegisterKey("UpdaterMetover.Install", "over-relaxed metropolis");
 
-		StoreKey("UpdaterMVNLinear.Install", "conjugate mv normal");
+		RegisterKey("UpdaterMAPproposal.Install", "random walk MAP");
 
-		StoreKey("UpdaterMetbinomial.Install", "discrete metropolis");
+		RegisterKey("UpdaterMVNormal.Install", "conjugate mv normal (identity link)");
 
-		StoreKey("UpdaterMetnormal.InstallMH", "random walk metropolis");
+		RegisterKey("UpdaterMVNLinear.Install", "conjugate mv normal");
 
-		StoreKey("UpdaterMultinomial.Install", "multinomial prior");
+		RegisterKey("UpdaterMetbinomial.Install", "discrete metropolis");
 
-		StoreKey("UpdaterNaivemet.Install", "naive random walk");
+		RegisterKey("UpdaterMetnormal.InstallMH", "random walk metropolis");
 
-		StoreKey("UpdaterNormal.Install", "conjugate normal");
+		RegisterKey("UpdaterMultinomial.Install", "multinomial prior");
 
-		StoreKey("UpdaterPareto.Install", "conjugate pareto");
+		RegisterKey("UpdaterNaivemet.Install", "naive random walk");
 
-		StoreKey("UpdaterPoisson.Install", "conjugate poisson");
+		RegisterKey("UpdaterNormal.Install", "conjugate normal");
 
-		StoreKey("UpdaterRandscan.Install", "random scan DE");
+		RegisterKey("UpdaterPareto.Install", "conjugate pareto");
 
-		StoreKey("UpdaterRejection.InstallLogit", "logit rejection");
-		StoreKey("UpdaterRejection.InstallLoglin", "log-linear rejection");
+		RegisterKey("UpdaterPoisson.Install", "conjugate poisson");
 
-		StoreKey("UpdaterMALA1D.Install", "adaptive acceptance rate MALA");
+		RegisterKey("UpdaterRejection.InstallLogit", "logit rejection");
+		RegisterKey("UpdaterRejection.InstallLoglin", "log-linear rejection");
 
-		StoreKey("UpdaterSCAAR.InstallMH", "adaptive acceptance rate");
+		RegisterKey("UpdaterMALA1D.Install", "adaptive acceptance rate MALA");
 
-		StoreKey("UpdaterSCAAR.InstallDRC", "adaptive acceptance rate DR");
+		RegisterKey("UpdaterSCAAR.InstallMH", "adaptive acceptance rate");
 
-		StoreKey("UpdaterMetnormal.InstallDRC", "normal rand walk");
-		
-		StoreKey("UpdaterSCDE.InstallMet", "differential evolution");
+		RegisterKey("UpdaterSCAAR.InstallDRC", "adaptive acceptance rate DR");
 
-		StoreKey("UpdaterSCDE.InstallMAP", "differential evolution MAP");
+		RegisterKey("UpdaterMetnormal.InstallDRC", "normal rand walk DR");
 
-		StoreKey("UpdaterSDScale.Install", "state dependent scale");
+		RegisterKey("UpdaterSCDE.InstallMet", "differential evolution");
 
-		StoreKey("UpdaterSlice.Install", "slice");
+		RegisterKey("UpdaterSCDE.InstallMAP", "differential evolution MAP");
 
-		StoreKey("UpdaterStage1.Install", "stage one (likelihood)");
-		StoreKey("UpdaterStage1M.Install", "multivariate stage one (likelihood)");
-		StoreKey("UpdaterStage1P.Install", "stage one (prior)");
+		RegisterKey("UpdaterSDScale.Install", "state dependent scale");
 
-		StoreKey("UpdaterVDMVNDescrete.Install", "reversible jump descrete");
-		StoreKey("UpdaterVDMVNContinuous.Install", "reversible jump continuous");
+		RegisterKey("UpdaterSlice.Install", "slice");
 
-		StoreKey("UpdaterWishart.Install", "conjugate wishart");
+		RegisterKey("UpdaterSlicegamma.Install", "gamma slice");
 
-		StoreKey("GraphT.MixingInstall", "t-mixing");
-		
-		StoreKey("GraphHalfT.AuxillaryInstall", "half T mixing");
-		
-		StoreKey("GraphFlexWishart.AuxillaryInstall", "flex wishart mixing");
+		RegisterKey("UpdaterStage1.Install", "stage one (likelihood)");
+		RegisterKey("UpdaterStage1M.Install", "multivariate stage one (likelihood)");
+		RegisterKey("UpdaterStage1P.Install", "stage one (prior)");
 
-		StoreKey("GraphStable.AuxillaryInstall", "stable mixing");
-		
-		StoreKey("SpatialPoissconv.MultinomialInstall", "pois conv mixing");
-		
-		StoreKey("UpdaterMRFConstrain.Install", "mrf constraint");
-		
+		RegisterKey("UpdaterVDMVNDescrete.Install", "reversible jump descrete");
+		RegisterKey("UpdaterVDMVNContinuous.Install", "reversible jump continuous");
+
+		RegisterKey("UpdaterWishart.Install", "conjugate wishart");
+
+		(*	updaters for auxillary variables	*)
+		RegisterKey("GraphT.AuxillaryInstall", "t-mixing");
+
+		RegisterKey("GraphHalfT.AuxillaryInstall", "half T mixing");
+
+		RegisterKey("GraphFlexWishart.AuxillaryInstall", "flex wishart mixing");
+
+		RegisterKey("GraphStable.AuxillaryInstall", "stable mixing");
+
+		RegisterKey("SpatialPoissconv.MultinomialInstall", "pois conv mixing");
+
+		RegisterKey("UpdaterMRFConstrain.Install", "mrf constraint");
+
 	END Load;
 
 	PROCEDURE Maintainer;
@@ -149,7 +154,7 @@ MODULE UpdaterMessages;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		StoreKey := BugsMsg.StoreKey
+		RegisterKey := BugsMsg.RegisterKey
 	END Init;
 
 BEGIN

@@ -151,7 +151,7 @@ MODULE UpdaterDE;
 		IF updater.updaters = NIL THEN
 			BuildProposal(updater)
 		END;
-		updater.StoreOldValue;
+		updater.GetValue(updater.oldVals);
 		SampleProposal(updater, xNew);
 		accept := CheckBounds(updater, xNew);
 		IF accept THEN
