@@ -5,8 +5,6 @@ copyright:	"Rsrc/About"
 
 *)
 
-(*	MPIimp loads an implementation of MPI and sets MPI.hook to a non NIL value;	*)
-
 MODULE BugsMaster;
 
 	
@@ -16,7 +14,7 @@ MODULE BugsMaster;
 		HostFiles,
 		StdLog,
 		TextModels,
-		BugsCPCompiler, BugsComponents, BugsGraph, BugsIndex,
+		BugsComponents, BugsGraph, BugsIndex,
 		BugsInterface, BugsMsg, BugsNames, BugsParallel,
 		DevCommanders,
 		DevianceInterface,
@@ -143,7 +141,6 @@ MODULE BugsMaster;
 
 	PROCEDURE (h: Hook) Distribute;
 		VAR
-			ok: BOOLEAN;
 			len0, len1, numStochastics, chain, numChains, numWorkers, workersPerChain,
 			size, res, rank: INTEGER;
 			endTime, startTime: LONGINT;
@@ -168,12 +165,7 @@ MODULE BugsMaster;
 		bugFile := fileStemName;
 		f := Files.dir.New(loc, Files.dontAsk);
 		startTime := Services.Ticks();
-		BugsComponents.WriteModel(f, workersPerChain, numChains, ok);
-		IF ~ok THEN
-			BugsInterface.SetDistributeHook(NIL);
-			BugsMsg.StoreError("BugsMaster.NoGraphFile");
-			RETURN
-		END;
+		BugsComponents.WriteModel(f, workersPerChain, numChains);
 		h.fileSize := f.Length();
 		f.Register(bugFile$, "bug", Files.dontAsk, res);
 		ASSERT(res = 0, 77);

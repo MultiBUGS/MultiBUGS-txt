@@ -42,8 +42,9 @@ MODULE BugsPrettyprinter;
 			real: BugsParser.Real;
 			integer: BugsParser.Integer;
 			operator: BugsParser.Internal;
-			i, j, len, numPar, op, skip: INTEGER;
-			string: ARRAY 256 OF CHAR;
+			i, j, len, numPar, op: INTEGER;
+			string, signiture: ARRAY 256 OF CHAR;
+			ch: CHAR;
 			descriptor: GraphGrammar.External;
 			fact: GraphNodes.Factory;
 	BEGIN
@@ -65,13 +66,11 @@ MODULE BugsPrettyprinter;
 					PrintNode(binary.left, f)
 				END
 			|GraphGrammar.div, GraphGrammar.mult:
-				IF (binary.left IS BugsParser.Binary) (*&
-					(binary.left(BugsParser.Binary).op # GraphGrammar.mult)*) THEN
+				IF (binary.left IS BugsParser.Binary) THEN
 					f.WriteChar("(")
 				END;
 				PrintNode(binary.left, f);
-				IF (binary.left IS BugsParser.Binary) (*&
-					(binary.left(BugsParser.Binary).op # GraphGrammar.mult)*) THEN
+				IF (binary.left IS BugsParser.Binary) THEN
 					f.WriteChar(")")
 				END;
 				IF binary.op = GraphGrammar.mult THEN
@@ -79,13 +78,11 @@ MODULE BugsPrettyprinter;
 				ELSE
 					f.WriteString(" / ")
 				END;
-				IF (binary.right IS BugsParser.Binary) (*&
-					(binary.right(BugsParser.Binary).op # GraphGrammar.mult)*) THEN
+				IF (binary.right IS BugsParser.Binary) THEN
 					f.WriteChar("(")
 				END;
 				PrintNode(binary.right, f);
-				IF (binary.right IS BugsParser.Binary) (*&
-					(binary.right(BugsParser.Binary).op # GraphGrammar.mult)*) THEN
+				IF (binary.right IS BugsParser.Binary) THEN
 					f.WriteChar(")")
 				END
 			END
@@ -170,28 +167,23 @@ MODULE BugsPrettyprinter;
 			descriptor := function.descriptor;
 			fact := descriptor.fact;
 			numPar := fact.NumParam();
-			i := 0;
-			len := LEN(function.parents);
-			skip := len - numPar;
 			f.WriteString(descriptor.name);
 			f.WriteChar("(");
-			IF skip = 1 THEN (*	functional	*)
-				PrintNode(function.parents[0], f);
-				f.WriteString(", ");
-				i := 2
-			ELSIF skip = 2 THEN (*	differential equation	*)
-				PrintNode(function.parents[0], f);
-				f.WriteString(", ");
-				PrintNode(function.parents[1], f);
-				f.WriteString(", ");
-				PrintNode(function.parents[2], f);
-				f.WriteString(", ");
-				i := 5
+			fact.Signature(signiture);
+			i := 0;
+			j := 0;
+			WHILE i < numPar DO
+				PrintNode(function.parents[j], f);
+				ch := signiture[i]; 
+				CASE ch OF
+				|"F": INC(j, 2)	(*	functional	*)
+				|"D": INC(j, 3)	(*	differential equation	*)
+				ELSE  INC(j)
+				END;
+				INC(i);
+				IF i = numPar THEN f.WriteChar(")") ELSE f.WriteString(", ") END
 			END;
-			WHILE i < len DO
-				PrintNode(function.parents[i], f); INC(i);
-				IF i = len THEN f.WriteChar(")") ELSE f.WriteString(", ") END
-			END
+			IF numPar = 0 THEN f.WriteChar(")") END
 		ELSIF node IS BugsParser.Internal THEN
 			operator := node(BugsParser.Internal);
 			f.WriteString(operator.descriptor.name);

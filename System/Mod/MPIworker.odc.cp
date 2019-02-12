@@ -70,6 +70,7 @@ MODULE MPIworker;
 			nargs: INTEGER;
 			size: INTEGER;
 	BEGIN
+		nargs := 0;  (*	why is this needed on linux	*)
 		mpi.Init(nargs, args);
 		mpi.Comm_rank(MPI.COMM_WORLD, worldRank);
 		mpi.Comm_size(MPI.COMM_WORLD, worldSize);

@@ -740,6 +740,7 @@ MODULE BugsGraph;
 		VAR
 			inits: BOOLEAN;
 			chain: INTEGER;
+			
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
 		WriteGraph(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
@@ -754,7 +755,6 @@ MODULE BugsGraph;
 			CreateUpdatersByNode
 		END;
 		MissingUpdaters(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
-		UpdaterActions.InsertConstraints;
 		UpdaterActions.CreateUpdaters(numChains);
 		IF IsAdapting(numChains) THEN
 			UpdaterActions.SetAdaption(0, MAX(INTEGER))

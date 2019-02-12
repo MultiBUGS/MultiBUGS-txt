@@ -106,6 +106,7 @@ MODULE MPImaster;
 	BEGIN
 		Maintainer;
 		mpi := MPI.hook;
+		nargs := 0;  (*	why is this needed on linux	*)
 		mpi.Init(nargs, args);
 		intercomm := MPI.COMM_NULL
 	END Init;

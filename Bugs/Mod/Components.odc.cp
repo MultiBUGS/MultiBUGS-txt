@@ -272,75 +272,7 @@ MODULE BugsComponents;
 		BugsMsg.StoreError(errorMsg)
 	END Error;
 
-	(*	check that for distributed updaters algorithm can be distributed and if not replace it with one that
-	can	*)
-	PROCEDURE ModifyUpdaterMethods (OUT ok: BOOLEAN);
-		VAR
-			newUpdater, updater: UpdaterUpdaters.Updater;
-			prior, node: GraphStochastic.Node;
-			i, j, numChains, numFact, numUpdaters, size: INTEGER;
-			factory: UpdaterUpdaters.Factory;
-			label: ARRAY 128 OF CHAR;
-	BEGIN
-		ok := TRUE;
-		numChains := UpdaterActions.NumberChains();
-		numUpdaters := UpdaterActions.NumberUpdaters();
-		numFact := LEN(UpdaterMethods.factories);
-		i := 0;
-		WHILE i < numUpdaters DO
-			updater := UpdaterActions.updaters[0, i];
-			size := updater.Size();
-			prior := updater.Prior(0);
-			IF prior # NIL THEN
-				IF GraphStochastic.distributed IN prior.props THEN
-					(*	clear update mark from updaters priors	*)
-					j := 0;
-					WHILE j < size DO
-						node := updater.Prior(j);
-						node.SetProps(node.props - {GraphStochastic.update});
-						INC(j)
-					END;
-					j := 0;
-					newUpdater := NIL;
-					WHILE (newUpdater = NIL) & (j < numFact) DO
-						factory := UpdaterMethods.factories[j];
-						IF (UpdaterUpdaters.enabled IN factory.props) & factory.CanUpdate(prior) THEN
-							newUpdater := factory.New(prior);
-						END;
-						INC(j)
-					END;
-					IF newUpdater = NIL THEN
-						ok := FALSE;
-						BugsIndex.FindGraphNode(prior, label);
-						Error(1, label);
-						RETURN
-					ELSIF ~Services.SameType(updater, newUpdater) THEN
-						ASSERT(updater.Size() = size, 66);
-						j := 0;
-						WHILE j < numChains DO
-							updater := UpdaterActions.updaters[j, i];
-							updater.LoadSample;
-							updater := UpdaterUpdaters.CopyFrom(newUpdater);
-							updater.StoreSample;
-							UpdaterActions.updaters[j, i] := updater;
-							INC(j)
-						END
-					ELSE
-						(*	the old updater is good so put update mark back on prior	*)
-						j := 0;
-						WHILE j < size DO
-							node := updater.Prior(j);
-							node.SetProps(node.props + {GraphStochastic.update});
-							INC(j)
-						END
-					END
-				END
-			END;
-			INC(i)
-		END
-	END ModifyUpdaterMethods;
-
-	PROCEDURE WriteModel* (f: Files.File; workersPerChain, numberChains: INTEGER; OUT ok: BOOLEAN);
+	PROCEDURE WriteModel* (f: Files.File; workersPerChain, numberChains: INTEGER);
 		VAR
 			pos0, rank: INTEGER;
 			pos: POINTER TO ARRAY OF INTEGER;
@@ -353,8 +285,6 @@ MODULE BugsComponents;
 		wr.WriteBool(BugsGraph.devianceExists);
 		BugsRandnum.ExternalizeRNGenerators(wr);
 		UpdaterActions.MarkDistributed(workersPerChain);
-		ModifyUpdaterMethods(ok);
-		IF ~ok THEN RETURN END;
 		BugsParallel.Distribute(workersPerChain);
 		pos0 := wr.Pos();
 		NEW(pos, workersPerChain);

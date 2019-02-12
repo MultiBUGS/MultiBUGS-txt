@@ -918,7 +918,7 @@ MODULE BugsInfo;
 			id := NIL
 		ELSE
 			BugsPartition.DistributeUpdaters(workersPerChain, updaters, id);
-			observations := BugsPartition.DistributeObservations(updaters);
+			observations := BugsPartition.DistributeObservations(updaters); 
 			BugsPartition.DistributeCensored(observations, updaters, id)
 		END;
 		f.WriteTab;
@@ -964,7 +964,7 @@ MODULE BugsInfo;
 					f.WriteString(string);
 					INC(i)
 				END;
-				ASSERT(id[j] = 0, 77);
+				(*ASSERT(id[j] = 0, 77);*)
 				f.WriteTab;
 				f.WriteString("-");
 				f.WriteLn
