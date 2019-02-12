@@ -14,6 +14,7 @@ MODULE UpdaterActions;
 	
 
 	IMPORT
+		SYSTEM,
 		Stores,
 		GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
 		MathSort,
@@ -26,7 +27,7 @@ MODULE UpdaterActions;
 		END;
 
 	VAR
-		list: List;
+		updaterList: List;
 		updaters-: POINTER TO ARRAY OF UpdaterUpdaters.Vector;
 		endOfAdapting-, iteration-: INTEGER;
 		initialized-: BOOLEAN;
@@ -87,8 +88,6 @@ MODULE UpdaterActions;
 			children: GraphStochastic.Vector;
 			i, j, numUpdaters, numChildren, numForward: INTEGER;
 			x: POINTER TO ARRAY OF REAL;
-		CONST
-			eps = 0.1;
 	BEGIN
 		numForward := 0;
 		numUpdaters := NumberUpdaters();
@@ -126,67 +125,215 @@ MODULE UpdaterActions;
 		iteration := 0;
 		endOfAdapting := MAX(INTEGER);
 		initialized := FALSE;
-		list := NIL;
+		updaterList := NIL;
 		updaters := NIL
 	END Clear;
-
-	PROCEDURE Compare (updater0, updater1: UpdaterUpdaters.Updater): INTEGER;
+	
+	PROCEDURE CountUpdaters (OUT numUpdaters, numConstraints: INTEGER);
 		VAR
-			depth0, depth1, len0, len1: INTEGER;
-			children: GraphStochastic.Vector;
+			mrf: GraphMRF.Node;
+			cursor: List;
+			updater: UpdaterUpdaters.Updater;
+			prior: GraphStochastic.Node;
 	BEGIN
-		depth0 := updater0.Depth();
-		depth1 := updater1.Depth();
-		IF depth0 > depth1 THEN
-			RETURN 1
-		ELSIF depth0 < depth1 THEN
-			RETURN - 1
-		ELSE
-			children := updater0.Children();
-			IF children # NIL THEN len0 := LEN(children) ELSE len0 := 0 END;
-			children := updater1.Children();
-			IF children # NIL THEN len1 := LEN(children) ELSE len1 := 0 END;
-			IF len0 > len1 THEN
-				RETURN 1
-			ELSIF len0 < len1 THEN
-				RETURN - 1
-			ELSE
-				RETURN 0
-			END
+		numUpdaters := 0;
+		numConstraints := 0;
+		cursor := updaterList;
+		WHILE cursor # NIL DO
+			INC(numUpdaters);
+			updater := cursor.updater;
+			prior := updater.Node(0);
+			IF (prior IS GraphMRF.Node) & (updater.Size() = 1) THEN
+				mrf := prior(GraphMRF.Node);
+				mrf := mrf.components[0](GraphMRF.Node);
+				IF ~(GraphNodes.mark IN mrf.props) THEN
+					mrf.SetProps(mrf.props + {GraphNodes.mark});
+					INC(numConstraints)
+				END
+			END;
+			cursor := cursor.next
+		END;
+		cursor := updaterList;
+		WHILE cursor # NIL DO
+			updater := cursor.updater;
+			prior := updater.Node(0);
+			IF (prior IS GraphMRF.Node) & (updater.Size() = 1) THEN
+				mrf := prior(GraphMRF.Node);
+				mrf := mrf.components[0](GraphMRF.Node);
+				mrf.SetProps(mrf.props - {GraphNodes.mark});
+			END;
+			cursor := cursor.next
 		END
-	END Compare;
+	END CountUpdaters;
+
+	PROCEDURE HeapSort (VAR updaters: ARRAY OF UpdaterUpdaters.Updater; len: INTEGER);
+		VAR
+			i, j, k: INTEGER;
+
+		PROCEDURE Less (l, m: INTEGER): BOOLEAN;
+			VAR
+				depth0, depth1, len0, len1, a0, a1: INTEGER;
+				children: GraphStochastic.Vector;
+				prior0, prior1: GraphStochastic.Node;
+		BEGIN
+			depth0 := updaters[l - 1].Depth();
+			depth1 := updaters[m - 1].Depth();
+			IF depth0 >  depth1 THEN
+				RETURN TRUE
+			ELSIF depth0 < depth1 THEN
+				RETURN FALSE
+			ELSE
+				children := updaters[l - 1].Children();
+				IF children # NIL THEN len0 := LEN(children) ELSE len0 := 0 END;
+				children := updaters[m - 1].Children();
+				IF children # NIL THEN len1 := LEN(children) ELSE len1 := 0 END;
+				IF len0 > len1 THEN
+					RETURN TRUE
+				ELSIF len0 < len1 THEN
+					RETURN FALSE
+				ELSIF updaters[l - 1].Size() # 1 THEN
+					RETURN FALSE
+				ELSE
+					prior0 := updaters[l - 1].Prior(0);
+					IF prior0 IS GraphMRF.Node THEN
+						prior1 := updaters[m - 1].Prior(0);
+						IF ~(prior1 IS GraphMRF.Node) OR (updaters[m - 1].Size() # 1) THEN
+							RETURN TRUE
+						ELSE
+							a0 := SYSTEM.VAL(INTEGER, prior0(GraphMRF.Node).components[0]);
+							a1 := SYSTEM.VAL(INTEGER, prior1(GraphMRF.Node).components[0]);
+							IF a0 > a1 THEN
+								RETURN TRUE
+							ELSE
+								RETURN FALSE
+							END
+						END
+					ELSE
+						RETURN FALSE
+					END
+				END
+			END
+		END Less;
+
+		PROCEDURE Swap (l, m: INTEGER);
+			VAR
+				temp: UpdaterUpdaters.Updater;
+		BEGIN
+			temp := updaters[l - 1];
+			updaters[l - 1] := updaters[m - 1];
+			updaters[m - 1] := temp
+		END Swap;
+
+	BEGIN
+		ASSERT(LEN(updaters) >= len, 20);
+		IF len > 1 THEN
+			i := len DIV 2;
+			REPEAT
+				j := i;
+				LOOP
+					k := j * 2;
+					IF k > len THEN EXIT END;
+					IF (k < len) & Less(k, k + 1) THEN INC(k) END;
+					IF Less(j, k) THEN Swap(j, k) ELSE EXIT END;
+					j := k
+				END;
+				DEC(i)
+			UNTIL i = 0;
+			i := len;
+			REPEAT
+				j := 1; Swap(j, i); DEC(i);
+				LOOP
+					k := j * 2; IF k > i THEN EXIT END;
+					IF (k < i) & Less(k, k + 1) THEN INC(k) END;
+					Swap(j, k);
+					j := k
+				END;
+				LOOP
+					k := j DIV 2;
+					IF (k > 0) & Less(k, j) THEN Swap(j, k); j := k ELSE EXIT END
+				END
+			UNTIL i = 0
+		END
+	END HeapSort;
 
 	PROCEDURE CreateUpdaters* (numChains: INTEGER);
 		VAR
-			i, j, numUpdaters: INTEGER;
+			i, j, k, numConstraints, numUpdaters, size: INTEGER;
+			mrf: GraphMRF.Node;
 			cursor: List;
+			updater: UpdaterUpdaters.Updater;
+			prior: GraphStochastic.Node;
+			factory: UpdaterUpdaters.Factory;
 	BEGIN
-		numUpdaters := 0;
-		cursor := list;
-		WHILE cursor # NIL DO
-			INC(numUpdaters); cursor := cursor.next
-		END;
+		CountUpdaters(numUpdaters, numConstraints); 
 		IF numUpdaters > 0 THEN
 			NEW(updaters, numChains);
 			i := 0;
 			WHILE i < numChains DO
-				NEW(updaters[i], numUpdaters);
+				NEW(updaters[i], numUpdaters + numConstraints);
 				INC(i)
 			END
 		END;
-		cursor := list;
-		i := 0;
+		cursor := updaterList;
+		j := 0;
 		WHILE cursor # NIL DO
-			updaters[0, i] := cursor.updater;
-			j := 1;
-			WHILE j < numChains DO
-				updaters[j, i] := UpdaterUpdaters.CopyFrom(cursor.updater);
+			updaters[0, j] := cursor.updater;
+			cursor := cursor.next;
+			INC(j)
+		END;
+		HeapSort(updaters[0], numUpdaters);
+		IF numConstraints # 0 THEN
+			factory := UpdaterUpdaters.InstallFactory("UpdaterMRFConstrain.Install");
+			k := 0;
+			WHILE k < numConstraints DO
+				NEW(cursor);
+				cursor.updater := NIL;
+				cursor.next := updaterList;
+				updaterList := cursor;
+				INC(k)
+			END;
+			j := 0;
+			cursor := updaterList;
+			WHILE j < numUpdaters DO	(*	insert constraints	*)
+				updater := updaters[0, j];
+				cursor.updater := updater;
+				prior := updater.Prior(0);
+				IF (prior IS GraphMRF.Node) & (updater.Size() = 1) THEN
+					mrf := prior(GraphMRF.Node);
+					mrf := mrf.components[0](GraphMRF.Node);
+					IF ~(GraphNodes.mark IN mrf.props) THEN
+						mrf.SetProps(mrf.props + {GraphNodes.mark});
+						size := mrf.Size() - 1
+					ELSE
+						DEC(size);
+						IF size = 0 THEN
+							mrf.SetProps(mrf.props - {GraphNodes.mark});
+							cursor := cursor.next;
+							cursor.updater := factory.New(mrf) 
+						END
+					END
+				END;
+				cursor := cursor.next;
 				INC(j)
 			END;
-			INC(i);
-			cursor := cursor.next
+			j := 0;
+			cursor := updaterList;
+			WHILE cursor # NIL DO
+				updaters[0, j] := cursor.updater;
+				cursor := cursor.next;
+				INC(j)
+			END
+		END; 
+		i := 1;
+		WHILE i < numChains DO
+			j := 0;
+			WHILE j < numUpdaters + numConstraints DO
+				updaters[i, j] := UpdaterUpdaters.CopyFrom(updaters[0, j]);
+				INC(j)
+			END;
+			INC(i)
 		END;
-		list := NIL
+		updaterList := NIL
 	END CreateUpdaters;
 
 	(*	externalize data of nodes associated with updaters	*)
@@ -361,55 +508,6 @@ MODULE UpdaterActions;
 		END
 	END FindUpdater;
 
-	(*	inserts a special uder into list of updaters after a updater for GMRF but only if the GMRF is not
-		updated by a block updater	*)
-	PROCEDURE InsertConstraints*;
-		VAR
-			mrf, oldMRF: GraphMRF.Node;
-			cursor, prev, element: List;
-			updater, prevUpdater: UpdaterUpdaters.Updater;
-			prior, prevPrior: GraphStochastic.Node;
-			factory: UpdaterUpdaters.Factory;
-	BEGIN
-		factory := UpdaterUpdaters.InstallFactory("UpdaterMRFConstrain.Install");
-		oldMRF := NIL;
-		prev := NIL;
-		cursor := list;
-		WHILE cursor # NIL DO
-			updater := cursor.updater;
-			prior := updater.Node(0);
-			IF (prior IS GraphMRF.Node) & (updater.Size() = 1) THEN
-				mrf := prior(GraphMRF.Node);
-				mrf := mrf.components[0](GraphMRF.Node);
-				IF mrf # oldMRF THEN
-					IF oldMRF # NIL THEN
-						IF factory.CanUpdate(prevPrior) & (prevUpdater.Size() = 1) THEN
-							NEW(element);
-							element.updater := factory.New(prevPrior);
-							element.next := cursor;
-							prev.next := element
-						END
-					END;
-					oldMRF := mrf
-				END
-			ELSE
-				IF oldMRF # NIL THEN
-					IF factory.CanUpdate(prevPrior) & (prevUpdater.Size() = 1)THEN
-						NEW(element);
-						element.updater := factory.New(prevPrior);
-						element.next := cursor;
-						prev.next := element
-					END;
-					oldMRF := NIL
-				END
-			END;
-			prev := cursor;
-			prevUpdater := prev.updater;
-			prevPrior := prevUpdater.Node(0);
-			cursor := cursor.next
-		END
-	END InsertConstraints;
-
 	(*	Internalize updaters mutable state	*)
 	PROCEDURE InternalizeUpdaterData* (chain: INTEGER; VAR rd: Stores.Reader);
 		VAR
@@ -571,7 +669,7 @@ MODULE UpdaterActions;
 					prior := updater.Prior(j);
 					prior.SetProps(prior.props + {GraphStochastic.distributed});
 					list := GraphStochastic.Parents(prior, all);
-					WHILE list # NIL DO
+					WHILE updaterList # NIL DO
 						p := list.node;
 						p.SetProps(p.props + {GraphStochastic.distributed});
 						list := list.next
@@ -611,31 +709,15 @@ MODULE UpdaterActions;
 		RETURN numParameter
 	END NumParameters;
 
-	(*	Stores new updater in updaterList	*)
+	(*	Stores new updater in updaterList insertion sort	*)
 	PROCEDURE RegisterUpdater* (updater: UpdaterUpdaters.Updater);
 		VAR
-			cursor, element: List;
+			element: List;
 	BEGIN
 		NEW(element);
 		element.updater := updater;
-		IF (list = NIL) OR (Compare(updater, list.updater) > 0) THEN
-			element.next := list;
-			list := element
-		ELSE
-			cursor := list;
-			LOOP
-				IF cursor.next = NIL THEN
-					element.next := NIL;
-					cursor.next := element;
-					EXIT
-				ELSIF Compare(updater, cursor.next.updater) > 0 THEN
-					element.next := cursor.next;
-					cursor.next := element;
-					EXIT
-				END;
-				cursor := cursor.next
-			END
-		END
+		element.next :=updaterList;
+		updaterList := element
 	END RegisterUpdater;
 
 	(*	Replaces old registered sampler with a new one	*)
