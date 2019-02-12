@@ -464,7 +464,6 @@ MODULE BugsInterface;
 				END
 			END
 		END
-		; ASSERT(ok, 99);
 	END ReplaceSampler;
 
 	PROCEDURE ChangeSampler* (IN string: ARRAY OF CHAR; factIndex: INTEGER; OUT ok: BOOLEAN);

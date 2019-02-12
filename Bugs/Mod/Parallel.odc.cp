@@ -104,9 +104,10 @@ MODULE BugsParallel;
 		p.SetProps(props)
 	END Externalize;
 
-	PROCEDURE MarkMultivariate (node: GraphStochastic.Node);
+	PROCEDURE MarkNode (node: GraphNodes.Node; marks: SET);
 		VAR
 			p: GraphStochastic.Node;
+			l: GraphLogical.Node;
 			i, size: INTEGER;
 	BEGIN
 		WITH node: GraphConjugateMV.Node DO
@@ -114,12 +115,21 @@ MODULE BugsParallel;
 			size := node.Size();
 			WHILE i < size DO
 				p := node.components[i];
-				p.SetProps(p.props + {write});
+				p.SetProps(p.props + marks);
+				INC(i)
+			END
+		|node: GraphVector.Node DO
+			i := 0;
+			size := node.Size();
+			WHILE i < size DO
+				l := node.components[i];
+				l.SetProps(l.props + marks);
 				INC(i)
 			END
 		ELSE
+			node.SetProps(node.props + marks)
 		END
-	END MarkMultivariate;
+	END MarkNode;
 	
 	PROCEDURE (v: Clearer) Do (name: BugsNames.Name);
 		VAR
@@ -565,8 +575,8 @@ MODULE BugsParallel;
 				k := 0;
 				WHILE k < size DO
 					p := u.Node(k);
-					p.SetProps(p.props + {write, thisCore});
-					MarkMultivariate(p);
+					p.SetProps(p.props + {thisCore});
+					MarkNode(p, {write});
 					list := GraphLogical.Parents(p, all);
 					WHILE list # NIL DO
 						log := list.node;
@@ -602,32 +612,13 @@ MODULE BugsParallel;
 					j := 0;
 					WHILE j < len DO
 						p := children[j];
-						WITH p: GraphConjugateMV.Node DO
-							k := 0;
-							size := p.Size();
-							WHILE k < size DO
-								q := p.components[k];
-								q.SetProps(q.props + {write});
-								INC(k)
-							END
-						ELSE
-							p.SetProps(p.props + {write});
-						END;
+						MarkNode(p, {write});
 						list := GraphLogical.Parents(p, all);
 						WHILE list # NIL DO
 							log := list.node;
 							IF logical IN log.props THEN
-								WITH log: GraphVector.Node DO
-									j := 0; sizel := log.Size();
-									WHILE j < sizel DO
-										log1 := log.components[j];
-										log1.SetProps(log1.props + {write});
-										INC(j)
-									END
-								ELSE
-									log.SetProps(log.props + {write})
-								END
-								END;
+								MarkNode(log, {write})
+							END;
 							list := list.next
 						END;
 						INC(j)
@@ -652,31 +643,12 @@ MODULE BugsParallel;
 		i := 0;
 		WHILE i < len DO
 			p := observations[i];
-			WITH p: GraphConjugateMV.Node DO (*	write the entire MV node	*)
-				j := 0;
-				size := p.Size();
-				WHILE j < size DO
-					r := p.components[j];
-					r.SetProps(r.props + {write, thisCore});
-					INC(j)
-				END
-			ELSE
-				p.SetProps(p.props + {write, thisCore});
-			END;
+			MarkNode(p, {write, thisCore});
 			list := GraphLogical.Parents(p, all);
 			WHILE list # NIL DO
 				log := list.node;
 				IF logical IN log.props THEN
-					WITH log: GraphVector.Node DO
-						j := 0; sizel := log.Size();
-						WHILE j < sizel DO
-							log1 := log.components[j];
-							log1.SetProps(log1.props + {write});
-							INC(j)
-						END
-					ELSE
-						log.SetProps(log.props + {write})
-					END
+					MarkNode(log, {write})
 				END;
 				list := list.next
 			END;

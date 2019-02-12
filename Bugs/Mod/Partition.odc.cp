@@ -11,7 +11,7 @@ copyright:	"Rsrc/About"
 MODULE BugsPartition;
 
 	IMPORT
-		GraphDeviance, GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
+		GraphConjugateMV, GraphDeviance, GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterUpdaters;
 
 	TYPE
@@ -152,7 +152,7 @@ MODULE BugsPartition;
 
 	PROCEDURE IsMarkedNeighbour (updater: UpdaterUpdaters.Updater): BOOLEAN;
 		VAR
-			i, index, j: INTEGER;
+			i, index, j, size: INTEGER;
 			prior, neigh: GraphStochastic.Node;
 			isMarked: BOOLEAN;
 	BEGIN
@@ -178,6 +178,13 @@ MODULE BugsPartition;
 				END;
 				INC(j)
 			END
+		|prior: GraphConjugateMV.Node DO
+			i := 0;
+			size := prior.Size();
+			WHILE ~isMarked & (i < size) DO
+				isMarked := GraphStochastic.mark IN prior.components[i].props;
+				INC(i)
+			END
 		ELSE
 		END;
 		RETURN isMarked
@@ -185,22 +192,40 @@ MODULE BugsPartition;
 
 	PROCEDURE MarkNeighbour (updater: UpdaterUpdaters.Updater);
 		VAR
-			prior: GraphStochastic.Node;
+			prior, p: GraphStochastic.Node;
+			i, size: INTEGER;
 	BEGIN
 		prior := updater.Prior(0);
 		WITH prior: GraphMRF.Node DO
 			prior.SetProps(prior.props + {GraphStochastic.mark})
+		|prior: GraphConjugateMV.Node DO
+			i := 0;
+			size := prior.Size();
+			WHILE i < size DO
+				p := prior.components[i];
+				p.SetProps(p.props + {GraphStochastic.mark});
+				INC(i)
+			END
 		ELSE
 		END
 	END MarkNeighbour;
 
 	PROCEDURE UnmarkNeighbour (updater: UpdaterUpdaters.Updater);
 		VAR
-			prior: GraphStochastic.Node;
+			prior, p: GraphStochastic.Node;
+			i, size: INTEGER;
 	BEGIN
 		prior := updater.Prior(0);
 		WITH prior: GraphMRF.Node DO
 			prior.SetProps(prior.props - {GraphStochastic.mark})
+		|prior: GraphConjugateMV.Node DO
+			i := 0;
+			size := prior.Size();
+			WHILE i < size DO
+				p := prior.components[i];
+				p.SetProps(p.props - {GraphStochastic.mark});
+				INC(i)
+			END
 		ELSE
 		END
 	END UnmarkNeighbour;
@@ -275,7 +300,8 @@ MODULE BugsPartition;
 		WHILE i # finish DO
 			u := UpdaterActions.updaters[0, i];
 			prior := u.Node(0);
-			IF ({GraphStochastic.distributed, GraphNodes.mark, GraphStochastic.censored} * prior.props = {}) THEN
+			IF ({GraphStochastic.distributed, GraphNodes.mark, 
+				GraphStochastic.censored} * prior.props = {}) THEN
 				(*	potential parallel updater	*)
 				IF ~(prior IS GraphMRF.Node) & ~IsMarked(u) THEN
 					(*	likelihoods disjoint etc	*)
