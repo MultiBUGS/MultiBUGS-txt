@@ -26,6 +26,7 @@ MODULE GraphHazard;
 		fact-: GraphStochastic.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		wg, wk, x : ARRAY 8 OF REAL; (*	weights and absiscae for 7/15 guassian qkondrad quadrature	*)
 
 	PROCEDURE (node: Node) Bounds (OUT left, upper: REAL);
 	BEGIN
@@ -92,7 +93,8 @@ MODULE GraphHazard;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.initialized});
+		node.SetProps(node.props + {GraphStochastic.noMean,GraphStochastic.noPDF,
+		GraphStochastic.noCDF});
 		node.function := NIL;
 		node.t := NIL;
 		node.event := FALSE
@@ -120,32 +122,37 @@ MODULE GraphHazard;
 
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
-			lambda, t1, t2, t3, t4, t5, log: REAL;
+			absisca, integralK, integralG, log, scale, y: REAL;
 			t: GraphStochastic.Node;
+			i, len: INTEGER;
 	BEGIN
-		(*	five point Lobatto quadrature, exact for seventh order polynomials	*)
-		t1 := 0;
-		t5 := node.value;
-		t3 := 0.5 * t5;
-		t2 := t3 * (1.0 - Math.Sqrt(3.0 / 7.0));
-		t4 := t3 * (1.0 + Math.Sqrt(3.0 / 7.0));
-		t.SetValue(t1);
-		lambda := node.function.Value();
-		log := 9 * lambda;
-		t.SetValue(t2);
-		lambda := node.function.Value();
-		log := log + 49 * lambda;
-		t.SetValue(t3);
-		lambda := node.function.Value();
-		log := log + 64 * lambda;
-		t.SetValue(t4);
-		lambda := node.function.Value();
-		log := log + 49 * lambda;
-		t.SetValue(t5);
-		lambda := node.function.Value();
-		log := log + 9 * lambda;
-		log := -t3 * log / 90.0;
-		IF node.event THEN log := Math.Ln(lambda) + log END;
+		t := node.t;
+		scale := 0.5 * node.value;
+		t.SetValue(scale);
+		y := node.function.Value();
+		integralK := wk[0] * y;
+		integralG := wg[0] * y;
+		i := 1;
+		len := LEN(x);
+		WHILE i < len DO
+			absisca := scale * (1.0 + x[i]);
+			y := node.function.Value();
+			t.SetValue(absisca);
+			integralK := integralK + wk[i] * y;
+			IF ~ODD(i) THEN integralG := integralG + wg[i DIV 2] * y END;
+			absisca := scale * (1.0 - x[i]);
+			y := node.function.Value();
+			t.SetValue(absisca);
+			integralK := integralK + wk[i] * y;
+			IF ~ODD(i) THEN integralG := integralG + wg[i DIV 2] * y END;
+			INC(i)
+		END;
+		ASSERT(ABS(integralK - integralG) < 1.0E-3 * (integralK + integralG), 77); 
+		log := -integralK * scale;
+		IF node.event THEN 
+			t.SetValue(node.value);
+			log := Math.Ln(node.function.Value()) + log 
+		END;
 		RETURN log
 	END LogLikelihood;
 
@@ -238,6 +245,31 @@ MODULE GraphHazard;
 		Maintainer;
 		NEW(f);
 		fact := f;
+		(*	Guass weights	*)
+		wg[0] := 4.179591836734693877551020408163265E-01;
+		wg[1] := 3.818300505051189449503697754889751E-01;
+		wg[2] := 2.797053914892766679014677714237796E-01;
+		wg[3] := 1.294849661688696932706114326790820E-01;
+
+		(*	Guass-Kondrod points	*)
+		x[0] := 0.000000000000000000000000000000000E+00;	
+		x[1] := 2.077849550078984676006894037732449E-01;	
+		x[2] := 4.058451513773971669066064120769615E-01;	
+		x[3] := 5.860872354676911302941448382587296E-01;	
+		x[4] := 7.415311855993944398638647732807884E-01;	
+		x[5] := 8.648644233597690727897127886409262E-01;	
+		x[6] := 9.491079123427585245261896840478513E-01;	
+		x[7] := 9.914553711208126392068546975263285E-01;	
+
+		(*	Kondrod weights	*)
+		wk[0] := 2.094821410847278280129991748917143E-01;
+		wk[1] := 2.044329400752988924141619992346491E-01;
+		wk[2] := 1.903505780647854099132564024210137E-01;
+		wk[3] := 1.690047266392679028265834265985503E-01;
+		wk[4] := 1.406532597155259187451895905102379E-01;
+		wk[5] := 1.047900103222501838398763225415180E-01;
+		wk[6] := 6.309209262997855329070066318920429E-02;
+		wk[7] := 2.293532201052922496373200805896959E-02
 	END Init;
 
 BEGIN
