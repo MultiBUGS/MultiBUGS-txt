@@ -146,9 +146,7 @@ MODULE SpatialUVCAR;
 		VAR
 			j, numNeigh: INTEGER;
 	BEGIN
-		IF node.index = 0 THEN
-			wr.WriteInt(node.numIslands);
-		END;
+		wr.WriteInt(node.numIslands);
 		IF node.index #  - 1 THEN
 			numNeigh := LEN(node.neighs);
 			wr.WriteInt(numNeigh);
@@ -178,19 +176,10 @@ MODULE SpatialUVCAR;
 	PROCEDURE (node: Node) InternalizeUVMRF- (VAR rd: Stores.Reader);
 		VAR
 			i, j, index, numNeigh, size: INTEGER;
-			p: Node;
+			p: GraphStochastic.Node;
 	BEGIN
 		index := node.index;
-		IF index = 0 THEN
-			rd.ReadInt(node.numIslands);
-			size := node.Size();
-			i := 0;
-			WHILE i < size DO
-				p := node.components[i](Node);
-				p.numIslands := node.numIslands;
-				INC(i)
-			END
-		END;
+		rd.ReadInt(node.numIslands);
 		IF index =  - 1 THEN
 			node.Init;
 			node.SetComponent(NIL,  - 1);
