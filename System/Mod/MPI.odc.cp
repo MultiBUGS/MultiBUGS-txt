@@ -9,7 +9,7 @@ MODULE MPI;
 	
 
 	IMPORT
-		SYSTEM, Environment;
+		SYSTEM;
 
 	TYPE
 		Hook* = POINTER TO ABSTRACT RECORD END;
@@ -33,6 +33,7 @@ MODULE MPI;
 		COMM_NULL* = 04000000H;
 
 		BOOL* = 4C00010DH;
+		CHAR* = 04C000101H;
 		DOUBLE* = 4C00080BH;
 		INT* = 4C000405H;
 
@@ -50,6 +51,8 @@ MODULE MPI;
 
 	VAR
 		hook-: Hook;
+		version-: INTEGER; 	(*	version number	*)
+		(*maintainer-: ARRAY 40 OF CHAR; *)	(*	person maintaining module	*)
 
 	PROCEDURE (hook: Hook) Abort* (comm: Comm; error: INTEGER), NEW, ABSTRACT;
 
@@ -159,12 +162,12 @@ MODULE MPI;
 		comm: Comm;
 	status: Status), NEW, ABSTRACT;
 
-	PROCEDURE (hook: Hook) Send* (
-	buff: Address;
-	count: INTEGER;
-	datatype: Datatype;
-	dest: INTEGER;
-	tag: INTEGER;
+		PROCEDURE (hook: Hook) Send* (
+		buff: Address;
+		count: INTEGER;
+		datatype: Datatype;
+		dest: INTEGER;
+		tag: INTEGER;
 	comm: Comm), NEW, ABSTRACT;
 
 	PROCEDURE (hook: Hook) Wtime* (): REAL, NEW, ABSTRACT;
@@ -174,11 +177,19 @@ MODULE MPI;
 		hook := h
 	END SetHook;
 
+	PROCEDURE Maintainer;
+	BEGIN
+		version := 500;
+		(*maintainer := "A.Thomas"*)
+	END Maintainer;
+
 	PROCEDURE Init;
 	BEGIN
-		hook := NIL
+		hook := NIL;
+		Maintainer
 	END Init;
 
 BEGIN
 	Init
 END MPI.
+
