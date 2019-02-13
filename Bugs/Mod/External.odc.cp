@@ -225,11 +225,13 @@ MODULE BugsExternal;
 		Function("logdet", "GraphLogdet.Install");
 		Function("geometric.mean", "GraphScalartemp1.Install");
 
+
 		(*	Vector functions	*)
 		Function("inverse", "GraphInverse.Install");
 		Function("matrix.pow", "GraphVectortemp1.Install");
 		Function("eigen.vals", "GraphEigenvals.Install");
 		Function("sort", "GraphRanks.SortInstall");
+		Function("stick_breaking", "GraphStick.Install");
 
 		(*	Differential equation solver	*)
 		Function("ode.solution", "GraphODElangRK45.Install");
