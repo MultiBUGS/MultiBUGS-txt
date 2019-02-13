@@ -319,7 +319,8 @@ MODULE BugsRectData;
 	BEGIN
 		i := 0;
 		numCols := LEN(labels);
-		WHILE (labels[i].name = NIL) & (i < numCols) DO INC(i); END;
+		WHILE (i < numCols) & (labels[i].name = NIL) DO INC(i); END;
+		IF i = numCols THEN RETURN END;
 		IF labels[i].name # NIL THEN
 			(* Only need to load data if there is at least one variable in the model *)
 			numRows := labels[i].name.slotSizes[0];
