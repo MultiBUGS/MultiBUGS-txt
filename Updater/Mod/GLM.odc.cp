@@ -70,7 +70,7 @@ MODULE UpdaterGLM;
 		ELSE
 			class := {prior.classConditional};
 			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
-			IF block # NIL THEN
+			IF block # NIL THEN 
 				size := LEN(block);
 				likelihood := UpdaterMultivariate.BlockLikelihood(block);
 				(*	huristic to try and stop algorithm finding random effect blocks	*)

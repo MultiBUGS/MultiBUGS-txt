@@ -1525,7 +1525,8 @@ MODULE BugsParser;
 				IF descriptor = NIL THEN
 					IF s.string = "D" THEN
 						ParseDnotation(loops, s, derivative, dependent, independent);
-						derivative.name.isVariable := TRUE; dependent.name.isVariable := TRUE; 
+						derivative.name.isVariable := TRUE; 
+						dependent.name.isVariable := TRUE; 
 						independent.name.isVariable := TRUE;
 						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;

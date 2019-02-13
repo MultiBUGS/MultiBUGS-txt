@@ -56,7 +56,8 @@ MODULE CompareDenstrip;
 		END;
 
 		DensProp* = POINTER TO RECORD (Properties.Property)
-			mode*, orientation*, stripColour*: INTEGER; baseline*, smooth*, gamma*: REAL;
+			mode*, orientation*, stripColour*: INTEGER; 
+			baseline*, smooth*, gamma*: REAL;
 			showLine*, showLabels*, showPoint*, show50*, show95*, ranked*, logScale*: BOOLEAN
 		END;
 
