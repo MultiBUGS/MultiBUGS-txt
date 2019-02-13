@@ -286,7 +286,7 @@ MODULE MathMatrix;
 			max_rot = 50;
 		VAR
 			i, p, q: INTEGER;
-			red, redsum, nrm, c, s, ep: REAL;
+			red, redsum, nrm, c, s: REAL;
 	BEGIN
 		ASSERT(LEN(a, 0) >= size, 20);
 		ASSERT(LEN(a, 1) >= size, 21);
@@ -297,6 +297,7 @@ MODULE MathMatrix;
 			ev[i] := 0.0;
 			INC(i);
 		END;
+		redsum := 0.0;
 		i := 0;
 		LOOP
 			nrm := Norm(a, size);
@@ -321,11 +322,64 @@ MODULE MathMatrix;
 		END; (* LOOP statement *)
 		i := 0;
 		WHILE i < size DO
-			ev[i] := a[i][i];
+			ev[i] := a[i, i];
 			INC(i);
 		END;
 		MathSort.HeapSort(ev, size);
 	END Jacobi;
+
+	(*	Output is eigenvalues only	*)
+
+	PROCEDURE JacobiVectors* (VAR a, evec: ARRAY OF ARRAY OF REAL;
+	OUT ev: ARRAY OF REAL; size: INTEGER);
+		CONST
+			max_rot = 50;
+		VAR
+			i, j, p, q: INTEGER;
+			red, redsum, nrm, c, s: REAL;
+	BEGIN
+		ASSERT(LEN(a, 0) >= size, 20);
+		ASSERT(LEN(a, 1) >= size, 21);
+		ASSERT(LEN(ev) >= size, 22);
+		ASSERT(LEN(evec, 0) >= size, 23);
+		ASSERT(LEN(evec, 1) >= size, 24);
+		(*	initialise the arrays to store eigenvalues and eigenvectors	*)
+		i := 0;
+		WHILE i < size DO
+			ev[i] := 0.0;
+			j := 0; WHILE j < size DO evec[i, j] := 0.0; INC(j) END;
+			evec[i, i] := 1.0;
+			INC(i);
+		END;
+		redsum := 0.0;
+		i := 0;
+		LOOP
+			nrm := Norm(a, size);
+			IF (i > max_rot) OR (nrm = 0.0) THEN
+				EXIT;
+			END;
+			INC(i);
+			p := 0;
+			WHILE p < size DO
+				q := p + 1;
+				WHILE q < size DO
+					red := SymsChur2(a, p, q, c, s);
+					redsum := redsum + red;
+					Apply_jacobi_L(a, p, q, c, s, size);
+					Apply_jacobi_R(a, p, q, c, s, size);
+					(*	calculate eigen vectors	*)
+					Apply_jacobi_R (evec, p, q, c, s, size);
+					INC(q);
+				END;
+				INC(p);
+			END;
+		END; (* LOOP statement *)
+		i := 0;
+		WHILE i < size DO
+			ev[i] := a[i, i];
+			INC(i);
+		END;
+	END JacobiVectors;
 
 	PROCEDURE SVD* (IN w: ARRAY OF ARRAY OF REAL; 
 	OUT svdMatrix: ARRAY OF ARRAY OF REAL; OUT svdVector: ARRAY OF REAL);
