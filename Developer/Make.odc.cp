@@ -63,6 +63,7 @@ GraphPiecewise GraphODEmath GraphODElang GraphODEBlockL GraphODEBlockM
 GraphAESolver GraphCloglog GraphCut GraphHalf GraphDensity GraphGammap GraphInprod GraphIntegrate GraphKepler GraphLog GraphLogdet GraphLogit GraphMapped GraphProbit GraphProduct GraphRanks GraphSumation GraphTable GraphPValue GraphReplicate GraphPi GraphValDiff
 
 GraphEigenvals GraphInverse GraphItermap GraphODElangRK45 GraphODEBlockLRK45 
+GraphStick
 
 GraphBern GraphBinomial GraphCat GraphCat2 GraphFounder GraphGeometric GraphHypergeometric GraphMendelian GraphNegbin GraphPoisson GraphRecessive GraphZipf
 

@@ -17,7 +17,7 @@ MODULE GraphCat;
 	IMPORT
 		Stores,
 		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules,
-		GraphStochastic, GraphUnivariate,
+		GraphStochastic, GraphUnivariate, GraphVector,
 		MathFunc, MathRandnum;
 
 	TYPE
@@ -76,7 +76,7 @@ MODULE GraphCat;
 
 	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate (parent: GraphStochastic.Node): INTEGER;
 		VAR
-			class, f, i, len, numConst, numGen, numGenDiff, numIdent, numLink,
+			class, f, i, len, numConst, numGen, numGenDiff, numIdent, numLink, numStick,
 			nElem, start, states, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
@@ -89,6 +89,7 @@ MODULE GraphCat;
 		numConst := 0;
 		numGen := 0;
 		numGenDiff := 0;
+		numStick := 0;
 		i := 0;
 		WITH parent: GraphMultivariate.Node DO
 			len := MIN(nElem, states);
@@ -111,6 +112,10 @@ MODULE GraphCat;
 		ELSE
 			WHILE i < states DO
 				p := node.p[start + i * step];
+				WITH p:GraphVector.Node DO
+					IF p.components[0] = node.p[start] THEN INC(numStick) END
+				ELSE
+				END;
 				f := GraphStochastic.ClassFunction(p, parent);
 				IF (f = GraphRules.linkFun) OR (f = GraphRules.logitLink) THEN
 					INC(numLink)
@@ -118,6 +123,8 @@ MODULE GraphCat;
 					INC(numConst)
 				ELSIF f = GraphRules.other THEN
 					INC(numGen)
+				ELSIF f = GraphRules.ident THEN
+					INC(numIdent)
 				ELSE
 					INC(numGenDiff)
 				END;
@@ -128,10 +135,10 @@ MODULE GraphCat;
 			class := GraphRules.general
 		ELSIF (numLink = 0) & (numIdent = nElem) THEN
 			class := GraphRules.dirichlet
+		ELSIF (numIdent = states) & (numStick = states) THEN
+			class := GraphRules.beta1
 		ELSIF numLink + numConst = states THEN
 			class := GraphRules.logCon
-		ELSIF numGen # 0 THEN
-			class := GraphRules.general
 		ELSE
 			class := GraphRules.genDiff
 		END;
@@ -235,12 +242,13 @@ MODULE GraphCat;
 		VAR
 			r, start, step: INTEGER;
 	BEGIN
-		ASSERT(as = GraphRules.dirichlet, 21);
+		ASSERT(as IN {GraphRules.dirichlet, GraphRules.beta, GraphRules.beta1}, 21);
 		start := node.start;
 		step := node.step;
 		r := SHORT(ENTIER(node.value + eps));
 		x := node.p[start + (r - 1) * step];
-		p0 := r
+		p0 := r;
+		IF as IN {GraphRules.beta, GraphRules.beta1} THEN p0 := -p0 END
 	END LikelihoodForm;
 
 	PROCEDURE (node: Node) LogLikelihoodUnivariate (): REAL;
