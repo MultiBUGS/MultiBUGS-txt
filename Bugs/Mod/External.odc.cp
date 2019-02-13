@@ -224,6 +224,7 @@ MODULE BugsExternal;
 		Function("sd", "GraphSumation.SdInstall");
 		Function("logdet", "GraphLogdet.Install");
 		Function("geometric.mean", "GraphScalartemp1.Install");
+		Function("cubic_spline", "GraphSplinescalar.CubicInstall");
 
 
 		(*	Vector functions	*)

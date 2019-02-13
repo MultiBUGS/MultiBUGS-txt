@@ -76,7 +76,7 @@ GraphDirichlet GraphGPprior GraphMVNormal GraphMVT GraphRENormal GraphRandwalk G
 GraphScalarT GraphVectorT GraphUnivariateT GraphScalartemp1 GraphVectortemp1
 GraphUnivariatetemp1
 
-GraphCoSelection GraphSpline GraphSplinecon
+GraphCoSelection GraphSpline GraphSplinecon GraphSplinescalar
 
 UpdaterAM UpdaterDE UpdaterHamiltonian 
 
