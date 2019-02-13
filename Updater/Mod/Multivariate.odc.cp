@@ -75,7 +75,7 @@ MODULE UpdaterMultivariate;
 			GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 			maxBlockSize = 10;
 		VAR
-			depth: INTEGER;
+			depth, priorNumChild, likeNumChild: INTEGER;
 			node: GraphStochastic.Node;
 			coParents, list: GraphStochastic.List;
 			block: GraphStochastic.Vector;
@@ -84,17 +84,20 @@ MODULE UpdaterMultivariate;
 		IF~(prior IS GraphUnivariate.Node) THEN RETURN NIL END;
 		IF ~allowBounds & (bounds * prior.props # {}) THEN RETURN NIL END;
 		IF prior.children = NIL THEN RETURN NIL END;
-		IF LEN(prior.children) = 1 THEN RETURN NIL END;
+		priorNumChild := LEN(prior.children);
+		IF priorNumChild = 1 THEN RETURN NIL END;
 		depth := prior.depth;
 		coParents := prior.CoParents();
 		list := NIL;
 		WHILE coParents # NIL DO
 			node := coParents.node;
+			likeNumChild := LEN(node.children);
+			IF likeNumChild > priorNumChild THEN RETURN NIL END;
 			IF ~(GraphStochastic.update IN node.props) THEN
 				IF multiDepth OR (node.depth = depth) THEN
 					IF node.classConditional IN class THEN
 						IF allowBounds OR (bounds * node.props = {}) THEN
-							IF (LEN(node.children) > 1) & (node IS GraphUnivariate.Node) THEN
+							IF (likeNumChild > priorNumChild DIV 10) & (node IS GraphUnivariate.Node) THEN
 								GraphStochastic.AddToList(node, list)
 							END
 						END
@@ -111,7 +114,7 @@ MODULE UpdaterMultivariate;
 			END
 		ELSE
 			block := NIL
-		END;
+		END; 
 		RETURN block
 	END FixedEffects;
 

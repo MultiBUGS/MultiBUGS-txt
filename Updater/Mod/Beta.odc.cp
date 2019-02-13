@@ -15,7 +15,7 @@ MODULE UpdaterBeta;
 	IMPORT
 		MPIworker, Stores,
 		BugsRegistry,
-		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic,
+		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathRandnum,
 		UpdaterContinuous, UpdaterUpdaters;
 
@@ -34,10 +34,12 @@ MODULE UpdaterBeta;
 	PROCEDURE BetaLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
 		VAR
 			as, i, num: INTEGER;
-			m, n, val, weight: REAL;
+			m, n, q0, q1, val, weight: REAL;
 			node: GraphNodes.Node;
 			children: GraphStochastic.Vector;
 			stoch: GraphConjugateUV.Node;
+		CONST
+			eps = 1.0E-20;
 	BEGIN
 		as := GraphRules.beta;
 		p[0] := 0.0;
@@ -51,6 +53,17 @@ MODULE UpdaterBeta;
 			IF node = prior THEN
 				p[0] := p[0] + m;
 				p[1] := p[1] + n
+			ELSIF m < -0.5 THEN (*	catagorical likelihood	*)
+				prior.SetValue(0.25);
+				q0 := prior.Value();
+				prior.SetValue(0.75);
+				q1 := prior.Value();
+				weight := 2.0 * (q1 - q0) / (q1 + q0);
+				IF weight > eps THEN
+					p[0] := p[0] + 1.0
+				ELSIF weight < -eps THEN
+					p[1] := p[1] + 1.0
+				END
 			ELSE
 				node.ValDiff(prior, val, weight);
 				p[0] := p[0] + m * weight;
