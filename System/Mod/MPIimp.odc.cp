@@ -13,6 +13,10 @@ MODULE MPIimp;
 
 	TYPE
 		Hook = POINTER TO RECORD (MPI.Hook) END;
+		
+	VAR
+		version-: INTEGER; 	(*	version number	*)
+		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
 	PROCEDURE (hook: Hook) Abort* (comm: MPI.Comm; error: INTEGER);
 	BEGIN
@@ -200,12 +204,19 @@ MODULE MPIimp;
 		RETURN MPIlib.Wtime()
 	END Wtime;
 
+	PROCEDURE Maintainer;
+	BEGIN
+		version := 500;
+		maintainer := "A.Thomas"
+	END Maintainer;
+
 	PROCEDURE Init;
 		VAR
 			h: Hook;
 	BEGIN
 		NEW(h);
-		MPI.SetHook(h)
+		MPI.SetHook(h);
+		Maintainer
 	END Init;
 
 BEGIN
