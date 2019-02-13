@@ -177,7 +177,7 @@ MODULE GraphStochastic;
 			all := FALSE;
 			node.SetProps(node.props + {likelihood});
 			list := Parents(node, all);
-			WHILE list # NIL DO
+			WHILE list # NIL DO 
 				p := list.node;
 				IF data IN node.props THEN
 					AddLikelihood(node, p);
@@ -628,7 +628,7 @@ MODULE GraphStochastic;
 			p, q: GraphNodes.Node;
 	BEGIN
 		list := NIL;
-		nList := node.Parents(all);
+		nList := node.Parents(all); 
 		WHILE nList # NIL DO
 			p := nList.node;
 			p := p.Representative();
