@@ -46,7 +46,7 @@ MODULE GraphSentinel;
 		
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "GraphHalf.Install"
+		install := "GraphSentinel.Install"
 	END Install;
 	
 	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
