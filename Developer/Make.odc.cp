@@ -158,8 +158,6 @@ BugsC
 
 TestScript
 
-BugsDistribute
-
 BugsPackage
 
 MathSeeds
