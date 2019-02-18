@@ -161,7 +161,7 @@ MODULE BugsMappers;
 			END;
 			IF CAP(ch) = "E" THEN
 				INC(l);
-				s.string[l] := ch;
+				s.string[l] := CAP(ch);
 				s.ReadChar(ch);
 				IF (ch = "+") OR (ch = "-") THEN
 					INC(l); s.string[l] := ch; s.ReadChar(ch)
