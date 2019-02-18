@@ -39,4 +39,4 @@ System/Sym/Math.osf
 System/Sym/Stores.osf
 
 
- BugsDistribute.CopyBugs
+ BugsPackage.CopyBugs
