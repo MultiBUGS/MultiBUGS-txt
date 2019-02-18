@@ -406,15 +406,19 @@ MODULE BugsPackage;
 		IF copyBinary THEN
 			(*	Windows specific  files	*)
 			CopyFile("OpenBUGS.exe", dest);
+			CopyFile("MultiBUGS.exe", dest);
 			CopyFile("OpenBUGS.exe.manifest", dest);
 			CopyFile("WorkerBUGS.exe", dest);
 			CopyFile("libOpenBUGS.dll", dest);
+			CopyFile("libMultiBUGS.dll", dest);
 
 			CopyFile("libtaucs.dll", dest);
 			CopyFile("BackBUGS.lnk", dest);
 			CopyFile("Script.odc", dest);
 			CopyFile("Win/Code/Console.ocf", dest);
 			CopyFile("Code/Console.ocf", dest);
+			CopyFile("Code/Init.ocf", dest);
+			CopyFile("Code/Environment.ocf", dest);
 			CopyFile("Code/MPI.ocf", dest);
 			CopyFile("Code/MPImsimp.ocf", dest);
 			CopyFile("Lin/Code/Console.ocf", dest);
@@ -469,6 +473,10 @@ MODULE BugsPackage;
 			(*	if config and startup files exist overwrite standard BB files	*)
 			CopyFile("Code/Config.ocf", dest + "/System");
 			CopyFile("Code/Startup.ocf", dest + "/System");
+			CopyFile("Code/MPI.ocf", dest + "/System");
+			CopyFile("Code/MPIimp.ocf", dest + "/System");
+			CopyFile("Code/MPIworker.ocf", dest + "/System");
+			CopyFile("Code/MPImaster.ocf", dest + "/System");
 		END;
 
 		IF copyDocu THEN
