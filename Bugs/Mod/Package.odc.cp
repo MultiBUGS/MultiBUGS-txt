@@ -641,12 +641,12 @@ MODULE BugsPackage;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		dest := "C:/OpenBUGS";
+		dest := "C:/MultiBUGS";
 		copyBinary := TRUE;
 		copyDocu := FALSE;
 		copySource := FALSE;
-		copyExamples := FALSE;
-		produceHTML := FALSE
+		copyExamples := TRUE;
+		produceHTML := TRUE
 	END Init;
 
 BEGIN
