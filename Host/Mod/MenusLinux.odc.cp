@@ -53,6 +53,7 @@ MODULE HostMenus;
 		ShowPopupMenu = POINTER TO RECORD (Services.Action) END;
 	
 	VAR
+		askQuit*: BOOLEAN;
 		(* active menu bar state *)
 		menus-: Menu;
 		menuBar-: Gtk.GtkMenu;
@@ -800,8 +801,15 @@ MODULE HostMenus;
 	END Quit;
 	
 	PROCEDURE TryQuit (notUsed0, notUsed1, notUsed2: INTEGER);
+		VAR
+			res: INTEGER;
 	BEGIN
-		HostCmds.Quit
+		IF askQuit THEN
+			Dialog.GetOK("Quit " + Dialog.appName + "?", "", "", "", {Dialog.ok, Dialog.cancel}, res);
+		END;
+		IF ~askQuit OR (res = Dialog.ok) THEN
+			Dialog.Call("BugsCmds.Clear", "", res); HostCmds.Quit
+		END
 	END TryQuit;
 	
 	(* retrun 0 -> close ok. return 1 -> don't close *)
