@@ -207,7 +207,11 @@ MODULE BugsMaster;
 			RETURN
 		END;
 		path := loc(HostFiles.Locator).path$;
-		worker := path + "\" + executable;
+		IF Dialog.platform # Dialog.linux THEN
+			worker := path + "\" + executable;
+		ELSE
+			worker := path + "/" + executable;
+		END;
 		(*	distribute the worker program	*)
 		MPImaster.Spawn(SHORT(worker), numWorkers);
 		size := MPImaster.CommRemoteSize();
