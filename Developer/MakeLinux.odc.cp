@@ -169,6 +169,8 @@ BugsPackage
 
 MathSeeds
 
-ParallelTraphandler ParallelRandnum ParallelActions ParallelWorker ParallelDebug
+ParallelRandnum ParallelActions ParallelWorker ParallelDebug
 
 ParallelDebug
+
+BugsTraphandler
