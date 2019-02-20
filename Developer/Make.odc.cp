@@ -168,10 +168,6 @@ ParallelDebug
 
 PlotsWindows
 
-BugsTraphandler
-
-
-
 
 
 
