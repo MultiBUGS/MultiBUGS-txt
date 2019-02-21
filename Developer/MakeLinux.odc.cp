@@ -17,7 +17,7 @@ DevCompiler.CompileThis
 
 HostMenusLinux
 
-EnvironmentLinux MPI MPIlibLinux MPIimp MPIworker MPImaster
+Environmentlinux MPI MPIliblinux MPIimp MPIworker MPImaster
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi
