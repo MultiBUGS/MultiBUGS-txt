@@ -148,7 +148,7 @@ MENU "Help"
 	"Search"	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/Search', 'Search Tool')"		""
 	SEPARATOR	
 	"Licence"	""	"StdCmds1.OpenBrowser('gpl-3.0.txt', 'GNU GPL Licence')"	""
-	"About OpenBUGS"	""	"StdCmds.OpenToolDialog('System/Rsrc/About', 'About OpenBUGS')"	""
+	"About_OpenBUGS"	""	"BugsCmds.About"	"BugsCmds.AboutGuard"
 END
 
 MENU "*" 
