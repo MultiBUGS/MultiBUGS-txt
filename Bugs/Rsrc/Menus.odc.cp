@@ -44,11 +44,11 @@ MENU "Model"
 END
 
 MENU "Inference"
-	"Samples..."	""	"StdCmds.OpenToolDialog('Samples/Rsrc/Dialog', 'Sample Monitor Tool')"	"BugsCmds.UpdateGuard"
+	"Samples..."	""	"SamplesCmds.OpenSamplesDialog"	"BugsCmds.UpdateGuard"
 	"Compare..."	""	"StdCmds.OpenToolDialog('Compare/Rsrc/Dialog', 'Comparison Tool')"	"BugsCmds.UpdateGuard"
 	"Correlations..."	""	"StdCmds.OpenToolDialog('Correl/Rsrc/Dialog', 'Correlation Tool')"	"BugsCmds.UpdateGuard"
 	SEPARATOR
-	"Summary..."	""	"StdCmds.OpenToolDialog('Summary/Rsrc/Dialog', 'Summary MonitorTool')" "BugsCmds.UpdateGuard"
+	"Summary..."	""	"SummaryCmds.OpenSummaryDialog" "BugsCmds.UpdateGuard"
 	"Rank..."	""	"StdCmds.OpenToolDialog('Ranks/Rsrc/Dialog', 'Rank Monitor Tool')"	"BugsCmds.UpdateGuard"
 	"Model..."	""	"StdCmds.OpenToolDialog('Models/Rsrc/Dialog', 'Model Monitor Tool')"	"BugsCmds.UpdateGuard"
 	SEPARATOR
