@@ -1,4 +1,4 @@
- Compiling OpenBUGS
+Compiling OpenBUGS
 
 This document contains a list of source code modules which constitute the OpenBUGS software.
 
