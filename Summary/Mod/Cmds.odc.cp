@@ -15,6 +15,7 @@ MODULE SummaryCmds;
 	IMPORT
 		Dialog, Ports,
 		TextMappers, TextModels,
+		StdCmds,
 		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg, 
 		SummaryFormatted, SummaryIndex, SummaryInterface, SummaryMonitors;
 
@@ -302,6 +303,20 @@ MODULE SummaryCmds;
 		dialog.options.Incl(SummaryFormatted.quant0Opt, SummaryFormatted.quant0Opt);
 		dialog.options.Incl(SummaryFormatted.quant1Opt, SummaryFormatted.quant1Opt);
 	END InitDialog;
+
+	PROCEDURE OpenSummaryDialog*;
+		VAR
+			summaryDialog, title: Dialog.String;
+	BEGIN
+		summaryDialog := "Summary/Rsrc/Dialog";
+		title := "Summary Monitor Tool";
+		IF Dialog.platform # Dialog.linux THEN
+			summaryDialog := ""
+		ELSE
+			summaryDialog := summaryDialog + "Linux";
+		END;
+		StdCmds.OpenToolDialog(summaryDialog, title)
+	END OpenSummaryDialog;
 
 	PROCEDURE (dialog: DialogBox) Init-;
 	BEGIN
