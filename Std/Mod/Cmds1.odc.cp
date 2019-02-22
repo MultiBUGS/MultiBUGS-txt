@@ -89,7 +89,8 @@ MODULE StdCmds1;
 			name, linuxFile: Files.Name;
 	BEGIN
 		IF Dialog.platform = Dialog.linux THEN
-			linuxFile := file + "Linux";
+			linuxFile := file + "Linux.odc";
+			loc := Files.dir.This("");
 			PathToFileSpec(linuxFile,loc,name);
 			f := Files.dir.Old(loc, name, TRUE);
 			IF f # NIL THEN
