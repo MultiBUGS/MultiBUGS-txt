@@ -338,7 +338,9 @@ MODULE BugsScripts;
 		(*	sets monitor for IC with stochastic parents should only use plugin on non distributed models 	*)
 		StoreKey("icSet()",
 		"DeviancePluginS.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
-		StoreKey("dicSet()",
+		
+		(*	dic versions are needed for backwards compatibility with MultiBUGS 1.0	*)
+		StoreKey("dicSetS()",
 		"DeviancePluginS.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
 
 		(*	displays IC statistics	*)
