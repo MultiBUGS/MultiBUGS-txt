@@ -338,15 +338,20 @@ MODULE BugsScripts;
 		(*	sets monitor for IC with stochastic parents should only use plugin on non distributed models 	*)
 		StoreKey("icSet()",
 		"DeviancePluginS.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
+		StoreKey("dicSet()",
+		"DeviancePluginS.Install; DevianceCmds.SetGuard; DevianceCmds.Set");
 
 		(*	displays IC statistics	*)
 		StoreKey("icStats()",
+		"DevianceCmds.StatsGuard; DevianceCmds.Stats");
+		StoreKey("dicStats()",
 		"DevianceCmds.StatsGuard; DevianceCmds.Stats");
 
 		(*	clears monitor for IC	*)
 		StoreKey("icClear()",
 		"DevianceCmds.StatsGuard; DevianceCmds.Clear");
-
+		StoreKey("dicClear()",
+		"DevianceCmds.StatsGuard; DevianceCmds.Clear");
 		(*___________________________________________________________________________________________
 
 		Info Menu
