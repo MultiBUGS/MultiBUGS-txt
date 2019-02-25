@@ -20,7 +20,7 @@ MODULE BugsNames;
 	TYPE
 		(*	strucure representing names in OpenBUGS model	*)
 		Name* = POINTER TO LIMITED RECORD
-			isVariable*: BOOLEAN;
+			passByReference*: BOOLEAN;
 			numSlots-: INTEGER; (*	number of indices	*)
 			slotSizes-: POINTER TO ARRAY OF INTEGER; (*	range of each index	*)
 			string-: ARRAY 128 OF CHAR; (*	name as a string	*)
@@ -61,7 +61,7 @@ MODULE BugsNames;
 			i, size: INTEGER;
 	BEGIN
 		size := name.Size();
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			IF name.components # NIL THEN RETURN END;
 			NEW(name.components, size);
 			i := 0;
@@ -85,7 +85,7 @@ MODULE BugsNames;
 		VAR
 			i, len: INTEGER;
 	BEGIN
-		wr.WriteBool(name.isVariable);
+		wr.WriteBool(name.passByReference);
 		wr.WriteString(name.string);
 		wr.WriteInt(name.numSlots);
 		i := 0;
@@ -138,7 +138,7 @@ MODULE BugsNames;
 			i, len: INTEGER;
 			string: ARRAY 64 OF CHAR;
 	BEGIN
-		rd.ReadBool(name.isVariable);
+		rd.ReadBool(name.passByReference);
 		rd.ReadString(string);
 		name.string := string$;
 		rd.ReadInt(len);
@@ -146,7 +146,7 @@ MODULE BugsNames;
 		name.numSlots := len;
 		i := 0;
 		WHILE i < len DO rd.ReadInt(name.slotSizes[i]); INC(i) END;
-		IF ~name.isVariable THEN
+		IF ~name.passByReference THEN
 			len := name.Size();
 			IF len > 0 THEN NEW(name.values, len) ELSE name.values := NIL END;
 			i := 0;
@@ -160,7 +160,7 @@ MODULE BugsNames;
 			i, len: INTEGER;
 	BEGIN
 		len := name.Size();
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			IF len > 0 THEN NEW(name.components, len) ELSE name.components := NIL END;
 			i := 0;
 			WHILE i < len DO name.components[i] := GraphNodes.InternalizePointer(rd); INC(i) END
@@ -201,7 +201,7 @@ MODULE BugsNames;
 		i := 0;
 		size := name.Size();
 		initialized := TRUE;
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			WHILE (i < size) & initialized DO
 				node := name.components[i];
 				IF node # NIL THEN
@@ -218,7 +218,7 @@ MODULE BugsNames;
 
 	PROCEDURE (name: Name) IsDefined* (offset: INTEGER): BOOLEAN, NEW;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			RETURN (name.components # NIL) & (name.components[offset] # NIL)
 		ELSE
 			RETURN (name.values # NIL) & (name.values[offset] # INF)
@@ -267,7 +267,7 @@ MODULE BugsNames;
 		VAR
 			cons: GraphNodes.Node;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			name.components[offset] := GraphConstant.New(value)
 		ELSE
 			name.values[offset] := SHORT(value)
@@ -276,7 +276,7 @@ MODULE BugsNames;
 
 	PROCEDURE (name: Name) Value* (offset: INTEGER): REAL, NEW;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			RETURN name.components[offset].Value()
 		ELSE
 			RETURN name.values[offset]
@@ -325,7 +325,7 @@ MODULE BugsNames;
 		ELSE
 			name.slotSizes := NIL
 		END;
-		name.isVariable := FALSE;
+		name.passByReference := FALSE;
 		RETURN name
 	END New;
 

@@ -546,7 +546,7 @@ MODULE BugsNodes;
 			string: ARRAY 1024 OF CHAR;
 			res: SET;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			node := name.components[v.index];
 			IF (node # NIL) & v.ok THEN
 				res := node.Check();

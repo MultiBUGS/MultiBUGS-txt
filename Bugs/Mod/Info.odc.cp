@@ -159,7 +159,7 @@ MODULE BugsInfo;
 			node: GraphNodes.Node;
 			isConstant: BOOLEAN;
 	BEGIN
-		IF ~name.isVariable THEN RETURN TRUE END;
+		IF ~name.passByReference THEN RETURN TRUE END;
 		components := name.components;
 		size := LEN(offsets);
 		i := 0;
@@ -281,7 +281,7 @@ MODULE BugsInfo;
 		IF offsets = NIL THEN RETURN END;
 		size := LEN(offsets);
 		name := var.name;
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			IF offsets # NIL THEN
 				IF IsConstant(name, offsets) THEN numChains := 1 END;
 				VariableValues(name, offsets, numChains, f)
@@ -315,7 +315,7 @@ MODULE BugsInfo;
 	BEGIN
 		count := 0;
 		size := name.Size();
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			i := 0;
 			components := name.components;
 			WHILE i < size DO
@@ -338,7 +338,7 @@ MODULE BugsInfo;
 			p: GraphNodes.Node;
 	BEGIN
 		count := 0;
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			i := 0;
 			size := name.Size();
 			components := name.components;
@@ -360,7 +360,7 @@ MODULE BugsInfo;
 			p: GraphNodes.Node;
 	BEGIN
 		count := 0;
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			i := 0;
 			components := name.components;
 			size := LEN(components);
@@ -407,7 +407,7 @@ MODULE BugsInfo;
 		END;
 		counter := 0;
 		i := 0;
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			WHILE i < size DO
 				IF counter = 0 THEN f.WriteTab END;
 				node := name.components[i];
@@ -489,7 +489,7 @@ MODULE BugsInfo;
 			i, size: INTEGER;
 			node: GraphNodes.Node;
 	BEGIN
-		IF ~name.isVariable THEN RETURN FALSE END;
+		IF ~name.passByReference THEN RETURN FALSE END;
 		size := name.Size();
 		i := 0;
 		isStochastic := FALSE;
@@ -563,7 +563,7 @@ MODULE BugsInfo;
 			i, size: INTEGER;
 			node: GraphNodes.Node;
 	BEGIN
-		IF ~name.isVariable THEN RETURN TRUE END;
+		IF ~name.passByReference THEN RETURN TRUE END;
 		size := name.Size();
 		i := 0;
 		isData := FALSE;
@@ -640,7 +640,7 @@ MODULE BugsInfo;
 			p: GraphNodes.Node;
 			string: ARRAY 128 OF CHAR;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			i := 0;
 			size := name.Size();
 			WHILE i < size DO
@@ -772,7 +772,7 @@ MODULE BugsInfo;
 		LOOP
 			name := BugsIndex.FindByNumber(i);
 			IF name = NIL THEN EXIT END;
-			IF name.isVariable THEN
+			IF name.passByReference THEN
 				j := 0;
 				len := name.Size();
 				WHILE j < len DO

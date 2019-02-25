@@ -1514,7 +1514,7 @@ MODULE BugsCmds;
 		IF par.disabled THEN
 			IF script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
 		ELSE
-			par.disabled := ~name.isVariable;
+			par.disabled := ~name.passByReference;
 			IF par.disabled & script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
 		END
 	END NodeInfo1Guard;
