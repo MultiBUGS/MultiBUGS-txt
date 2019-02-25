@@ -303,7 +303,7 @@ MODULE BugsSplusData;
 		len := name.Size(); 
 		LOOP
 			ReadValue(s, value, nA);
-			IF name.isVariable THEN
+			IF name.passByReference THEN
 				IF ~nA THEN
 					name.StoreValue(i, value);
 					node := name.components[i];

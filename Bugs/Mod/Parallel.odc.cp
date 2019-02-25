@@ -135,7 +135,7 @@ MODULE BugsParallel;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			p := name.components[v.index];
 			IF p # NIL THEN p.SetProps(p.props - {write, thisCore, logical}) END
 		END
@@ -145,7 +145,7 @@ MODULE BugsParallel;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			p := name.components[v.index];
 			IF (p # NIL) & (p IS GraphLogical.Node) THEN
 				p.SetProps(p.props + {logical})
@@ -158,7 +158,7 @@ MODULE BugsParallel;
 			p: GraphNodes.Node;
 			address: INTEGER;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			p := name.components[v.index];
 			(*	only write out nodes with the write mark	*)
 			IF (p # NIL) & (write IN p.props) THEN
@@ -181,7 +181,7 @@ MODULE BugsParallel;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		IF name.isVariable THEN
+		IF name.passByReference THEN
 			p := name.components[v.index];
 			IF (p # NIL) & (write IN p.props) THEN
 				IF ~(p IS GraphStochastic.Node) OR (GraphNodes.data IN p.props) THEN
