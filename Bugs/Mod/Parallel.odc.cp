@@ -345,7 +345,8 @@ MODULE BugsParallel;
 						(*	no updater so create a dummy node	*)
 						p := GraphDummy.fact.New()
 					END;
-					IF write IN p.props THEN
+					(*	problem with dStable	*)
+					IF (write IN p.props) OR (GraphStochastic.noPDF IN p.props) THEN 
 						GraphNodes.ExternalizePointer(p, wr)
 					ELSE
 						(*	write out the dummy node but change its type if multivariate	*)
@@ -413,7 +414,8 @@ MODULE BugsParallel;
 						k := 0;
 						WHILE k < size DO
 							p := u.Node(k);
-							IF write IN p.props THEN
+							(*	problem with dStable	*)
+							IF (write IN p.props) OR (GraphStochastic.noPDF IN p.props) THEN
 								IF i = rank THEN
 									(*	updated on this core so need likelihood and prior	*)
 									this := this & ThisCore(p);
