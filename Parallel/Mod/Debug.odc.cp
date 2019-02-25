@@ -115,6 +115,20 @@ MODULE ParallelDebug;
 			form.ConnectTo(text);
 			form.SetPos(0);
 			BugsFiles.WriteRuler(tabs, form);
+			i := 0;
+			form.WriteString("Number of workers per chain: ");
+			form.WriteInt(workersPerChain);
+			form.WriteLn;
+			form.WriteLn;
+			form.WriteTab;
+			form.WriteTab;
+			WHILE i < workersPerChain DO
+				form.WriteString("#");
+				form.WriteInt(i + 1);
+				form.WriteTab;
+				INC(i)
+			END;
+			form.WriteLn;
 			oldAttr := form.rider.attr;
 			newAttr := TextModels.NewColor(oldAttr, Ports.grey25);
 			i := 0;
