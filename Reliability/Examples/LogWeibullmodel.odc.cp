@@ -7,8 +7,8 @@
 		
 	# Prior distributions of the model parameters	
 
-	# Gamma Prior		
-			mu ~ dgamma(0.001, 0.001)
-			sigma~ dgamma(0.001, 0.001)	
+	# Uniform Prior		
+			mu ~ dunif(0, 5)
+			sigma~ dunif(0.05, 2)	
 					
 	}
