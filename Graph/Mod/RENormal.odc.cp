@@ -83,10 +83,10 @@ MODULE GraphRENormal;
 		x := node.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
+	PROCEDURE (node: Node) LogDet (): REAL;
 	BEGIN
 		RETURN 0.0
-	END LogLikelihoodUVMRF;
+	END LogDet;
 
 	PROCEDURE (node: Node) MatrixElements (OUT elements: ARRAY OF REAL);
 		VAR

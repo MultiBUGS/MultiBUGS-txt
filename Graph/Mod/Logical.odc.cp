@@ -154,10 +154,15 @@ MODULE GraphLogical;
 	END NumParam;
 
 	(*	writes a list of pointers to logical nodes to store	*)
-	PROCEDURE ExternalizeList* (list: List; VAR wr: Stores.Writer);
+	PROCEDURE ExternalizeList* (list: List; mark: SET; VAR wr: Stores.Writer);
+		VAR
+			node: Node;
 	BEGIN
 		WHILE list # NIL DO
-			GraphNodes.Externalize(list.node, wr);
+			node := list.node;
+			IF mark * node.props # {} THEN
+				GraphNodes.Externalize(node, wr)
+			END;
 			list := list.next
 		END;
 		GraphNodes.Externalize(NIL, wr)

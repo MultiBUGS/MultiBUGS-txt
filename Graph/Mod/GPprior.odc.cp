@@ -13,15 +13,12 @@ MODULE GraphGPprior;
 	
 
 	IMPORT
-		Math, Stores, Strings,
+		Math, Stores, Strings, 
 		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphMultivariate, GraphNodes,
 		GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathMatrix, MathRandnum;
 
 	CONST
-		dirty = 0;
-		covarianceCholesky = 1;
-		precision = 2;
 		minSize = 100;
 
 	TYPE
@@ -31,7 +28,8 @@ MODULE GraphGPprior;
 		Kernel* = POINTER TO ABSTRACT RECORD END;
 
 		Node = POINTER TO RECORD(GraphChain.Node)
-			state, muStart, muStep, numParams: INTEGER;
+			dirty: BOOLEAN;
+			muStart, muStep: INTEGER;
 			points: POINTER TO ARRAY OF Point;
 			cov, prec: POINTER TO ARRAY OF ARRAY OF REAL;
 			paramValues: POINTER TO ARRAY OF REAL;
@@ -77,46 +75,38 @@ MODULE GraphGPprior;
 
 	PROCEDURE (kernel: Kernel) NumParams* (): INTEGER, NEW, ABSTRACT;
 
-	PROCEDURE CalculateParams (node: Node);
-		VAR
-			i, numParams: INTEGER;
+	PROCEDURE CopyNode (from, to: Node);
 	BEGIN
-		i := 0;
-		numParams := node.numParams;
-		WHILE i < numParams DO
-			node.paramValues[i] := node.params[i].Value();
-			INC(i)
-		END
-	END CalculateParams;
-
-	PROCEDURE CopyNode (node: Node);
-		VAR
-			rep: Node;
-	BEGIN
-		rep := node.components[0](Node);
-		node.state := rep.state;
-		node.mu := rep.mu;
-		node.muStart := rep.muStart;
-		node.muStep := rep.muStep;
-		node.numParams := rep.numParams;
-		node.points := rep.points;
-		node.cov := rep.cov;
-		node.prec := rep.prec;
-		node.paramValues := rep.paramValues;
-		node.params := rep.params;
-		node.tau := rep.tau;
-		node.kernel := rep.kernel;
+		to.dirty := from.dirty;
+		to.muStart := from.muStart;
+		to.muStep := from.muStep;
+		to.points := from.points;
+		to.cov := from.cov;
+		to.prec := from.prec;
+		to.paramValues := from.paramValues;
+		to.params := from.params;
+		to.mu := from.mu;
+		to.tau := from.tau;
+		to.kernel := from.kernel;
 	END CopyNode;
 
+	(*	cholesky of covariance matrx	*)
 	PROCEDURE Covariance (node: Node);
 		VAR
-			i, j, nElem: INTEGER;
+			i, j, nElem, numParams: INTEGER;
 			element: REAL;
 			kernel: Kernel;
 		CONST
 			eps = 1.0E-6;
 	BEGIN
-		CalculateParams(node);
+		IF ~node.dirty THEN RETURN END;
+		node.dirty := FALSE;
+		i := 0;
+		numParams := LEN(node.paramValues);
+		WHILE i < numParams DO
+			node.paramValues[i] := node.params[i].Value();
+			INC(i)
+		END;
 		i := 0;
 		nElem := LEN(node.components);
 		kernel := node.kernel;
@@ -131,11 +121,10 @@ MODULE GraphGPprior;
 			node.cov[i, i] := 1.0 + eps;
 			INC(i)
 		END;
-		MathMatrix.Cholesky(node.cov, nElem);
-		node.state := covarianceCholesky
+		MathMatrix.Cholesky(node.cov, nElem)
 	END Covariance;
 
-	(*	determinant of covariance matrix, minus log of precision matrix	*)
+	(*	log determinant of covariance matrix, is minus log of precision matrix	*)
 	PROCEDURE LogDet (node: Node): REAL;
 		VAR
 			i, nElem: INTEGER;
@@ -150,6 +139,33 @@ MODULE GraphGPprior;
 		END;
 		RETURN logDet
 	END LogDet;
+
+	PROCEDURE Precision (node: Node);
+		VAR
+			i, j, nElem: INTEGER;
+	BEGIN
+		IF ~node.dirty THEN RETURN END;
+		Covariance(node);
+		i := 0;
+		nElem := LEN(node.components);
+		WHILE i < nElem DO
+			j := 0;
+			WHILE j < nElem DO
+				vector[j] := 0.0;
+				INC(j)
+			END;
+			vector[i] := 1.0;
+			MathMatrix.ForwardSub(node.cov, vector, nElem);
+			MathMatrix.BackSub(node.cov, vector, nElem);
+			j := 0;
+			WHILE j < nElem DO
+				node.prec[j, i] := vector[j];
+				INC(j)
+			END;
+			INC(i)
+		END;
+		node.dirty := FALSE
+	END Precision;
 
 	PROCEDURE QuadraticForm (node: Node): REAL;
 		VAR
@@ -170,36 +186,11 @@ MODULE GraphGPprior;
 		i := 0;
 		WHILE i < nElem DO
 			quadraticForm := quadraticForm + 
-			0.5 * (node.components[i].value - node.mu[start + i * step].Value()) * vector[i];
+			(node.components[i].value - node.mu[start + i * step].Value()) * vector[i];
 			INC(i)
 		END;
 		RETURN quadraticForm
 	END QuadraticForm;
-
-	PROCEDURE Precision (node: Node);
-		VAR
-			i, j, nElem: INTEGER;
-	BEGIN
-		i := 0;
-		nElem := LEN(node.components);
-		WHILE i < nElem DO
-			j := 0;
-			WHILE j < nElem DO
-				vector[j] := 0.0;
-				INC(j)
-			END;
-			vector[i] := 1.0;
-			MathMatrix.ForwardSub(node.cov, vector, nElem);
-			MathMatrix.BackSub(node.cov, vector, nElem);
-			j := 0;
-			WHILE j < nElem DO
-				node.prec[j, i] := vector[j];
-				INC(j)
-			END;
-			INC(i)
-		END;
-		node.state := precision
-	END Precision;
 
 	(*	First vector argument is mu, succeeding vector arguments are x, y, z coordinates.
 	First scalar argument is tau, succeedind scalar arguments are parameters of kernel	*)
@@ -209,14 +200,13 @@ MODULE GraphGPprior;
 			p: GraphNodes.Node;
 	BEGIN
 		res := {};
+		node.dirty := TRUE;
 		WITH args: GraphStochastic.Args DO
-			node.state := dirty;
 			dim := args.numVectors - 1;
 			IF dim < 1 THEN
 				res := {GraphNodes.lhs, GraphNodes.invalidParameters}; RETURN
 			END;
 			numParams := args.numScalars - 1;
-			node.numParams := numParams;
 			i := 0;
 			WHILE i < args.numVectors DO
 				ASSERT(args.vectors[i].components # NIL, 21); ASSERT(args.vectors[i].start >= 0, 21);
@@ -303,7 +293,7 @@ MODULE GraphGPprior;
 	BEGIN
 		f0 := GraphRules.const;
 		i := 0;
-		numParams := node.numParams;
+		numParams := LEN(node.paramValues);
 		WHILE (i < numParams) & (f0 = GraphRules.const) DO
 			f0 := GraphStochastic.ClassFunction(node.params[i], parent);
 			INC(i)
@@ -348,15 +338,15 @@ MODULE GraphGPprior;
 	PROCEDURE (node: Node) Deviance (): REAL;
 		VAR
 			tau, logTau, logDensity: REAL;
+			nElem: INTEGER;
 	BEGIN
 		ASSERT(node.index = 0, 21);
 		tau := node.tau.Value();
 		logTau := MathFunc.Ln(tau);
-		IF node.state = dirty THEN
-			Covariance(node)
-		END;
-		logDensity := 0.50 * (LEN(node.components) * (logTau - log2Pi) - LogDet(node))
-		 - tau * QuadraticForm(node);
+		Covariance(node);
+		nElem := LEN(node.components) ;
+		logDensity := 0.50 * (nElem* (logTau - log2Pi) - LogDet(node))
+		 - 0.5 * tau * QuadraticForm(node);
 		RETURN - 2.0 * logDensity
 	END Deviance;
 
@@ -382,10 +372,11 @@ MODULE GraphGPprior;
 
 	PROCEDURE (node: Node) ExternalizeChain (VAR wr: Stores.Writer);
 		VAR
-			dim, i, j, nElem: INTEGER;
+			dim, i, j, nElem, numParams: INTEGER;
 			v: GraphNodes.SubVector;
 	BEGIN
 		IF node.index = 0 THEN
+			nElem := node.Size();
 			dim := LEN(node.points[0]);
 			wr.WriteInt(dim);
 			i := 0;
@@ -393,15 +384,16 @@ MODULE GraphGPprior;
 				j := 0; WHILE j < dim DO wr.WriteReal(node.points[i][j]); INC(j) END;
 				INC(i)
 			END;
-			wr.WriteInt(node.numParams);
-			i := 0; WHILE i < node.numParams DO wr.WriteReal(node.paramValues[i]); INC(i) END;
+			numParams := LEN(node.paramValues);
+			wr.WriteInt(numParams);
+			i := 0; WHILE i < numParams DO wr.WriteReal(node.paramValues[i]); INC(i) END;
 			v := GraphNodes.NewVector();
 			v.components := node.mu;
 			v.nElem := nElem; v.start := node.muStart; v.step := node.muStep;
 			GraphNodes.ExternalizeSubvector(v, wr);
 			v := GraphNodes.NewVector();
 			v.components := node.params;
-			v.nElem := node.numParams; v.start := 0; v.step := 1;
+			v.nElem := numParams; v.start := 0; v.step := 1;
 			GraphNodes.ExternalizeSubvector(v, wr);
 			GraphNodes.Externalize(node.tau, wr)
 		END
@@ -409,12 +401,16 @@ MODULE GraphGPprior;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.tau := NIL;
-		node.mu := NIL;
-		node.params := NIL;
+		node.dirty := TRUE;
+		node.muStart := -1;
+		node.muStep := 0;
+		node.points := NIL;
 		node.cov := NIL;
 		node.prec := NIL;
-		node.points := NIL
+		node.paramValues := NIL;
+		node.mu := NIL;
+		node.params := NIL;
+		node.tau := NIL
 	END InitStochastic;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -432,11 +428,11 @@ MODULE GraphGPprior;
 
 	PROCEDURE (node: Node) InternalizeChain (VAR rd: Stores.Reader);
 		VAR
-			dim, i, j, nElem: INTEGER;
+			dim, i, j, nElem, numParams: INTEGER;
 			v: GraphNodes.SubVector;
 	BEGIN
 		IF node.index = 0 THEN
-			node.state := dirty;
+			node.dirty := TRUE;
 			nElem := node.Size();
 			NEW(node.cov, nElem, nElem);
 			NEW(node.prec, nElem, nElem);
@@ -448,18 +444,20 @@ MODULE GraphGPprior;
 				j := 0; WHILE j < dim DO rd.ReadReal(node.points[i][j]); INC(j) END;
 				INC(i)
 			END;
-			rd.ReadInt(node.numParams);
-			IF node.numParams > 0 THEN NEW(node.paramValues, node.numParams) END;
-			i := 0; WHILE i < node.numParams DO rd.ReadReal(node.paramValues[i]); INC(i) END;
+			rd.ReadInt(numParams);
+			IF numParams > 0 THEN NEW(node.paramValues, numParams) END;
+			i := 0; WHILE i < numParams DO rd.ReadReal(node.paramValues[i]); INC(i) END;
 			GraphNodes.InternalizeSubvector(v, rd);
 			node.mu := v.components;
 			node.muStart := v.start;
 			node.muStep := v.step;
 			GraphNodes.InternalizeSubvector(v, rd);
 			node.params := v.components;
-			node.tau := GraphNodes.Internalize(rd)
-		ELSE
-			CopyNode(node)
+			node.tau := GraphNodes.Internalize(rd);
+			i := 1;
+			WHILE i < nElem DO
+				CopyNode(node, node.components[i](Node)); INC(i)
+			END
 		END
 	END InternalizeChain;
 
@@ -471,11 +469,9 @@ MODULE GraphGPprior;
 		ASSERT(as = GraphRules.gamma, 21);
 		ASSERT(likelihood.index = 0, 20);
 		nElem := LEN(likelihood.components);
-		IF likelihood.state = dirty THEN
-			Covariance(likelihood)
-		END;
+		Covariance(likelihood);
 		p0 := 0.50 * nElem;
-		p1 := QuadraticForm(likelihood);
+		p1 := 0.5 * QuadraticForm(likelihood);
 		x := likelihood.tau
 	END LikelihoodForm;
 
@@ -491,7 +487,6 @@ MODULE GraphGPprior;
 		RETURN mean
 	END Location;
 
-	(*	always re-evaluate covariance matrix when this method called	*)
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
 			nElem: INTEGER;
@@ -500,12 +495,10 @@ MODULE GraphGPprior;
 		tau := node.tau.Value();
 		logTau := MathFunc.Ln(tau);
 		nElem := LEN(node.components);
+		node.dirty := TRUE;
 		Covariance(node);
-		node.state := covarianceCholesky;
-		logLikelihood := 0.50 * (nElem * logTau - LogDet(node)) - tau * QuadraticForm(node);
-		(*	updater might reject candidate value and restore old value in which case
-		covariance matrix needs re-evaluating	*)
-		node.state := dirty;
+		logLikelihood := 0.50 * (nElem * logTau - LogDet(node)) - 0.5 * tau * QuadraticForm(node);
+		node.dirty := TRUE;
 		RETURN logLikelihood
 	END LogLikelihood;
 
@@ -523,25 +516,19 @@ MODULE GraphGPprior;
 			tau, logPrior: REAL;
 	BEGIN
 		tau := node.tau.Value();
-		IF node.state = dirty THEN Covariance(node) END;
-		logPrior := - tau * QuadraticForm(node);
+		Covariance(node);
+		logPrior := - 0.5 * tau * QuadraticForm(node);
 		RETURN logPrior
 	END LogMVPrior;
 
-	(*	p0 is cholesky of covariance matrix	*)
+	(*	p1 is cholesky of covariance matrix used in eliptical slice sampling	*)
 	PROCEDURE (node: Node) MVPriorForm (OUT p0: ARRAY OF REAL;
 	OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
 			i, j, size: INTEGER;
-			sigma, tau: REAL;
 	BEGIN
 		size := node.Size();
-		IF node.state = dirty THEN
-			Covariance(node);
-			node.state := covarianceCholesky
-		END;
-		tau := node.Value();
-		sigma := 1.0 / Math.Sqrt(tau);
+		Covariance(node);
 		i := 0;
 		WHILE i < size DO
 			j := 0;
@@ -561,10 +548,7 @@ MODULE GraphGPprior;
 	BEGIN
 		nElem := node.Size();
 		IF nElem > LEN(mu) THEN NEW(mu, nElem); NEW(vector, nElem) END;
-		IF node.state = dirty THEN
-			Covariance(node);
-			node.state := covarianceCholesky
-		END;
+		Covariance(node);
 		MathRandnum.MNormalCovar(node.cov, nElem, vector);
 		start := node.muStart;
 		step := node.muStep;
@@ -594,7 +578,7 @@ MODULE GraphGPprior;
 		IF (node.index = 0) OR all THEN
 			node.tau.AddParent(list);
 			i := 0;
-			numParams := node.numParams;
+			numParams := LEN(node.paramValues);
 			WHILE i < numParams DO
 				p := node.params[i];
 				p.AddParent(list);
@@ -620,14 +604,7 @@ MODULE GraphGPprior;
 			tau: REAL;
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
-		IF prior.state = dirty THEN
-			Covariance(prior);
-			prior.state := covarianceCholesky
-		END;
-		IF prior.state = covarianceCholesky THEN
-			Precision(prior);
-			prior.state := precision
-		END;
+		Precision(prior);
 		nElem := LEN(prior.components);
 		start := prior.muStart;
 		step := prior.muStep;
@@ -657,25 +634,33 @@ MODULE GraphGPprior;
 	END Sample;
 
 	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
+		VAR
+			i, nElem: INTEGER;
 	BEGIN
+		res := {};
 		IF node.index = 0 THEN
-			Set(node, args, res)
-		ELSE
-			CopyNode(node); res := {}
+			Set(node, args, res);
+			i := 1;
+			nElem := node.Size();
+			WHILE i < nElem DO
+				CopyNode(node, node.components[i](Node)); INC(i)
+			END
 		END
 	END Set;
 
-	PROCEDURE CopyPred (pred: PredMultiNode);
-		VAR
-			p: PredMultiNode;
+	(******************************************************************************************************
+				multivariate prediction	
+	
+	********************************************************************************************************)
+	
+	PROCEDURE CopyPredMulti (from, to: PredMultiNode);
 	BEGIN
-		p := pred.components[0](PredMultiNode);
-		pred.s := p.s;
-		pred.mu := p.mu;
-		pred.muStart := p.muStart;
-		pred.muStep := p.muStep;
-		pred.points := p.points
-	END CopyPred;
+		to.s := from.s;
+		to.mu := from.mu;
+		to.muStart := from.muStart;
+		to.muStep := from.muStep;
+		to.points := from.points
+	END CopyPredMulti;
 
 	PROCEDURE Moments (pred: PredMultiNode; OUT p0: ARRAY OF REAL; OUT p1: ARRAY OF ARRAY OF REAL);
 		VAR
@@ -684,24 +669,18 @@ MODULE GraphGPprior;
 			s: Node;
 	BEGIN
 		s := pred.s;
-		CalculateParams(s);
+		Precision(s);
+		sigma11Inv := s.prec;
 		nElem := pred.Size();
 		len := s.Size();
-		sigma11Inv := s.prec;
 		i := 0;
 		WHILE i < nElem DO
 			j := 0;
 			WHILE j < len DO
-				sigma12[j, i] := s.kernel.Element(pred.points[i], s.points[j], pred.s.paramValues);
+				sigma12[j, i] := s.kernel.Element(pred.points[i], s.points[j], s.paramValues);
 				INC(j)
 			END;
 			INC(i)
-		END;
-		IF s.state = dirty THEN
-			Covariance(s);
-			Precision(s)
-		ELSIF s.state = covarianceCholesky THEN
-			Precision(s)
 		END;
 		i := 0;
 		start := s.muStart;
@@ -845,9 +824,11 @@ MODULE GraphGPprior;
 					INC(j)
 				END;
 				INC(i)
+			END;
+			i := 1;
+			WHILE i < nElem DO
+				CopyPredMulti(pred, pred.components[i](PredMultiNode)); INC(i)
 			END
-		ELSE
-			CopyPred(pred)
 		END
 	END InternalizeConjugateMV;
 
@@ -944,13 +925,10 @@ MODULE GraphGPprior;
 
 	PROCEDURE (pred: PredMultiNode) Sample (OUT res: SET);
 		VAR
-			i, j, nElem: INTEGER;
-			sigma, tau: REAL;
+			i, nElem: INTEGER;
 	BEGIN
 		res := {};
 		nElem := pred.Size();
-		tau := pred.s.tau.Value();
-		sigma := 1.0 / Math.Sqrt(tau);
 		Moments(pred, mu, matrix);
 		MathMatrix.Cholesky(matrix, nElem);
 		MathRandnum.MNormalCovar(matrix, nElem, vector);
@@ -1014,9 +992,11 @@ MODULE GraphGPprior;
 						INC(i)
 					END;
 					INC(j)
+				END;
+				i := 1;
+				WHILE i < nElem DO
+					CopyPredMulti(pred, pred.components[i](PredMultiNode)); INC(i)
 				END
-			ELSE
-				CopyPred(pred)
 			END
 		END;
 		IF nElem > LEN(vector) THEN NEW(vector, nElem) END;
@@ -1029,6 +1009,12 @@ MODULE GraphGPprior;
 		END
 	END Set;
 
+
+	(******************************************************************************************************
+				univariate prediction	
+	
+	********************************************************************************************************)
+	
 	PROCEDURE (pred: PredUniNode) BoundsUnivariate (OUT lower, upper: REAL);
 	BEGIN
 		lower := - INF;
@@ -1160,21 +1146,15 @@ MODULE GraphGPprior;
 			s: Node;
 	BEGIN
 		s := pred.s;
-		CalculateParams(s);
+		Precision(s);
+		sigma11Inv := s.prec;
 		len := s.Size();
 		start := s.muStart;
 		step := s.muStep;
-		sigma11Inv := s.prec;
 		j := 0;
 		WHILE j < len DO
 			sigma12[j, 0] := s.kernel.Element(pred.point, s.points[j], s.paramValues);
 			INC(j)
-		END;
-		IF s.state = dirty THEN
-			Covariance(s);
-			Precision(s)
-		ELSIF s.state = covarianceCholesky THEN
-			Precision(s)
 		END;
 		p0 := pred.mu.Value();
 		j := 0;
@@ -1204,11 +1184,12 @@ MODULE GraphGPprior;
 	PROCEDURE (pred: PredUniNode) Sample (OUT res: SET);
 		VAR
 			as: INTEGER;
-			mu, tau: REAL;
+			mu, tau, value: REAL;
 	BEGIN
 		as := GraphRules.normal;
 		pred.PriorForm(as, mu, tau);
-		pred.SetValue(MathRandnum.Normal(mu, tau));
+		value := MathRandnum.Normal(mu, tau);
+		pred.SetValue(value);
 		res := {}
 	END Sample;
 

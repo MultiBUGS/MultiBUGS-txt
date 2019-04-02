@@ -36,7 +36,7 @@ MODULE BugsIndex;
 		cursor := index;
 		WHILE cursor # NIL DO
 			name := cursor.name;
-(*			IF name.passByReference THEN*)
+(*			IF name.isVariable THEN*)
 				name.Accept(v);
 (*			END;*)
 			cursor := cursor.next
@@ -96,7 +96,7 @@ MODULE BugsIndex;
 		cursor := index;
 		WHILE cursor # NIL DO
 			name := cursor.name;
-			IF (name.string # "deviance") & name.passByReference THEN
+			IF (name.string # "deviance") & name.passByreference THEN
 				len := name.Size();
 				INC(num, len)
 			END;
@@ -243,7 +243,7 @@ MODULE BugsIndex;
 				EXIT
 			END;
 			name := cursor.name;
-			IF name.passByReference  & (name.components # NIL) THEN
+			IF name.passByreference  & (name.components # NIL) THEN
 				len := name.Size();
 				i := 0;
 				WHILE (i < len) & 

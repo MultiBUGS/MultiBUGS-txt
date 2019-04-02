@@ -131,8 +131,7 @@ MODULE GraphSample;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noPDF, GraphStochastic.noCDF,
-		GraphStochastic.noMean});
+		node.SetProps(node.props + {GraphStochastic.noCDF, GraphStochastic.noMean});
 		node.theta := NIL;
 	END InitStochastic;
 

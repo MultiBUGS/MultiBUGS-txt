@@ -278,8 +278,7 @@ MODULE MathMatrix;
 		RETURN sum;
 	END Norm;
 
-	(*	Output is eigenvalues only	*)
-
+	(*	Output is eigenvalues only, eigenvalues sorted	*)
 	PROCEDURE Jacobi* (VAR a: ARRAY OF ARRAY OF REAL;
 	OUT ev: ARRAY OF REAL; size: INTEGER);
 		CONST
@@ -313,13 +312,11 @@ MODULE MathMatrix;
 					redsum := redsum + red;
 					Apply_jacobi_L(a, p, q, c, s, size);
 					Apply_jacobi_R(a, p, q, c, s, size);
-					(* we do not require eigenvectors, but if we did, t'would be done thus: *)
-					(* apply_jacobi_R (evec, p, q, c, s); *)
 					INC(q);
 				END;
 				INC(p);
 			END;
-		END; (* LOOP statement *)
+		END; 
 		i := 0;
 		WHILE i < size DO
 			ev[i] := a[i, i];
@@ -328,8 +325,7 @@ MODULE MathMatrix;
 		MathSort.HeapSort(ev, size);
 	END Jacobi;
 
-	(*	Output is eigenvalues only	*)
-
+	(*	Out put is eigenvalues and eigenvectors, eigenvalues not sorted	*)
 	PROCEDURE JacobiVectors* (VAR a, evec: ARRAY OF ARRAY OF REAL;
 	OUT ev: ARRAY OF REAL; size: INTEGER);
 		CONST
@@ -373,7 +369,7 @@ MODULE MathMatrix;
 				END;
 				INC(p);
 			END;
-		END; (* LOOP statement *)
+		END; 
 		i := 0;
 		WHILE i < size DO
 			ev[i] := a[i, i];

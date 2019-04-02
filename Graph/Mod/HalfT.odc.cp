@@ -192,8 +192,7 @@ MODULE GraphHalfT;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noPDF, GraphStochastic.noCDF,
-		GraphStochastic.noMean});
+		node.SetProps(node.props + {GraphStochastic.noCDF, GraphStochastic.noMean});
 		node.k := NIL;
 		node.tau := NIL;
 		node.y := NIL;

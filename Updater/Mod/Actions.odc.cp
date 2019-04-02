@@ -23,6 +23,7 @@ MODULE UpdaterActions;
 	TYPE
 		List = POINTER TO RECORD
 			updater: UpdaterUpdaters.Updater;
+			label: INTEGER;
 			next: List
 		END;
 
@@ -129,6 +130,7 @@ MODULE UpdaterActions;
 		updaters := NIL
 	END Clear;
 	
+	(*	counts number of constraints in MRF models if using univariate sampling	*)
 	PROCEDURE CountUpdaters (OUT numUpdaters, numConstraints: INTEGER);
 		VAR
 			mrf: GraphMRF.Node;
@@ -148,7 +150,9 @@ MODULE UpdaterActions;
 				mrf := mrf.components[0](GraphMRF.Node);
 				IF ~(GraphNodes.mark IN mrf.props) THEN
 					mrf.SetProps(mrf.props + {GraphNodes.mark});
-					INC(numConstraints)
+					IF mrf.NumberConstraints() # 0 THEN
+						INC(numConstraints)
+					END
 				END
 			END;
 			cursor := cursor.next
@@ -166,7 +170,7 @@ MODULE UpdaterActions;
 		END
 	END CountUpdaters;
 
-	PROCEDURE HeapSort (VAR updaters: ARRAY OF UpdaterUpdaters.Updater; len: INTEGER);
+	PROCEDURE HeapSort (VAR updaters: ARRAY OF List; len: INTEGER);
 		VAR
 			i, j, k: INTEGER;
 
@@ -176,48 +180,30 @@ MODULE UpdaterActions;
 				children: GraphStochastic.Vector;
 				prior0, prior1: GraphStochastic.Node;
 		BEGIN
-			depth0 := updaters[l - 1].Depth();
-			depth1 := updaters[m - 1].Depth();
+			depth0 := updaters[l - 1].updater.Depth();
+			depth1 := updaters[m - 1].updater.Depth();
 			IF depth0 >  depth1 THEN
 				RETURN TRUE
 			ELSIF depth0 < depth1 THEN
 				RETURN FALSE
 			ELSE
-				children := updaters[l - 1].Children();
+				children := updaters[l - 1].updater.Children();
 				IF children # NIL THEN len0 := LEN(children) ELSE len0 := 0 END;
-				children := updaters[m - 1].Children();
+				children := updaters[m - 1].updater.Children();
 				IF children # NIL THEN len1 := LEN(children) ELSE len1 := 0 END;
 				IF len0 > len1 THEN
 					RETURN TRUE
 				ELSIF len0 < len1 THEN
 					RETURN FALSE
-				ELSIF updaters[l - 1].Size() # 1 THEN
-					RETURN FALSE
 				ELSE
-					prior0 := updaters[l - 1].Prior(0);
-					IF prior0 IS GraphMRF.Node THEN
-						prior1 := updaters[m - 1].Prior(0);
-						IF ~(prior1 IS GraphMRF.Node) OR (updaters[m - 1].Size() # 1) THEN
-							RETURN TRUE
-						ELSE
-							a0 := SYSTEM.VAL(INTEGER, prior0(GraphMRF.Node).components[0]);
-							a1 := SYSTEM.VAL(INTEGER, prior1(GraphMRF.Node).components[0]);
-							IF a0 > a1 THEN
-								RETURN TRUE
-							ELSE
-								RETURN FALSE
-							END
-						END
-					ELSE
-						RETURN FALSE
-					END
+					RETURN updaters[l - 1].label < updaters[m- 1].label
 				END
 			END
 		END Less;
 
 		PROCEDURE Swap (l, m: INTEGER);
 			VAR
-				temp: UpdaterUpdaters.Updater;
+				temp: List;
 		BEGIN
 			temp := updaters[l - 1];
 			updaters[l - 1] := updaters[m - 1];
@@ -264,9 +250,14 @@ MODULE UpdaterActions;
 			updater: UpdaterUpdaters.Updater;
 			prior: GraphStochastic.Node;
 			factory: UpdaterUpdaters.Factory;
+			lists: POINTER TO ARRAY OF List;
 	BEGIN
 		CountUpdaters(numUpdaters, numConstraints); 
+		IF numConstraints # 0 THEN	(*	create constraint factory if needed	*)
+			factory := UpdaterUpdaters.InstallFactory("UpdaterMRFConstrain.Install")
+		END;
 		IF numUpdaters > 0 THEN
+			NEW(lists, numUpdaters);
 			NEW(updaters, numChains);
 			i := 0;
 			WHILE i < numChains DO
@@ -277,52 +268,37 @@ MODULE UpdaterActions;
 		cursor := updaterList;
 		j := 0;
 		WHILE cursor # NIL DO
-			updaters[0, j] := cursor.updater;
+			lists[j] := cursor;
 			cursor := cursor.next;
 			INC(j)
 		END;
-		HeapSort(updaters[0], numUpdaters);
-		IF numConstraints # 0 THEN
-			factory := UpdaterUpdaters.InstallFactory("UpdaterMRFConstrain.Install");
-			k := 0;
-			WHILE k < numConstraints DO
-				NEW(cursor);
-				cursor.updater := NIL;
-				cursor.next := updaterList;
-				updaterList := cursor;
-				INC(k)
-			END;
-			j := 0;
-			cursor := updaterList;
-			WHILE j < numUpdaters DO	(*	insert constraints	*)
-				updater := updaters[0, j];
-				cursor.updater := updater;
-				prior := updater.Prior(0);
-				IF (prior IS GraphMRF.Node) & (updater.Size() = 1) THEN
-					mrf := prior(GraphMRF.Node);
-					mrf := mrf.components[0](GraphMRF.Node);
-					IF ~(GraphNodes.mark IN mrf.props) THEN
+		HeapSort(lists, numUpdaters);
+		j := 0;
+		k := 0;
+		WHILE j < numUpdaters DO
+			updater := lists[j].updater;
+			updaters[0, k] := updater;
+			prior := updater.Prior(0);
+			(*	insert constraints	*)
+			IF (prior IS GraphMRF.Node) & (updater.Size() = 1)  THEN 
+				mrf := prior(GraphMRF.Node);
+				mrf := mrf.components[0](GraphMRF.Node);
+				IF mrf.NumberConstraints() # 0 THEN
+					IF ~(GraphNodes.mark IN mrf.props)  THEN
 						mrf.SetProps(mrf.props + {GraphNodes.mark});
 						size := mrf.Size() - 1
 					ELSE
 						DEC(size);
 						IF size = 0 THEN
 							mrf.SetProps(mrf.props - {GraphNodes.mark});
-							cursor := cursor.next;
-							cursor.updater := factory.New(mrf) 
+							INC(k);
+							updaters[0, k] := factory.New(mrf) 
 						END
 					END
-				END;
-				cursor := cursor.next;
-				INC(j)
+				END
 			END;
-			j := 0;
-			cursor := updaterList;
-			WHILE cursor # NIL DO
-				updaters[0, j] := cursor.updater;
-				cursor := cursor.next;
-				INC(j)
-			END
+			INC(k);
+			INC(j)
 		END; 
 		i := 1;
 		WHILE i < numChains DO
@@ -663,7 +639,7 @@ MODULE UpdaterActions;
 		i := 0;
 		WHILE i < numUpdaters DO
 			updater := updaters[0, i];
-			IF CanDistribute(updater, avNumChild, workersPerChain) THEN
+			IF CanDistribute(updater, avNumChild, workersPerChain) THEN  
 				j := 0;
 				size := updater.Size();
 				WHILE j < size DO
@@ -717,7 +693,12 @@ MODULE UpdaterActions;
 	BEGIN
 		NEW(element);
 		element.updater := updater;
-		element.next :=updaterList;
+		IF updaterList = NIL THEN
+			element.label := 0
+		ELSE
+			element.label := updaterList.label + 1
+		END;
+		element.next := updaterList;
 		updaterList := element
 	END RegisterUpdater;
 

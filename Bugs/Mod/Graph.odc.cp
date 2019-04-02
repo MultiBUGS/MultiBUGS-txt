@@ -100,7 +100,7 @@ MODULE BugsGraph;
 		VAR
 			node: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF node # NIL THEN
 				WITH node: GraphStochastic.Node DO
@@ -120,7 +120,7 @@ MODULE BugsGraph;
 		VAR
 			node: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF node # NIL THEN
 				IF node IS GraphStochastic.Node THEN
@@ -168,7 +168,7 @@ MODULE BugsGraph;
 		VAR
 			node: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF node # NIL THEN
 				WITH node: GraphStochastic.Node DO
@@ -202,7 +202,7 @@ MODULE BugsGraph;
 		VAR
 			node: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF node # NIL THEN
 				WITH node: GraphStochastic.Node DO
@@ -289,7 +289,7 @@ MODULE BugsGraph;
 			node: GraphNodes.Node;
 			stochastic: GraphStochastic.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF node # NIL THEN
 				IF node IS GraphStochastic.Node THEN
@@ -336,7 +336,7 @@ MODULE BugsGraph;
 			stochastic: GraphStochastic.Node;
 			i, numMethods: INTEGER;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			updater := NIL;
 			IF node # NIL THEN
@@ -376,7 +376,7 @@ MODULE BugsGraph;
 			stochastic: GraphStochastic.Node;
 			string: ARRAY 1024 OF CHAR;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF (node # NIL) & v.ok THEN
 				IF node IS GraphStochastic.Node THEN
@@ -417,7 +417,7 @@ MODULE BugsGraph;
 		CONST
 			all = TRUE;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF node # NIL THEN
 				IF node IS GraphUnivariate.Node THEN
@@ -476,7 +476,7 @@ MODULE BugsGraph;
 			p: GraphLogical.Node;
 			all: BOOLEAN;
 	BEGIN
-		IF ~name.passByReference THEN RETURN END;
+		IF ~name.passByreference THEN RETURN END;
 		node := name.components[v.index];
 		IF node # NIL THEN
 			WITH node: GraphLogical.Node DO
@@ -518,7 +518,7 @@ MODULE BugsGraph;
 			logical: GraphLogical.Node;
 			all: BOOLEAN;
 	BEGIN
-		IF ~name.passByReference THEN RETURN END;
+		IF ~name.passByreference THEN RETURN END;
 		node := name.components[v.index];
 		IF node # NIL THEN
 			IF (node IS GraphStochastic.Node) & ~(GraphStochastic.hidden IN node.props) THEN
@@ -551,7 +551,7 @@ MODULE BugsGraph;
 			all: BOOLEAN;
 	BEGIN
 		(*	what if chain graph ???	*)
-		IF ~name.passByReference THEN RETURN END;
+		IF ~name.passByreference THEN RETURN END;
 		node := name.components[v.index];
 		IF (node # NIL) & ~(GraphStochastic.hidden IN node.props) THEN
 			WITH node: GraphStochastic.Node DO
@@ -633,7 +633,7 @@ MODULE BugsGraph;
 		devianceExists := dev # NIL;
 		IF devianceExists THEN
 			name := BugsNames.New("deviance", 0);
-			name.passByReference := TRUE;
+			name.passByreference := TRUE;
 			name.AllocateNodes;
 			name.components[0] := dev;
 			BugsIndex.Store(name)
@@ -679,7 +679,7 @@ MODULE BugsGraph;
 		VAR
 			node: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF (node # NIL) & (node IS GraphStochastic.Node) & ~(GraphNodes.data IN node.props) THEN
 				INC(v.num)
@@ -694,7 +694,7 @@ MODULE BugsGraph;
 			logical: GraphLogical.Node;
 			all: BOOLEAN;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF (node # NIL) & (node = node.Representative()) THEN
 				all := TRUE;

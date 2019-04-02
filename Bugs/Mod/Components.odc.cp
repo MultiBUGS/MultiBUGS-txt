@@ -25,7 +25,7 @@ MODULE BugsComponents;
 
 	VAR
 		graphModules, updaterModules: List;
-		allThis: BOOLEAN;
+		allThis-: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 

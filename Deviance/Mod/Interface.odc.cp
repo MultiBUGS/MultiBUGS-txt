@@ -220,7 +220,7 @@ MODULE DevianceInterface;
 			i, size: INTEGER;
 	BEGIN
 		monitor := NIL;
-		IF node.passByReference THEN
+		IF node.passByreference THEN
 			monitor := DevianceMonitors.fact.New(node, v.termOffset)
 		END;
 		IF monitor # NIL THEN

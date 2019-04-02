@@ -37,36 +37,30 @@ MODULE GraphStick;
 
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
-			dim, form, i, off, start, step, numConst, numGen, numIdent: INTEGER;
+			dim, form, i, index, off, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
 		IF node.constant # NIL THEN RETURN GraphRules.const END;
 		dim := node.dim ;
 		start := node.start;
 		step := node.step;
-		numConst := 0;
-		numGen := 0;
-		numIdent := 0;
+		index := node.index;
 		i := 0;
-		WHILE i < dim DO
+		LOOP
 			off := start + i * step;
 			p := node.prop[off];
-			form := GraphStochastic.ClassFunction(p, parent);
-			IF form = GraphRules.const THEN
-				INC(numConst)
-			ELSIF form = GraphRules.ident THEN
-				INC(numIdent)
-			ELSE
-				INC(numGen)
+			IF p = parent THEN 
+				IF i = index THEN
+					form := GraphRules.ident
+				ELSIF i > index THEN
+					form := GraphRules.const
+				ELSE
+					form := GraphRules.linear
+				END;
+				EXIT 
 			END;
-			INC(i)
-		END;
-		IF (numGen # 0) OR (numIdent > 1) THEN
-			form := GraphRules.other
-		ELSIF numIdent = 1 THEN
-			form := GraphRules.ident
-		ELSE
-			form := GraphRules.const
+			INC(i);
+			IF i = dim THEN form := GraphRules.const; EXIT END
 		END;
 		RETURN form
 	END ClassFunction;
@@ -204,9 +198,12 @@ MODULE GraphStick;
 				IF node.prop # NIL THEN
 					p := node.prop[off];
 					IF p = NIL THEN
-						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+						res := {GraphNodes.invalidParameters, GraphNodes.arg1}; RETURN
 					ELSE
-						isData := isData & (GraphNodes.data IN p.props)
+						isData := isData & (GraphNodes.data IN p.props);
+						IF ~(p IS GraphStochastic.Node) THEN
+							res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
+						END
 					END
 				ELSE
 					IF node.constant[off] = INF THEN 

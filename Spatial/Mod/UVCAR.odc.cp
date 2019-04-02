@@ -13,7 +13,7 @@ MODULE SpatialUVCAR;
 	
 
 	IMPORT
-		Stores,
+		Stores, 
 		GraphMRF, GraphUVMRF, GraphNodes, GraphStochastic;
 
 	TYPE
@@ -24,7 +24,7 @@ MODULE SpatialUVCAR;
 		END;
 		
 	VAR
-		version-: INTEGER;
+		 version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
 	PROCEDURE MarkNeighs (node: Node);
@@ -137,7 +137,7 @@ MODULE SpatialUVCAR;
 				car.SetProps(car.props - {GraphNodes.mark});
 				INC(i)
 			END
-		END;
+		END
 	END CountIslands;
 	
 	PROCEDURE (node: Node) ExternalizeUVCAR- (VAR wr: Stores.Writer), NEW, ABSTRACT;
@@ -148,7 +148,7 @@ MODULE SpatialUVCAR;
 	BEGIN
 		wr.WriteInt(node.numIslands);
 		IF node.index #  - 1 THEN
-			numNeigh := LEN(node.neighs);
+			IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
 			wr.WriteInt(numNeigh);
 			j := 0;
 			WHILE j < numNeigh DO
@@ -187,8 +187,10 @@ MODULE SpatialUVCAR;
 			node.SetValue(0.0)
 		ELSE
 			rd.ReadInt(numNeigh);
-			NEW(node.neighs, numNeigh);
-			NEW(node.weights, numNeigh);
+			IF numNeigh # 0 THEN
+				NEW(node.neighs, numNeigh);
+				NEW(node.weights, numNeigh)
+			END;
 			j := 0;
 			WHILE j < numNeigh DO
 				rd.ReadInt(node.neighs[j]);
@@ -368,7 +370,7 @@ MODULE SpatialUVCAR;
 					END;
 					node.weights[i] := p.Value();
 					INC(i)
-				END
+				END;
 			END
 		END;
 		node.SetUVCAR(args, res)
@@ -376,7 +378,7 @@ MODULE SpatialUVCAR;
 	
 	PROCEDURE Maintainer;
 	BEGIN
-		version := 500;
+		version := 500; 
 		maintainer := "A.Thomas"
 	END Maintainer;
 

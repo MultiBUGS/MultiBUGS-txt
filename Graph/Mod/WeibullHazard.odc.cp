@@ -7,14 +7,16 @@ copyright:	"Rsrc/About"
 
 	  *)
 
-MODULE GraphHazard;
+MODULE GraphWeibullHazard;
 
 	IMPORT
 		Math, Stores,
+		MathJacobi,
 		GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphStochastic.Node) 
+			nu: GraphNodes.Node;
 			function: GraphNodes.Node;
 			t: GraphStochastic.Node;
 			event: BOOLEAN
@@ -22,11 +24,20 @@ MODULE GraphHazard;
 
 		Factory = POINTER TO RECORD(GraphStochastic.Factory) END;
 
+	CONST
+		ruleOrder = 8;
+		grid = 100;
+		delta = 1.0 / grid;
+		eps = 1.0E-10;
+		maxNu = 5;
+		numNu = grid * maxNu;
+		
 	VAR
 		fact-: GraphStochastic.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		wg, wk, x : ARRAY 8 OF REAL; (*	weights and absiscae for 7/15 guassian kondrad quadrature	*)
+		(*	table of Gauss-Jacobi quadrature rules	*)
+		gaussJacobiW, gaussJacobiX: ARRAY numNu OF ARRAY ruleOrder OF REAL;	
 
 	PROCEDURE (node: Node) Bounds (OUT left, upper: REAL);
 	BEGIN
@@ -42,9 +53,13 @@ MODULE GraphHazard;
 	PROCEDURE (node: Node) Check (): SET;
 		VAR
 			res: SET;
+			nu: REAL;
 	BEGIN
 		res := {};
-		IF ~(GraphStochastic.data IN node.props) THEN res := {GraphNodes.notData} END;
+		IF ~(GraphStochastic.data IN node.props) THEN RETURN {GraphNodes.notData} END;
+		nu := node.nu.Value();
+		IF nu < - eps THEN RETURN {GraphNodes.posative, GraphNodes.arg1} END;
+		IF nu > maxNu - eps THEN RETURN {GraphNodes.invalidPosative, GraphNodes.arg1} END;
 		RETURN res
 	END Check;
 
@@ -75,6 +90,7 @@ MODULE GraphHazard;
 
 	PROCEDURE (node: Node) ExternalizeStochastic (VAR wr: Stores.Writer);
 	BEGIN
+		GraphNodes.Externalize(node.nu, wr);
 		GraphNodes.Externalize(node.function, wr);
 		GraphNodes.Externalize(node.t, wr);
 		wr.WriteBool(node.event)
@@ -84,6 +100,7 @@ MODULE GraphHazard;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
+		node.nu := GraphNodes.Internalize(rd);
 		node.function := GraphNodes.Internalize(rd);
 		p := GraphNodes.Internalize(rd);
 		node.t := p(GraphStochastic.Node);
@@ -93,6 +110,7 @@ MODULE GraphHazard;
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
 		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.noCDF});
+		node.nu := NIL;
 		node.function := NIL;
 		node.t := NIL;
 		node.event := FALSE
@@ -100,7 +118,7 @@ MODULE GraphHazard;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "GraphHazard.Install"
+		install := "GraphWeibullHazard.Install"
 	END Install;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
@@ -118,38 +136,41 @@ MODULE GraphHazard;
 		RETURN 0.0
 	END LogDetJacobian;
 
+	(*	hazard = F(s) * nu * s ^ (nu - 1) 	*)
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
-			absisca, integralK, integralG, log, scale, y: REAL;
+			integral, log, s, time, y, nu, deltaNu, scale: REAL;
 			t: GraphStochastic.Node;
-			i, len: INTEGER;
+			i, index: INTEGER;
 	BEGIN
+		nu := node.nu.Value();
+		(*	use the tabulated Gauss-Jacobi quadrature rule that has a beta just below the 
+			   actual beta and correct the integrand with a power of s	*)
+		index := SHORT(ENTIER(nu / delta)) - 1;
+		ASSERT(index >= 0, 66);
+		deltaNu := nu - index * delta;
+		time := node.value;
+		(*	
+			  evaluate integral of hazard using pre-computed Gauss-Jacobi quadrature rule
+			  change of variable s = 1/2 t (x + 1);  ds = 1/2 t dx; 
+			  s = 0 => x = -1; s = t => x = 1
+		*)
+		scale := Math.Power(0.5 * time, index * delta);
 		t := node.t;
-		scale := 0.5 * node.value;
-		t.SetValue(scale);
-		y := node.function.Value();
-		integralK := wk[0] * y;
-		integralG := wg[0] * y;
-		i := 1;
-		len := LEN(x);
-		WHILE i < len DO
-			absisca := scale * (1.0 + x[i]);
-			y := node.function.Value();
-			t.SetValue(absisca);
-			integralK := integralK + wk[i] * y;
-			IF ~ODD(i) THEN integralG := integralG + wg[i DIV 2] * y END;
-			absisca := scale * (1.0 - x[i]);
-			y := node.function.Value();
-			t.SetValue(absisca);
-			integralK := integralK + wk[i] * y;
-			IF ~ODD(i) THEN integralG := integralG + wg[i DIV 2] * y END;
+		i := 0;
+		integral := 0.0;
+		WHILE i < ruleOrder DO
+			s := 0.5 * time * (gaussJacobiX[index, i] + 1.0);
+			t.SetValue(s);
+			y := node.function.Value() * nu * Math.Power(s, deltaNu);
+			integral := integral + gaussJacobiW[index, i] * y;
 			INC(i)
 		END;
-		ASSERT(ABS(integralK - integralG) < 1.0E-3 * (integralK + integralG), 77); 
-		log := -integralK * scale;
+		log := -integral * scale;
 		IF node.event THEN 
-			t.SetValue(node.value);
-			log := Math.Ln(node.function.Value()) + log 
+			t.SetValue(time);
+			y := node.function.Value();
+			log := Math.Ln(nu) + (nu - 1.0) * Math.Ln(time) + Math.Ln(y) + log 
 		END;
 		RETURN log
 	END LogLikelihood;
@@ -175,6 +196,8 @@ MODULE GraphHazard;
 			list: GraphNodes.List;
 	BEGIN
 		list := NIL;
+		p := node.nu;
+		p.AddParent(list);
 		p := node.function;
 		p.AddParent(list);
 		p := node.t;
@@ -193,11 +216,13 @@ MODULE GraphHazard;
 		res := {};
 		WITH args: GraphStochastic.Args DO
 			ASSERT(args.scalars[0] # NIL, 21);
-			node.function := args.scalars[0];
+			node.nu := args.scalars[0];
 			ASSERT(args.scalars[1] # NIL, 21);
-			node.t := args.scalars[1](GraphStochastic.Node);
+			node.function := args.scalars[1];
 			ASSERT(args.scalars[2] # NIL, 21);
-			node.event := args.scalars[2].Value() > 0.5
+			node.t := args.scalars[2](GraphStochastic.Node);
+			ASSERT(args.scalars[3] # NIL, 21);
+			node.event := args.scalars[3].Value() > 0.5
 		END		
 	END Set;
 
@@ -222,7 +247,7 @@ MODULE GraphHazard;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := "Fs"
+		signature := "sFs"
 	END Signature;
 
 	PROCEDURE Install*;
@@ -239,38 +264,23 @@ MODULE GraphHazard;
 	PROCEDURE Init;
 		VAR
 			f: Factory;
+			i: INTEGER;
+			alpha, beta: REAL;
 	BEGIN
 		Maintainer;
 		NEW(f);
 		fact := f;
-		(*	Guass weights	*)
-		wg[0] := 4.179591836734693877551020408163265E-01;
-		wg[1] := 3.818300505051189449503697754889751E-01;
-		wg[2] := 2.797053914892766679014677714237796E-01;
-		wg[3] := 1.294849661688696932706114326790820E-01;
-
-		(*	Guass-Kondrod points	*)
-		x[0] := 0.000000000000000000000000000000000E+00;	
-		x[1] := 2.077849550078984676006894037732449E-01;	
-		x[2] := 4.058451513773971669066064120769615E-01;	
-		x[3] := 5.860872354676911302941448382587296E-01;	
-		x[4] := 7.415311855993944398638647732807884E-01;	
-		x[5] := 8.648644233597690727897127886409262E-01;	
-		x[6] := 9.491079123427585245261896840478513E-01;	
-		x[7] := 9.914553711208126392068546975263285E-01;	
-
-		(*	Kondrod weights	*)
-		wk[0] := 2.094821410847278280129991748917143E-01;
-		wk[1] := 2.044329400752988924141619992346491E-01;
-		wk[2] := 1.903505780647854099132564024210137E-01;
-		wk[3] := 1.690047266392679028265834265985503E-01;
-		wk[4] := 1.406532597155259187451895905102379E-01;
-		wk[5] := 1.047900103222501838398763225415180E-01;
-		wk[6] := 6.309209262997855329070066318920429E-02;
-		wk[7] := 2.293532201052922496373200805896959E-02
+		(*	construct a grid of Gauss-Jacobi quadrature rules for alpha = 0 and different values of beta	*)
+		i := 0;
+		alpha := 0.0;
+		WHILE i < numNu DO
+			beta := (i  + 1) * delta - 1.0;
+			MathJacobi.QuadratureRule(gaussJacobiX[i], gaussJacobiW[i], alpha, beta, ruleOrder);
+			INC(i);
+		END;
 	END Init;
 
 BEGIN
 	Init
-END GraphHazard.
+END GraphWeibullHazard.
 
