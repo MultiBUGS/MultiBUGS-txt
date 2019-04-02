@@ -1,4 +1,4 @@
-(*		
+(*	
 
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
