@@ -882,14 +882,16 @@ MODULE BugsCmds;
 
 	PROCEDURE WriteData*;
 		CONST
-			numTabs = 6;
+			numTabs = 7;
 		VAR
 			f: TextMappers.Formatter;
 			text: TextModels.Model;
 			tabs: POINTER TO ARRAY OF INTEGER;
-			i: INTEGER;
+			i, oldPrec: INTEGER;
 			msg: ARRAY 1024 OF CHAR;
 	BEGIN
+		oldPrec := BugsFiles.prec;
+		BugsFiles.SetPrec(MAX(8, oldPrec));
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		f.SetPos(0);
@@ -903,7 +905,8 @@ MODULE BugsCmds;
 		BugsInfo.WriteData(f);
 		BugsFiles.Open("Data ", text);
 		BugsMsg.Lookup("BugsCmds:DataOut", msg);
-		BugsFiles.ShowStatus(msg)
+		BugsFiles.ShowStatus(msg);
+		BugsFiles.SetPrec(oldPrec)
 	END WriteData;
 
 	PROCEDURE WriteUninitNodes*;
@@ -1514,7 +1517,7 @@ MODULE BugsCmds;
 		IF par.disabled THEN
 			IF script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
 		ELSE
-			par.disabled := ~name.passByReference;
+			par.disabled := ~name.passByreference;
 			IF par.disabled & script THEN BugsMsg.Lookup("SamplesCmds:NotVariable", par.label) END
 		END
 	END NodeInfo1Guard;

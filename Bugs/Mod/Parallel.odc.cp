@@ -13,9 +13,9 @@ MODULE BugsParallel;
 	IMPORT
 		SYSTEM, Stores,
 		BugsIndex, BugsNames, BugsPartition,
-		GraphConjugateMV, GraphDummy, GraphDummyMV, GraphLogical, GraphMultivariate,
-		GraphNodes, GraphStochastic, GraphUnivariate, GraphVector,
-		UpdaterActions, UpdaterEmpty, UpdaterMultivariate, UpdaterUpdaters;
+		GraphConjugateMV, GraphDummy, GraphDummyMV, GraphLogical, 
+		GraphMRF, GraphMultivariate, GraphNodes, GraphStochastic, GraphVector,
+		UpdaterActions, UpdaterEmpty, UpdaterUpdaters;
 
 	TYPE
 		Clearer = POINTER TO RECORD(BugsNames.ElementVisitor) END;
@@ -109,6 +109,7 @@ MODULE BugsParallel;
 			p: GraphStochastic.Node;
 			l: GraphLogical.Node;
 			i, size: INTEGER;
+			install: ARRAY 128 OF CHAR;
 	BEGIN
 		WITH node: GraphConjugateMV.Node DO
 			i := 0;
@@ -126,6 +127,22 @@ MODULE BugsParallel;
 				l.SetProps(l.props + marks);
 				INC(i)
 			END
+		|node: GraphMultivariate.Node DO
+			node.SetProps(node.props + marks);
+			i := 0;
+			size := node.Size();
+			WHILE i < size DO
+				p := node.components[i];
+				IF GraphNodes.data IN p.props THEN 
+					p.SetProps(p.props + marks) 
+				ELSIF p IS GraphMRF.Node THEN
+					p.Install(install);
+					IF install = "SpatialCARProper.Install" THEN
+						p.SetProps(p.props + marks) 
+					END
+				END;
+				INC(i)
+			END
 		ELSE
 			node.SetProps(node.props + marks)
 		END
@@ -135,7 +152,7 @@ MODULE BugsParallel;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			p := name.components[v.index];
 			IF p # NIL THEN p.SetProps(p.props - {write, thisCore, logical}) END
 		END
@@ -145,7 +162,7 @@ MODULE BugsParallel;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			p := name.components[v.index];
 			IF (p # NIL) & (p IS GraphLogical.Node) THEN
 				p.SetProps(p.props + {logical})
@@ -158,7 +175,7 @@ MODULE BugsParallel;
 			p: GraphNodes.Node;
 			address: INTEGER;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			p := name.components[v.index];
 			(*	only write out nodes with the write mark	*)
 			IF (p # NIL) & (write IN p.props) THEN
@@ -181,7 +198,7 @@ MODULE BugsParallel;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			p := name.components[v.index];
 			IF (p # NIL) & (write IN p.props) THEN
 				IF ~(p IS GraphStochastic.Node) OR (GraphNodes.data IN p.props) THEN
@@ -402,7 +419,7 @@ MODULE BugsParallel;
 							WHILE k < size DO
 								p := u.Node(k);
 								temp := p.children;
-								thinned := ThinChildren(temp, rank);
+								thinned := ThinChildren(temp, rank); 
 								p.SetChildren(thinned);
 								this := this & ThisCore(p);
 								Externalize(p, wr);
@@ -558,7 +575,7 @@ MODULE BugsParallel;
 	PROCEDURE MarkMarkovBlanket (IN updaters: ARRAY OF ARRAY OF INTEGER; rank: INTEGER);
 		VAR
 			i, j, k, num, size, label, len, sizel: INTEGER;
-			p, q, prior: GraphStochastic.Node;
+			p, prior: GraphStochastic.Node;
 			u: UpdaterUpdaters.Updater;
 			list: GraphLogical.List;
 			log, log1: GraphLogical.Node;
@@ -634,9 +651,9 @@ MODULE BugsParallel;
 	(*	add observations to nodes to be writen plus their named logical parents	*)
 	PROCEDURE MarkObservations (observations: GraphStochastic.Vector);
 		VAR
-			i, j, len, size, sizel: INTEGER;
-			p, r: GraphStochastic.Node;
-			log, log1: GraphLogical.Node;
+			i, len: INTEGER;
+			p: GraphStochastic.Node;
+			log: GraphLogical.Node;
 			list: GraphLogical.List;
 		CONST
 			all = TRUE;
@@ -867,15 +884,18 @@ MODULE BugsParallel;
 			uPos: POINTER TO ARRAY OF INTEGER;
 			dummy: GraphStochastic.Node;
 			dummyMV: GraphMultivariate.Node;
+			filter: SET;
 	BEGIN
 		ClearNodes;
+		filter := GraphStochastic.dependentsFilter;
+		GraphStochastic.FilterDependents({GraphLogical.stochParent});
 		MarkLogicals;
 		dummy := GraphDummy.fact.New();
 		dummy.Init;
 		dummyMV := GraphDummyMV.fact.New();
 		dummyMV.Init;
 		dummyMV.SetComponent(NIL, - 1);
-		MarkMarkovBlanket(globalUpdaters, rank);
+		MarkMarkovBlanket(globalUpdaters, rank); 
 		MarkObservations(globalDeviance[rank]);
 		numStochasticPointers := CountStochasticPointers(globalUpdaters);
 		numNamePointers := CountNamedPointers();
@@ -898,7 +918,7 @@ MODULE BugsParallel;
 		IF debug THEN ExternalizeNamedAddresses(wr) END;
 		ExternalizeObservations(globalDeviance[rank], wr);
 		(*	Write out internal fields of block of pointers. For duplicate pointers only write internal fields
-		ffor the first time 	*)
+		for the first time 	*)
 		(*	write out data for dummy node so that it can be read back in	*)
 		dummy.Externalize(wr);
 		(*	write out data for dummy MV node so that it can be read back in	*)
@@ -936,7 +956,8 @@ MODULE BugsParallel;
 		wr.WriteInt(uEndPos);
 		wr.SetPos(uEndPos);
 		UpdaterUpdaters.EndExternalize(wr);
-		GraphNodes.EndExternalize(wr)
+		GraphNodes.EndExternalize(wr);
+		GraphStochastic.FilterDependents(filter)
 	END Write;
 
 	PROCEDURE Maintainer;

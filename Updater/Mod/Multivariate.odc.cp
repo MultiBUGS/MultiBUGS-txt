@@ -486,6 +486,8 @@ MODULE UpdaterMultivariate;
 		RETURN logLikelihood
 	END LogLikelihood;
 
+	(*	Note the use of LogLikelihood() to calculate prior contribution. Different components of
+	      updater.prior can be at different depth in the graph and so have a parent-child relationship	*)
 	PROCEDURE (updater: Updater) LogPrior* (): REAL;
 		VAR
 			i, size: INTEGER;

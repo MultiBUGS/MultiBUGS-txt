@@ -69,9 +69,9 @@ MODULE BugsMaster;
 		DevCommanders.par.beg := 0;
 		DevCommanders.par.end := text.Length();
 		IF Dialog.platform # Dialog.linux THEN
-			Dialog.Call("DevLinker.LinkExe", "", res)
+			Dialog.Call("DevLinker.LinkExe", "WindowsLinker", res)
 		ELSE
-			Dialog.Call("Dev2Linker1.LinkElfExe", "", res)
+			Dialog.Call("Dev2Linker1.LinkElfExe", "LinuxLinker", res)
 		END;
 		DevCommanders.par := NIL;
 	END LinkModules;

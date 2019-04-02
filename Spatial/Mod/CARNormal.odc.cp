@@ -36,11 +36,7 @@ MODULE SpatialCARNormal;
 		com := node.components;
 		quadForm := 0.0;
 		value := node.value;
-		IF node.neighs # NIL THEN
-			len := LEN(node.neighs)
-		ELSE
-			len := 0
-		END;
+		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		j := 0;
 		mu := 0.0;
 		wPlus := 0.0;
@@ -126,10 +122,10 @@ MODULE SpatialCARNormal;
 		x := node.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
+	PROCEDURE (node: Node) LogDet (): REAL;
 	BEGIN
 		RETURN 0.0
-	END LogLikelihoodUVMRF;
+	END LogDet;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR

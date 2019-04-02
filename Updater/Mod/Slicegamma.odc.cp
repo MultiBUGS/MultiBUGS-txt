@@ -102,6 +102,7 @@ MODULE UpdaterSlicegamma;
 		VAR
 			gamma: BOOLEAN;
 			children: GraphStochastic.Vector;
+			child: GraphStochastic.Node;
 			x, oldX: GraphNodes.Node;
 			i, len: INTEGER;
 			p0, p1: REAL;
@@ -113,13 +114,14 @@ MODULE UpdaterSlicegamma;
 		i := 0;
 		oldX := NIL;
 		WHILE gamma & (i < len) DO
-			gamma := children[i].ClassifyPrior() = GraphRules.normal;
+			child := children[i];
+			gamma := (child.ClassifyPrior() = GraphRules.normal) & (child IS GraphConjugateUV.Node);
 			IF gamma THEN
-				children[i](GraphConjugateUV.Node).LikelihoodForm(GraphRules.gamma, x, p0, p1);
+				child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.gamma, x, p0, p1);
 				gamma :=  (oldX = NIL) OR (oldX = x);
 				oldX := x;
 				IF gamma THEN
-					children[i](GraphConjugateUV.Node).LikelihoodForm(GraphRules.normal, x, p0, p1);
+					child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.normal, x, p0, p1);
 					gamma := x # prior;
 					IF gamma & (x IS GraphLogical.Node) THEN
 						gamma := x(GraphLogical.Node).ClassFunction(prior) = GraphRules.const

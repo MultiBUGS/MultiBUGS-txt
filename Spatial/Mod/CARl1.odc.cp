@@ -14,8 +14,7 @@ MODULE SpatialCARl1;
 
 	IMPORT
 		Math, Stores,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR,
-		MathFunc;
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR;
 
 
 	TYPE
@@ -30,7 +29,7 @@ MODULE SpatialCARl1;
 
 	PROCEDURE LinearForm (node: Node): REAL;
 		VAR
-			i, j, index, len: INTEGER;
+			i, index, len: INTEGER;
 			mu, value, linearForm: REAL;
 			com: GraphStochastic.Vector;
 	BEGIN
@@ -42,12 +41,12 @@ MODULE SpatialCARl1;
 		ELSE
 			len := 0
 		END;
-		j := 0;
-		WHILE j < len DO
-			index := node.neighs[j];
+		i := 0;
+		WHILE i < len DO
+			index := node.neighs[i];
 			mu := com[index].value;
-			linearForm := linearForm + 0.5 * ABS(value - mu) * node.weights[j];
-			INC(j)
+			linearForm := linearForm + 0.5 * ABS(value - mu) * node.weights[i];
+			INC(i)
 		END;
 		RETURN linearForm
 	END LinearForm;
@@ -136,10 +135,10 @@ MODULE SpatialCARl1;
 		x := likelihood.tau
 	END LikelihoodForm;
 
-	PROCEDURE (node: Node) LogLikelihoodUVMRF (): REAL;
+	PROCEDURE (node: Node) LogDet (): REAL;
 	BEGIN
 		RETURN 0.0
-	END LogLikelihoodUVMRF;
+	END LogDet;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;
 		VAR
@@ -162,30 +161,6 @@ MODULE SpatialCARl1;
 		END;
 		RETURN logPrior
 	END LogPrior;
-
-	PROCEDURE (node: Node) MarkNeighs, NEW;
-		VAR
-			i, numNeigh: INTEGER;
-			car: Node;
-	BEGIN
-		IF GraphNodes.mark IN node.props THEN
-			RETURN
-		END;
-		node.SetProps(node.props + {GraphNodes.mark});
-		i := 0;
-		IF node.neighs # NIL THEN
-			numNeigh := LEN(node.neighs)
-		ELSE
-			numNeigh := 0
-		END;
-		WHILE i < numNeigh DO
-			car := node.components[node.neighs[i]](Node);
-			IF ~(GraphNodes.mark IN car.props) THEN
-				car.MarkNeighs
-			END;
-			INC(i)
-		END
-	END MarkNeighs;
 
 	PROCEDURE (node: Node) MatrixElements (OUT values: ARRAY OF REAL);
 	BEGIN

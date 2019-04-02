@@ -230,10 +230,10 @@ MODULE GraphDeviance;
 		NEW(deviance);
 		deviance.Init;
 		stochastics := GraphStochastic.stochastics;
+		len := GraphStochastic.numStochastics;
 		i := 0;
 		numParents := 0;
 		numTerms := 0;
-		len := GraphStochastic.numStochastics;
 		WHILE i < len DO
 			stoch := stochastics[i];
 			observed := FALSE;
@@ -281,8 +281,8 @@ MODULE GraphDeviance;
 				WHILE j < num DO
 					child := children[j];
 					IF GraphNodes.mark IN child.props THEN
-						child.SetProps(child.props - {GraphNodes.mark});
 						deviance.terms[numTerms] := child;
+						child.SetProps(child.props - {GraphNodes.mark});
 						INC(numTerms)
 					END;
 					INC(j)

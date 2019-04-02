@@ -72,7 +72,7 @@ MODULE UpdaterUpdaters;
 		(*	calculates derivative of log conditional wrt to parameters on whole real line	*)
 	PROCEDURE (updater: Updater) DiffLogConditional* (index: INTEGER): REAL, NEW, ABSTRACT;
 
-		(*	writes in the 'prior' (posibly a block of nodes) for updater to store	*)
+		(*	writes out the 'prior' (posibly a block of nodes) for updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 		(*	generate initial values for nodes that updater updates	*)
@@ -376,7 +376,7 @@ MODULE UpdaterUpdaters;
 		updater.Internalize(rd);
 	END Internalize;
 
-	(*	reads the updater's type from store	*)
+	(*	reads the updater's type from store and creates updater of appropiate type	*)
 	PROCEDURE InternalizePointer* (VAR rd: Stores.Reader): Updater;
 		VAR
 			updater: Updater;

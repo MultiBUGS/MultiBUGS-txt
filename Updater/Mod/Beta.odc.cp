@@ -49,21 +49,11 @@ MODULE UpdaterBeta;
 		i := 0;
 		WHILE i < num DO
 			stoch := children[i](GraphConjugateUV.Node);
+			node := prior;
 			stoch.LikelihoodForm(as, node, m, n);
 			IF node = prior THEN
 				p[0] := p[0] + m;
 				p[1] := p[1] + n
-			ELSIF m < -0.5 THEN (*	catagorical likelihood	*)
-				prior.SetValue(0.25);
-				q0 := prior.Value();
-				prior.SetValue(0.75);
-				q1 := prior.Value();
-				weight := 2.0 * (q1 - q0) / (q1 + q0);
-				IF weight > eps THEN
-					p[0] := p[0] + 1.0
-				ELSIF weight < -eps THEN
-					p[1] := p[1] + 1.0
-				END
 			ELSE
 				node.ValDiff(prior, val, weight);
 				p[0] := p[0] + m * weight;

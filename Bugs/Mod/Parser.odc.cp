@@ -1525,9 +1525,9 @@ MODULE BugsParser;
 				IF descriptor = NIL THEN
 					IF s.string = "D" THEN
 						ParseDnotation(loops, s, derivative, dependent, independent);
-						derivative.name.passByReference := TRUE; 
-						dependent.name.passByReference := TRUE; 
-						independent.name.passByReference := TRUE;
+						derivative.name.passByreference := TRUE; 
+						dependent.name.passByreference := TRUE; 
+						independent.name.passByreference := TRUE;
 						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;
 						IF s.char # "-" THEN Error(38); RETURN END;
@@ -1569,8 +1569,8 @@ MODULE BugsParser;
 						END
 					ELSIF s.string = "F" THEN
 						ParseFnotation(loops, s, functionVar, independent);
-						functionVar.name.passByReference := TRUE; 
-						independent.name.passByReference := TRUE; 
+						functionVar.name.passByreference := TRUE; 
+						independent.name.passByreference := TRUE; 
 						IF s.char # "<" THEN Error(38); RETURN END;
 						s.Scan;
 						IF s.char # "-" THEN Error(38); RETURN END;
@@ -1818,7 +1818,7 @@ MODULE BugsParser;
 			WHILE i < numParents DO
 				parent := parents[i];
 				WITH parent: Variable DO
-					IF isFunctional OR (signiture[i] # "v") THEN parent.name.passByReference := TRUE END;
+					IF isFunctional OR (signiture[i] # "v") THEN parent.name.passByreference := TRUE END;
 				ELSE
 				END;
 				INC(i)
@@ -1847,7 +1847,7 @@ MODULE BugsParser;
 					|index: Integer DO
 					|index: Real DO
 					ELSE
-						name.passByReference := TRUE	(*	possible mixture model	*)
+						name.passByreference := TRUE	(*	possible mixture model	*)
 					END
 				END;
 				INC(i)
@@ -1871,12 +1871,12 @@ MODULE BugsParser;
 		WHILE list # NIL DO
 			IF list.expression # NIL THEN
 				variable := list.variable;
-				variable.name.passByReference := TRUE;
+				variable.name.passByreference := TRUE;
 				expression := list.expression;
 				MarkExpression(expression)
 			ELSIF list.density # NIL THEN
 				variable := list.variable;
-				variable.name.passByReference := TRUE;
+				variable.name.passByreference := TRUE;
 				density := list.density;
 				parents := density.parents;
 				IF parents # NIL THEN numParents := LEN(parents) ELSE numParents := 0 END;
@@ -1884,7 +1884,7 @@ MODULE BugsParser;
 				WHILE i < numParents DO
 					parent := parents[i];
 					WITH parent: Variable DO
-						parent.name.passByReference := TRUE
+						parent.name.passByreference := TRUE
 					ELSE
 					END;
 					INC(i)

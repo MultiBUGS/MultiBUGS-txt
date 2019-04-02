@@ -159,7 +159,7 @@ MODULE UpdaterEllipticalD;
 
 	PROCEDURE (f: Factory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterElipticalD.Install"
+		install := "UpdaterEllipticalD.Install"
 	END Install;
 
 	PROCEDURE (f: Factory) Create (): UpdaterUpdaters.Updater;

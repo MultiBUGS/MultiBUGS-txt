@@ -90,6 +90,7 @@ MODULE GraphStochastic;
 
 	VAR
 		cache: POINTER TO ARRAY OF List;
+		dependentsFilter-: SET;
 		numStochastics-: INTEGER;
 		stochastics-: Vector;
 		auxillary-: List;
@@ -286,11 +287,13 @@ MODULE GraphStochastic;
 
 	(*	writes internal base fields of stochastic node to store	*)
 	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer);
+		VAR
+			mark: SET;
 	BEGIN
 		wr.WriteInt(node.depth);
 		wr.WriteInt(node.classConditional);
 		IF data IN node.props THEN wr.WriteReal(node.value) END;
-		GraphLogical.ExternalizeList(node.dependents, wr);
+		GraphLogical.ExternalizeList(node.dependents, dependentsFilter, wr);
 		node.ExternalizeStochastic(wr);
 	END ExternalizeNode;
 
@@ -464,7 +467,7 @@ MODULE GraphStochastic;
 			list := cursor
 		END
 	END AddToList;
-
+	
 	PROCEDURE ClassFunction* (node, parent: GraphNodes.Node): INTEGER;
 		CONST
 			maxLevel = 7;
@@ -511,6 +514,7 @@ MODULE GraphStochastic;
 		stochastics := NIL;
 		auxillary := NIL;
 		cache := NIL;
+		dependentsFilter := {GraphLogical.dependent, GraphLogical.stochParent}
 	END Clear;
 
 	PROCEDURE ClearMarks* (vector: Vector; mark: SET);
@@ -678,14 +682,29 @@ MODULE GraphStochastic;
 	END RegisterAuxillary;
 
 	PROCEDURE SetStochastics* (nodes: Vector);
+		VAR
+			stoch: Node;
+			i: INTEGER;
 	BEGIN
 		stochastics := nodes;
 		IF nodes # NIL THEN
 			numStochastics := LEN(nodes)
 		ELSE
 			numStochastics := 0
-		END
+		END;
+		i := 0;
+		WHILE i < numStochastics DO
+			stoch := stochastics[i];
+			ASSERT(~(GraphNodes.mark IN stoch.props), 99);
+			stoch.SetProps(stoch.props - {GraphNodes.mark});
+			INC(i)
+		END;
 	END SetStochastics;
+
+	PROCEDURE FilterDependents* (filter: SET);
+	BEGIN
+		dependentsFilter := filter
+	END FilterDependents;
 
 	PROCEDURE Maintainer;
 	BEGIN

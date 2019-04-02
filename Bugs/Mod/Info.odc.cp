@@ -14,7 +14,7 @@ MODULE BugsInfo;
 	IMPORT
 		Strings,
 		TextMappers, TextModels,
-		BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
+		BugsComponents, BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
 		BugsNames, BugsParser, BugsPartition,
 		GraphLogical, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterAuxillary, UpdaterMultivariate, UpdaterUpdaters;
@@ -159,7 +159,7 @@ MODULE BugsInfo;
 			node: GraphNodes.Node;
 			isConstant: BOOLEAN;
 	BEGIN
-		IF ~name.passByReference THEN RETURN TRUE END;
+		IF ~name.passByreference THEN RETURN TRUE END;
 		components := name.components;
 		size := LEN(offsets);
 		i := 0;
@@ -281,7 +281,7 @@ MODULE BugsInfo;
 		IF offsets = NIL THEN RETURN END;
 		size := LEN(offsets);
 		name := var.name;
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			IF offsets # NIL THEN
 				IF IsConstant(name, offsets) THEN numChains := 1 END;
 				VariableValues(name, offsets, numChains, f)
@@ -315,7 +315,7 @@ MODULE BugsInfo;
 	BEGIN
 		count := 0;
 		size := name.Size();
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			i := 0;
 			components := name.components;
 			WHILE i < size DO
@@ -338,7 +338,7 @@ MODULE BugsInfo;
 			p: GraphNodes.Node;
 	BEGIN
 		count := 0;
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			i := 0;
 			size := name.Size();
 			components := name.components;
@@ -360,7 +360,7 @@ MODULE BugsInfo;
 			p: GraphNodes.Node;
 	BEGIN
 		count := 0;
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			i := 0;
 			components := name.components;
 			size := LEN(components);
@@ -407,7 +407,7 @@ MODULE BugsInfo;
 		END;
 		counter := 0;
 		i := 0;
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			WHILE i < size DO
 				IF counter = 0 THEN f.WriteTab END;
 				node := name.components[i];
@@ -489,7 +489,7 @@ MODULE BugsInfo;
 			i, size: INTEGER;
 			node: GraphNodes.Node;
 	BEGIN
-		IF ~name.passByReference THEN RETURN FALSE END;
+		IF ~name.passByreference THEN RETURN FALSE END;
 		size := name.Size();
 		i := 0;
 		isStochastic := FALSE;
@@ -563,7 +563,7 @@ MODULE BugsInfo;
 			i, size: INTEGER;
 			node: GraphNodes.Node;
 	BEGIN
-		IF ~name.passByReference THEN RETURN TRUE END;
+		IF ~name.passByreference THEN RETURN TRUE END;
 		size := name.Size();
 		i := 0;
 		isData := FALSE;
@@ -640,7 +640,7 @@ MODULE BugsInfo;
 			p: GraphNodes.Node;
 			string: ARRAY 128 OF CHAR;
 	BEGIN
-		IF name.passByReference THEN
+		IF name.passByreference THEN
 			i := 0;
 			size := name.Size();
 			WHILE i < size DO
@@ -772,7 +772,7 @@ MODULE BugsInfo;
 		LOOP
 			name := BugsIndex.FindByNumber(i);
 			IF name = NIL THEN EXIT END;
-			IF name.passByReference THEN
+			IF name.passByreference THEN
 				j := 0;
 				len := name.Size();
 				WHILE j < len DO
@@ -848,9 +848,14 @@ MODULE BugsInfo;
 				ELSE
 				END;
 				IF size = 0 THEN (*	is a constraint	*)
-					Strings.Find(string, "[", 0, pos);
-					IF pos # - 1 THEN string[pos] := 0X END;
-					string := string + "[]"
+					Strings.Find(string, ",", 0, pos); 
+					IF pos # -1 THEN
+						string[pos] := "]"; string[pos + 1] := 0X
+					ELSE
+						Strings.Find(string, "[", 0, pos); 
+						IF pos # - 1 THEN string[pos] := 0X END;
+						string := string + "[]"
+					END
 				END;
 				f.WriteTab;
 				f.WriteString(string);
@@ -922,6 +927,14 @@ MODULE BugsInfo;
 			BugsPartition.DistributeCensored(observations, updaters, id)
 		END;
 		f.WriteTab;
+		IF BugsComponents.allThis THEN
+			f.WriteString("Graph seperates over cores")
+		ELSE
+			f.WriteString("Graph does not seperate over cores")
+		END;
+		f.WriteLn;
+		f.WriteLn;
+		f.WriteTab;
 		f.WriteString("Number of workers per chain: ");
 		f.WriteInt(workersPerChain);
 		f.WriteLn;
@@ -957,14 +970,18 @@ MODULE BugsInfo;
 					u := UpdaterActions.updaters[0, label];
 					p := u.Prior(0);
 					FindGraphNode(p, string);
-					Strings.Find(string, "[", 0, pos);
-					string[pos] := 0X;
+					Strings.Find(string, ",", 0, pos);
+					IF pos # -1 THEN
+						string[pos] := "}"; string[pos + 1] := 0X
+					ELSE
+						Strings.Find(string, "[", 0, pos);
+						string[pos] := 0X
+					END;
 					string := "cons(" + string + "[])";
 					f.WriteTab;
 					f.WriteString(string);
 					INC(i)
 				END;
-				(*ASSERT(id[j] = 0, 77);*)
 				f.WriteTab;
 				f.WriteString("-");
 				f.WriteLn
@@ -1094,6 +1111,14 @@ MODULE BugsInfo;
 			string: ARRAY 128 OF CHAR;
 	BEGIN
 		IF BugsInterface.IsDistributed() THEN
+			f.WriteTab;
+			IF BugsComponents.allThis THEN
+				f.WriteString("Graph seperates over cores")
+			ELSE
+				f.WriteString("Graph does not seperate over cores")
+			END;
+			f.WriteLn;
+			f.WriteLn;
 			hook := BugsInterface.hook;
 			f.WriteTab; f.WriteString("Time taken to write model file ");
 			time := hook.writeTime;

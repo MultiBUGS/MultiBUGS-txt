@@ -84,6 +84,9 @@ MODULE UpdaterExternal;
 		(*	general updater based on MAP	*)
 		UpdaterMethods.LoadUpdater("UpdaterMAPproposal.Install");
 
+		(*	eliptical slice updater for MVN prior and mostly MVN likelihood	*)
+		(*UpdaterMethods.LoadUpdater("UpdaterEllipticalMVN.Install");*)
+
 		(*	eliptical slice updater for MVN prior	*)
 		UpdaterMethods.LoadUpdater("UpdaterElliptical.Install");
 

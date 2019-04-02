@@ -130,7 +130,7 @@ MODULE ParallelDebug;
 			END;
 			form.WriteLn;
 			oldAttr := form.rider.attr;
-			newAttr := TextModels.NewColor(oldAttr, Ports.grey25);
+			newAttr := TextModels.NewColor(oldAttr, Ports.grey50);
 			i := 0;
 			WHILE i < numRows DO
 				j := 0;
@@ -141,7 +141,7 @@ MODULE ParallelDebug;
 					MapGraphAddress(adr, label);
 					v := DevDebug.HeapRefView(adr, label);
 					IF label[0] = "[" THEN
-						label := "aux"
+						label := "dummy"
 					ELSE
 						label[0] := " "; label[LEN(label$) - 1] := 0X
 					END;

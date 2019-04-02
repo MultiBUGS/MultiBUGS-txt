@@ -334,7 +334,7 @@ MODULE BugsRectData;
 					labels[col].indices[0] := row + 1;
 					name := labels[col].name;
 					offset := name.Offset(labels[col].indices);
-					IF name.passByReference THEN
+					IF name.passByreference THEN
 						IF ~nA THEN
 							name.StoreValue(offset, value);
 							node := name.components[offset];
@@ -399,7 +399,7 @@ MODULE BugsRectData;
 			row := i DIV numCols;
 			IF labels[col].name # NIL THEN
 				name := labels[col].name;
-				IF ~name.passByReference THEN (*	initial value given for data node	*)
+				IF ~name.passByreference THEN (*	initial value given for data node	*)
 					ok := FALSE; Error(16); RETURN
 				END;
 				labels[col].indices[0] := row + 1;

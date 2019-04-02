@@ -160,7 +160,7 @@ MODULE UpdaterGMRF;
 		updater.SetValue(value);
 		numConstraints := updater.numConstraints;
 		(*	add in mean of GMRF	*)
-		prior[0](GraphMultivariate.Node).MVPriorForm(mean, p1);
+		mRF.MVPriorForm(mean, p1);
 		i := 0;
 		WHILE i < size DO
 			updater.mu[i] := mean[i] + a[i];
@@ -699,7 +699,7 @@ MODULE UpdaterGMRF;
 		fGeneral.GetDefaults;
 		factGeneral := fGeneral;
 		NEW(fNormal);
-		fNormal.SetProps({UpdaterUpdaters.enabled});
+		fNormal.SetProps({(*UpdaterUpdaters.enabled*)});
 		fNormal.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)

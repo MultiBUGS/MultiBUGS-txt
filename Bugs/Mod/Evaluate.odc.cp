@@ -105,7 +105,7 @@ MODULE BugsEvaluate;
 		ELSIF t IS BugsParser.Variable THEN
 			variable := t(BugsParser.Variable);
 			name := variable.name;
-			IF name.passByReference & (name.components = NIL) THEN
+			IF name.passByreference & (name.components = NIL) THEN
 				Error(2, name.string); (*	variable not defined	*)
 				RETURN error
 			END;
@@ -134,7 +134,7 @@ MODULE BugsEvaluate;
 				Error(2, name.string); (*	variable not defined	*)
 				RETURN error
 			END;
-			IF name.passByReference THEN
+			IF name.passByreference THEN
 				node := name.components[offset];
 				IF ~(GraphNodes.data IN node.props) THEN
 					name.Indices(offset, string);
@@ -412,7 +412,7 @@ MODULE BugsEvaluate;
 			END;
 			IF numVarIndex = 0 THEN
 				offset := name.Offset(indices);
-				IF name.passByReference THEN
+				IF name.passByreference THEN
 					node := variable.name.components[offset];
 					IF node = NIL THEN Error(14, name.string); RETURN NIL END
 				ELSE
@@ -533,7 +533,7 @@ MODULE BugsEvaluate;
 			INC(i)
 		END;
 		IF numVarIndex = 0 THEN
-			IF name.passByReference THEN
+			IF name.passByreference THEN
 				vector.components := name.components
 			ELSE
 				vector.values := name.values

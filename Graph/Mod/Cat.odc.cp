@@ -16,7 +16,7 @@ MODULE GraphCat;
 
 	IMPORT
 		Stores,
-		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules,
+		GraphConjugateUV, GraphLogical, GraphMultivariate, GraphNodes, GraphRules,
 		GraphStochastic, GraphUnivariate, GraphVector,
 		MathFunc, MathRandnum;
 
@@ -79,6 +79,7 @@ MODULE GraphCat;
 			class, f, i, len, numConst, numGen, numGenDiff, numIdent, numLink, numStick,
 			nElem, start, states, step: INTEGER;
 			p: GraphNodes.Node;
+			install: ARRAY 64 OF CHAR;
 	BEGIN
 		states := node.dimP;
 		nElem := parent.Size();
@@ -112,21 +113,21 @@ MODULE GraphCat;
 		ELSE
 			WHILE i < states DO
 				p := node.p[start + i * step];
-				WITH p:GraphVector.Node DO
-					IF p.components[0] = node.p[start] THEN INC(numStick) END
+				WITH p: GraphVector.Node DO
+					IF p.components[i] = p THEN INC(numStick) END
 				ELSE
-				END;
-				f := GraphStochastic.ClassFunction(p, parent);
-				IF (f = GraphRules.linkFun) OR (f = GraphRules.logitLink) THEN
-					INC(numLink)
-				ELSIF f = GraphRules.const THEN
-					INC(numConst)
-				ELSIF f = GraphRules.other THEN
-					INC(numGen)
-				ELSIF f = GraphRules.ident THEN
-					INC(numIdent)
-				ELSE
-					INC(numGenDiff)
+					f := GraphStochastic.ClassFunction(p, parent);
+					IF (f = GraphRules.linkFun) OR (f = GraphRules.logitLink) THEN
+						INC(numLink)
+					ELSIF f = GraphRules.const THEN
+						INC(numConst)
+					ELSIF f = GraphRules.other THEN
+						INC(numGen)
+					ELSIF f = GraphRules.ident THEN
+						INC(numIdent)
+					ELSE
+						INC(numGenDiff)
+					END
 				END;
 				INC(i)
 			END
@@ -135,8 +136,14 @@ MODULE GraphCat;
 			class := GraphRules.general
 		ELSIF (numLink = 0) & (numIdent = nElem) THEN
 			class := GraphRules.dirichlet
-		ELSIF (numIdent = states) & (numStick = states) THEN
-			class := GraphRules.beta1
+		ELSIF numStick = states THEN
+			p := node.p[start];
+			p.Install(install);
+			IF install = "GraphStick.Install" THEN
+				class := GraphRules.beta1
+			ELSE
+				class := GraphRules.general
+			END
 		ELSIF numLink + numConst = states THEN
 			class := GraphRules.logCon
 		ELSE
@@ -240,15 +247,29 @@ MODULE GraphCat;
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
 		VAR
-			r, start, step: INTEGER;
+			r, start, step, class: INTEGER;
+			parent: GraphNodes.Node;
 	BEGIN
 		ASSERT(as IN {GraphRules.dirichlet, GraphRules.beta, GraphRules.beta1}, 21);
 		start := node.start;
 		step := node.step;
 		r := SHORT(ENTIER(node.value + eps));
-		x := node.p[start + (r - 1) * step];
-		p0 := r;
-		IF as IN {GraphRules.beta, GraphRules.beta1} THEN p0 := -p0 END
+		IF as = GraphRules.dirichlet THEN
+			x := node.p[start + (r - 1) * step];
+			p0 := r; p1 := 0.0
+		ELSE (*	stick breaking	*)
+			parent := x;
+			x := node.p[start + (r - 1) * step];
+			class := x(GraphLogical.Node).ClassFunction(parent);
+			x := parent;
+			IF class = GraphRules.ident THEN
+				p0 := 1.0; p1 := 0.0
+			ELSIF class = GraphRules.linear THEN
+				p0 := 0.0; p1 := 1.0
+			ELSE
+				p0 := 0.0; p1 := 0.0
+			END
+		END
 	END LikelihoodForm;
 
 	PROCEDURE (node: Node) LogLikelihoodUnivariate (): REAL;

@@ -101,9 +101,7 @@ MODULE GraphUVMRF;
 
 	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer);
 	BEGIN
-		IF node.index = 0 THEN
-			GraphNodes.Externalize(node.tau, wr)
-		END;
+		GraphNodes.Externalize(node.tau, wr);
 		node.ExternalizeUVMRF(wr)
 	END ExternalizeChain;
 
@@ -119,20 +117,8 @@ MODULE GraphUVMRF;
 	PROCEDURE (node: Node) InternalizeUVMRF- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) InternalizeChain- (VAR rd: Stores.Reader);
-		VAR
-			i, size: INTEGER;
-			p: GraphStochastic.Node;
 	BEGIN
-		IF node.index = 0 THEN
-			size := node.Size();
-			node.tau := GraphNodes.Internalize(rd);
-			i := 1;
-			WHILE i < size DO
-				p := node.components[i];
-				IF p IS Node THEN p(Node).tau := node.tau END;
-				INC(i)
-			END
-		END;
+		node.tau := GraphNodes.Internalize(rd);
 		node.InternalizeUVMRF(rd)
 	END InternalizeChain;
 
@@ -141,7 +127,7 @@ MODULE GraphUVMRF;
 		RETURN 0.0
 	END Location;
 
-	PROCEDURE (node: Node) LogLikelihoodUVMRF- (): REAL, NEW, ABSTRACT;
+	PROCEDURE (node: Node) LogDet- (): REAL, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) LogLikelihood* (): REAL;
 		VAR
@@ -153,7 +139,7 @@ MODULE GraphUVMRF;
 		node.LikelihoodForm(as, x, r, lambda);
 		tau := x.Value();
 		logTau := MathFunc.Ln(tau);
-		logLikelihood := r * logTau - tau * lambda + node.LogLikelihoodUVMRF();
+		logLikelihood := r * logTau - tau * lambda + node.LogDet();
 		RETURN logLikelihood
 	END LogLikelihood;
 
@@ -163,15 +149,15 @@ MODULE GraphUVMRF;
 			lambda, logPrior, logTau, r, tau: REAL;
 			x: GraphNodes.Node;
 	BEGIN
-		ASSERT(node.index = 0, 20);
 		as := GraphRules.gamma;
 		node.LikelihoodForm(as, x, r, lambda);
 		tau := x.Value();
 		logTau := MathFunc.Ln(tau);
-		logPrior := r * logTau - tau * lambda;
+		logPrior := r * logTau - tau * lambda; 
 		RETURN logPrior
 	END LogMVPrior;
 
+	(*	can only generate multivariate sample for normal models	*)
 	PROCEDURE (node: Node) MVSample* (OUT res: SET);
 		VAR
 			i, nElements, size, type, classPrior: INTEGER;

@@ -53,6 +53,7 @@ MODULE UpdaterMessages;
 		RegisterKey("UpdaterDirichlet.Install", "conjugate dirichlet");
 
 		RegisterKey("UpdaterElliptical.Install", "ESS for MVN prior");
+		RegisterKey("UpdaterEllipticalMVN.Install", "ESS for MVN prior and MVN partial likelihood");		
 		RegisterKey("UpdaterEllipticalD.Install", "ESS for block of univariate normal priors");
 		RegisterKey("UpdaterRandEffect.Install", " ESS univariate normal");
 		RegisterKey("UpdaterGMRFess.Install", "ESS for GMRF prior");

@@ -13,7 +13,7 @@ MODULE MonitorSamplesDisc;
 	
 
 	IMPORT
-		Files64, Stores, Stores64,
+		Files64, Stores, Stores64, 
 		GraphDeviance, GraphNodes,
 		MonitorMonitors, MonitorSamples;
 
@@ -35,7 +35,6 @@ MODULE MonitorSamplesDisc;
 		file: Files64.File;
 		rd64: Stores64.Reader;
 		wr64: Stores64.Writer;
-		wrPos: LONGINT;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		fact-: Factory;
@@ -154,6 +153,7 @@ MODULE MonitorSamplesDisc;
 		VAR
 			i, index, j, len, numBlocks: INTEGER;
 			value: REAL;
+			wrPos: LONGINT;
 			temp: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		index := monitor.sampleSize MOD blockSize;
@@ -174,7 +174,7 @@ MODULE MonitorSamplesDisc;
 				WHILE j < blockSize DO
 					wr64.WriteSReal(monitor.buffer[j]);
 					INC(j)
-				END
+				END;
 			END
 		END;
 		value := monitor.node.Value();
