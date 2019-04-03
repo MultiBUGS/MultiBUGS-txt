@@ -36,11 +36,7 @@ MODULE SpatialCARl1;
 		com := node.components;
 		linearForm := 0.0;
 		value := node.value;
-		IF node.neighs # NIL THEN
-			len := LEN(node.neighs)
-		ELSE
-			len := 0
-		END;
+		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		i := 0;
 		WHILE i < len DO
 			index := node.neighs[i];
@@ -94,11 +90,7 @@ MODULE SpatialCARl1;
 	BEGIN
 		x := node.value;
 		tau := node.tau.Value();
-		IF node.neighs # NIL THEN
-			len := LEN(node.neighs)
-		ELSE
-			len := 0
-		END;
+		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		i := 0;
 		differential := 0.0;
 		WHILE i < len DO
@@ -126,13 +118,13 @@ MODULE SpatialCARl1;
 	BEGIN
 	END InternalizeUVCAR;
 
-	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
+	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
 	OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		p0 := 1 - likelihood.numIslands / likelihood.Size();
-		p1 := LinearForm(likelihood);
-		x := likelihood.tau
+		p0 := 1 - node.numIslands / node.Size();
+		p1 := LinearForm(node);
+		x := node.tau
 	END LikelihoodForm;
 
 	PROCEDURE (node: Node) LogDet (): REAL;
@@ -147,11 +139,7 @@ MODULE SpatialCARl1;
 	BEGIN
 		x := node.value;
 		tau := node.tau.Value();
-		IF node.neighs # NIL THEN
-			len := LEN(node.neighs)
-		ELSE
-			len := 0
-		END;
+		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		i := 0;
 		logPrior := 0.0;
 		WHILE i < len DO

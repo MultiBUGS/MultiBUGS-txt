@@ -85,9 +85,18 @@ MODULE UpdaterMRFConstrain;
 			i, size: INTEGER;
 	BEGIN
 		mRF := updater.mrf;
-		mRF.MVSample(res);
-		i := 0;
 		size := mRF.Size();
+		i := 0;
+		res := {};
+		WHILE (i < size) & (res = {}) DO
+			p := mRF.components[i];
+			IF ~(GraphStochastic.initialized IN p.props) THEN
+				res := {GraphNodes.lhs}
+			END;
+			INC(i)
+		END;
+		IF res # {} THEN mRF.MVSample(res) END;
+		i := 0;
 		WHILE i < size DO 
 			p := mRF.components[i];
 			p.SetProps(p.props + {GraphStochastic.initialized});
