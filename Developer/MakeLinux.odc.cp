@@ -43,7 +43,7 @@ GraphConstant GraphMixture GraphMAP
 DeviancePlugin
 
 BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
-BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsInfo BugsComponents
+BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel BugsComponents BugsInfo
 
 BugsRectData BugsSplusData
 
@@ -76,7 +76,7 @@ GraphBern GraphBinomial GraphCat GraphCat2 GraphFounder GraphGeometric GraphHype
 
 GraphMultinom
 
-GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphFlat GraphGeneric GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphHazard GraphLogistic GraphLognorm GraphNormal GraphPriorNP GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
+GraphBeta GraphChisqr GraphDbexp GraphExp GraphF GraphFlat GraphGeneric GraphGEV GraphGPD GraphGamma GraphGengamma GraphHalfT GraphHazard GraphWeibullHazard GraphLogistic GraphLognorm GraphNormal GraphPriorNP GraphPareto GraphPolygene GraphStable GraphT GraphTrapezium GraphTriangle GraphUniform GraphWeibull GraphWeibullShifted
 
 GraphDirichlet GraphGPprior GraphMVNormal GraphMVT GraphRENormal GraphRandwalk GraphSample GraphStochtrend GraphWishart GraphFlexWishart
 
@@ -96,7 +96,7 @@ UpdaterICM
 UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 
 UpdaterAMblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet
-UpdaterElliptical UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
+UpdaterElliptical UpdaterEllipticalMVN UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
 
 UpdaterUnivariateT UpdaterMultivariateT
 
