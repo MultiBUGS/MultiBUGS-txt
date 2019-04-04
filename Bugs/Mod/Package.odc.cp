@@ -412,6 +412,9 @@ MODULE BugsPackage;
 			CopyFile("libOpenBUGS.dll", dest);
 			CopyFile("libMultiBUGS.dll", dest);
 
+			(*	Linux specific  files	*)
+			CopyFile("OpenBUGS", dest);
+
 			CopyFile("libtaucs.dll", dest);
 			CopyFile("BackBUGS.lnk", dest);
 			CopyFile("Script.odc", dest);
@@ -423,7 +426,6 @@ MODULE BugsPackage;
 			CopyFile("Code/MPImsimp.ocf", dest);
 			CopyFile("Lin/Code/Console.ocf", dest);
 
-			
 			CopyLoc("Bugs/Code", dest);
 			CopyLoc("Compare/Code", dest);
 			CopyLoc("Correl/Code", dest);
@@ -459,16 +461,21 @@ MODULE BugsPackage;
 			CopyLoc("Text/Code", dest);
 			CopyLoc("Win/Code", dest);
 			CopyLoc("Xhtml/Code", dest);
-			
+
+			CopyLoc("Dev2/Code", dest);
+			CopyLoc("Gtk2/Code", dest);
+			CopyLoc("Code", dest);
+
 			CopyFile("Math/Sym/Func.osf", dest);
 			CopyFile("Graph/Sym/Logical.osf", dest);
 			CopyFile("Graph/Sym/Nodes.osf", dest);
 			CopyFile("Graph/Sym/Rules.osf", dest);
 			CopyFile("Graph/Sym/Scalar.osf", dest);
-			CopyFile("Graph/Sym/Stack.osf", dest);
 			CopyFile("Graph/Sym/Stochastic.osf", dest);
 			CopyFile("System/Sym/Math.osf", dest);
 			CopyFile("System/Sym/Stores.osf", dest);
+			CopyFile("Sym/Math.osf", dest);
+			CopyFile("Sym/Stores.osf", dest);
 
 			(*	if config and startup files exist overwrite standard BB files	*)
 			CopyFile("Code/Config.ocf", dest + "/System");
@@ -631,6 +638,17 @@ MODULE BugsPackage;
 		StdLog.Ln
 
 	END CopyBugs;
+	
+	PROCEDURE Package*;
+	BEGIN
+		dest := "MultiBUGS-binary/";
+		copyBinary := TRUE;
+		copyDocu := TRUE;
+		copySource := TRUE;
+		copyExamples := TRUE;
+		produceHTML := FALSE;
+		CopyBugs;
+	END Package;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -653,3 +671,5 @@ BEGIN
 	Init
 END BugsPackage.
 
+
+BugsPackage.Package
