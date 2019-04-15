@@ -69,6 +69,17 @@ MODULE GraphGrammar;
 		RETURN descriptor
 	END Find;
 
+	PROCEDURE Clear*;
+		VAR
+			descriptor: External;	
+	BEGIN
+		descriptor := externalsList;
+		WHILE descriptor # NIL DO
+			IF descriptor.fact #  NIL THEN descriptor.fact.Clear END;
+			descriptor := descriptor.next
+		END;
+	END Clear;
+	
 	PROCEDURE FindDensity* (IN name: ARRAY OF CHAR): External;
 		CONST
 			density = TRUE;

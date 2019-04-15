@@ -1157,7 +1157,7 @@ MODULE BugsCPWrite;
 		VAR
 			fileName: ARRAY 128 OF CHAR;
 	BEGIN
-		Strings.IntToString(index, fileName);
+		Strings.IntToString(index, fileName); 
 		fileName := "Node" + fileName;
 		f.SetPos(0);
 		(*	write MODULE stuff	*)

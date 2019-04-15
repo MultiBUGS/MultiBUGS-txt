@@ -168,6 +168,15 @@ MODULE ParallelDebug;
 		Distribute(rank, workersPerChain)
 	END ShowDistribution;
 
+	PROCEDURE Update* (iterations: INTEGER);
+		VAR
+			res: SET;
+	BEGIN
+		REPEAT
+			ParallelActions.Update(FALSE, res); DEC(iterations)
+		UNTIL iterations = 0
+	END Update;
+	
 	PROCEDURE Guard* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsInitialized()
@@ -193,4 +202,6 @@ MODULE ParallelDebug;
 BEGIN
 	Init
 END ParallelDebug.
+
+"ParallelDebug.Update(1)"
 

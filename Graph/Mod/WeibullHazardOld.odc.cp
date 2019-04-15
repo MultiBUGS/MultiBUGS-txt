@@ -10,27 +10,34 @@ copyright:	"Rsrc/About"
 MODULE GraphWeibullHazard;
 
 	IMPORT
-		Math, Stores, 
-		GraphJacobi, GraphLogical, GraphNodes, GraphRules, GraphStochastic;
+		Math, Stores,
+		MathJacobi,
+		GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphStochastic.Node) 
 			nu: GraphNodes.Node;
-			rule: GraphJacobi.Node;
 			function: GraphNodes.Node;
 			t: GraphStochastic.Node;
 			event: BOOLEAN
 		END;
 
 		Factory = POINTER TO RECORD(GraphStochastic.Factory) END;
-		
+
 	CONST
-		order = 8;
+		ruleOrder = 8;
+		grid = 100;
+		delta = 1.0 / grid;
+		eps = 1.0E-10;
+		maxNu = 5;
+		numNu = grid * maxNu;
 		
 	VAR
-		ruleCache: GraphJacobi.Node;
+		fact-: GraphStochastic.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		(*	table of Gauss-Jacobi quadrature rules	*)
+		gaussJacobiW, gaussJacobiX: ARRAY numNu OF ARRAY ruleOrder OF REAL;	
 
 	PROCEDURE (node: Node) Bounds (OUT left, upper: REAL);
 	BEGIN
@@ -46,9 +53,13 @@ MODULE GraphWeibullHazard;
 	PROCEDURE (node: Node) Check (): SET;
 		VAR
 			res: SET;
+			nu: REAL;
 	BEGIN
 		res := {};
 		IF ~(GraphStochastic.data IN node.props) THEN RETURN {GraphNodes.notData} END;
+		nu := node.nu.Value();
+		IF nu < - eps THEN RETURN {GraphNodes.posative, GraphNodes.arg1} END;
+		IF nu > maxNu - eps THEN RETURN {GraphNodes.invalidPosative, GraphNodes.arg1} END;
 		RETURN res
 	END Check;
 
@@ -82,7 +93,6 @@ MODULE GraphWeibullHazard;
 		GraphNodes.Externalize(node.nu, wr);
 		GraphNodes.Externalize(node.function, wr);
 		GraphNodes.Externalize(node.t, wr);
-		GraphNodes.Externalize(node.rule, wr);
 		wr.WriteBool(node.event)
 	END ExternalizeStochastic;
 
@@ -94,8 +104,6 @@ MODULE GraphWeibullHazard;
 		node.function := GraphNodes.Internalize(rd);
 		p := GraphNodes.Internalize(rd);
 		node.t := p(GraphStochastic.Node);
-		p := GraphNodes.Internalize(rd);
-		node.rule := p(GraphJacobi.Node);
 		rd.ReadBool(node.event)	
 	END InternalizeStochastic;
 
@@ -110,7 +118,7 @@ MODULE GraphWeibullHazard;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "GraphWeibullHazard.Install";
+		install := "GraphWeibullHazard.Install"
 	END Install;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
@@ -131,29 +139,34 @@ MODULE GraphWeibullHazard;
 	(*	hazard = F(s) * nu * s ^ (nu - 1) 	*)
 	PROCEDURE (node: Node) LogLikelihood (): REAL;
 		VAR
-			dummy, integral, log, s, time, y, nu, scale: REAL;
+			integral, log, s, time, y, nu, deltaNu, scale: REAL;
 			t: GraphStochastic.Node;
-			i, order: INTEGER;
-			rule: GraphJacobi.Node;
+			i, index: INTEGER;
 	BEGIN
-		(*	this causes Gauss-Jacobi rule to be set up if needs be	*)
-		dummy := node.rule.Value();
 		nu := node.nu.Value();
+		(*	use the tabulated Gauss-Jacobi quadrature rule that has a beta just below the 
+			   actual beta and correct the integrand with a power of s	*)
+		index := SHORT(ENTIER(nu / delta)) - 1;
+		ASSERT(index >= 0, 66);
+		deltaNu := nu - index * delta;
 		time := node.value;
-		scale := Math.Power(0.5 * time, nu);
-		rule := node.rule;
-		order := LEN(rule.absisca);
+		(*	
+			  evaluate integral of hazard using pre-computed Gauss-Jacobi quadrature rule
+			  change of variable s = 1/2 t (x + 1);  ds = 1/2 t dx; 
+			  s = 0 => x = -1; s = t => x = 1
+		*)
+		scale := Math.Power(0.5 * time, index * delta);
 		t := node.t;
 		i := 0;
-		integral := 0.0; 
-		WHILE i < order DO
-			s := 0.5 * time * (rule.absisca[i] + 1.0);
+		integral := 0.0;
+		WHILE i < ruleOrder DO
+			s := 0.5 * time * (gaussJacobiX[index, i] + 1.0);
 			t.SetValue(s);
-			y := node.function.Value();
-			integral := integral + rule.weights[i] * y;
+			y := node.function.Value() * nu * Math.Power(s, deltaNu);
+			integral := integral + gaussJacobiW[index, i] * y;
 			INC(i)
 		END;
-		log := -integral * nu * scale;
+		log := -integral * scale;
 		IF node.event THEN 
 			t.SetValue(time);
 			y := node.function.Value();
@@ -189,8 +202,6 @@ MODULE GraphWeibullHazard;
 		p.AddParent(list);
 		p := node.t;
 		p.AddParent(list);
-		p := node.rule;
-		p.AddParent(list);
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
@@ -201,9 +212,6 @@ MODULE GraphWeibullHazard;
 	END Representative;
 
 	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
-		VAR
-			logicalArgs: GraphStochastic.ArgsLogical;
-			p: GraphNodes.Node;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.Args DO
@@ -214,17 +222,7 @@ MODULE GraphWeibullHazard;
 			ASSERT(args.scalars[2] # NIL, 21);
 			node.t := args.scalars[2](GraphStochastic.Node);
 			ASSERT(args.scalars[3] # NIL, 21);
-			node.event := args.scalars[3].Value() > 0.5;
-			IF (ruleCache = NIL) OR (ruleCache.beta # node.nu) THEN (*	need to create a new rule object	*)
-				logicalArgs.Init;
-				logicalArgs.ops[0] := order;
-				logicalArgs.scalars[0] := NIL;
-				logicalArgs.scalars[1] := node.nu;
-				p := GraphJacobi.fact.New();
-				ruleCache :=  p(GraphJacobi.Node);
-				ruleCache.Set(logicalArgs, res);
-			END;
-			node.rule := ruleCache
+			node.event := args.scalars[3].Value() > 0.5
 		END		
 	END Set;
 
@@ -238,16 +236,12 @@ MODULE GraphWeibullHazard;
 		HALT(0)
 	END Sample;
 
-	PROCEDURE (f: Factory) Clear;
-	BEGIN
-		ruleCache := NIL
-	END Clear;
-	
 	PROCEDURE (f: Factory) New (): GraphStochastic.Node;
 		VAR
 			node: Node;
 	BEGIN
 		NEW(node);
+		node.Init;
 		RETURN node
 	END New;
 
@@ -257,11 +251,7 @@ MODULE GraphWeibullHazard;
 	END Signature;
 
 	PROCEDURE Install*;
-		VAR
-			fact: Factory;
 	BEGIN
-		NEW(fact);
-		ruleCache := NIL;
 		GraphNodes.SetFactory(fact)
 	END Install;
 
@@ -272,11 +262,24 @@ MODULE GraphWeibullHazard;
 	END Maintainer;
 
 	PROCEDURE Init;
+		VAR
+			f: Factory;
+			i: INTEGER;
+			alpha, beta: REAL;
 	BEGIN
 		Maintainer;
-		ruleCache := NIL
+		NEW(f);
+		fact := f;
+		(*	construct a grid of Gauss-Jacobi quadrature rules for alpha = 0 and different values of beta	*)
+		i := 0;
+		alpha := 0.0;
+		WHILE i < numNu DO
+			beta := (i  + 1) * delta - 1.0;
+			MathJacobi.QuadratureRule(gaussJacobiX[i], gaussJacobiW[i], alpha, beta, ruleOrder);
+			INC(i);
+		END;
 	END Init;
-	
+
 BEGIN
 	Init
 END GraphWeibullHazard.
