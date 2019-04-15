@@ -22,7 +22,7 @@ BugsInterpreter BugsScripts BugsScripting
 BugsRandnum
 
 GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
-GraphFunctional GraphMessages GraphResources
+GraphFunctional GraphMessages GraphResources GraphJacobi
 
 GraphDummy GraphDummyMV GraphSentinel GraphDeviance
 
