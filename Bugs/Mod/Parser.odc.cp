@@ -1906,6 +1906,7 @@ MODULE BugsParser;
 		nodeLabel := 0;
 		error := FALSE;
 		model := NIL;
+		GraphGrammar.Clear;
 		numIfs := 0
 	END Clear;
 

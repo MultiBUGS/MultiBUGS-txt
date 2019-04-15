@@ -12,27 +12,30 @@ MODULE SpatialDiscKrig;
 
 	IMPORT
 		Math,
-		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes;
+		GraphChain, GraphGPprior, GraphMemory, GraphMultivariate, GraphNodes;
 
 	TYPE
 
-		Factory2 = POINTER TO RECORD(GraphMultivariate.Factory) END;
-
 		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
+		FactoryKernel = POINTER TO RECORD(GraphMemory.Factory) END;
+		
+		Factory2 = POINTER TO RECORD(GraphMultivariate.Factory) 
+							kernel: Kernel
+						 END;
+
 	VAR
-		fact2-: GraphMultivariate.Factory;
+		factKernel-: GraphMemory.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		pi: REAL;
-		kernel: Kernel;
 
-	PROCEDURE (kernel: Kernel) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (node: Kernel) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "SpatialDiscKrig.Install"
+		install := "SpatialDiscKrig.InstallKernel"
 	END Install;
 
-	PROCEDURE (kernel: Kernel) Element (x1, x2: GraphGPprior.Point; params: ARRAY OF REAL): REAL;
+	PROCEDURE (node: Kernel) Element (x1, x2: GraphGPprior.Point; IN params: ARRAY OF REAL): REAL;
 		VAR
 			dim, i: INTEGER;
 			dist, element: REAL;
@@ -58,10 +61,26 @@ MODULE SpatialDiscKrig;
 		RETURN 1
 	END NumParams;
 
+	PROCEDURE (f: FactoryKernel) New (): GraphGPprior.Kernel;
+		VAR
+			kernel: Kernel;
+	BEGIN
+		NEW(kernel);
+		kernel.Init;
+		RETURN kernel
+	END New;
+
+	PROCEDURE (f: FactoryKernel) Signature (OUT signature: ARRAY OF CHAR);
+	BEGIN
+		signature := "s"
+	END Signature;
+	
 	PROCEDURE (f: Factory2) New (): GraphChain.Node;
 		VAR
 			node: GraphChain.Node;
+			kernel: Kernel;
 	BEGIN
+		kernel := factKernel.New()(Kernel);
 		node := GraphGPprior.New(kernel);
 		RETURN node
 	END New;
@@ -72,16 +91,25 @@ MODULE SpatialDiscKrig;
 	BEGIN
 		signature := "vvvs";
 		i := 0;
-		numParams := kernel.NumParams();
+		numParams := f.kernel.NumParams();
 		WHILE i < numParams DO
 			signature := signature + "s";
 			INC(i)
 		END
 	END Signature;
 
-	PROCEDURE Install2*;
+	PROCEDURE InstallKernel*;
 	BEGIN
-		GraphNodes.SetFactory(fact2)
+		GraphNodes.SetFactory(factKernel)
+	END InstallKernel;
+	
+	PROCEDURE Install2*;
+		VAR
+			fact: Factory2;
+	BEGIN
+		NEW(fact);
+		fact.kernel := factKernel.New()(Kernel);
+		GraphNodes.SetFactory(fact)
 	END Install2;
 
 	PROCEDURE Maintainer;
@@ -93,11 +121,11 @@ MODULE SpatialDiscKrig;
 	PROCEDURE Init;
 		VAR
 			f2: Factory2;
+			fKernel: FactoryKernel;
 	BEGIN
 		Maintainer;
-		NEW(f2);
-		fact2 := f2;
-		NEW(kernel);
+		NEW(fKernel);
+		factKernel := fKernel;
 		pi := Math.Pi()
 	END Init;
 

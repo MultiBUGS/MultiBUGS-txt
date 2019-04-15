@@ -52,6 +52,9 @@ MODULE BugsParallel;
 		on values of parameters on other cores	*)
 	PROCEDURE ThisCore (stoch: GraphStochastic.Node): BOOLEAN;
 
+	VAR
+		bool: BOOLEAN;
+		
 		PROCEDURE OnThisCore (p: GraphStochastic.Node): BOOLEAN;
 			VAR
 				this: BOOLEAN;
@@ -60,12 +63,12 @@ MODULE BugsParallel;
 			CONST
 				all = TRUE;
 		BEGIN
-			this := {GraphNodes.data, thisCore} * p.props # {};
+			this := {GraphNodes.data, thisCore} * p.props # {}; 
 			IF this THEN
 				list := GraphStochastic.Parents(p, all);
 				WHILE this & (list # NIL) DO
 					q := list.node;
-					this := thisCore IN q.props;
+					this := {thisCore, GraphStochastic.hidden} * q.props # {}; 
 					list := list.next
 				END
 			END;
@@ -90,7 +93,8 @@ MODULE BugsParallel;
 		END ChildrenThisCore;
 
 	BEGIN
-		RETURN OnThisCore(stoch) & ChildrenThisCore(stoch.children)
+		bool := OnThisCore(stoch) & ChildrenThisCore(stoch.children); 
+		RETURN bool
 	END ThisCore;
 
 	PROCEDURE Externalize (p: GraphNodes.Node; VAR wr: Stores.Writer);
@@ -541,6 +545,8 @@ MODULE BugsParallel;
 			v: Clearer;
 			i, j, workersPerChain, num: INTEGER;
 			p: GraphStochastic.Node;
+			dependents: GraphLogical.List;
+			logical: GraphLogical.Node;
 	BEGIN
 		NEW(v);
 		BugsIndex.Accept(v);
@@ -553,6 +559,13 @@ MODULE BugsParallel;
 				WHILE j < num DO
 					p := globalStochs[i, j];
 					p.SetProps(p.props - {write, thisCore});
+					(*	deal with any hidden logical dependent nodes	*)
+					dependents := p.dependents;
+					WHILE dependents # NIL DO
+						logical := dependents.node;
+						logical.SetProps(logical.props - {write, thisCore});
+						dependents := dependents.next
+					END;
 					INC(j)
 				END;
 				INC(i)
@@ -571,10 +584,10 @@ MODULE BugsParallel;
 
 	(*	Mark markov blanket of nodes updated on this core. Two marks are used the write mark meaning
 	that the internal fields of the marked node are needed and thisCore meaning that the node will reside on
-	the rank core	*)
+	the core whoose rank is rank	*)
 	PROCEDURE MarkMarkovBlanket (IN updaters: ARRAY OF ARRAY OF INTEGER; rank: INTEGER);
 		VAR
-			i, j, k, num, size, label, len, sizel: INTEGER;
+			i, j, k, num, numCores, size, label, len, sizel: INTEGER;
 			p, prior: GraphStochastic.Node;
 			u: UpdaterUpdaters.Updater;
 			list: GraphLogical.List;
@@ -594,22 +607,12 @@ MODULE BugsParallel;
 				k := 0;
 				WHILE k < size DO
 					p := u.Node(k);
-					p.SetProps(p.props + {thisCore});
-					MarkNode(p, {write});
+					MarkNode(p, {write, thisCore});
 					list := GraphLogical.Parents(p, all);
 					WHILE list # NIL DO
 						log := list.node;
-						IF logical IN log.props THEN 
-							WITH log: GraphVector.Node DO
-								j := 0; sizel := log.Size();
-								WHILE j < sizel DO
-									log1 := log.components[j];
-									log1.SetProps(log1.props + {write});
-									INC(j)
-								END
-							ELSE
-								log.SetProps(log.props + {write})
-							END
+						IF {logical, GraphLogical.stochParent} * log.props # {} THEN 
+							MarkNode(log, {write})
 						END;
 						list := list.next
 					END;
@@ -635,7 +638,7 @@ MODULE BugsParallel;
 						list := GraphLogical.Parents(p, all);
 						WHILE list # NIL DO
 							log := list.node;
-							IF logical IN log.props THEN
+							IF {logical, GraphLogical.stochParent} * log.props # {} THEN 
 								MarkNode(log, {write})
 							END;
 							list := list.next
@@ -645,10 +648,33 @@ MODULE BugsParallel;
 				END;
 			END;
 			INC(i)
-		END
+		END;
+		(*	add write mark to stochastic nodes that have logical memory / vector node dependents	*)
+		i := 0;
+		numCores := LEN(updaters, 0);
+		WHILE i < num DO
+			j := 0;
+			WHILE j < numCores DO
+				label := updaters[j, i];
+				IF label # undefined THEN
+					u := UpdaterActions.updaters[0, label];
+					size := u.Size();
+					k := 0;
+					WHILE k < size DO
+						p := u.Node(k);
+						list := p.dependents;
+						WHILE (list # NIL) & ~(write IN list.node.props) DO list := list.next END;
+						IF list # NIL THEN MarkNode(p, {write}) END; 
+						INC(k)
+					END;
+				END;
+				INC(j)
+			END;
+			INC(i)
+		END		
 	END MarkMarkovBlanket;
 
-	(*	add observations to nodes to be writen plus their named logical parents	*)
+	(*	add observations to nodes to be writen plus their named logical parents and memory nodes	*)
 	PROCEDURE MarkObservations (observations: GraphStochastic.Vector);
 		VAR
 			i, len: INTEGER;
@@ -666,7 +692,7 @@ MODULE BugsParallel;
 			list := GraphLogical.Parents(p, all);
 			WHILE list # NIL DO
 				log := list.node;
-				IF logical IN log.props THEN
+				IF {logical, GraphLogical.stochParent} * log.props # {} THEN 
 					MarkNode(log, {write})
 				END;
 				list := list.next
@@ -888,7 +914,7 @@ MODULE BugsParallel;
 	BEGIN
 		ClearNodes;
 		filter := GraphStochastic.dependentsFilter;
-		GraphStochastic.FilterDependents({GraphLogical.stochParent});
+		GraphStochastic.FilterDependents({(*GraphLogical.stochParent*)write});
 		MarkLogicals;
 		dummy := GraphDummy.fact.New();
 		dummy.Init;

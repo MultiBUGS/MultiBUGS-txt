@@ -12,30 +12,33 @@ MODULE SpatialExpKrig;
 
 	IMPORT
 		Math,
-		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes, GraphStochastic;
+		GraphChain, GraphGPprior, GraphMemory, GraphMultivariate, GraphNodes, GraphStochastic;
 
 	TYPE
 
-		Factory = POINTER TO ABSTRACT RECORD(GraphMultivariate.Factory) END;
+		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
-		Factory1 = POINTER TO RECORD(Factory) END;
+		FactoryKernel = POINTER TO RECORD(GraphMemory.Factory) END;
+
+		Factory = POINTER TO ABSTRACT RECORD(GraphMultivariate.Factory) 
+							kernel: Kernel
+					   END;
+
+		Factory1 = POINTER TO RECORD(Factory)  END;
 
 		Factory2 = POINTER TO RECORD(Factory) END;
 
-		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
-
 	VAR
-		fact1-, fact2-: GraphMultivariate.Factory;
+		factKernel-: GraphMemory.Factory;
 		maintainer-: ARRAY 40 OF CHAR;
 		version-: INTEGER;
-		kernel: Kernel;
 
-	PROCEDURE (kernel: Kernel) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (node: Kernel) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "SpatialExpKrig.Install"
+		install := "SpatialExpKrig.InstallKernel"
 	END Install;
 
-	PROCEDURE (kernel: Kernel) Element (x1, x2: GraphGPprior.Point; params: ARRAY OF REAL): REAL;
+	PROCEDURE (node: Kernel) Element (x1, x2: GraphGPprior.Point; IN params: ARRAY OF REAL): REAL;
 		VAR
 			dim, i: INTEGER;
 			dist, element: REAL;
@@ -52,15 +55,31 @@ MODULE SpatialExpKrig;
 		RETURN element
 	END Element;
 
-	PROCEDURE (kernel: Kernel) NumParams (): INTEGER;
+	PROCEDURE (node: Kernel) NumParams (): INTEGER;
 	BEGIN
 		RETURN 2
 	END NumParams;
 
+	PROCEDURE (f: FactoryKernel) New (): GraphGPprior.Kernel;
+		VAR
+			kernel: Kernel;
+	BEGIN
+		NEW(kernel);
+		kernel.Init;
+		RETURN kernel
+	END New;
+
+	PROCEDURE (f: FactoryKernel) Signature (OUT signature: ARRAY OF CHAR);
+	BEGIN
+		signature := "s"
+	END Signature;
+
 	PROCEDURE (f: Factory) New (): GraphChain.Node;
 		VAR
 			node: GraphChain.Node;
+			kernel: Kernel;
 	BEGIN
+		kernel := factKernel.New()(Kernel);
 		node := GraphGPprior.New(kernel);
 		RETURN node
 	END New;
@@ -71,7 +90,7 @@ MODULE SpatialExpKrig;
 	BEGIN
 		signature := "vvs"; 	(*	mu[], x[], tau	*)
 		i := 0;
-		numParams := kernel.NumParams();
+		numParams := f.kernel.NumParams();
 		WHILE i < numParams DO
 			signature := signature + "s";
 			INC(i)
@@ -84,21 +103,34 @@ MODULE SpatialExpKrig;
 	BEGIN
 		signature := "vvvs"; 	(*	mu[], x[], y[], tau	*)
 		i := 0;
-		numParams := kernel.NumParams();
+		numParams := f.kernel.NumParams();
 		WHILE i < numParams DO
 			signature := signature + "s";
 			INC(i)
 		END
 	END Signature;
 
-	PROCEDURE Install1*;
+	PROCEDURE InstallKernel*;
 	BEGIN
-		GraphNodes.SetFactory(fact1)
+		GraphNodes.SetFactory(factKernel)
+	END InstallKernel;
+
+	PROCEDURE Install1*;
+		VAR
+			fact: Factory1;
+	BEGIN
+		NEW(fact);
+		fact.kernel := factKernel.New()(Kernel);
+		GraphNodes.SetFactory(fact)
 	END Install1;
 
 	PROCEDURE Install2*;
+		VAR
+			fact: Factory2;
 	BEGIN
-		GraphNodes.SetFactory(fact2)
+		NEW(fact);
+		fact.kernel := factKernel.New()(Kernel);
+		GraphNodes.SetFactory(fact)	
 	END Install2;
 
 	PROCEDURE Maintainer;
@@ -109,15 +141,11 @@ MODULE SpatialExpKrig;
 
 	PROCEDURE Init;
 		VAR
-			f1: Factory1;
-			f2: Factory2;
+			fKernel: FactoryKernel;
 	BEGIN
 		Maintainer;
-		NEW(f1);
-		fact1 := f1;
-		NEW(f2);
-		fact2 := f2;
-		NEW(kernel)
+		NEW(fKernel);
+		factKernel := fKernel
 	END Init;
 
 BEGIN

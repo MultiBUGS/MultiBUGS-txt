@@ -147,7 +147,8 @@ MODULE GraphNodes;
 
 	PROCEDURE (node: Node) Externalize* (VAR wr: Stores.Writer), NEW;
 	BEGIN
-		wr.WriteSet(node.props);
+		(*	remove tempory marks	*)
+		wr.WriteSet(node.props - {1,2,3});
 		node.ExternalizeNode(wr)
 	END Externalize;
 
@@ -215,17 +216,20 @@ MODULE GraphNodes;
 
 	(*	initialize args data type	*)
 	PROCEDURE (VAR args: Args) Init*, NEW, ABSTRACT;
+	
+	(*	clear global variables	*)
+	PROCEDURE (f: Factory) Clear*, NEW, EMPTY;
 
-		(*	create a new node in graphical model	*)
+	(*	create a new node in graphical model	*)
 	PROCEDURE (f: Factory) New* (): Node, NEW, ABSTRACT;
 
-		(*	number of parameters that node created by factory has	*)
+	(*	number of parameters that node created by factory has	*)
 	PROCEDURE (f: Factory) NumParam* (): INTEGER, NEW, ABSTRACT;
 
-		(*	signature of parameters of node created by factory	*)
+	(*	signature of parameters of node created by factory	*)
 	PROCEDURE (f: Factory) Signature* (OUT signature: ARRAY OF CHAR), NEW, ABSTRACT;
 
-		(*	clears mark from nodes in list	*)
+	(*	clears mark from nodes in list	*)
 	PROCEDURE ClearList* (list: List);
 		VAR
 			cursor: List;

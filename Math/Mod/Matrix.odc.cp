@@ -439,7 +439,7 @@ MODULE MathMatrix;
 							c0 := Math.Sqrt(0.5 * (1 + r / vt));
 							s0 := p / (vt * c0);
 							(* rotate *)
-							FOR ii := 0 TO(nRow + nCol - 1) DO
+							FOR ii := 0 TO (nRow + nCol - 1) DO
 								d1 := workMatrix[ii, j];
 								d2 := workMatrix[ii, k];
 								workMatrix[ii, j] := d1 * c0 + d2 * s0;

@@ -600,6 +600,7 @@ MODULE UpdaterActions;
 			children: GraphStochastic.Vector;
 			prior: GraphStochastic.Node;
 			dependents: GraphLogical.List;
+			logical: GraphLogical.Node;
 	BEGIN
 		WITH updater: UpdaterAuxillary.UpdaterUV DO
 			canDistribute := FALSE
@@ -607,9 +608,9 @@ MODULE UpdaterActions;
 			children := updater.Children();
 			prior := updater.Prior(0);
 			IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
-			canDistribute := (numChild > 2 * avNum) OR (numChild > 50 * workersPerChain) OR
+			canDistribute := (numChild > 2 * avNum) OR (numChild > 50 * workersPerChain) (*OR
 				((GraphNodes.maxStochDepth = 1) & (numChild >  2 * workersPerChain))
-				OR ((prior.depth = 1) & (numChild > 10 * workersPerChain));
+				OR ((prior.depth = 1) & (numChild > 10 * workersPerChain))*);
 			i := 0;
 			WHILE ~canDistribute & (i < numChild) DO
 				canDistribute := children[i] IS GraphMRF.Node;
@@ -618,7 +619,8 @@ MODULE UpdaterActions;
 			(*	do not distribute if prior has logical dependent nodes	*)
 			dependents := prior.dependents;
 			WHILE canDistribute & (dependents # NIL) DO
-				canDistribute := ~(GraphLogical.stochParent IN dependents.node.props);
+				logical := dependents.node;
+				canDistribute := ~(GraphLogical.stochParent IN logical.props) OR (logical.Size() = 1);
 				dependents := dependents.next
 			END
 		END;

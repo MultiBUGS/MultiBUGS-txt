@@ -211,7 +211,8 @@ MODULE BugsComponents;
 	PROCEDURE Clear;
 	BEGIN
 		graphModules := NIL;
-		updaterModules := NIL
+		updaterModules := NIL;
+		allThis := TRUE
 	END Clear;
 
 	PROCEDURE Modules* (): POINTER TO ARRAY OF Files.Name;
@@ -296,7 +297,7 @@ MODULE BugsComponents;
 		rank := 0;
 		WHILE rank < workersPerChain DO
 			pos[rank] := wr.Pos();
-			BugsParallel.Write(rank, numberChains, this, wr);
+			BugsParallel.Write(rank, numberChains, this, wr); 
 			allThis := allThis & this;
 			AddModules;
 			INC(rank)
