@@ -414,6 +414,8 @@ MODULE BugsPackage;
 
 			(*	Linux specific  files	*)
 			CopyFile("OpenBUGS", dest);
+			CopyFile("MultiBUGS", dest);
+			CopyFile("run-MultiBUGS", dest);
 
 			CopyFile("libtaucs.dll", dest);
 			CopyFile("BackBUGS.lnk", dest);
