@@ -465,6 +465,7 @@ MODULE BugsPackage;
 			CopyLoc("Dev2/Code", dest);
 			CopyLoc("Gtk2/Code", dest);
 			CopyLoc("Code", dest);
+			CopyLoc("Cons", dest);
 
 			CopyFile("Math/Sym/Func.osf", dest);
 			CopyFile("Graph/Sym/Logical.osf", dest);
