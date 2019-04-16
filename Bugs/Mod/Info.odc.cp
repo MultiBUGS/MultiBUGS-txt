@@ -926,13 +926,6 @@ MODULE BugsInfo;
 			observations := BugsPartition.DistributeObservations(updaters); 
 			BugsPartition.DistributeCensored(observations, updaters, id)
 		END;
-		f.WriteTab;
-		IF BugsComponents.allThis THEN
-			f.WriteString("Graph seperates over cores")
-		ELSE
-			f.WriteString("Graph does not seperate over cores")
-		END;
-		f.WriteLn;
 		f.WriteLn;
 		f.WriteTab;
 		f.WriteString("Number of workers per chain: ");
