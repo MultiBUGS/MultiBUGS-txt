@@ -1,4 +1,3 @@
-
 (*		
 
 license:	"Docu/OpenBUGS-License"
@@ -7,14 +6,16 @@ copyright:	"Rsrc/About"
 
 MODULE Environment;
 
+	
+
 	IMPORT
-		LinLibc;		
-		
+		LinLibc;
+
 	VAR
 		out: POINTER TO ARRAY OF CHAR;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
-		
+
 	PROCEDURE RunningUnderMPI* (): BOOLEAN;
 	BEGIN
 		RETURN LinLibc.getenv("PMI_SIZE") # NIL
@@ -31,7 +32,7 @@ MODULE Environment;
 		NEW(out, 256);
 		Maintainer
 	END Init;
-	
+
 BEGIN
 	Init
 END Environment.
