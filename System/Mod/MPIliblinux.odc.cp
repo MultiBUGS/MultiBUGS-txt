@@ -4,7 +4,7 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 *)
 
-MODULE MPIlib["libmpich.so"];
+MODULE MPIlib["libmpich.so.12"];
 
 	
 
