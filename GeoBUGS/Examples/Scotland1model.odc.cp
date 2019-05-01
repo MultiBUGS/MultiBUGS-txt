@@ -67,7 +67,7 @@
 				}
 
 			# Proper CAR prior distribution for spatial random effects: 
-				S[1:N] ~ car.proper(theta[], C[], adj[], num[], m[], prec, gamma)
+				S[1:N] ~ car.proper(adj[], C[], num[], theta[], m[], prec, gamma)
 
 			# Other priors:
 				alpha  ~ dnorm(0, 0.0001)  
