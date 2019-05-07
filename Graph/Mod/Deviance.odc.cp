@@ -233,7 +233,13 @@ MODULE GraphDeviance;
 		len := GraphStochastic.numStochastics;
 		i := 0;
 		numParents := 0;
+		WHILE i < len DO
+			stoch := stochastics[i];
+			IF GraphStochastic.devParent IN stoch.props THEN INC(numParents) END;
+			INC(i)
+		END;
 		numTerms := 0;
+		i := 0;
 		WHILE i < len DO
 			stoch := stochastics[i];
 			observed := FALSE;
@@ -254,11 +260,13 @@ MODULE GraphDeviance;
 							child.SetProps(child.props + {GraphNodes.mark});
 							INC(numTerms)
 						END;
-						stoch.SetProps(stoch.props + {GraphStochastic.devParent});
+						IF ~(GraphStochastic.hidden IN stoch.props) THEN
+							stoch.SetProps(stoch.props + {GraphStochastic.devParent})
+						END;
 					END;
 					INC(j)
 				END;
-				IF observed THEN INC(numParents) END
+				IF observed & ~(GraphStochastic.hidden IN stoch.props) THEN INC(numParents) END
 			END;
 			INC(i)
 		END;

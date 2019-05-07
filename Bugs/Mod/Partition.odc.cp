@@ -533,7 +533,7 @@ MODULE BugsPartition;
 							k := 0;
 							WHILE k < numChild DO
 								child := children[k];
-								IF GraphDeviance.IsObserved(child) THEN
+								IF GraphDeviance.IsObserved(child) THEN 
 									IF ~(GraphNodes.mark IN child.props) THEN
 										child.SetProps(child.props + {GraphNodes.mark});
 										IF action = add THEN observations[j, numData[j]] := child END;
@@ -613,7 +613,7 @@ MODULE BugsPartition;
 			END;
 			INC(j)
 		END;
-		DevianceDo(add); ClearMarks;
+		DevianceDo(add); ClearMarks; 
 		RETURN observations
 	END DistributeObservations;
 

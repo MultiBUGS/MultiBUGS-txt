@@ -358,7 +358,10 @@ MODULE GraphStochastic;
 			label := GraphNodes.Label(node);
 			label := ABS(label);
 			children := ListToVector(cache[label - 1]);
-			node.SetChildren(children)
+			IF children # NIL THEN
+				ASSERT(node.children = NIL, 33);
+				node.SetChildren(children)
+			END
 		ELSE
 			children := p(Node).children;
 			node.SetChildren(children)

@@ -156,7 +156,7 @@ MODULE UpdaterAM;
 			END;
 			INC(i)
 		END;
-		IF size > LEN(y, 0) THEN
+		IF size > LEN(y) THEN
 			NEW(y, size);
 			NEW(delta, size);
 		END
@@ -184,7 +184,11 @@ MODULE UpdaterAM;
 		rd.ReadReal(updater.scale);
 		rd.ReadBool(updater.delayedRejection)
 	END InternalizeMetropolisMV;
-
+	
+	PROCEDURE (updater: Updater) LoadSampleMultivariate-;
+	BEGIN
+	END LoadSampleMultivariate;
+	
 	PROCEDURE (updater: Updater) IsAdapting* (): BOOLEAN;
 	BEGIN
 		RETURN FALSE
@@ -259,7 +263,11 @@ MODULE UpdaterAM;
 		INC(updater.iteration);
 		AdaptProposal(updater)
 	END Sample;
-
+	
+	PROCEDURE (updater: Updater) StoreSampleMultivariate-;
+	BEGIN
+	END StoreSampleMultivariate;
+	
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;

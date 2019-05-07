@@ -45,6 +45,11 @@ MODULE GraphFlexWishart;
 		maintainer-: ARRAY 40 OF CHAR;
 		value, s: POINTER TO ARRAY OF ARRAY OF REAL;
 
+	PROCEDURE (updater: Auxillary) Children (): GraphStochastic.Vector;
+	BEGIN
+		RETURN NIL
+	END Children;
+
 	PROCEDURE (updater: Auxillary) Clone (): Auxillary;
 		VAR
 			u: Auxillary;

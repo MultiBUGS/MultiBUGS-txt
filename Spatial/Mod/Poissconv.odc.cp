@@ -59,7 +59,16 @@ MODULE SpatialPoissconv;
 		RETURN sum
 	END SumLambda;
 	
-	PROCEDURE (updater: Multinomial) Clone (): Multinomial;
+	PROCEDURE (multinomial: Multinomial) Children (): GraphStochastic.Vector;
+		VAR
+			children: GraphStochastic.Vector;
+	BEGIN
+		NEW(children, 1);
+		children[0] := multinomial.node;
+		RETURN children
+	END Children;
+	
+	PROCEDURE (multinomial: Multinomial) Clone (): Multinomial;
 		VAR
 			u: Multinomial;
 	BEGIN
@@ -67,25 +76,25 @@ MODULE SpatialPoissconv;
 		RETURN u
 	END Clone;
 
-	PROCEDURE (updater: Multinomial) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
+	PROCEDURE (multinomial: Multinomial) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
 	
-	PROCEDURE (updater: Multinomial) DiffLogConditional (index: INTEGER): REAL;
+	PROCEDURE (multinomial: Multinomial) DiffLogConditional (index: INTEGER): REAL;
 	BEGIN
 		RETURN 0
 	END DiffLogConditional;
 
-	PROCEDURE (updater: Multinomial) ExternalizeAuxillary (VAR wr: Stores.Writer);
+	PROCEDURE (multinomial: Multinomial) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
 	END ExternalizeAuxillary;
 
-	PROCEDURE (updater: Multinomial) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (multinomial: Multinomial) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "SpatialPoissconv.MultinomialInstall"
 	END Install;
 
-	PROCEDURE (updater: Multinomial) InternalizeAuxillary (VAR rd: Stores.Reader);
+	PROCEDURE (multinomial: Multinomial) InternalizeAuxillary (VAR rd: Stores.Reader);
 	BEGIN
 	END InternalizeAuxillary;
 
@@ -176,6 +185,9 @@ MODULE SpatialPoissconv;
 			x: INTEGER;
 			lambda: REAL;
 	BEGIN
+		IF ~(GraphNodes.data IN node.props) THEN
+			RETURN {GraphNodes.lhs, GraphNodes.notData}
+		END;
 		x := SHORT(ENTIER(node.value + eps));
 		IF ABS(x - node.value) > eps THEN
 			RETURN {GraphNodes.lhs, GraphNodes.integer}
@@ -364,6 +376,9 @@ MODULE SpatialPoissconv;
 			p: GraphStochastic.Node;
 			argsPoiss: GraphStochastic.Args;
 			multinomial: UpdaterUpdaters.Updater;
+			lambda: GraphNodes.Node;
+			children: GraphStochastic.Vector;
+			list: GraphStochastic.List;
 	BEGIN
 		res := {};
 		IF ~(GraphNodes.data IN node.props) THEN
@@ -382,17 +397,27 @@ MODULE SpatialPoissconv;
 				NEW(node.poissons, nElem);
 				i := 0;
 				WHILE i < nElem DO
+					lambda := node.lambda[start + i * step];
+					list := GraphStochastic.Parents(lambda, TRUE);
+					WHILE list # NIL DO
+						p := list.node;
+						p.SetProps(p.props + {GraphStochastic.devParent});
+						list := list.next
+					END;
 					p := GraphPoisson.fact.New();
 					GraphStochastic.RegisterAuxillary(p);
 					p.Init;
-					argsPoiss.scalars[0] := node.lambda[start + i * step];
+					argsPoiss.scalars[0] := lambda;
 					p.Set(argsPoiss, res);
 					p.SetProps(p.props + {GraphStochastic.hidden});
 					p.SetProps(p.props + {GraphNodes.data});
 					p.SetValue(0.0);
 					node.poissons[i] := p;
 					INC(i)
-				END
+				END;
+				NEW(children , 1);
+				children[0] := node;
+				node.poissons[0].SetChildren(children); 
 			END;
 			multinomial := multinomialFact.New(node);
 			UpdaterActions.RegisterUpdater(multinomial)

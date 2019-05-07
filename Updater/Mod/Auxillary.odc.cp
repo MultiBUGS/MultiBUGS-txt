@@ -156,11 +156,6 @@ MODULE UpdaterAuxillary;
 		updater.value := prior.value
 	END StoreSample;
 
-	PROCEDURE (updater: UpdaterMV) Children* (): GraphStochastic.Vector;
-	BEGIN
-		RETURN NIL
-	END Children;
-
 	PROCEDURE (updater: UpdaterMV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
 	PROCEDURE (updater: UpdaterMV) CopyFrom- (source: UpdaterUpdaters.Updater);
