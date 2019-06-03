@@ -36,7 +36,7 @@ GraphConstant GraphMixture GraphMAP
 DeviancePlugin
 
 BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
-BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo BugsMaster
+BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo
 
 BugsRectData BugsSplusData
 
@@ -55,6 +55,8 @@ DevianceMonitors DeviancePluginS DevianceParents
 DevianceIndex DevianceInterface DevianceFormatted DevianceMessages DevianceResources
 
 CorrelInterface CorrelFormatted CorrelMessages CorrelResources
+
+BugsMaster
 
 GraphPiecewise GraphODEmath GraphODElang GraphODEBlockL GraphODEBlockM
 
