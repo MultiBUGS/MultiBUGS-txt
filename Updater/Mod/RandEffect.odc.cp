@@ -14,7 +14,7 @@ MODULE UpdaterRandEffect;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateUV, GraphRules, GraphStochastic,
 		MathRandnum,

@@ -13,7 +13,7 @@ MODULE UpdaterDescreteSlice;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphNodes, GraphRules, GraphStochastic, GraphVD,
 		MathRandnum,

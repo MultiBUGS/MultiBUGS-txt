@@ -12,7 +12,7 @@ MODULE UpdaterSlicegamma;
 	
 
 	IMPORT
-		Math, MPIworker, Stores, 
+		MPIworker, Math, Stores,
 		BugsRegistry,
 		GraphConjugateUV, GraphLogical, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
@@ -28,7 +28,7 @@ MODULE UpdaterSlicegamma;
 		rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 
 	TYPE
-		Updater = POINTER TO RECORD(UpdaterSlicebase.Updater) 
+		Updater = POINTER TO RECORD(UpdaterSlicebase.Updater)
 			gamma: GraphNodes.Node
 		END;
 
@@ -83,13 +83,15 @@ MODULE UpdaterSlicegamma;
 		UpdaterSlicebase.adaptivePhase := fact.adaptivePhase;
 		UpdaterSlicebase.maxIterations := fact.iterations;
 		children := updater.prior.children;
-		i := 0; 
+		i := 0;
 		p[0] := 0.0; p[1] := 0.0;
-		IF children # NIL THEN len := LEN(children) ELSE len := 0 END;
-		WHILE i < len DO
-			children[i](GraphConjugateUV.Node).LikelihoodForm(as, updater.gamma, p0, p1);
-			p[0] := p[0] + p0; p[1] := p[1] + p1;
-			INC(i)
+		IF children # NIL THEN
+			len := LEN(children);
+			WHILE i < len DO
+				children[i](GraphConjugateUV.Node).LikelihoodForm(as, updater.gamma, p0, p1);
+				p[0] := p[0] + p0; p[1] := p[1] + p1;
+				INC(i)
+			END
 		END
 	END Setup;
 
@@ -109,26 +111,28 @@ MODULE UpdaterSlicegamma;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		children := prior.children;
-		IF children # NIL THEN len := LEN(children) ELSE len := 0 END;
 		gamma := children # NIL;
-		i := 0;
-		oldX := NIL;
-		WHILE gamma & (i < len) DO
-			child := children[i];
-			gamma := (child.ClassifyPrior() = GraphRules.normal) & (child IS GraphConjugateUV.Node);
-			IF gamma THEN
-				child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.gamma, x, p0, p1);
-				gamma :=  (oldX = NIL) OR (oldX = x);
-				oldX := x;
+		IF children # NIL THEN
+			len := LEN(children);
+			i := 0;
+			oldX := NIL;
+			WHILE gamma & (i < len) DO
+				child := children[i];
+				gamma := (child.ClassifyPrior() = GraphRules.normal) & (child IS GraphConjugateUV.Node);
 				IF gamma THEN
-					child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.normal, x, p0, p1);
-					gamma := x # prior;
-					IF gamma & (x IS GraphLogical.Node) THEN
-						gamma := x(GraphLogical.Node).ClassFunction(prior) = GraphRules.const
+					child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.gamma, x, p0, p1);
+					gamma := (oldX = NIL) OR (oldX = x);
+					oldX := x;
+					IF gamma THEN
+						child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.normal, x, p0, p1);
+						gamma := x # prior;
+						IF gamma & (x IS GraphLogical.Node) THEN
+							gamma := x(GraphLogical.Node).ClassFunction(prior) = GraphRules.const
+						END
 					END
-				END
-			END;
-			INC(i)
+				END;
+				INC(i)
+			END
 		END;
 		RETURN gamma
 	END CanUpdate;

@@ -13,7 +13,7 @@ MODULE GraphStochastic;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules;
 
 	CONST
@@ -115,6 +115,8 @@ MODULE GraphStochastic;
 
 	PROCEDURE (node: Node) Deviance* (): REAL, NEW, ABSTRACT;
 
+	PROCEDURE (node: Node) DiffLogConditional* (): REAL, NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) DiffLogLikelihood* (x: Node): REAL, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) DiffLogPrior* (): REAL, NEW, ABSTRACT;
@@ -178,7 +180,7 @@ MODULE GraphStochastic;
 			all := FALSE;
 			node.SetProps(node.props + {likelihood});
 			list := Parents(node, all);
-			WHILE list # NIL DO 
+			WHILE list # NIL DO
 				p := list.node;
 				IF data IN node.props THEN
 					AddLikelihood(node, p);
@@ -236,14 +238,16 @@ MODULE GraphStochastic;
 			children: Vector;
 	BEGIN
 		ASSERT({data, hidden} * node.props = {}, 21);
-		children := node.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
 		classConditional := node.ClassifyPrior();
-		WHILE (i < num) & (classConditional # GraphRules.invalid) DO
-			classLikelihood := children[i].ClassifyLikelihood(node);
-			classConditional := GraphRules.product[classConditional, classLikelihood];
-			INC(i)
+		children := node.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE (i < num) & (classConditional # GraphRules.invalid) DO
+				classLikelihood := children[i].ClassifyLikelihood(node);
+				classConditional := GraphRules.product[classConditional, classLikelihood];
+				INC(i)
+			END
 		END;
 		node.classConditional := classConditional
 	END ClassifyConditional;
@@ -260,20 +264,22 @@ MODULE GraphStochastic;
 		all := FALSE;
 		node.SetProps(node.props + {coParent});
 		children := node.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			p := children[i];
-			list := Parents(p, all);
-			WHILE list # NIL DO
-				q := list.node;
-				IF ~(coParent IN q.props) THEN
-					q.SetProps(q.props + {coParent});
-					AddToList(q, coParents)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				p := children[i];
+				list := Parents(p, all);
+				WHILE list # NIL DO
+					q := list.node;
+					IF ~(coParent IN q.props) THEN
+						q.SetProps(q.props + {coParent});
+						AddToList(q, coParents)
+					END;
+					list := list.next
 				END;
-				list := list.next
-			END;
-			INC(i)
+				INC(i)
+			END
 		END;
 		list := coParents;
 		WHILE list # NIL DO
@@ -417,6 +423,8 @@ MODULE GraphStochastic;
 
 	(*	Args methods	*)
 	PROCEDURE (VAR args: Args) Init*;
+		VAR
+			i: INTEGER;
 	BEGIN
 		args.valid := TRUE;
 		args.numScalars := 0;
@@ -425,6 +433,7 @@ MODULE GraphStochastic;
 		args.rightCen := NIL;
 		args.leftTrunc := NIL;
 		args.rightTrunc := NIL;
+		i := 0; WHILE i < LEN(args.vectors) DO args.vectors[i].Init; INC(i) END
 	END Init;
 
 	PROCEDURE (VAR args: ArgsLogical) Init*;
@@ -445,6 +454,7 @@ MODULE GraphStochastic;
 			args.scalars[i] := NIL;
 			INC(i)
 		END;
+		i := 0; WHILE i < LEN(args.vectors) DO args.vectors[i].Init; INC(i) END
 	END Init;
 
 	PROCEDURE AddMarks* (vector: Vector; mark: SET);
@@ -470,7 +480,7 @@ MODULE GraphStochastic;
 			list := cursor
 		END
 	END AddToList;
-	
+
 	PROCEDURE ClassFunction* (node, parent: GraphNodes.Node): INTEGER;
 		CONST
 			maxLevel = 7;
@@ -635,7 +645,7 @@ MODULE GraphStochastic;
 			p, q: GraphNodes.Node;
 	BEGIN
 		list := NIL;
-		nList := node.Parents(all); 
+		nList := node.Parents(all);
 		WHILE nList # NIL DO
 			p := nList.node;
 			p := p.Representative();
@@ -685,22 +695,12 @@ MODULE GraphStochastic;
 	END RegisterAuxillary;
 
 	PROCEDURE SetStochastics* (nodes: Vector);
-		VAR
-			stoch: Node;
-			i: INTEGER;
 	BEGIN
 		stochastics := nodes;
 		IF nodes # NIL THEN
 			numStochastics := LEN(nodes)
 		ELSE
 			numStochastics := 0
-		END;
-		i := 0;
-		WHILE i < numStochastics DO
-			stoch := stochastics[i];
-			ASSERT(~(GraphNodes.mark IN stoch.props), 99);
-			stoch.SetProps(stoch.props - {GraphNodes.mark});
-			INC(i)
 		END;
 	END SetStochastics;
 

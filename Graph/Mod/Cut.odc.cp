@@ -13,7 +13,7 @@ MODULE GraphCut;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphScalar, GraphStochastic;
 
 	TYPE

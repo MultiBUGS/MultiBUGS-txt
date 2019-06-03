@@ -20,7 +20,7 @@ MODULE GraphMVT;
 	
 
 	IMPORT
-		Math, Stores,
+		MPIworker, Math, Stores := Stores64,
 		GraphConjugateMV, GraphConjugateUV, GraphConstant, GraphGamma, GraphHalf,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathFunc, MathMatrix, MathRandnum,
@@ -63,11 +63,6 @@ MODULE GraphMVT;
 	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
-	
-	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).lambda)
-	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -326,6 +321,27 @@ MODULE GraphMVT;
 		 - 0.5 * (k + nElem) * Math.Ln(1.0 + quadForm / k);
 		RETURN - 2.0 * logDensity
 	END Deviance;
+	
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+		VAR
+			diffLogCond: REAL;
+			i, num: INTEGER;
+			children: GraphStochastic.Vector;
+	BEGIN
+		diffLogCond := 0.0;
+		children := node.children;
+		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
+		i := 0;
+		WHILE i < num DO
+			diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
+			INC(i)
+		END;
+		IF GraphStochastic.distributed IN node.props THEN
+			diffLogCond := MPIworker.SumReal(diffLogCond)
+		END;
+		diffLogCond := node.DiffLogPrior() + diffLogCond;
+		RETURN diffLogCond
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
@@ -395,7 +411,7 @@ MODULE GraphMVT;
 	BEGIN
 		IF node.index = 0 THEN
 			size := node.Size();
-			v := GraphNodes.NewVector();
+			v .Init;
 			v.components := node.mu;
 			v.start := node.muStart; v.nElem := size; v.step := node.muStep;
 			GraphNodes.ExternalizeSubvector(v, wr);

@@ -15,7 +15,7 @@ MODULE UpdaterGMRFess;
 	
 
 	IMPORT
-		Math, Meta, Stores,
+		Math, Meta, Stores := Stores64,
 		BugsRegistry,
 		GraphMRF, GraphRules, GraphStochastic,
 		MathDiagmatrix, MathMatrix, MathRandnum, MathSparsematrix,

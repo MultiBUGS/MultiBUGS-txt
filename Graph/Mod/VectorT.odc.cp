@@ -13,7 +13,7 @@ MODULE GraphVectorT;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic, GraphVector;
 
 	TYPE
@@ -106,7 +106,7 @@ MODULE GraphVectorT;
 		wr.WriteInt(numVectors);
 		i := 0;
 		WHILE i < numVectors DO
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.vectors[i];
 			v.start := node.start[i]; v.step := node.step[i]; v.nElem := node.size[i];
 			GraphNodes.ExternalizeSubvector(v, wr);

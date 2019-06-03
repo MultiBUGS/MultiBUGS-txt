@@ -8,7 +8,7 @@ copyright:	"Rsrc/About"
 MODULE GraphVDContinuous;
 		
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphVD;
 		
 	TYPE

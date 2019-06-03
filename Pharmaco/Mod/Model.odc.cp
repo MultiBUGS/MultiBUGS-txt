@@ -12,7 +12,7 @@ MODULE PharmacoModel;
 
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	CONST

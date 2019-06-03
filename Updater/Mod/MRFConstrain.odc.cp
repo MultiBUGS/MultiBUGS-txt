@@ -13,7 +13,7 @@ MODULE UpdaterMRFConstrain;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphMRF, GraphMultivariate, GraphNodes, GraphStochastic,
 		UpdaterUpdaters;
 
@@ -43,11 +43,6 @@ MODULE UpdaterMRFConstrain;
 		NEW(u);
 		RETURN u
 	END Clone;
-	
-	PROCEDURE (updater: Updater) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN 0
-	END DiffLogConditional;
 
 	PROCEDURE (updater: Updater) CopyFrom (source: UpdaterUpdaters.Updater);
 		VAR

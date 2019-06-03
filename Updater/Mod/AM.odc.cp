@@ -13,7 +13,7 @@ MODULE UpdaterAM;
 	
 
 	IMPORT
-		Math, Stores, 
+		Math, Stores := Stores64, 
 		GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMetropolisMV, UpdaterUpdaters;
@@ -58,7 +58,8 @@ MODULE UpdaterAM;
 			INC(i)
 		END
 	END AdaptProposal;
-
+	
+	(*	covariance (Cholesky) of proposal distribution	*)
 	PROCEDURE CalculateCov (updater: Updater);
 		CONST
 			minVar = 1.0E-4;
@@ -144,7 +145,6 @@ MODULE UpdaterAM;
 		NEW(updater.mapVals, size);
 		NEW(updater.means2, size, size);
 		NEW(updater.cov, size, size);
-		updater.rejectCount := 0;
 		updater.scale := 2.4 / Math.Sqrt(size);
 		i := 0;
 		WHILE i < size DO
@@ -157,8 +157,8 @@ MODULE UpdaterAM;
 			INC(i)
 		END;
 		IF size > LEN(y) THEN
-			NEW(y, size);
 			NEW(delta, size);
+			NEW(y, size)
 		END
 	END InitializeMetropolisMV;
 
@@ -201,11 +201,11 @@ MODULE UpdaterAM;
 
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			logAlpha, newLogCond, new1LogCond, oldLogCond, psiBarLogCond, delta0, delta1: REAL;
+			acceptanceRate, delta0, delta1, deltaRate, logAlpha, newLogCond, new1LogCond, oldLogCond, 
+			psiBarLogCond: REAL;
 			i, size: INTEGER;
 			prior: GraphStochastic.Vector;
 			reject: BOOLEAN;
-			acceptanceRate, deltaRate: REAL;
 		CONST
 			batch = 100;
 			deltaMax = 0.2;
@@ -275,8 +275,6 @@ MODULE UpdaterAM;
 	END Maintainer;
 
 	PROCEDURE Init;
-		VAR
-			i: INTEGER;
 		CONST
 			size = 10;
 	BEGIN

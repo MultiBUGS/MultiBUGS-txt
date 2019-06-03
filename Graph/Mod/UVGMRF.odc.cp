@@ -13,7 +13,7 @@ MODULE GraphUVGMRF;
 	
 
 	IMPORT
-		GraphUVMRF, GraphRules;
+		GraphUVMRF, GraphRules, GraphStochastic;
 
 	TYPE
 		Node* = POINTER TO ABSTRACT RECORD(GraphUVMRF.Node) END;

@@ -10,7 +10,7 @@ MODULE UpdaterVDMVNContinuous;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphRules, GraphStochastic, GraphVD, GraphVDContinuous, 
 		MathRandnum,

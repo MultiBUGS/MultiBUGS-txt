@@ -13,7 +13,7 @@ MODULE GraphODElang;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsMsg,
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathODE;
@@ -47,7 +47,7 @@ MODULE GraphODElang;
 		i := 0; WHILE i < numEq DO wr.WriteReal(node.x1Val[i]); INC(i) END;
 		wr.WriteReal(node.t0);
 		wr.WriteReal(node.tol);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.x0;
 		v.start := node.x0Start; v.nElem := numEq; v.step := node.x0Step;
 		GraphNodes.ExternalizeSubvector(v, wr);

@@ -13,23 +13,23 @@ MODULE BugsMAP;
 
 	IMPORT
 		Math, Strings,
-		BugsFiles, BugsIndex, BugsNames, 
-		GraphMAP, GraphStochastic, 
-		MathMatrix,
-		TextMappers, TextModels;
+		TextMappers, TextModels, BugsFiles,
+		BugsIndex, BugsNames,
+		GraphMAP,
+		GraphStochastic, MathMatrix;
 
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		
+
 	CONST
 		bold = 700;
-		
+
 	PROCEDURE WriteReal (x: REAL; VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
 	END WriteReal;
-		
+
 	PROCEDURE Differential (prior: GraphStochastic.Node): REAL;
 		VAR
 			diff: REAL;
@@ -38,11 +38,13 @@ MODULE BugsMAP;
 	BEGIN
 		diff := prior.DiffLogPrior();
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diff := diff + children[i].DiffLogLikelihood(prior);
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				diff := diff + children[i].DiffLogLikelihood(prior);
+				INC(i)
+			END
 		END;
 		RETURN diff
 	END Differential;
@@ -91,7 +93,7 @@ MODULE BugsMAP;
 		f.WriteString("deviance: ");
 		WriteReal(deviance, f);
 		f.WriteString("   AIC: ");
-		WriteReal(deviance + 2 * dim, f); 
+		WriteReal(deviance + 2 * dim, f);
 		BugsFiles.SetPrec(5);
 		f.WriteLn; f.WriteLn;
 		oldAttr := f.rider.attr;

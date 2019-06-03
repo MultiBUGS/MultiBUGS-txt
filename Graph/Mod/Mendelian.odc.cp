@@ -13,7 +13,7 @@ MODULE GraphMendelian;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 

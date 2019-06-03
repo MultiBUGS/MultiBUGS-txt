@@ -13,7 +13,7 @@ MODULE GraphMixture;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	CONST
@@ -97,7 +97,7 @@ MODULE GraphMixture;
 	BEGIN
 		wr.WriteInt(node.slots);
 		wr.WriteInt(node.start);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.vector;
 		v.start := 0; v.step := 1; v.nElem := LEN(node.vector);
 		GraphNodes.ExternalizeSubvector(v, wr);

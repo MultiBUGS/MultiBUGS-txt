@@ -13,7 +13,7 @@ MODULE GraphLogdet;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathMatrix;
 
@@ -110,7 +110,7 @@ MODULE GraphLogdet;
 	BEGIN
 		dim := node.dim;
 		wr.WriteInt(dim);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.matrix; v.values := node.constant;
 		v.start := node.start; v.step := node.step; v.nElem := dim * dim;
 		GraphNodes.ExternalizeSubvector(v, wr)

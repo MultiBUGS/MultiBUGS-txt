@@ -15,7 +15,7 @@ MODULE GraphNormal;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateUV, GraphConstant, GraphNodes, GraphRules, GraphStochastic,
 		GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
@@ -110,27 +110,27 @@ MODULE GraphNormal;
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
 
-	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
+	PROCEDURE (node: Node) DiffLogLikelihood (p: GraphStochastic.Node): REAL;
 		VAR
-			differential, diffMu, diffTau, mu, tau, val: REAL;
+			differential, diffMu, diffTau, mu, tau, x: REAL;
 	BEGIN
-		val := node.value;
-		IF (GraphStochastic.hint2 IN x.props)
-			OR (x.classConditional IN {GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin})
+		x := node.value;
+		IF (GraphStochastic.hint2 IN p.props)
+			OR (p.classConditional IN {GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin})
 			OR (GraphNodes.data IN node.tau.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
+			node.mu.ValDiff(p, mu, diffMu);
 			tau := node.tau.Value();
-			differential := - diffMu * tau * (mu - val)
-		ELSIF (GraphStochastic.hint1 IN x.props)
-			OR (x.classConditional IN {GraphRules.gamma, GraphRules.gamma1})
+			differential := diffMu * tau * (x - mu)
+		ELSIF (GraphStochastic.hint1 IN p.props)
+			OR (p.classConditional IN {GraphRules.gamma, GraphRules.gamma1})
 			OR (GraphNodes.data IN node.mu.props) THEN
 			mu := node.mu.Value();
-			node.tau.ValDiff(x, tau, diffTau);
-			differential := 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu))
+			node.tau.ValDiff(p, tau, diffTau);
+			differential := 0.5 * diffTau * (1 / tau - (x - mu) * (x - mu))
 		ELSE
-			node.mu.ValDiff(x, mu, diffMu);
-			node.tau.ValDiff(x, tau, diffTau);
-			differential := - diffMu * tau * (val - mu) + 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu))
+			node.mu.ValDiff(p, mu, diffMu);
+			node.tau.ValDiff(p, tau, diffTau);
+			differential := diffMu * tau * (x - mu) + 0.5 * diffTau * (1 / tau - (x - mu) * (x - mu))
 		END;
 		RETURN differential
 	END DiffLogLikelihood;

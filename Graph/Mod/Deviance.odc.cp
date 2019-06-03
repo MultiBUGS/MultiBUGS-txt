@@ -14,7 +14,7 @@ MODULE GraphDeviance;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphMultivariate, GraphNodes, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -206,12 +206,14 @@ MODULE GraphDeviance;
 			p := stoch.Representative();
 			IF p = stoch THEN
 				children := stoch.children;
-				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-				j := 0;
-				WHILE j < num DO
-					child := children[j];
-					child.SetProps(child.props - {GraphNodes.mark});
-					INC(j)
+				IF children # NIL THEN
+					num := LEN(children);
+					j := 0;
+					WHILE j < num DO
+						child := children[j];
+						child.SetProps(child.props - {GraphNodes.mark});
+						INC(j)
+					END
 				END
 			END;
 			INC(i)
@@ -246,25 +248,27 @@ MODULE GraphDeviance;
 			p := stoch.Representative();
 			IF p = stoch THEN
 				children := stoch.children;
-				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-				j := 0;
-				WHILE j < num DO
-					child := children[j];
-					IF IsObserved(child) THEN
-						observed := TRUE;
-						IF ~DevianceExists(child) THEN
-							ClearMarks;
-							RETURN NIL
+				IF children # NIL THEN
+					num := LEN(children);
+					j := 0;
+					WHILE j < num DO
+						child := children[j];
+						IF IsObserved(child) THEN
+							observed := TRUE;
+							IF ~DevianceExists(child) THEN
+								ClearMarks;
+								RETURN NIL
+							END;
+							IF ~(GraphNodes.mark IN child.props) THEN
+								child.SetProps(child.props + {GraphNodes.mark});
+								INC(numTerms)
+							END;
+							IF ~(GraphStochastic.hidden IN stoch.props) THEN
+								stoch.SetProps(stoch.props + {GraphStochastic.devParent})
+							END;
 						END;
-						IF ~(GraphNodes.mark IN child.props) THEN
-							child.SetProps(child.props + {GraphNodes.mark});
-							INC(numTerms)
-						END;
-						IF ~(GraphStochastic.hidden IN stoch.props) THEN
-							stoch.SetProps(stoch.props + {GraphStochastic.devParent})
-						END;
-					END;
-					INC(j)
+						INC(j)
+					END
 				END;
 				IF observed & ~(GraphStochastic.hidden IN stoch.props) THEN INC(numParents) END
 			END;
@@ -284,16 +288,18 @@ MODULE GraphDeviance;
 			p := stoch.Representative();
 			IF p = stoch THEN
 				children := stoch.children;
-				IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-				j := 0;
-				WHILE j < num DO
-					child := children[j];
-					IF GraphNodes.mark IN child.props THEN
-						deviance.terms[numTerms] := child;
-						child.SetProps(child.props - {GraphNodes.mark});
-						INC(numTerms)
-					END;
-					INC(j)
+				IF children # NIL THEN
+					num := LEN(children);
+					j := 0;
+					WHILE j < num DO
+						child := children[j];
+						IF GraphNodes.mark IN child.props THEN
+							deviance.terms[numTerms] := child;
+							child.SetProps(child.props - {GraphNodes.mark});
+							INC(numTerms)
+						END;
+						INC(j)
+					END
 				END
 			END;
 			INC(i)

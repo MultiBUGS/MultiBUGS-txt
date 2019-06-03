@@ -39,13 +39,15 @@ MODULE BugsPartition;
 			children: GraphStochastic.Vector;
 			i, num: INTEGER;
 	BEGIN
-		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
 		isMarked := FALSE;
-		WHILE ~isMarked & (i < num) DO
-			isMarked := GraphStochastic.mark IN children[i].props;
-			INC(i)
+		children := updater.Children();
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE ~isMarked & (i < num) DO
+				isMarked := GraphStochastic.mark IN children[i].props;
+				INC(i)
+			END
 		END;
 		RETURN isMarked
 	END IsMarkedLike;
@@ -57,12 +59,14 @@ MODULE BugsPartition;
 			i, num: INTEGER;
 	BEGIN
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			node := children[i];
-			node.SetProps(node.props + {GraphStochastic.mark});
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				node := children[i];
+				node.SetProps(node.props + {GraphStochastic.mark});
+				INC(i)
+			END
 		END
 	END MarkLike;
 
@@ -73,12 +77,14 @@ MODULE BugsPartition;
 			i, num: INTEGER;
 	BEGIN
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			node := children[i];
-			node.SetProps(node.props - {GraphStochastic.mark});
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				node := children[i];
+				node.SetProps(node.props - {GraphStochastic.mark});
+				INC(i)
+			END
 		END
 	END UnmarkLike;
 
@@ -300,7 +306,7 @@ MODULE BugsPartition;
 		WHILE i # finish DO
 			u := UpdaterActions.updaters[0, i];
 			prior := u.Node(0);
-			IF ({GraphStochastic.distributed, GraphNodes.mark, 
+			IF ({GraphStochastic.distributed, GraphNodes.mark,
 				GraphStochastic.censored} * prior.props = {}) THEN
 				(*	potential parallel updater	*)
 				IF ~(prior IS GraphMRF.Node) & ~IsMarked(u) THEN
@@ -377,7 +383,7 @@ MODULE BugsPartition;
 			prior := u.Node(0);
 			WITH prior: GraphMRF.Node DO
 				IF ~(GraphNodes.mark IN prior.props) & ~(GraphStochastic.distributed IN prior.props)
-				& (prior.components[0] = gmrf) THEN
+					 & (prior.components[0] = gmrf) THEN
 					IF u.Size() # 0 THEN
 						numNeigh := MAX(numNeigh, prior.NumberNeighbours());
 						NEW(element);
@@ -529,18 +535,20 @@ MODULE BugsPartition;
 						IF label # undefined THEN
 							u := UpdaterActions.updaters[0, label];
 							children := u.Children();
-							IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
-							k := 0;
-							WHILE k < numChild DO
-								child := children[k];
-								IF GraphDeviance.IsObserved(child) THEN 
-									IF ~(GraphNodes.mark IN child.props) THEN
-										child.SetProps(child.props + {GraphNodes.mark});
-										IF action = add THEN observations[j, numData[j]] := child END;
-										INC(numData[j])
-									END
-								END;
-								INC(k)
+							IF children # NIL THEN
+								numChild := LEN(children);
+								k := 0;
+								WHILE k < numChild DO
+									child := children[k];
+									IF GraphDeviance.IsObserved(child) THEN
+										IF ~(GraphNodes.mark IN child.props) THEN
+											child.SetProps(child.props + {GraphNodes.mark});
+											IF action = add THEN observations[j, numData[j]] := child END;
+											INC(numData[j])
+										END
+									END;
+									INC(k)
+								END
 							END
 						END;
 						INC(j)
@@ -557,17 +565,20 @@ MODULE BugsPartition;
 				distributed := GraphStochastic.distributed IN p.props;
 				IF distributed THEN
 					children := u.Children();
-					IF children # NIL THEN numChild := LEN(children) ELSE numChild := 0 END;
-					k := 0;
-					dataForFE := 0;
-					WHILE k < numChild DO
-						child := children[k];
-						IF GraphDeviance.IsObserved(child) THEN
-							IF ~(GraphNodes.mark IN child.props) THEN
-								INC(dataForFE)
+					numChild := 0;
+					IF children # NIL THEN
+						numChild := LEN(children);
+						k := 0;
+						dataForFE := 0;
+						WHILE k < numChild DO
+							child := children[k];
+							IF GraphDeviance.IsObserved(child) THEN
+								IF ~(GraphNodes.mark IN child.props) THEN
+									INC(dataForFE)
+								END;
 							END;
-						END;
-						INC(k)
+							INC(k)
+						END
 					END;
 					mod := dataForFE MOD workersPerChain;
 					j := 0;
@@ -613,7 +624,7 @@ MODULE BugsPartition;
 			END;
 			INC(j)
 		END;
-		DevianceDo(add); ClearMarks; 
+		DevianceDo(add); ClearMarks;
 		RETURN observations
 	END DistributeObservations;
 
@@ -704,7 +715,7 @@ MODULE BugsPartition;
 			rowId := rowId.next
 		END;
 		colPtr := NIL;
-		rowInd := NIL 
+		rowInd := NIL
 	END DistributeUpdaters;
 
 	(*	the updater for a censored observation is placed on the same worker as the censored observation	*)

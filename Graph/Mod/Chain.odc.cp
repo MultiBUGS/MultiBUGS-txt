@@ -11,9 +11,9 @@ MODULE GraphChain;
 
 
 	
-	
+
 	IMPORT
-		Stores,
+		MPIworker, Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphStochastic;
 
 	TYPE
@@ -68,6 +68,29 @@ MODULE GraphChain;
 	END Check;
 
 	PROCEDURE (node: Node) Constraints* (OUT constraints: ARRAY OF ARRAY OF REAL), NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) DiffLogConditional* (): REAL;
+		VAR
+			diffLogCond: REAL;
+			i, num: INTEGER;
+			children: GraphStochastic.Vector;
+	BEGIN
+		diffLogCond := 0.0;
+		children := node.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
+				INC(i)
+			END
+		END;
+		IF GraphStochastic.distributed IN node.props THEN
+			diffLogCond := MPIworker.SumReal(diffLogCond)
+		END;
+		diffLogCond := node.DiffLogPrior() + diffLogCond;
+		RETURN diffLogCond
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) ExternalizeChain- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 

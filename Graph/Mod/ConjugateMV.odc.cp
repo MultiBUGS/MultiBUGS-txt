@@ -13,7 +13,7 @@ MODULE GraphConjugateMV;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphStochastic;
 
 	TYPE

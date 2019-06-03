@@ -10,7 +10,7 @@ MODULE GraphCoSelection;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConstant, GraphLogical, GraphNodes, GraphNormal,
 		GraphRules, GraphScalar, GraphStochastic, GraphUnivariate, GraphVDDescrete, GraphVector;
 
@@ -120,7 +120,7 @@ MODULE GraphCoSelection;
 			v: GraphNodes.SubVector;
 	BEGIN
 		IF node.index = 0 THEN
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.z;
 			v.values := node.zVals;
 			v.start := node.zStart; v.nElem := node.zSize; v.step := node.zStep;
@@ -195,7 +195,7 @@ MODULE GraphCoSelection;
 				node.zSize := args.vectors[0].nElem;
 				node.zStart := args.vectors[0].start;
 				node.zStep := args.vectors[0].step;
-				ASSERT(args.vectors[0] # NIL, 21);
+				ASSERT(args.vectors[0].components # NIL, 21);
 				node.z := args.vectors[0].components; 
 				node.zVals := args.vectors[0].values;
 				ASSERT(args.scalars[0] # NIL, 21);
@@ -330,7 +330,7 @@ MODULE GraphCoSelection;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0] # NIL, 21);
+			ASSERT(args.vectors[0].components # NIL, 21);
 			IF args.vectors[0].components[0] IS Node THEN
 				model.node := args.vectors[0].components[0]
 			ELSE
@@ -373,7 +373,7 @@ MODULE GraphCoSelection;
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.Externalize(predictor.node, wr);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := predictor.z; v.values := predictor.zVals;
 		v.start := predictor.zStart; v.nElem := predictor.zSize; v.step := predictor.zStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
@@ -418,13 +418,13 @@ MODULE GraphCoSelection;
 		(*	need to do some size checking here	*)
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0] # NIL, 21);
+			ASSERT(args.vectors[0].components # NIL, 21);
 			IF args.vectors[0].components[0] IS Node THEN
 				predictor.node := args.vectors[0].components[0]
 			ELSE
 				res := {GraphNodes.arg1, GraphNodes.invalidParameters}
 			END;
-			ASSERT(args.vectors[1] # NIL, 22);
+			ASSERT(args.vectors[1].components # NIL, 22);
 			predictor.z := args.vectors[1].components;
 			predictor.zVals := args.vectors[1].values;
 			predictor.zStart := args.vectors[1].start;

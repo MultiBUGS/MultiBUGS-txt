@@ -10,7 +10,7 @@ MODULE UpdaterStage1P;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphRules, GraphStochastic,
 		MathRandnum,

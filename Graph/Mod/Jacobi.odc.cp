@@ -13,7 +13,7 @@ MODULE GraphJacobi;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic,
 		MathJacobi;
 

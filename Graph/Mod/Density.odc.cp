@@ -16,7 +16,7 @@ MODULE GraphDensity;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphGrammar, GraphMultivariate, GraphNodes, GraphRules, GraphScalar,
 		GraphStochastic, GraphUnivariate;
 
@@ -198,7 +198,7 @@ MODULE GraphDensity;
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.Externalize(node.prior, wr);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.x;
 		v.start := node.start; v.nElem := node.size; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);

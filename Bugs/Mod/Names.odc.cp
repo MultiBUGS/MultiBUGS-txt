@@ -14,7 +14,7 @@ MODULE BugsNames;
 	(*	data structure to represent names in BUGS model	*)
 
 	IMPORT
-		Stores, Strings,
+		Stores := Stores64, Strings,
 		GraphConstant, GraphNodes, GraphStochastic;
 
 	TYPE

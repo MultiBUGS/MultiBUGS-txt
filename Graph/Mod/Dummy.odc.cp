@@ -13,7 +13,7 @@ MODULE GraphDummy;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
@@ -57,7 +57,12 @@ MODULE GraphDummy;
 		HALT(0);
 		RETURN 0.0
 	END Deviance;
-
+	
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+	BEGIN
+		RETURN 0.0
+	END DiffLogConditional;
+	
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
 		RETURN 0.0

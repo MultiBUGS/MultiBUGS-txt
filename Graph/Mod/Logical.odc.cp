@@ -13,7 +13,7 @@ MODULE GraphLogical;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes;
 
 	CONST

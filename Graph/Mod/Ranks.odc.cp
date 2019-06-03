@@ -13,7 +13,7 @@ MODULE GraphRanks;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic, GraphScalar, GraphVector,
 		MathSort;
 
@@ -119,7 +119,7 @@ MODULE GraphRanks;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.vector; v.values := node.constant;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
@@ -314,7 +314,7 @@ MODULE GraphRanks;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.vector; v.values := node.constant;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
@@ -471,7 +471,7 @@ MODULE GraphRanks;
 			v: GraphNodes.SubVector;
 	BEGIN
 		IF node.index = 0 THEN
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.vector; v.values := node.constant;
 			v.start := node.start; v.nElem := node.Size(); v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr)

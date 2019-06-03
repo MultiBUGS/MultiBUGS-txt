@@ -16,7 +16,7 @@ MODULE GraphODEBlockL;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		BugsMsg,
 		GraphDummy, GraphLogical, GraphNodes, GraphPiecewise, GraphRules,
 		GraphStochastic, GraphVector,
@@ -75,19 +75,19 @@ MODULE GraphODEBlockL;
 		i := 0; WHILE i < numEq DO wr.WriteReal(node.x1[i]); INC(i); END;
 		GraphNodes.Externalize(node.t, wr);
 		GraphNodes.Externalize(node.block, wr);
-		v := GraphNodes.NewVector();
+		v .Init;
 		v.components := node.origins;
 		v.start := 0; v.nElem := LEN(node.origins); v.step := 1;
 		GraphNodes.ExternalizeSubvector(v, wr);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.grid;
 		v.start := 0; v.nElem := LEN(node.grid); v.step := 1;
 		GraphNodes.ExternalizeSubvector(v, wr);
-		v := GraphNodes.NewVector();
+		v .Init;
 		v.components := node.x;
 		v.start := 0; v.nElem := LEN(node.x); v.step := 1;
 		GraphNodes.ExternalizeSubvector(v, wr);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.deriv;
 		v.start := 0; v.nElem := LEN(node.deriv); v.step := 1;
 		GraphNodes.ExternalizeSubvector(v, wr);

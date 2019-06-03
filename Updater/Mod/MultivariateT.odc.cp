@@ -13,7 +13,7 @@ MODULE UpdaterMultivariateT;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRegistry,
 		GraphStochastic,
 		UpdaterMultivariate, UpdaterUpdaters;

@@ -13,7 +13,7 @@ MODULE SpatialCARl1;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR;
 
 

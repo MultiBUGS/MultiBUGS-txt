@@ -13,7 +13,7 @@ copyright:	"Rsrc/About"
 MODULE MPImaster;
 
 	IMPORT
-		MPI, MPIimp, SYSTEM;
+		MPI, SYSTEM;
 
 	VAR
 		mpi: MPI.Hook;
@@ -35,6 +35,28 @@ MODULE MPImaster;
 		mpi.Comm_remote_size(intercomm, size);
 		RETURN size;
 	END CommRemoteSize;
+
+	PROCEDURE Install*;
+		VAR
+			nargs: INTEGER;
+			args: POINTER TO ARRAY[untagged] OF SHORTCHAR;	
+	BEGIN
+		mpi := MPI.hook;
+		ASSERT(mpi # NIL, 77);
+		nargs := 0;  (*	why is this needed on linux	*)
+		mpi.Init(nargs, args);
+		intercomm := MPI.COMM_NULL
+	END Install;
+
+	PROCEDURE RecvBytes* (OUT x: ARRAY OF BYTE; source: INTEGER);
+		VAR
+			len: INTEGER;
+		CONST
+			tag = 4;
+	BEGIN
+		len := LEN(x);
+		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.BYTE, source, tag, intercomm, MPI.STATUS_IGNORE);
+	END RecvBytes;
 
 	PROCEDURE RecvInteger* (source: INTEGER): INTEGER;
 		VAR
@@ -76,6 +98,23 @@ MODULE MPImaster;
 		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.DOUBLE, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvReals;
 
+	PROCEDURE SendBytes* (IN x: ARRAY OF BYTE; dest: INTEGER);
+		VAR
+			len: INTEGER;
+		CONST
+			tag = 4;
+	BEGIN
+		len := LEN(x);
+		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.BYTE, dest, tag, intercomm)
+	END SendBytes;
+
+	PROCEDURE SendInteger* (x: INTEGER; dest: INTEGER);
+		CONST
+			tag = 0;
+	BEGIN
+		mpi.Send(SYSTEM.ADR(x), 1, MPI.INT, dest, tag, intercomm)
+	END SendInteger;
+
 	PROCEDURE SendIntegers* (IN x: ARRAY OF INTEGER; dest: INTEGER);
 		VAR
 			len: INTEGER;
@@ -99,20 +138,8 @@ MODULE MPImaster;
 		maintainer := "A.Thomas"
 	END Maintainer;
 
-	PROCEDURE Init;
-		VAR
-			nargs: INTEGER;
-			args: POINTER TO ARRAY[untagged] OF SHORTCHAR;	
-	BEGIN
-		Maintainer;
-		mpi := MPI.hook;
-		nargs := 0;  (*	why is this needed on linux	*)
-		mpi.Init(nargs, args);
-		intercomm := MPI.COMM_NULL
-	END Init;
-
 BEGIN
-	Init
+	Maintainer
 CLOSE
 	mpi.Finalize
 END MPImaster.

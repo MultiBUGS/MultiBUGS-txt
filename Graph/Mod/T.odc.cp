@@ -15,7 +15,7 @@ MODULE GraphT;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateUV, GraphConstant, GraphGamma, GraphHalf, GraphNodes, 
 		GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum,
@@ -56,11 +56,6 @@ MODULE GraphT;
 	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
-	
-	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).lambda)
-	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN

@@ -13,7 +13,7 @@ MODULE DevianceParents;
 
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		DeviancePlugin,
 		GraphNodes,
 		MonitorPlugin;

@@ -13,7 +13,7 @@ MODULE SpatialCARNormal;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR,
 		MathFunc;
 

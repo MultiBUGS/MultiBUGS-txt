@@ -13,7 +13,7 @@ MODULE UpdaterMetbinomial;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphRules, GraphStochastic, GraphVD,
 		MathRandnum,

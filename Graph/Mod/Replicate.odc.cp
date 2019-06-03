@@ -12,7 +12,7 @@ MODULE GraphReplicate;
 		(* Release 1.00 *)
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphMemory, GraphMultivariate, GraphNodes,
 		GraphRules, GraphScalar, GraphStochastic, GraphVector;
 
@@ -328,7 +328,7 @@ MODULE GraphReplicate;
 			v: GraphNodes.SubVector;
 	BEGIN
 		IF node.index = 0 THEN
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.prior;
 			v.nElem := node.nElem; v.start := node.start; v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr)
@@ -391,7 +391,7 @@ MODULE GraphReplicate;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0] # NIL, 21);
+			ASSERT(args.vectors[0].components # NIL, 21);
 			node.prior := args.vectors[0].components;
 			node.start := args.vectors[0].start;
 			node.step := args.vectors[0].step;

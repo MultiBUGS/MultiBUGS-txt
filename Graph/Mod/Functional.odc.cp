@@ -13,7 +13,7 @@ MODULE GraphFunctional;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		BugsMsg,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathFunctional;

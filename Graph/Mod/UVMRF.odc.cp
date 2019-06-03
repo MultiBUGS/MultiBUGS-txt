@@ -13,7 +13,7 @@ MODULE GraphUVMRF;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphMRF, GraphNodes, GraphRules, GraphStochastic,
 		MathFunc, MathRandnum, MathSparsematrix;
 
@@ -172,7 +172,7 @@ MODULE GraphUVMRF;
 			epss = 1.0E-6;
 	BEGIN
 		classPrior := node.ClassifyPrior();
-		IF classPrior # GraphRules.normal THEN
+		IF classPrior # GraphRules.normal THEN 
 			res := {GraphNodes.lhs}; RETURN
 		END;
 		res := {};
@@ -249,7 +249,12 @@ MODULE GraphUVMRF;
 	PROCEDURE (node: Node) Sample* (OUT res: SET);
 		VAR
 			mu, tau, value: REAL;
+			classPrior: INTEGER;
 	BEGIN
+		classPrior := node.ClassifyPrior();
+		IF classPrior # GraphRules.normal THEN 
+			res := {GraphNodes.lhs}; RETURN
+		END;
 		node.PriorForm(GraphRules.normal, mu, tau);
 		value := MathRandnum.Normal(mu, tau);
 		node.SetValue(value);

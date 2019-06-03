@@ -13,7 +13,7 @@ MODULE GraphEigenvals;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathMatrix;
 
@@ -97,7 +97,7 @@ MODULE GraphEigenvals;
 	BEGIN
 		IF node.index = 0 THEN
 			nElem := node.Size();
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.matrix; v.values := node.constant;
 			v.start := node.start; v.step := node.step; v.nElem := nElem * nElem;
 			GraphNodes.ExternalizeSubvector(v, wr)

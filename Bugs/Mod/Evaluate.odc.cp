@@ -313,16 +313,15 @@ MODULE BugsEvaluate;
 		END
 	END Do;
 
-	PROCEDURE LHVariable* (variable: BugsParser.Variable): GraphNodes.SubVector;
+	PROCEDURE LHVariable* (variable: BugsParser.Variable; OUT vector: GraphNodes.SubVector);
 		VAR
 			i, numSlots, upper: INTEGER;
 			indices: ARRAY 20 OF INTEGER;
 			name: BugsNames.Name;
-			vector: GraphNodes.SubVector;
 	BEGIN
-		vector := GraphNodes.NewVector();
+		vector.Init;
 		name := variable.name;
-		IF name.components = NIL THEN Error(2, name.string); RETURN NIL END;
+		IF name.components = NIL THEN Error(2, name.string); vector.Init; RETURN END;
 		i := 0;
 		vector.nElem := 1;
 		vector.step := 1;
@@ -334,30 +333,29 @@ MODULE BugsEvaluate;
 				vector.step := name.Step(i)
 			ELSIF variable.upper[i] # NIL THEN
 				indices[i] := Index(variable.lower[i]);
-				IF indices[i] = error THEN RETURN NIL END;
+				IF indices[i] = error THEN vector.Init;  RETURN END;
 				upper := Index(variable.upper[i]);
-				IF upper = error THEN RETURN NIL END;
+				IF upper = error THEN vector.Init;  RETURN END;
 				IF upper > name.slotSizes[i] THEN (*	array index greater than array bounds	*)
-					Error(9, name.string); RETURN NIL
+					Error(9, name.string); vector.Init;  RETURN 
 				END;
 				IF upper < indices[i] THEN (*	invalid range specified	*)
-					Error(10, name.string); RETURN NIL
+					Error(10, name.string); vector.Init; RETURN 
 				END;
 				vector.nElem := vector.nElem * (upper + 1 - indices[i]);
 				vector.step := name.Step(i)
 			ELSE
 				indices[i] := Index(variable.lower[i]);
-				IF indices[i] = error THEN RETURN NIL
+				IF indices[i] = error THEN vector.Init;  RETURN 
 				END
 			END;
 			IF indices[i] < 1 THEN (*	array index is less than one	*)
-				Error(11, name.string); RETURN NIL
+				Error(11, name.string); vector.Init;  RETURN 
 			END;
 			INC(i)
 		END;
 		vector.components := name.components;
-		vector.start := name.Offset(indices);
-		RETURN vector
+		vector.start := name.Offset(indices)
 	END LHVariable;
 
 	PROCEDURE RHRef (tree: BugsParser.Node; optimizeData: BOOLEAN): GraphNodes.Node;
@@ -425,7 +423,7 @@ MODULE BugsEvaluate;
 					END;
 				END
 			ELSE
-				argL.vectors[0] := GraphNodes.NewVector();
+				argL.vectors[0].Init;
 				argL.vectors[0].components := name.components;
 				argL.vectors[0].start := name.Offset(indices);
 				argL.numScalars := numVarIndex;
@@ -470,7 +468,7 @@ MODULE BugsEvaluate;
 		RETURN RHRef(tree, TRUE)
 	END RHScalarOpt;
 
-	PROCEDURE RHVector* (variable: BugsParser.Variable): GraphNodes.SubVector;
+	PROCEDURE RHVector* (variable: BugsParser.Variable; OUT vector: GraphNodes.SubVector);
 		VAR
 			i, k, finish, numSlots, numVarIndex: INTEGER;
 			res: SET;
@@ -478,12 +476,11 @@ MODULE BugsEvaluate;
 			name: BugsNames.Name;
 			node: GraphNodes.Node;
 			argL: GraphStochastic.ArgsLogical;
-			vector: GraphNodes.SubVector;
 	BEGIN
-		vector := GraphNodes.NewVector();
+		vector.Init;
 		name := variable.name;
 		IF (name.components = NIL) & (name.values = NIL) THEN 
-			Error(2, name.string); RETURN NIL 
+			Error(2, name.string); vector.Init; RETURN 
 		END;
 		i := 0;
 		vector.nElem := 1;
@@ -498,21 +495,21 @@ MODULE BugsEvaluate;
 				vector.step := name.Step(i)
 			ELSIF variable.upper[i] # NIL THEN	(*	range specified	*)
 				lower[i] := Index(variable.lower[i]);
-				IF lower[i] = error THEN RETURN NIL END;
-				IF lower[i] > name.slotSizes[i] THEN Error(15, name.string); RETURN NIL END;
+				IF lower[i] = error THEN vector.Init; RETURN END;
+				IF lower[i] > name.slotSizes[i] THEN Error(15, name.string); vector.Init; RETURN END;
 				upper[i] := Index(variable.upper[i]);
-				IF upper[i] = error THEN RETURN NIL END;
-				IF upper[i] > name.slotSizes[i] THEN Error(15, name.string); RETURN NIL END;
-				IF upper[i] < lower[i] THEN Error(16, name.string); RETURN NIL END;
+				IF upper[i] = error THEN vector.Init; RETURN END;
+				IF upper[i] > name.slotSizes[i] THEN Error(15, name.string); vector.Init; RETURN END;
+				IF upper[i] < lower[i] THEN Error(16, name.string); vector.Init; RETURN END;
 				vector.nElem := vector.nElem * (upper[i] - lower[i] + 1);
 				IF upper[i] # lower[i] THEN vector.step := name.Step(i) END
 			ELSIF variable.lower[i] IS BugsParser.Variable THEN
 				node := RHScalar(variable.lower[i]);
-				IF node = NIL THEN RETURN NIL END;
+				IF node = NIL THEN vector.Init; RETURN END;
 				IF GraphNodes.data IN node.props THEN
 					lower[i] := Index(variable.lower[i]);
-					IF lower[i] = error THEN RETURN NIL END;
-					IF lower[i] > name.slotSizes[i] THEN Error(15, name.string); RETURN NIL END;
+					IF lower[i] = error THEN vector.Init; RETURN END;
+					IF lower[i] > name.slotSizes[i] THEN Error(15, name.string); vector.Init; RETURN END;
 					upper[i] := lower[i]
 				ELSE
 					lower[i] := 1;
@@ -525,11 +522,11 @@ MODULE BugsEvaluate;
 				END
 			ELSE
 				lower[i] := Index(variable.lower[i]);
-				IF lower[i] = error THEN RETURN NIL END;
-				IF lower[i] > name.slotSizes[i] THEN Error(15, name.string); RETURN NIL END;
+				IF lower[i] = error THEN vector.Init; RETURN END;
+				IF lower[i] > name.slotSizes[i] THEN Error(15, name.string); vector.Init; RETURN END;
 				upper[i] := lower[i]
 			END;
-			IF lower[i] < 1 THEN Error(17, name.string); RETURN NIL END;
+			IF lower[i] < 1 THEN Error(17, name.string); vector.Init; RETURN END;
 			INC(i)
 		END;
 		IF numVarIndex = 0 THEN
@@ -541,12 +538,12 @@ MODULE BugsEvaluate;
 			vector.start := name.Offset(lower);
 			finish := name.Offset(upper);
 			IF (finish - vector.start + vector.step) DIV vector.step # vector.nElem THEN
-				Error(16, name.string); RETURN NIL
+				Error(16, name.string); vector.Init; RETURN 
 			END
 		ELSE
 			NEW(vector.components, vector.nElem);
 			vector.start := 0;
-			argL.vectors[0] := GraphNodes.NewVector();
+			argL.vectors[0].Init;
 			argL.vectors[0].components := name.components;
 			argL.vectors[0].start := name.Offset(lower);
 			argL.numScalars := numVarIndex;
@@ -554,13 +551,12 @@ MODULE BugsEvaluate;
 			WHILE i < vector.nElem DO
 				node := GraphMixture.fact.New();
 				node.Set(argL, res);
-				IF res # {} THEN RETURN NIL END;
+				IF res # {} THEN vector.Init; RETURN END;
 				vector.components[i] := node;
 				INC(argL.vectors[0].start, vector.step);
 				INC(i)
 			END
-		END;
-		RETURN vector
+		END
 	END RHVector;
 
 	PROCEDURE Maintainer;

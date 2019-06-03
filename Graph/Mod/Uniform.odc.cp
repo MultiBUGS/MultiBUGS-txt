@@ -15,7 +15,7 @@ MODULE GraphUniform;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateUV, GraphConstant, GraphNodes, GraphRules, GraphStochastic,
 		GraphUnivariate,
 		MathFunc, MathRandnum;

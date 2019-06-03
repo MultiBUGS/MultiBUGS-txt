@@ -13,7 +13,7 @@ MODULE UpdaterMetropolisMV;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE

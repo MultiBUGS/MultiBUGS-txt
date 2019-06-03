@@ -15,7 +15,7 @@ MODULE UpdaterActions;
 
 	IMPORT
 		SYSTEM,
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphMRF, GraphNodes, GraphStochastic,
 		MathSort,
 		UpdaterAuxillary, UpdaterUpdaters;
@@ -368,9 +368,10 @@ MODULE UpdaterActions;
 	(*	Externalize updaters mutable state	*)
 	PROCEDURE ExternalizeUpdaterData* (VAR wr: Stores.Writer);
 		VAR
-			i, j, numChains, numUpdaters, oldPos, pos: INTEGER;
+			i, j, numChains, numUpdaters: INTEGER;
+			oldPos, pos: LONGINT;
 			updater: UpdaterUpdaters.Updater;
-			posArray: POINTER TO ARRAY OF INTEGER;
+			posArray: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		numChains := NumberChains();
 		NEW(posArray, numChains);
@@ -378,7 +379,7 @@ MODULE UpdaterActions;
 		oldPos := wr.Pos();
 		i := 0;
 		WHILE i < numChains DO
-			wr.WriteInt( - 1); INC(i)
+			wr.WriteLong( - 1); INC(i)
 		END;
 		i := 0;
 		WHILE i < numChains DO
@@ -395,7 +396,7 @@ MODULE UpdaterActions;
 		wr.SetPos(oldPos);
 		i := 0;
 		WHILE i < numChains DO
-			wr.WriteInt(posArray[i]); INC(i)
+			wr.WriteLong(posArray[i]); INC(i)
 		END;
 		wr.SetPos(pos)
 	END ExternalizeUpdaterData;
@@ -487,14 +488,15 @@ MODULE UpdaterActions;
 	(*	Internalize updaters mutable state	*)
 	PROCEDURE InternalizeUpdaterData* (chain: INTEGER; VAR rd: Stores.Reader);
 		VAR
-			i, numChains, numUpdaters, pos: INTEGER;
+			i, numChains, numUpdaters: INTEGER;
 			updater: UpdaterUpdaters.Updater;
+			pos: LONGINT;
 	BEGIN
 		numChains := NumberChains();
 		numUpdaters := NumberUpdaters();
 		i := 0;
 		WHILE i <= chain DO
-			rd.ReadInt(pos);
+			rd.ReadLong(pos);
 			INC(i)
 		END;
 		rd.SetPos(pos);

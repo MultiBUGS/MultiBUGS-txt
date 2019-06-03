@@ -13,7 +13,7 @@ MODULE UpdaterRandWalkUV;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphStochastic,
 		MathRandnum,
 		UpdaterMetropolisUV, UpdaterUpdaters;

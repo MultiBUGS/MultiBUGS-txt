@@ -57,7 +57,7 @@ MODULE BugsNodes;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.LookupParam("BugsNodes" + numToString, p, errorMsg);
+		BugsMsg.LookupParam("BugsNodes" + numToString, p, errorMsg); 
 		BugsMsg.StoreError(errorMsg)
 	END Error;
 
@@ -203,7 +203,7 @@ MODULE BugsNodes;
 		expression := statement.expression;
 		IF expression # NIL THEN
 			variable := statement.variable;
-			vector := BugsEvaluate.LHVariable(variable);
+			BugsEvaluate.LHVariable(variable, vector);
 			i := vector.start;
 			end := vector.start + vector.nElem;
 			WHILE i < end DO
@@ -250,8 +250,8 @@ MODULE BugsNodes;
 		ok := TRUE;
 		IF statement.expression # NIL THEN
 			variable := statement.variable;
-			vector := BugsEvaluate.LHVariable(variable);
-			IF vector = NIL THEN ok := FALSE; RETURN END;
+			BugsEvaluate.LHVariable(variable, vector);
+			IF vector.components = NIL THEN ok := FALSE; RETURN END;
 			IF vector.step # 1 THEN 	(* non consecative elements *)
 				ok := FALSE; Error(4, variable.name.string); RETURN
 			END;
@@ -306,8 +306,8 @@ MODULE BugsNodes;
 		ok := TRUE;
 		IF statement.density # NIL THEN
 			variable := statement.variable;
-			vector := BugsEvaluate.LHVariable(variable);
-			IF vector = NIL THEN ok := FALSE; RETURN END;
+			BugsEvaluate.LHVariable(variable, vector);
+			IF vector.components = NIL THEN ok := FALSE; RETURN END;
 			IF vector.step # 1 THEN (*	non consecative elements	*)
 				ok := FALSE; Error(6, variable.name.string); RETURN
 			END;
@@ -377,7 +377,7 @@ MODULE BugsNodes;
 		expression := statement.expression;
 		IF expression # NIL THEN
 			variable := statement.variable;
-			vector := BugsEvaluate.LHVariable(variable);
+			BugsEvaluate.LHVariable(variable, vector);
 			i := vector.start;
 			IF vector.nElem # 1 THEN RETURN END; (*	can not fold vector valued constants	*)
 			IF (vector.components[i] # NIL) & (GraphNodes.data IN vector.components[i].props) THEN
@@ -427,8 +427,8 @@ MODULE BugsNodes;
 		expression := statement.expression;
 		IF expression = NIL THEN RETURN END;
 		variable := statement.variable;
-		vector := BugsEvaluate.LHVariable(variable);
-		IF vector = NIL THEN ok := FALSE; RETURN END;
+		BugsEvaluate.LHVariable(variable, vector);
+		IF vector.components = NIL THEN ok := FALSE; RETURN END;
 		node := vector.components[vector.start];
 		IF GraphNodes.data IN node.props THEN RETURN END;
 		variable.name.Indices(vector.start, varName);
@@ -509,8 +509,8 @@ MODULE BugsNodes;
 		descriptor := density.descriptor;
 		fact := descriptor.fact;
 		multivariate := fact IS GraphMultivariate.Factory;
-		vector := BugsEvaluate.LHVariable(variable);
-		IF vector = NIL THEN ok := FALSE; RETURN END;
+		BugsEvaluate.LHVariable(variable, vector);
+		IF vector.components = NIL THEN ok := FALSE; RETURN END;
 		name := variable.name;
 		name.Indices(vector.start, varName);
 		varName := name.string + varName;

@@ -24,6 +24,7 @@ MODULE SamplesMessages;
 	BEGIN
 		RegisterKey("SamplesCmds:MonitorCleared", "monitored cleared");
 		RegisterKey("SamplesCmds:CODAFilesWritten", "CODA files written");
+		RegisterKey("SamplesCmds:DeleteAll", "delete all monitors");
 		RegisterKey("SamplesCmds:MonitorSet", "monitor set");
 		RegisterKey("SamplesCmds:NotInitialized", "model must be initialized before monitors used");
 		RegisterKey("SamplesCmds:NotVariable", "^0 is not a variable in the model");

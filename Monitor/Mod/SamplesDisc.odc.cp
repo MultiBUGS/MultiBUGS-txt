@@ -13,7 +13,7 @@ MODULE MonitorSamplesDisc;
 	
 
 	IMPORT
-		Files64, Stores, Stores64, 
+		Files64, Stores64, 
 		GraphDeviance, GraphNodes,
 		MonitorMonitors, MonitorSamples;
 
@@ -39,7 +39,7 @@ MODULE MonitorSamplesDisc;
 		maintainer-: ARRAY 40 OF CHAR;
 		fact-: Factory;
 
-	PROCEDURE (monitor: Monitor) Externalize (VAR wr: Stores.Writer);
+	PROCEDURE (monitor: Monitor) Externalize (VAR wr: Stores64.Writer);
 		VAR
 			i, j, numBlocks, numBlocks1: INTEGER;
 			pos: LONGINT;
@@ -65,7 +65,7 @@ MODULE MonitorSamplesDisc;
 		j := 0; WHILE j < blockSize DO wr.WriteSReal(monitor.buffer[j]); INC(j) END
 	END Externalize;
 
-	PROCEDURE (monitor: Monitor) Internalize (VAR rd: Stores.Reader);
+	PROCEDURE (monitor: Monitor) Internalize (VAR rd: Stores64.Reader);
 		VAR
 			i, j, numBlocks, numBlocks1: INTEGER;
 			x: SHORTREAL;

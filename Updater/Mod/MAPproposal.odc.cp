@@ -16,7 +16,7 @@ MODULE UpdaterMAPproposal;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsGraph, BugsRegistry,
 		GraphMAP, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,

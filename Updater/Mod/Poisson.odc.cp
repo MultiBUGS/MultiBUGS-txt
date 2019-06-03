@@ -13,7 +13,7 @@ MODULE UpdaterPoisson;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,

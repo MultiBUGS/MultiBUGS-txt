@@ -12,7 +12,7 @@ MODULE GraphFlexWishart;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateMV, GraphDummy, GraphMultivariate,
 		GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
@@ -61,11 +61,6 @@ MODULE GraphFlexWishart;
 	PROCEDURE (updater: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
-	
-	PROCEDURE (updater: Auxillary) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN 0
-	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -177,6 +172,12 @@ MODULE GraphFlexWishart;
 		HALT(0);
 		RETURN 0.0
 	END Deviance;
+
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+	BEGIN
+		HALT(0);
+		RETURN 0.0
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN

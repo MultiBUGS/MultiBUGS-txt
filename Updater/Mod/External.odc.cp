@@ -75,6 +75,12 @@ MODULE UpdaterExternal;
 		(*	updates node with wishart prior	*)
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallWishart");
 
+		(*	updates global block of nodes at depth 1	*)
+		UpdaterMethods.LoadUpdater("UpdaterKernelblock.InstallGlobal");
+
+		(*	updates global block of nodes at depth 1	*)
+		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallGlobal");
+
 		(*	updater for MVN conditional with mean identical to prior	*)
 		UpdaterMethods.LoadUpdater("UpdaterMVNormal.Install");
 
@@ -113,6 +119,9 @@ MODULE UpdaterExternal;
 
 		(*	updates block of nodes with normal conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterGLM.InstallNormal");
+
+		(*	updates fixed effect block of nodes at least one of which has a generic conditional	*)
+		UpdaterMethods.LoadUpdater("UpdaterKernelblock.InstallNL");
 
 		(*	updates fixed effect block of nodes at least one of which has a generic conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallNL");

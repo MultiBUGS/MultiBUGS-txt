@@ -13,7 +13,7 @@ MODULE UpdaterSDScale;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphLogical, GraphStochastic,
 		MathRandnum,

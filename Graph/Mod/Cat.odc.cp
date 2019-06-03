@@ -15,7 +15,7 @@ MODULE GraphCat;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateUV, GraphLogical, GraphMultivariate, GraphNodes, GraphRules,
 		GraphStochastic, GraphUnivariate, GraphVector,
 		MathFunc, MathRandnum;
@@ -213,7 +213,7 @@ MODULE GraphCat;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.p;
 		v.start := node.start; v.nElem := node.dimP; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr)

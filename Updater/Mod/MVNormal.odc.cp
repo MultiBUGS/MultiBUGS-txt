@@ -49,57 +49,58 @@ MODULE UpdaterMVNormal;
 		paramsSize := size + size2;
 		IF size > LEN(p0) THEN NEW(p0, size) END;
 		IF size > LEN(p1, 0) THEN NEW(p1, size, size) END;
-		as := GraphRules.mVN;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < paramsSize DO
 			p[i] := 0.0;
 			INC(i)
 		END;
-		k := 0;
-		WHILE k < num DO
-			child := children[k];
-			WITH child: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
-				as := GraphRules.mVN;
-				child.MVLikelihoodForm(as, xVector, start, step, p0, p1);
-				i := 0;
-				WHILE i < size DO
-					j := 0;
-					WHILE j < size DO
-						p[i * size + j] := p[i * size + j] + p1[i, j];
-						p[size2 + i] := p[size2 + i] + p1[i, j] * p0[j];
-						INC(j)
+		IF children # NIL THEN
+			num := LEN(children);
+			k := 0;
+			WHILE k < num DO
+				child := children[k];
+				WITH child: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
+					as := GraphRules.mVN;
+					child.MVLikelihoodForm(as, xVector, start, step, p0, p1);
+					i := 0;
+					WHILE i < size DO
+						j := 0;
+						WHILE j < size DO
+							p[i * size + j] := p[i * size + j] + p1[i, j];
+							p[size2 + i] := p[size2 + i] + p1[i, j] * p0[j];
+							INC(j)
+						END;
+						INC(i)
+					END
+				|child: GraphConjugateUV.Node DO (*	univariate normal likelihood	*)
+					as := GraphRules.normal;
+					child.LikelihoodForm(as, x, m, t);
+					i := 0;
+					WHILE i < size DO
+						prior[i].SetValue(0.0);
+						INC(i)
 					END;
-					INC(i)
-				END
-			|child: GraphConjugateUV.Node DO (*	univariate normal likelihood	*)
-				as := GraphRules.normal;
-				child.LikelihoodForm(as, x, m, t);
-				i := 0;
-				WHILE i < size DO
-					prior[i].SetValue(0.0);
-					INC(i)
-				END;
-				c := x.Value();
-				i := 0;
-				WHILE i < size DO
-					prior[i].SetValue(1.0);
-					p0[i] := x.Value() - c;
-					prior[i].SetValue(0.0);
-					p[size2 + i] := p[size2 + i] + (m - c) * t * p0[i];
-					INC(i)
-				END;
-				i := 0;
-				WHILE i < size DO
-					j := 0;
-					WHILE j < size DO
-						p[i * size + j] := p[i * size + j] + p0[i] * p0[j] * t;
-						INC(j)
+					c := x.Value();
+					i := 0;
+					WHILE i < size DO
+						prior[i].SetValue(1.0);
+						p0[i] := x.Value() - c;
+						prior[i].SetValue(0.0);
+						p[size2 + i] := p[size2 + i] + (m - c) * t * p0[i];
+						INC(i)
 					END;
-					INC(i)
-				END
-			END;
-			INC(k)
+					i := 0;
+					WHILE i < size DO
+						j := 0;
+						WHILE j < size DO
+							p[i * size + j] := p[i * size + j] + p0[i] * p0[j] * t;
+							INC(j)
+						END;
+						INC(i)
+					END
+				END;
+				INC(k)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior[0].props THEN
 			MPIworker.SumReals(p)

@@ -95,6 +95,26 @@ MODULE MPIworker;
 		RETURN temp
 	END MaxReal;
 
+	PROCEDURE RecvBytes* (OUT x: ARRAY OF BYTE);
+		VAR
+			len: INTEGER;
+		CONST
+			source = 0; tag = 4;
+	BEGIN
+		len := LEN(x);
+		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.BYTE, source, tag, intercomm, MPI.STATUS_IGNORE);
+	END RecvBytes;
+
+	PROCEDURE RecvInteger* (): INTEGER;
+		VAR
+			x: INTEGER;
+		CONST
+			source = 0; tag = 2;
+	BEGIN
+		mpi.Recv(SYSTEM.ADR(x), 1, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
+		RETURN x
+	END RecvInteger;
+
 	PROCEDURE RecvIntegers* (OUT x: ARRAY OF INTEGER);
 		VAR
 			len: INTEGER;
@@ -104,6 +124,16 @@ MODULE MPIworker;
 		len := LEN(x);
 		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvIntegers;
+
+	PROCEDURE SendBytes* (IN x: ARRAY OF BYTE);
+		VAR
+			len: INTEGER;
+		CONST
+			dest = 0; tag = 4;
+	BEGIN
+		len := LEN(x);
+		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.BYTE, dest, tag, intercomm);
+	END SendBytes;
 
 	PROCEDURE SendInteger* (x: INTEGER);
 		CONST

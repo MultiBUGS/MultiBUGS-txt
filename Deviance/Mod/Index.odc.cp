@@ -20,7 +20,7 @@ MODULE DevianceIndex;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsIndex, BugsNames,
 		DevianceMonitors, DevianceParents, DeviancePlugin,
 		MonitorMonitors,
@@ -164,9 +164,10 @@ MODULE DevianceIndex;
 
 	PROCEDURE (monitor: Monitor) Externalize (VAR wr: Stores.Writer);
 		VAR
-			i, numMonitors, numParents, pos, start: INTEGER;
+			i, numMonitors, numParents: INTEGER;
+			pos, start: LONGINT;
 			cursor: List;
-			filePos: POINTER TO ARRAY OF INTEGER;
+			filePos: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		wr.WriteBool(monitor.updated);
 		IF monitor.parentMonitor # NIL THEN
@@ -183,7 +184,7 @@ MODULE DevianceIndex;
 		wr.WriteInt(numMonitors);
 		start := wr.Pos();
 		IF numMonitors > 0 THEN
-			i := 0; WHILE i < numMonitors DO wr.WriteInt( - 1); INC(i) END;
+			i := 0; WHILE i < numMonitors DO wr.WriteLong( - 1); INC(i) END;
 			NEW(filePos, numMonitors)
 		END;
 		i := 0;
@@ -199,7 +200,7 @@ MODULE DevianceIndex;
 			wr.SetPos(start);
 			i := 0;
 			WHILE i < numMonitors DO
-				wr.WriteInt(filePos[i]);
+				wr.WriteLong(filePos[i]);
 				INC(i)
 			END;
 			wr.SetPos(pos)
@@ -209,7 +210,8 @@ MODULE DevianceIndex;
 	(*	reads data into variable monitor	*)
 	PROCEDURE (monitor: Monitor) Internalize (VAR rd: Stores.Reader);
 		VAR
-			i, filePos, numMonitors, numParents: INTEGER;
+			i, numMonitors, numParents: INTEGER;
+			filePos: LONGINT;
 			devianceMonitor: DevianceMonitors.Monitor;
 			plugin: DeviancePlugin.Plugin;
 	BEGIN
@@ -224,7 +226,7 @@ MODULE DevianceIndex;
 		IF numMonitors > 0 THEN
 			i := 0;
 			WHILE i < numMonitors DO
-				rd.ReadInt(filePos); ASSERT(filePos # - 1, 66);
+				rd.ReadLong(filePos); ASSERT(filePos # - 1, 66);
 				INC(i)
 			END;
 			i := 0;

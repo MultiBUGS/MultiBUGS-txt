@@ -13,7 +13,7 @@ MODULE GraphStochtrend;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphMRF,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUVGMRF,
 		MathFunc;

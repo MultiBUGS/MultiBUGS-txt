@@ -12,8 +12,8 @@ MODULE BugsComponents;
 	
 
 	IMPORT
-		Files, Kernel, Meta, Services, Stores, Strings,
-		BugsGraph, BugsIndex, BugsMsg, BugsParallel, BugsRandnum, 
+		Dialog, Files := Files64, Kernel, Meta, Services, Stores := Stores64, Strings,
+		BugsGraph, BugsIndex, BugsMsg, BugsParallel, BugsRandnum,
 		GraphGrammar, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
 
@@ -54,6 +54,7 @@ MODULE BugsComponents;
 	PROCEDURE AddModule (name: Files.Name; VAR modList: List);
 		VAR
 			entry: List;
+			mpiImp: Dialog.String;
 	BEGIN
 		NEW(entry);
 		entry.name := name;
@@ -61,11 +62,17 @@ MODULE BugsComponents;
 		modList := entry;
 		IF name = "Files" THEN
 			AddModule("HostFiles", modList)
+		ELSIF name = "Files64" THEN
+			AddModule("HostFiles64", modList)
 		ELSIF name = "MathSparsematrix" THEN
 			(*	add in sparse matrix library if found on this computer	*)
 			IF Kernel.ThisLoadedMod("MathTaucsImp") # NIL THEN
 				AddModule("MathTaucsImp", modList)
 			END
+		ELSIF name = "MPI" THEN
+			(*	add implementation of MPI map name in string resource file	*)
+			Dialog.MapString("#Bugs:MPIimp", mpiImp);
+			AddModule(mpiImp$, modList);
 		END
 	END AddModule;
 
@@ -224,7 +231,6 @@ MODULE BugsComponents;
 			imports: POINTER TO ARRAY OF Files.Name;
 			loc: Files.Locator;
 			mod: Meta.Item;
-
 	BEGIN
 		modList := NIL;
 
@@ -253,11 +259,10 @@ MODULE BugsComponents;
 			Imports(updaterModules.name, modList);
 			updaterModules := updaterModules.next
 		END;
-
 		(*	top level module for BUGS worker program but do not load	*)
 		AddModule("ParallelWorker", modList);
 
-		modules := ListToVector(modList);
+		modules := ListToVector(modList); 
 		RETURN modules
 	END Modules;
 
@@ -275,8 +280,9 @@ MODULE BugsComponents;
 
 	PROCEDURE WriteModel* (f: Files.File; workersPerChain, numberChains: INTEGER);
 		VAR
-			pos0, rank: INTEGER;
-			pos: POINTER TO ARRAY OF INTEGER;
+			pos0: LONGINT;
+			rank: INTEGER;
+			pos: POINTER TO ARRAY OF LONGINT;
 			wr: Stores.Writer;
 			this: BOOLEAN;
 	BEGIN
@@ -288,23 +294,23 @@ MODULE BugsComponents;
 		UpdaterActions.MarkDistributed(workersPerChain);
 		BugsParallel.Distribute(workersPerChain);
 		pos0 := wr.Pos();
-		NEW(pos, workersPerChain);
-		rank := 0; 
-		WHILE rank < workersPerChain DO  
-			pos[rank] := - 1; wr.WriteInt(pos[rank]); INC(rank)
-		END;
 		wr.WriteBool(allThis);
+		NEW(pos, workersPerChain);
+		rank := 0;
+		WHILE rank < workersPerChain DO
+			pos[rank] := - 1; wr.WriteLong(pos[rank]); INC(rank)
+		END;
 		rank := 0;
 		WHILE rank < workersPerChain DO
 			pos[rank] := wr.Pos();
-			BugsParallel.Write(rank, numberChains, this, wr); 
+			BugsParallel.Write(rank, numberChains, this, wr);
 			allThis := allThis & this;
 			AddModules;
 			INC(rank)
 		END;
 		wr.SetPos(pos0);
 		wr.WriteBool(allThis);
-		rank := 0; WHILE rank < workersPerChain DO wr.WriteInt(pos[rank]); INC(rank) END;
+		rank := 0; WHILE rank < workersPerChain DO wr.WriteLong(pos[rank]); INC(rank) END;
 		f.Flush;
 		wr.ConnectTo(NIL);
 		UpdaterActions.UnMarkDistributed

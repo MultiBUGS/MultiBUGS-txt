@@ -11,7 +11,7 @@ copyright:	"Rsrc/About"
 MODULE BugsParallel;
 
 	IMPORT
-		SYSTEM, Stores,
+		SYSTEM, Stores := Stores64,
 		BugsIndex, BugsNames, BugsPartition,
 		GraphConjugateMV, GraphDummy, GraphDummyMV, GraphLogical, 
 		GraphMRF, GraphMultivariate, GraphNodes, GraphStochastic, GraphVector,
@@ -906,8 +906,9 @@ MODULE BugsParallel;
 
 	PROCEDURE Write* (rank, numChains: INTEGER; OUT this: BOOLEAN; VAR wr: Stores.Writer);
 		VAR
-			chain, workersPerChain, numStochasticPointers, numNamePointers, pos, uEndPos: INTEGER;
-			uPos: POINTER TO ARRAY OF INTEGER;
+			chain, workersPerChain, numStochasticPointers, numNamePointers: INTEGER;
+			pos, uEndPos: LONGINT;
+			uPos: POINTER TO ARRAY OF LONGINT;
 			dummy: GraphStochastic.Node;
 			dummyMV: GraphMultivariate.Node;
 			filter: SET;
@@ -960,11 +961,11 @@ MODULE BugsParallel;
 		chain := 0;
 		WHILE chain < numChains DO
 			uPos[chain] := - 1;
-			wr.WriteInt(uPos[chain]);
+			wr.WriteLong(uPos[chain]);
 			INC(chain)
 		END;
 		uEndPos := - 1;
-		wr.WriteInt(uEndPos);
+		wr.WriteLong(uEndPos);
 		chain := 0;
 		WHILE chain < numChains DO
 			uPos[chain] := wr.Pos();
@@ -976,10 +977,10 @@ MODULE BugsParallel;
 		wr.SetPos(pos);
 		chain := 0;
 		WHILE chain < numChains DO
-			wr.WriteInt(uPos[chain]);
+			wr.WriteLong(uPos[chain]);
 			INC(chain)
 		END;
-		wr.WriteInt(uEndPos);
+		wr.WriteLong(uEndPos);
 		wr.SetPos(uEndPos);
 		UpdaterUpdaters.EndExternalize(wr);
 		GraphNodes.EndExternalize(wr);

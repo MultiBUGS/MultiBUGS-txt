@@ -15,7 +15,7 @@ MODULE GraphLogistic;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 

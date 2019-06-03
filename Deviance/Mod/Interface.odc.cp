@@ -23,6 +23,8 @@ MODULE DevianceInterface;
 		END;
 
 	CONST
+		setWAIC = 4;
+		clearWAIC = 5;
 		notSet* = 0;
 		set* = 1;
 		setDistributed* = 2;
@@ -36,15 +38,13 @@ MODULE DevianceInterface;
 	PROCEDURE Clear*;
 	VAR
 			command: BugsInterface.Command;
-		CONST
-			toggleWAIC = 4;
 	BEGIN
 		IF ~BugsInterface.IsDistributed() THEN
 			DevianceIndex.Clear;
 		ELSIF state = setDistributed THEN
 			lpdGlobal := NIL;
 			pWGlobal := NIL;
-			command[0] := toggleWAIC;
+			command[0] := clearWAIC;
 			command[1] := -1;
 			command[2] := -1;
 			command[3] := -1;
@@ -240,8 +240,6 @@ MODULE DevianceInterface;
 			name: BugsNames.Name;
 			i, numChains: INTEGER;
 			command: BugsInterface.Command;
-		CONST
-			toggleWAIC = 4;
 	BEGIN
 		IF ~BugsInterface.IsDistributed() THEN
 			name := BugsIndex.Find("deviance");
@@ -263,7 +261,7 @@ MODULE DevianceInterface;
 				pWGlobal[i] :=  - 1.0;
 				INC(i)
 			END;
-			command[0] := toggleWAIC;
+			command[0] := setWAIC;
 			command[1] := -1;
 			command[2] := -1;
 			command[3] := -1;

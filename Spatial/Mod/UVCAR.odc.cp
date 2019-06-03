@@ -13,7 +13,7 @@ MODULE SpatialUVCAR;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphMRF, GraphUVMRF, GraphNodes, GraphStochastic;
 
 	TYPE

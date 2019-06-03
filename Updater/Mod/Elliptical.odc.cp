@@ -13,7 +13,7 @@ MODULE UpdaterElliptical;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphChain, GraphConjugateMV, GraphMRF, GraphMultivariate, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,

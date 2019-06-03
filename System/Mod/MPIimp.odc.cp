@@ -9,7 +9,7 @@ MODULE MPIimp;
 	
 
 	IMPORT
-		MPI, SYSTEM, MPIlib;
+		MPI, MPIlib, SYSTEM;
 
 	TYPE
 		Hook = POINTER TO RECORD (MPI.Hook) END;

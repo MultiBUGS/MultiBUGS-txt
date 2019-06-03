@@ -21,7 +21,7 @@ MODULE MonitorModel;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes;
 
 	TYPE

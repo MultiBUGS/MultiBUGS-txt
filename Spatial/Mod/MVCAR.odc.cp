@@ -12,7 +12,7 @@ MODULE SpatialMVCAR;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphMRF, GraphMVGMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE

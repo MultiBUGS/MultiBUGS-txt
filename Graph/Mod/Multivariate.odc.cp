@@ -13,7 +13,7 @@ MODULE GraphMultivariate;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphNodes, GraphStochastic;
 
 	TYPE

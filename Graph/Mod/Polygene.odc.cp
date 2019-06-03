@@ -14,7 +14,7 @@ MODULE GraphPolygene;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateUV, GraphLogical, GraphNodes, GraphRules, GraphScalar,
 		GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;

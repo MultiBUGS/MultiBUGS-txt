@@ -23,7 +23,7 @@ MODULE ReliabilitySystem;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 
@@ -152,7 +152,7 @@ MODULE ReliabilitySystem;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.components;
 		v.nElem := node.nElem;
 		v.start := node.start;

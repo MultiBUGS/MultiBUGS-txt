@@ -13,9 +13,9 @@ MODULE UpdaterNormal;
 	
 
 	IMPORT
-		Math, MPIworker, Stores, 
+		MPIworker, Math, Stores := Stores64,
 		BugsRegistry,
-		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, 
+		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterContinuous, UpdaterUpdaters;
 
@@ -49,32 +49,34 @@ MODULE UpdaterNormal;
 		p[0] := 0.0;
 		p[1] := 0.0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			node := children[i];
-			WITH node: GraphConjugateUV.Node DO
-				node.LikelihoodForm(as, x, p0, p1);
-				IF x = prior THEN
-					p[0] := p[0] + p0 * p1;
-					p[1] := p[1] + p1
-				ELSE
-					x.ValDiff(prior, c, m);
-					c := c - m * prior.value;
-					p[0] := p[0] + m * (p0 - c) * p1;
-					p[1] := p[1] + p1 * m * m;
-				END
-			|node: GraphMultivariate.Node DO
-				prior.SetValue(1.0);
-				fPlus := node.LogMVPrior();
-				prior.SetValue(0.0);
-				fZero := node.LogMVPrior();
-				prior.SetValue( - 1.0);
-				fMinus := node.LogMVPrior();
-				p[0] := p[0] + 0.50 * (fPlus - fMinus);
-				p[1] := p[1] + 2.0 * fZero - fPlus - fMinus
-			END;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				node := children[i];
+				WITH node: GraphConjugateUV.Node DO
+					node.LikelihoodForm(as, x, p0, p1);
+					IF x = prior THEN
+						p[0] := p[0] + p0 * p1;
+						p[1] := p[1] + p1
+					ELSE
+						x.ValDiff(prior, c, m);
+						c := c - m * prior.value;
+						p[0] := p[0] + m * (p0 - c) * p1;
+						p[1] := p[1] + p1 * m * m;
+					END
+				|node: GraphMultivariate.Node DO
+					prior.SetValue(1.0);
+					fPlus := node.LogMVPrior();
+					prior.SetValue(0.0);
+					fZero := node.LogMVPrior();
+					prior.SetValue( - 1.0);
+					fMinus := node.LogMVPrior();
+					p[0] := p[0] + 0.50 * (fPlus - fMinus);
+					p[1] := p[1] + 2.0 * fZero - fPlus - fMinus
+				END;
+				INC(i)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)
@@ -147,7 +149,7 @@ MODULE UpdaterNormal;
 		END;
 		IF bounds = {} THEN
 			IF overRelax THEN
-				alpha :=  - (1 - 1 / Math.Sqrt(factStd.overRelaxation));
+				alpha := - (1 - 1 / Math.Sqrt(factStd.overRelaxation));
 				x := mu + alpha * (oldValue - mu) + 
 				Math.Sqrt(1 - alpha * alpha) * MathRandnum.Normal(0.0, tau)
 			ELSE
@@ -208,7 +210,7 @@ MODULE UpdaterNormal;
 		prior := updater.prior(GraphConjugateUV.Node);
 		prior.PriorForm(as, p0, p1);
 		NormalLikelihood(updater.prior, p);
-(*		mu := (p[0] - p1) / quadCoef;*)
+		(*		mu := (p[0] - p1) / quadCoef;*)
 		tau := p[1];
 		rand := MathRandnum.NormalLB(mu, tau, 0);
 		prior.SetValue(rand);

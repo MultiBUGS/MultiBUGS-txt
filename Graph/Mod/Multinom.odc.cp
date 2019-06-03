@@ -23,7 +23,7 @@ MODULE GraphMultinom;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules,
 		GraphStochastic,
 		MathFunc, MathRandnum;
@@ -197,6 +197,11 @@ MODULE GraphMultinom;
 		END;
 		RETURN - 2.0 * logLikelihood
 	END Deviance;
+	
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+	BEGIN
+		RETURN 0.0
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
@@ -234,7 +239,7 @@ MODULE GraphMultinom;
 	BEGIN
 		IF node.index = 0 THEN
 			size := node.Size();
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.p;
 			v.start := node.start; v.nElem := size; v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr);

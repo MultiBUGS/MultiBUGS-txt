@@ -13,7 +13,7 @@ MODULE UpdaterPareto;
 	
 
 	IMPORT
-		MPIworker, Stores, 
+		MPIworker, Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
@@ -41,14 +41,16 @@ MODULE UpdaterPareto;
 		p[0] := 0.0;
 		p[1] := 0.0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			stoch := children[i](GraphConjugateUV.Node);
-			stoch.LikelihoodForm(as, x, theta1, x1);
-			p[0] := p[0] + theta1;
-			p[1] := MAX(x1, p[1]);
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				stoch := children[i](GraphConjugateUV.Node);
+				stoch.LikelihoodForm(as, x, theta1, x1);
+				p[0] := p[0] + theta1;
+				p[1] := MAX(x1, p[1]);
+				INC(i)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			p[0] := MPIworker.SumReal(p[0]);
@@ -103,7 +105,7 @@ MODULE UpdaterPareto;
 		prior.PriorForm(as, theta, x0);
 		ParetoLikelihood(prior, p);
 		theta := p[0] + theta;
-		x0 := MAX(p[1],  x0);
+		x0 := MAX(p[1], x0);
 		IF GraphStochastic.rightImposed IN prior.props THEN
 			REPEAT x := MathRandnum.Pareto(theta, x0) UNTIL (x > left) & (x < right)
 		ELSE

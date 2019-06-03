@@ -13,7 +13,7 @@ MODULE UpdaterForward;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphStochastic, GraphUnivariate,
 		UpdaterMultivariate, UpdaterUnivariate, UpdaterUpdaters;

@@ -13,7 +13,7 @@ MODULE GraphItermap;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector;
 
 	TYPE

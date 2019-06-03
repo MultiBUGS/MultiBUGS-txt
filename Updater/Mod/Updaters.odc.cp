@@ -14,7 +14,7 @@ MODULE UpdaterUpdaters;
 	
 
 	IMPORT
-		Meta, Stores,
+		Meta, Stores := Stores64,
 		GraphNodes, GraphStochastic;
 
 	TYPE
@@ -47,10 +47,9 @@ MODULE UpdaterUpdaters;
 	VAR
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
-		block*: BOOLEAN;	(*	hint for choosing block updaters	*)
 		fact: Factory; 	(*	factory object for creating MCMC updaters for graphical model	*)
 		typeLabel: INTEGER;
-		startOfUpdaters: INTEGER;
+		startOfUpdaters: LONGINT;
 		installProc: ARRAY maxNumTypes OF String;
 		factories: ARRAY maxNumTypes OF Factory;
 
@@ -68,9 +67,6 @@ MODULE UpdaterUpdaters;
 
 		(*	writes the updater's mutable internal state to store	*)
 	PROCEDURE (updater: Updater) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-
-		(*	calculates derivative of log conditional wrt to parameters on whole real line	*)
-	PROCEDURE (updater: Updater) DiffLogConditional* (index: INTEGER): REAL, NEW, ABSTRACT;
 
 		(*	writes out the 'prior' (posibly a block of nodes) for updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer), NEW, ABSTRACT;
@@ -214,7 +210,7 @@ MODULE UpdaterUpdaters;
 			i, len: INTEGER;
 	BEGIN
 		startOfUpdaters := wr.Pos();
-		wr.WriteInt(MIN(INTEGER));
+		wr.WriteLong(MIN(LONGINT));
 		i := 0;
 		len := LEN(installProc);
 		WHILE i < len DO
@@ -228,10 +224,11 @@ MODULE UpdaterUpdaters;
 	(*	begins the protocol for internalizing updaters	*)
 	PROCEDURE BeginInternalize* (VAR rd: Stores.Reader);
 		VAR
-			endPos, pos, i, numTypes: INTEGER;
+			i, numTypes: INTEGER;
+			endPos, pos: LONGINT;
 			f: Factory;
 	BEGIN
-		rd.ReadInt(endPos);
+		rd.ReadLong(endPos);
 		pos := rd.Pos();
 		rd.SetPos(endPos);
 		rd.ReadInt(numTypes);
@@ -258,53 +255,15 @@ MODULE UpdaterUpdaters;
 		RETURN updater
 	END CopyFrom;
 
-	(*	differentiates the log conditional for node wrt to node mapping node so that it has support on
-	whole real line. Adds in the differential of appropiate Jacobean	*)
-	PROCEDURE DiffLogConditional* (node: GraphStochastic.Node): REAL;
-		VAR
-			dxdy, diffLogCond, diffLogJacobian, lower, upper, val: REAL;
-			i, num: INTEGER;
-			children: GraphStochastic.Vector;
-	BEGIN
-		val := node.value;
-		IF {GraphStochastic.rightNatural, GraphStochastic.rightImposed} * node.props # {} THEN
-			node.Bounds(lower, upper);
-			IF {GraphStochastic.leftNatural, GraphStochastic.rightImposed} * node.props # {} THEN
-				diffLogJacobian := (upper + lower - 2 * val) / (upper - lower);
-				dxdy := (val - lower) * (upper - val) / (upper - lower)
-			ELSE
-				diffLogJacobian := - 1.0;
-				dxdy := upper - val
-			END
-		ELSIF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
-			node.Bounds(lower, upper);
-			diffLogJacobian := 1.0;
-			dxdy := val - lower
-		ELSE
-			diffLogJacobian := 0.0;
-			dxdy := 1.0
-		END;
-		diffLogCond := 0.0;
-		children := node.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
-			INC(i)
-		END;
-		diffLogCond := node.DiffLogPrior() + diffLogCond;
-		diffLogCond := dxdy * diffLogCond + diffLogJacobian;
-		RETURN diffLogCond
-	END DiffLogConditional;
-
 	(*	ends the protocol for externalizing updaters	*)
 	PROCEDURE EndExternalize* (VAR wr: Stores.Writer);
 		VAR
-			endPos, i, numTypes: INTEGER;
+			i, numTypes: INTEGER;
+			endPos: LONGINT;
 	BEGIN
 		endPos := wr.Pos();
 		wr.SetPos(startOfUpdaters);
-		wr.WriteInt(endPos);
+		wr.WriteLong(endPos);
 		wr.SetPos(endPos);
 		numTypes := typeLabel;
 		wr.WriteInt(numTypes);
@@ -410,8 +369,7 @@ MODULE UpdaterUpdaters;
 	PROCEDURE Init;
 	BEGIN
 		Maintainer;
-		fact := NIL;
-		block := FALSE
+		fact := NIL
 	END Init;
 
 BEGIN

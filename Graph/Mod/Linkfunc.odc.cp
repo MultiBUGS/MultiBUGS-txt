@@ -13,7 +13,7 @@ MODULE GraphLinkfunc;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphScalar, GraphStochastic;
 
 	TYPE

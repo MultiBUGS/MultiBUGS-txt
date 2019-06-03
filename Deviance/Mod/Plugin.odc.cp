@@ -13,7 +13,7 @@ MODULE DeviancePlugin;
 	
 
 	IMPORT
-		Meta, Stores,
+		Meta, Stores := Stores64,
 		GraphNodes;
 
 	TYPE

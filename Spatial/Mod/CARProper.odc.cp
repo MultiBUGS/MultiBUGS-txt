@@ -12,7 +12,7 @@ MODULE SpatialCARProper;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR, 
 		MathFunc, MathMatrix;
 

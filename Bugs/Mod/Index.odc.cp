@@ -13,7 +13,7 @@ MODULE BugsIndex;
 	
 
 	IMPORT SYSTEM,
-		Stores, Strings,
+		Stores := Stores64, Strings,
 		BugsNames,
 		GraphNodes, GraphStochastic;
 

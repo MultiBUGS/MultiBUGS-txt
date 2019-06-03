@@ -15,7 +15,7 @@ MODULE GraphValDiff;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate,
 		MathFunc;
 
@@ -55,7 +55,7 @@ MODULE GraphValDiff;
 		FDLogCondMapFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	VAR
-		aDFact-, fDFact-, aDLogCondFact-, 
+		aDFact-, fDFact-, aDLogCondFact-,
 		fDLogCondFact-, fDLogCondMapFact-, logCondFact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -70,11 +70,13 @@ MODULE GraphValDiff;
 	BEGIN
 		diff := node.DiffLogPrior();
 		children := node.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diff := diff + children[i].DiffLogLikelihood(node);
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				diff := diff + children[i].DiffLogLikelihood(node);
+				INC(i)
+			END
 		END;
 		RETURN diff
 	END DiffLogConditional;
@@ -87,11 +89,13 @@ MODULE GraphValDiff;
 	BEGIN
 		log := node.LogPrior();
 		children := node.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE (i < num) & (log > 0.50 * MathFunc.logOfZero) DO
-			log := log + children[i].LogLikelihood();
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE (i < num) & (log > 0.50 * MathFunc.logOfZero) DO
+				log := log + children[i].LogLikelihood();
+				INC(i)
+			END
 		END;
 		RETURN log
 	END LogConditional;
@@ -314,7 +318,7 @@ MODULE GraphValDiff;
 			components: GraphStochastic.Vector;
 			diff, val: REAL;
 			i, index, size: INTEGER;
-			CONST
+		CONST
 			delta = 0.001;
 	BEGIN
 		prior := node.prior;
@@ -371,11 +375,13 @@ MODULE GraphValDiff;
 		prior := node.prior(GraphUnivariate.Node);
 		log := prior.LogPrior();
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			log := log + children[i].LogLikelihood();
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				log := log + children[i].LogLikelihood();
+				INC(i)
+			END
 		END;
 		RETURN log
 	END Value;

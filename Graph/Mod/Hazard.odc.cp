@@ -10,7 +10,7 @@ copyright:	"Rsrc/About"
 MODULE GraphHazard;
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
@@ -62,6 +62,11 @@ MODULE GraphHazard;
 	BEGIN
 		RETURN -2.0 * node.LogLikelihood()
 	END Deviance;
+	
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+	BEGIN
+		RETURN 0.0
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN

@@ -14,7 +14,7 @@ MODULE UpdaterUnivariate;
 	
 
 	IMPORT
-		MPIworker, Stores,
+		MPIworker, Stores := Stores64,
 		GraphNodes, GraphStochastic,
 		UpdaterUpdaters;
 
@@ -65,12 +65,7 @@ MODULE UpdaterUnivariate;
 		END;
 		RETURN depth
 	END Depth;
-	
-	PROCEDURE (updater: Updater) DiffLogConditional* (index: INTEGER): REAL;
-	BEGIN
-		RETURN UpdaterUpdaters.DiffLogConditional(updater.prior)
-	END DiffLogConditional;
-	
+
 	(*	writes the prior of updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer);
 	BEGIN
@@ -161,19 +156,21 @@ MODULE UpdaterUnivariate;
 		logLikelihood := 0.0;
 		prior := updater.prior;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE (i < num) & (logLikelihood # - INF) DO
-			logLike := children[i].LogLikelihood();
-			IF logLike # - INF THEN
-				logLikelihood := logLikelihood + logLike
-			ELSE
-				logLikelihood := - INF
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE (i < num) & (logLikelihood # - INF) DO
+				logLike := children[i].LogLikelihood();
+				IF logLike # - INF THEN
+					logLikelihood := logLikelihood + logLike
+				ELSE
+					logLikelihood := - INF
+				END;
+				INC(i)
 			END;
-			INC(i)
-		END;
-		IF GraphStochastic.distributed IN prior.props THEN
-			logLikelihood := MPIworker.SumReal(logLikelihood)
+			IF GraphStochastic.distributed IN prior.props THEN
+				logLikelihood := MPIworker.SumReal(logLikelihood)
+			END
 		END;
 		RETURN logLikelihood
 	END LogLikelihood;
@@ -237,17 +234,20 @@ MODULE UpdaterUnivariate;
 		VAR
 			class, i, num: INTEGER;
 			children: GraphStochastic.Vector;
+			isHomologous: BOOLEAN;
 	BEGIN
+		isHomologous := TRUE;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		class := children[0].ClassifyLikelihood(prior);
-		LOOP
-			IF i = num THEN EXIT END;
-			IF class # children[i].ClassifyLikelihood(prior) THEN EXIT END;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 1;
+			class := children[0].ClassifyLikelihood(prior);
+			WHILE isHomologous & (i < num) DO
+				isHomologous := class = children[i].ClassifyLikelihood(prior);
+				INC(i)
+			END
 		END;
-		RETURN i = num
+		RETURN isHomologous
 	END IsHomologous;
 
 	PROCEDURE Maintainer;

@@ -13,7 +13,7 @@ MODULE UpdaterCatagorical;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphNodes, GraphRules, GraphStochastic, GraphVD,
 		MathRandnum,
@@ -41,16 +41,18 @@ MODULE UpdaterCatagorical;
 			univariate = FALSE;
 	BEGIN
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
 		list := NIL;
-		WHILE i < num DO
-			child := children[i];
-			IF child.CanSample(univariate)
-				 & (child.props * {GraphNodes.data, GraphStochastic.initialized} # {}) THEN
-				GraphStochastic.AddToList(child, list)
-			END;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				child := children[i];
+				IF child.CanSample(univariate)
+					 & (child.props * {GraphNodes.data, GraphStochastic.initialized} # {}) THEN
+					GraphStochastic.AddToList(child, list)
+				END;
+				INC(i)
+			END
 		END;
 		RETURN list
 	END BuildLikelihood;
@@ -173,7 +175,7 @@ MODULE UpdaterCatagorical;
 			p[i] := updater.LogLikelihood();
 			INC(i)
 		END;
-		max :=  - INF;
+		max := - INF;
 		i := first;
 		WHILE i <= last DO
 			prior.SetValue(i);

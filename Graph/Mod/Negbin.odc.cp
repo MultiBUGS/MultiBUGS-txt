@@ -16,7 +16,7 @@ MODULE GraphNegbin;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 

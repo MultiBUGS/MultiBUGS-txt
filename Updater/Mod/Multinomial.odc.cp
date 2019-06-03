@@ -78,19 +78,23 @@ MODULE UpdaterMultinomial;
 			INC(i)
 		END;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		oldLikelihood := 0.0;
-		WHILE i < num DO
-			oldLikelihood := oldLikelihood + children[i].LogLikelihood();
-			INC(i)
-		END;
-		prior.Sample(res);
-		i := 0;
 		newLikelihood := 0.0;
-		WHILE i < num DO
-			newLikelihood := newLikelihood + children[i].LogLikelihood();
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			WHILE i < num DO
+				oldLikelihood := oldLikelihood + children[i].LogLikelihood();
+				INC(i)
+			END;
+			prior.Sample(res);
+			i := 0;
+			WHILE i < num DO
+				newLikelihood := newLikelihood + children[i].LogLikelihood();
+				INC(i)
+			END
+		ELSE
+			prior.Sample(res)
 		END;
 		IF newLikelihood - oldLikelihood < Math.Ln(MathRandnum.Rand()) THEN
 			i := 0;

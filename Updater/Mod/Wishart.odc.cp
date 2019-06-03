@@ -52,50 +52,52 @@ MODULE UpdaterWishart;
 			INC(i)
 		END;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		l := 0;
-		WHILE l < num DO
-			stoch := children[l];
-			WITH stoch: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
-				stoch.MVLikelihoodForm(as, xVector, start, step, p0, value);
-				i := 0;
-				WHILE i < len DO
-					j := 0;
-					WHILE j < len DO
-						k := i * len + j;
-						IF xVector[start + k * step] = prior.components[k] THEN
-							weight := 1
-						ELSE
-							prior.components[k].SetValue(0.0);
-							weight := xVector[start + k * step].Value();
-							prior.components[k].SetValue(1.0);
-							weight := xVector[start + k * step].Value() - weight
+		IF children # NIL THEN
+			num := LEN(children);
+			l := 0;
+			WHILE l < num DO
+				stoch := children[l];
+				WITH stoch: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
+					stoch.MVLikelihoodForm(as, xVector, start, step, p0, value);
+					i := 0;
+					WHILE i < len DO
+						j := 0;
+						WHILE j < len DO
+							k := i * len + j;
+							IF xVector[start + k * step] = prior.components[k] THEN
+								weight := 1
+							ELSE
+								prior.components[k].SetValue(0.0);
+								weight := xVector[start + k * step].Value();
+								prior.components[k].SetValue(1.0);
+								weight := xVector[start + k * step].Value() - weight
+							END;
+							p[k] := p[k] + weight * value[i, j];
+							INC(j)
 						END;
-						p[k] := p[k] + weight * value[i, j];
-						INC(j)
+						INC(i)
 					END;
-					INC(i)
-				END;
-				IF weight > eps THEN
-					p[size] := p[size] + p0[0]
-				END
-			|stoch: GraphMultivariate.Node DO	(*	MV spatial CAR likelhood	*)
-				i := 0;
-				WHILE i < len DO
-					j := 0;
-					WHILE j < len DO
-						q := prior.components[i * len + j];
-						stoch.LikelihoodForm(as, q, s0, s1);
-						p[i * len + j] := p[i * len + j] + s1;
-						IF (i = 0) & (j = 0) THEN
-							p[size] := p[size] + s0
+					IF weight > eps THEN
+						p[size] := p[size] + p0[0]
+					END
+				|stoch: GraphMultivariate.Node DO	(*	MV spatial CAR likelhood	*)
+					i := 0;
+					WHILE i < len DO
+						j := 0;
+						WHILE j < len DO
+							q := prior.components[i * len + j];
+							stoch.LikelihoodForm(as, q, s0, s1);
+							p[i * len + j] := p[i * len + j] + s1;
+							IF (i = 0) & (j = 0) THEN
+								p[size] := p[size] + s0
+							END;
+							INC(j)
 						END;
-						INC(j)
+						INC(i)
 					END;
-					INC(i)
 				END;
-			END;
-			INC(l)
+				INC(l)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)

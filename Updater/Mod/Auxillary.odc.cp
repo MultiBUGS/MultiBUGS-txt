@@ -15,7 +15,7 @@ MODULE UpdaterAuxillary;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphStochastic,
 		UpdaterUpdaters;
 

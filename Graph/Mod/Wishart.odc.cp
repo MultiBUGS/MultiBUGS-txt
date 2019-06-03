@@ -14,7 +14,7 @@ MODULE GraphWishart;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum;
 
@@ -76,6 +76,12 @@ MODULE GraphWishart;
 		RETURN 0.0
 	END Deviance;
 
+	PROCEDURE (node: Node) DiffLogConditional(): REAL;
+	BEGIN
+		HALT(0); (*	need to implement ???	*)
+		RETURN 0.0
+	END DiffLogConditional;
+
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
 		HALT(0); (*	need to implement ???	*)
@@ -96,7 +102,7 @@ MODULE GraphWishart;
 		IF node.index = 0 THEN
 			size := node.Size();
 			wr.WriteInt(node.dim);
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.r;
 			v.start := node.start; v.nElem := size; v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr);

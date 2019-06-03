@@ -13,7 +13,7 @@ MODULE ModelsMonitors;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsIndex, BugsNames,
 		MonitorModel;
 

@@ -12,7 +12,7 @@ MODULE GraphHalf;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE

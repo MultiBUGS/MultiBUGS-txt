@@ -13,7 +13,7 @@ MODULE GraphTable;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -168,7 +168,7 @@ MODULE GraphTable;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.x; v.values := node.constantX;
 		v.start := node.xStart; v.nElem := node.nElem; v.step := node.xStep;
 		GraphNodes.ExternalizeSubvector(v, wr);

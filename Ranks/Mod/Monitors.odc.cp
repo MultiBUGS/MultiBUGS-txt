@@ -13,7 +13,7 @@ MODULE RanksMonitors;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsIndex, BugsNames,
 		MonitorRanks;
 

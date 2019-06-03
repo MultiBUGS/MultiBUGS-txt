@@ -56,7 +56,7 @@ MODULE BugsCPWrite;
 		f.WriteString("IMPORT"); f.WriteLn;
 		f.WriteString("GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,  ");
 		f.WriteLn;
-		f.WriteString("Math, MathFunc, Stores;"); f.WriteLn;
+		f.WriteString("Math, MathFunc, Stores := Stores64;"); f.WriteLn;
 		f.WriteLn
 	END WriteModuleHeader;
 

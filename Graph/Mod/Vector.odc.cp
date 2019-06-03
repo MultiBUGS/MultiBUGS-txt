@@ -13,7 +13,7 @@ MODULE GraphVector;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphLogical, GraphNodes;
 
 	TYPE

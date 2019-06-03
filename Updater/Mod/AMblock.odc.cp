@@ -12,31 +12,35 @@ MODULE UpdaterAMblock;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, 
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		UpdaterAM, UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
-		UpdaterNL = POINTER TO RECORD(UpdaterAM.Updater) END;
+		UpdaterDirichlet = POINTER TO RECORD(UpdaterAM.Updater) END;
 
 		UpdaterGLM = POINTER TO RECORD(UpdaterAM.Updater) END;
 
-		UpdaterDirichlet = POINTER TO RECORD(UpdaterAM.Updater) END;
+		UpdaterGlobal = POINTER TO RECORD(UpdaterAM.Updater) END;
+	
+		UpdaterNL = POINTER TO RECORD(UpdaterAM.Updater) END;
 
 		UpdaterWishart = POINTER TO RECORD(UpdaterAM.Updater) END;
 
-		FactoryNL = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
+		FactoryDirichlet = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
 
 		FactoryGLM = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
 
-		FactoryDirichlet = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
+		FactoryGlobal = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
+
+		FactoryNL = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
 
 		FactoryWishart = POINTER TO RECORD (UpdaterUpdaters.Factory) END;
 
 
 	VAR
-		factDirichlet-, factNL-, factGLM-, factWishart-: UpdaterUpdaters.Factory;
+		factDirichlet-, factGLM-, factGlobal-, factNL-, factWishart-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -60,7 +64,7 @@ MODULE UpdaterAMblock;
 			class := {prior.classConditional} + {GraphRules.general, GraphRules.genDiff};
 			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
 			IF block = NIL THEN (*	try less restrictive block membership	*)
-				class := class + {GraphRules.normal, GraphRules.gamma, GraphRules.gamma1};
+				class := class + {(*GraphRules.normal, GraphRules.gamma, *)GraphRules.gamma1};
 				block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
 				IF block = NIL THEN
 					block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, FALSE);
@@ -73,27 +77,33 @@ MODULE UpdaterAMblock;
 		RETURN block
 	END FindNLBlock;
 
-	PROCEDURE (updater: UpdaterNL) Clone (): UpdaterNL;
+	PROCEDURE (updater: UpdaterDirichlet) Clone (): UpdaterDirichlet;
 		VAR
-			u: UpdaterNL;
+			u: UpdaterDirichlet;
 	BEGIN
 		NEW(u);
 		RETURN u
 	END Clone;
 
-	PROCEDURE (updater: UpdaterNL) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	PROCEDURE (updater: UpdaterDirichlet) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+		VAR
+			block: GraphStochastic.Vector;
 	BEGIN
-		RETURN FindNLBlock(prior)
+		block := NIL;
+		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN
+			block := prior(GraphMultivariate.Node).components
+		END;
+		RETURN block
 	END FindBlock;
 
-	PROCEDURE (updater: UpdaterNL) IndSize (): INTEGER;
+	PROCEDURE (updater: UpdaterDirichlet) IndSize (): INTEGER;
 	BEGIN
-		RETURN updater.Size()
+		RETURN updater.Size() - 1
 	END IndSize;
 
-	PROCEDURE (updater: UpdaterNL) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (updater: UpdaterDirichlet) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterAMblock.InstallNL"
+		install := "UpdaterAMblock.InstallDirichlet"
 	END Install;
 
 	PROCEDURE (updater: UpdaterGLM) Clone (): UpdaterGLM;
@@ -129,33 +139,55 @@ MODULE UpdaterAMblock;
 		install := "UpdaterAMblock.InstallGLM"
 	END Install;
 
-	PROCEDURE (updater: UpdaterDirichlet) Clone (): UpdaterDirichlet;
+	PROCEDURE (updater: UpdaterGlobal) Clone (): UpdaterGlobal;
 		VAR
-			u: UpdaterDirichlet;
+			u: UpdaterGlobal;
 	BEGIN
 		NEW(u);
 		RETURN u
 	END Clone;
 
-	PROCEDURE (updater: UpdaterDirichlet) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	PROCEDURE (updater: UpdaterGlobal) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
 		VAR
 			block: GraphStochastic.Vector;
+		CONST
+			depth = 1;
 	BEGIN
-		block := NIL;
-		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN
-			block := prior(GraphMultivariate.Node).components
-		END;
+		block := UpdaterMultivariate.GlobalBlock(depth);
 		RETURN block
 	END FindBlock;
 
-	PROCEDURE (updater: UpdaterDirichlet) IndSize (): INTEGER;
+	PROCEDURE (updater: UpdaterGlobal) IndSize (): INTEGER;
 	BEGIN
-		RETURN updater.Size() - 1
+		RETURN updater.Size()
 	END IndSize;
 
-	PROCEDURE (updater: UpdaterDirichlet) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (updater: UpdaterGlobal) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterAMblock.InstallDirichlet"
+		install := "UpdaterAMblock.InstallGlobal"
+	END Install;
+
+	PROCEDURE (updater: UpdaterNL) Clone (): UpdaterNL;
+		VAR
+			u: UpdaterNL;
+	BEGIN
+		NEW(u);
+		RETURN u
+	END Clone;
+
+	PROCEDURE (updater: UpdaterNL) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	BEGIN
+		RETURN FindNLBlock(prior)
+	END FindBlock;
+
+	PROCEDURE (updater: UpdaterNL) IndSize (): INTEGER;
+	BEGIN
+		RETURN updater.Size()
+	END IndSize;
+
+	PROCEDURE (updater: UpdaterNL) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "UpdaterAMblock.InstallNL"
 	END Install;
 
 	PROCEDURE (updater: UpdaterWishart) Clone (): UpdaterWishart;
@@ -190,28 +222,22 @@ MODULE UpdaterAMblock;
 		install := "UpdaterAMblock.InstallWishart"
 	END Install;
 
-	PROCEDURE (f: FactoryNL) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
-		VAR
-			block: GraphStochastic.Vector;
+	PROCEDURE (f: FactoryDirichlet) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF ~(prior.classConditional IN {GraphRules.general, GraphRules.genDiff}) THEN RETURN FALSE END;
-		block := FindNLBlock(prior);
-		IF block = NIL THEN RETURN FALSE END;
-		IF ~UpdaterUpdaters.block & GraphStochastic.IsBounded(block) THEN RETURN FALSE END;
-		RETURN TRUE
+		RETURN (prior.ClassifyPrior() = GraphRules.dirichlet) & (prior.classConditional # GraphRules.dirichlet)
 	END CanUpdate;
 
-	PROCEDURE (f: FactoryNL) Create (): UpdaterUpdaters.Updater;
+	PROCEDURE (f: FactoryDirichlet) Create (): UpdaterUpdaters.Updater;
 		VAR
-			updater: UpdaterNL;
+			updater: UpdaterDirichlet;
 	BEGIN
 		NEW(updater);
 		updater.DelayedRejection(TRUE);
 		RETURN updater
 	END Create;
 
-	PROCEDURE (f: FactoryNL) GetDefaults;
+	PROCEDURE (f: FactoryDirichlet) GetDefaults;
 		VAR
 			res: INTEGER;
 			name: ARRAY 256 OF CHAR;
@@ -222,9 +248,9 @@ MODULE UpdaterAMblock;
 		f.SetProps(props)
 	END GetDefaults;
 
-	PROCEDURE (f: FactoryNL) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (f: FactoryDirichlet) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterAMblock.InstallNL"
+		install := "UpdaterAMblock.InstallDirichlet"
 	END Install;
 
 	PROCEDURE (f: FactoryGLM) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
@@ -268,22 +294,26 @@ MODULE UpdaterAMblock;
 		install := "UpdaterAMblock.InstallGLM"
 	END Install;
 
-	PROCEDURE (f: FactoryDirichlet) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
+	PROCEDURE (f: FactoryGlobal) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
+		VAR
+			block: GraphStochastic.Vector;
+		CONST
+			depth = 1;
 	BEGIN
-		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		RETURN (prior.ClassifyPrior() = GraphRules.dirichlet) & (prior.classConditional # GraphRules.dirichlet)
+		block := UpdaterMultivariate.GlobalBlock(depth);
+		RETURN block # NIL
 	END CanUpdate;
 
-	PROCEDURE (f: FactoryDirichlet) Create (): UpdaterUpdaters.Updater;
+	PROCEDURE (f: FactoryGlobal) Create (): UpdaterUpdaters.Updater;
 		VAR
-			updater: UpdaterDirichlet;
+			updater: UpdaterGlobal;
 	BEGIN
 		NEW(updater);
 		updater.DelayedRejection(TRUE);
 		RETURN updater
 	END Create;
 
-	PROCEDURE (f: FactoryDirichlet) GetDefaults;
+	PROCEDURE (f: FactoryGlobal) GetDefaults;
 		VAR
 			res: INTEGER;
 			name: ARRAY 256 OF CHAR;
@@ -294,9 +324,46 @@ MODULE UpdaterAMblock;
 		f.SetProps(props)
 	END GetDefaults;
 
-	PROCEDURE (f: FactoryDirichlet) Install (OUT install: ARRAY OF CHAR);
+	PROCEDURE (f: FactoryGlobal) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterAMblock.InstallDirichlet"
+		install := "UpdaterAMblock.InstallGlobal"
+	END Install;
+
+	PROCEDURE (f: FactoryNL) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
+		VAR
+			block: GraphStochastic.Vector;
+	BEGIN
+		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
+		IF ~(prior.classConditional IN {GraphRules.general, GraphRules.genDiff}) THEN RETURN FALSE END;
+		block := FindNLBlock(prior);
+		IF block = NIL THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.coParentBlock & GraphStochastic.IsBounded(block) THEN RETURN FALSE END;
+		RETURN TRUE
+	END CanUpdate;
+
+	PROCEDURE (f: FactoryNL) Create (): UpdaterUpdaters.Updater;
+		VAR
+			updater: UpdaterNL;
+	BEGIN
+		NEW(updater);
+		updater.DelayedRejection(TRUE);
+		RETURN updater
+	END Create;
+
+	PROCEDURE (f: FactoryNL) GetDefaults;
+		VAR
+			res: INTEGER;
+			name: ARRAY 256 OF CHAR;
+			props: SET;
+	BEGIN
+		f.Install(name);
+		BugsRegistry.ReadSet(name + ".props", props, res);
+		f.SetProps(props)
+	END GetDefaults;
+
+	PROCEDURE (f: FactoryNL) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "UpdaterAMblock.InstallNL"
 	END Install;
 
 	PROCEDURE (f: FactoryWishart) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
@@ -330,20 +397,25 @@ MODULE UpdaterAMblock;
 		install := "UpdaterAMblock.InstallWishart"
 	END Install;
 
-	PROCEDURE InstallNL*;
+	PROCEDURE InstallDirichlet*;
 	BEGIN
-		UpdaterUpdaters.SetFactory(factNL)
-	END InstallNL;
+		UpdaterUpdaters.SetFactory(factDirichlet)
+	END InstallDirichlet;
 
 	PROCEDURE InstallGLM*;
 	BEGIN
 		UpdaterUpdaters.SetFactory(factGLM)
 	END InstallGLM;
 
-	PROCEDURE InstallDirichlet*;
+	PROCEDURE InstallGlobal*;
 	BEGIN
-		UpdaterUpdaters.SetFactory(factDirichlet)
-	END InstallDirichlet;
+		UpdaterUpdaters.SetFactory(factGlobal)
+	END InstallGlobal;
+
+	PROCEDURE InstallNL*;
+	BEGIN
+		UpdaterUpdaters.SetFactory(factNL)
+	END InstallNL;
 
 	PROCEDURE InstallWishart*;
 	BEGIN
@@ -361,34 +433,13 @@ MODULE UpdaterAMblock;
 			isRegistered: BOOLEAN;
 			res: INTEGER;
 			name: ARRAY 256 OF CHAR;
-			fNL: FactoryNL;
-			fGLM: FactoryGLM;
 			fDirichlet: FactoryDirichlet;
+			fGLM: FactoryGLM;
+			fGlobal: FactoryGlobal;
+			fNL: FactoryNL;
 			fWishart: FactoryWishart;
 	BEGIN
 		Maintainer;
-		NEW(fNL);
-		fNL.SetProps({UpdaterUpdaters.enabled});
-		fNL.Install(name);
-		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
-		IF res = 0 THEN ASSERT(isRegistered, 55)
-		ELSE
-			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteSet(name + ".props", fNL.props)
-		END;
-		fNL.GetDefaults;
-		factNL := fNL;
-		NEW(fGLM);
-		fGLM.SetProps({UpdaterUpdaters.enabled});
-		fGLM.Install(name);
-		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
-		IF res = 0 THEN ASSERT(isRegistered, 55)
-		ELSE
-			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteSet(name + ".props", fGLM.props)
-		END;
-		fGLM.GetDefaults;
-		factGLM := fGLM;
 		NEW(fDirichlet);
 		fDirichlet.SetProps({UpdaterUpdaters.enabled});
 		fDirichlet.Install(name);
@@ -400,6 +451,39 @@ MODULE UpdaterAMblock;
 		END;
 		fDirichlet.GetDefaults;
 		factDirichlet := fDirichlet;
+		NEW(fGLM);
+		fGLM.SetProps({UpdaterUpdaters.enabled});
+		fGLM.Install(name);
+		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
+		IF res = 0 THEN ASSERT(isRegistered, 55)
+		ELSE
+			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
+			BugsRegistry.WriteSet(name + ".props", fGLM.props)
+		END;
+		fGLM.GetDefaults;
+		factGLM := fGLM;
+		NEW(fGlobal);
+		fGlobal.SetProps({UpdaterUpdaters.enabled});
+		fGlobal.Install(name);
+		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
+		IF res = 0 THEN ASSERT(isRegistered, 55)
+		ELSE
+			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
+			BugsRegistry.WriteSet(name + ".props", fGLM.props)
+		END;
+		fGlobal.GetDefaults;
+		factGlobal := fGlobal;
+		NEW(fNL);
+		fNL.SetProps({UpdaterUpdaters.enabled});
+		fNL.Install(name);
+		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
+		IF res = 0 THEN ASSERT(isRegistered, 55)
+		ELSE
+			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
+			BugsRegistry.WriteSet(name + ".props", fNL.props)
+		END;
+		fNL.GetDefaults;
+		factNL := fNL;
 		NEW(fWishart);
 		fWishart.SetProps({UpdaterUpdaters.enabled});
 		fWishart.Install(name);

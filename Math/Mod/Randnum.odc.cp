@@ -12,7 +12,7 @@ MODULE MathRandnum;
 	
 
 	IMPORT
-		Math, Meta, Stores,
+		Math, Meta, Stores := Stores64,
 		MathCumulative, MathFunc, MathMatrix, MathSort;
 
 	TYPE
@@ -35,6 +35,8 @@ MODULE MathRandnum;
 		(*	Interface for generator objects	*)
 
 	PROCEDURE (g: Generator) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
+
+	PROCEDURE (g: Generator) ExternalizeSize- (): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (g: Generator) Internalize- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
@@ -67,6 +69,11 @@ MODULE MathRandnum;
 		g.Externalize(wr)
 	END Externalize;
 
+	PROCEDURE ExternalizeSize* (g: Generator): INTEGER;
+	BEGIN
+		RETURN g.ExternalizeSize()
+	END ExternalizeSize;
+	
 	PROCEDURE Internalize* (VAR rd: Stores.Reader): Generator;
 		VAR
 			install: ARRAY 256 OF CHAR;
@@ -1764,8 +1771,8 @@ MODULE MathRandnum;
 		RETURN gamma + z * delta
 	END Stable;
 
-	(*	POLAR GENERATION OF RANDOM VARIATES WITH THE t-DISTRIBUTION
-	RALPH W. BAILEY  *)
+	(*	Polar generation of random variates withTHE t-distribution
+	Ralph W. Bailey  *)
 	PROCEDURE Tdist* (nu: REAL): REAL;
 		VAR
 			x, u, u2, v, w, c2, r2: REAL;
@@ -2236,7 +2243,7 @@ MODULE MathRandnum;
 		END
 	END Dirichlet;
 
-	(*	multivariate normal deviate	*)
+	(*	multivariate normal deviate (Cholesky of) precision parameterization	*)
 	PROCEDURE MNormal* (IN tau: ARRAY OF ARRAY OF REAL; IN mu: ARRAY OF REAL;
 	size: INTEGER; OUT x: ARRAY OF REAL);
 		VAR
@@ -2258,7 +2265,7 @@ MODULE MathRandnum;
 		END
 	END MNormal;
 
-	(*	multivariate normal deviate precision parameterization	*)
+	(*	multivariate normal deviate (Cholesky of) precision parameterization	*)
 	PROCEDURE MNormalPrec* (IN tau: ARRAY OF ARRAY OF REAL; size: INTEGER;
 	OUT x: ARRAY OF REAL);
 		VAR
@@ -2274,7 +2281,7 @@ MODULE MathRandnum;
 		MathMatrix.BackSub(tau, x, size);
 	END MNormalPrec;
 
-	(*	multivariate normal deviate covariance parameterization	*)
+	(*	multivariate normal deviate (Cholesky of) covariance parameterization	*)
 	PROCEDURE MNormalCovar* (IN covar: ARRAY OF ARRAY OF REAL; size: INTEGER;
 	OUT x: ARRAY OF REAL);
 		VAR

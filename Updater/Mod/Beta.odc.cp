@@ -13,7 +13,7 @@ MODULE UpdaterBeta;
 	
 
 	IMPORT
-		MPIworker, Stores,
+		MPIworker, Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathRandnum,
@@ -45,21 +45,23 @@ MODULE UpdaterBeta;
 		p[0] := 0.0;
 		p[1] := 0.0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			stoch := children[i](GraphConjugateUV.Node);
-			node := prior;
-			stoch.LikelihoodForm(as, node, m, n);
-			IF node = prior THEN
-				p[0] := p[0] + m;
-				p[1] := p[1] + n
-			ELSE
-				node.ValDiff(prior, val, weight);
-				p[0] := p[0] + m * weight;
-				p[1] := p[1] + n * weight
-			END;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				stoch := children[i](GraphConjugateUV.Node);
+				node := prior;
+				stoch.LikelihoodForm(as, node, m, n);
+				IF node = prior THEN
+					p[0] := p[0] + m;
+					p[1] := p[1] + n
+				ELSE
+					node.ValDiff(prior, val, weight);
+					p[0] := p[0] + m * weight;
+					p[1] := p[1] + n * weight
+				END;
+				INC(i)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)

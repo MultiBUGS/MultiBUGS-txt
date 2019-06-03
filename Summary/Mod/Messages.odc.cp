@@ -24,6 +24,7 @@ MODULE SummaryMessages;
 	BEGIN
 
 		RegisterKey("SummaryCmds:MonitorCleared", "monitored cleared");
+		RegisterKey("SummaryCmds:DeleteAll", "delete all monitors");
 		RegisterKey("SummaryCmds:MonitorSet", "monitor set");
 		RegisterKey("SummaryCmds:NotInitialized", "model must be initialized before monitors used");
 		RegisterKey("SummaryCmds:NotVariable", "^0 is not a variable in the model");

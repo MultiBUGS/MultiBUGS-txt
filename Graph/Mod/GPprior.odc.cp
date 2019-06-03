@@ -13,7 +13,7 @@ MODULE GraphGPprior;
 	
 
 	IMPORT
-		Math, Stores, Strings, 
+		Math, Stores := Stores64, Strings, 
 		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMemory, 
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathMatrix, MathRandnum;
@@ -450,11 +450,11 @@ MODULE GraphGPprior;
 			numParams := LEN(node.paramValues);
 			wr.WriteInt(numParams);
 			i := 0; WHILE i < numParams DO wr.WriteReal(node.paramValues[i]); INC(i) END;
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.mu;
 			v.nElem := nElem; v.start := node.muStart; v.step := node.muStep;
 			GraphNodes.ExternalizeSubvector(v, wr);
-			v := GraphNodes.NewVector();
+			v .Init;
 			v.components := node.params;
 			v.nElem := numParams; v.start := 0; v.step := 1;
 			GraphNodes.ExternalizeSubvector(v, wr);
@@ -772,6 +772,11 @@ MODULE GraphGPprior;
 		HALT(126);
 		RETURN 0.0
 	END Deviance;
+	
+	PROCEDURE (pred: PredMultiNode) DiffLogConditional (): REAL;
+	BEGIN
+		RETURN 0.0
+	END DiffLogConditional;
 
 	PROCEDURE (node: PredMultiNode) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
@@ -779,7 +784,7 @@ MODULE GraphGPprior;
 		RETURN 0.0
 	END DiffLogLikelihood;
 
-	PROCEDURE (node: PredMultiNode) DiffLogPrior (): REAL;
+	PROCEDURE (pred: PredMultiNode) DiffLogPrior (): REAL;
 	BEGIN
 		HALT(126);
 		RETURN 0.0
@@ -793,7 +798,7 @@ MODULE GraphGPprior;
 		IF pred.index = 0 THEN
 			nElem := pred.Size();
 			GraphNodes.Externalize(pred.s, wr);
-			v := GraphNodes.NewVector();
+			v .Init;
 			v.components := pred.mu;
 			v.start := pred.muStart; v.nElem := nElem; v.step := pred.muStep;
 			GraphNodes.ExternalizeSubvector(v, wr);

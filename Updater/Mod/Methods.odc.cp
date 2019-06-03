@@ -13,7 +13,7 @@ MODULE UpdaterMethods;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		BugsMsg,
 		UpdaterUpdaters;
 

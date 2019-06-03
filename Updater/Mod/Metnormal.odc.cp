@@ -13,7 +13,7 @@ MODULE UpdaterMetnormal;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRegistry,
 		GraphStochastic,
 		MathRandnum,

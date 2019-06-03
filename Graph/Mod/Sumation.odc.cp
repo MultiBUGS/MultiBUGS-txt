@@ -13,7 +13,7 @@ MODULE GraphSumation;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -74,7 +74,7 @@ MODULE GraphSumation;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.vector;
 		v.values := node.values;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;

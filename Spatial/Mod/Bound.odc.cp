@@ -14,7 +14,7 @@ MODULE SpatialBound;
 
 	IMPORT
 
-		Math, Stores, 
+		Math, Stores := Stores64, 
 		GraphNodes, GraphRules, GraphScalar, GraphStochastic, 
 		MathMatrix;
 

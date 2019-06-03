@@ -10,9 +10,9 @@ MODULE UpdaterStage1;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
+		GraphMultivariate, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterUnivariate, UpdaterUpdaters;
 
@@ -129,21 +129,22 @@ MODULE UpdaterStage1;
 		VAR
 			children: GraphStochastic.Vector;
 			install: ARRAY 128 OF CHAR;
-			i, j, num: INTEGER;
+			j, num: INTEGER;
 	BEGIN
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
 		IF prior IS GraphMultivariate.Node THEN RETURN FALSE END;
 		IF prior.children = NIL THEN RETURN FALSE END;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		j := 0;
-		WHILE j < num DO
-			children[j].Install(install);
-			i := 0; WHILE install[i] # "." DO INC(i) END; install[i] := 0X;
-			IF install # "GraphSample" THEN
-				RETURN FALSE
-			END;
-			INC(j)
+		IF children # NIL THEN
+			num := LEN(children);
+			j := 0;
+			WHILE j < num DO
+				children[j].Install(install);
+				IF install # "GraphSample.Install" THEN
+					RETURN FALSE
+				END;
+				INC(j)
+			END
 		END;
 		RETURN TRUE
 	END CanUpdate;

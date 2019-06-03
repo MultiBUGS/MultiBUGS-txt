@@ -4,7 +4,7 @@ MODULE UpdaterDelayedDirectional1D;
 	
 
 	IMPORT
-		Math, Stores, 
+		Math, Stores := Stores64, 
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,

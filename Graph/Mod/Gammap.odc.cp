@@ -13,7 +13,7 @@ MODULE GraphGammap;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathFunc;
 

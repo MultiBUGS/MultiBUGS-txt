@@ -13,7 +13,7 @@ MODULE GraphMAP;
 	
 
 	IMPORT
-		GraphStochastic, 
+		GraphStochastic,
 		MathMatrix;
 
 	VAR
@@ -30,11 +30,13 @@ MODULE GraphMAP;
 	BEGIN
 		diff := node.DiffLogPrior();
 		children := node.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			diff := diff + children[i].DiffLogLikelihood(node);
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				diff := diff + children[i].DiffLogLikelihood(node);
+				INC(i)
+			END
 		END;
 		RETURN diff
 	END DiffLogConditional;

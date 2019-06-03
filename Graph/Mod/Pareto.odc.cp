@@ -15,7 +15,7 @@ MODULE GraphPareto;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;
 

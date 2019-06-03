@@ -13,7 +13,7 @@ MODULE BugsSerialize;
 	
 
 	IMPORT 
-		Files, Services, Stores, 
+		Files := Files64, Services, Stores := Stores64, 
 		BugsCPCompiler, BugsGraph, BugsIndex, BugsParser, BugsRandnum,
 		DeviancePlugin,
 		GraphNodes,
@@ -105,7 +105,8 @@ MODULE BugsSerialize;
 	(*	mutable	*)
 	PROCEDURE InternalizeMutable* (VAR rd: Stores.Reader);
 		VAR
-			chain, iteration, endOfAdapting, numChains, pos: INTEGER;
+			chain, iteration, endOfAdapting, numChains: INTEGER;
+			pos: LONGINT;
 	BEGIN
 		rd.ReadInt(iteration);
 		rd.ReadInt(endOfAdapting);
@@ -136,60 +137,22 @@ MODULE BugsSerialize;
 		MonitorMonitors.InternalizeMonitors(rd)
 	END InternalizeMonitors;
 
-	PROCEDURE Externalize* (fileName: ARRAY OF CHAR);
-		VAR
-			f: Files.File;
-			res, offsetGraph, offsetMonitor, offsetMutable, pos: INTEGER;
-			wr: Stores.Writer;
+	PROCEDURE Externalize* (numWorker: INTEGER; VAR wr: Stores.Writer);
 	BEGIN
-		f := Files.dir.New(restartLoc, Files.dontAsk);
-		wr.ConnectTo(f);
-		wr.SetPos(0);
-		pos := wr.Pos();
-		(*	leave space for offset of graph info	*)
-		wr.WriteInt(0);
-		(*	leave space for offset of mutable info	*)
-		wr.WriteInt(0);
-		(*	leave space for offset of monitor info	*)
-		wr.WriteInt(0);
+		wr.WriteInt(numWorker);
 		ExternalizeModel(wr);
-		offsetGraph := wr.Pos();
 		ExternalizeGraph(wr);
-		offsetMutable := wr.Pos();
 		ExternalizeMutable(wr);
-		offsetMonitor := wr.Pos();
-		ExternalizeMonitors(wr);
-		wr.SetPos(pos);
-		wr.WriteInt(offsetGraph);
-		wr.WriteInt(offsetMutable);
-		wr.WriteInt(offsetMonitor);
-		f.Flush;
-		wr.ConnectTo(NIL);
-		Services.Collect;
-		f.Register(fileName$, "bug", Files.dontAsk, res);
-		ASSERT(res = 0, 99)
+		ExternalizeMonitors(wr)
 	END Externalize;
 
-	PROCEDURE Internalize* (fileName: ARRAY OF CHAR);
-		VAR
-			f: Files.File;
-			rd: Stores.Reader;
-			offsetGraph, offsetMutable, offsetMonitor: INTEGER;
+	PROCEDURE Internalize* (OUT numWorker: INTEGER; VAR rd: Stores.Reader);
 	BEGIN
-		fileName := fileName + ".bug";
-		f := Files.dir.Old(restartLoc, fileName$, Files.shared);
-		ASSERT(f # NIL, 20);
-		rd.ConnectTo(f);
-		rd.ReadInt(offsetGraph);
-		rd.ReadInt(offsetMutable);
-		rd.ReadInt(offsetMonitor);
+		rd.ReadInt(numWorker);
 		InternalizeModel(rd); 
 		InternalizeGraph(rd);
 		InternalizeMutable(rd);
 		InternalizeMonitors(rd);
-		rd.ConnectTo(NIL);
-		f.Close;
-		f := NIL;
 		UpdaterActions.StoreStochastics;
 		Services.Collect
 	END Internalize;

@@ -10,7 +10,7 @@ copyright:	"Rsrc/About"
 MODULE UpdaterSlicebase;
 
 	IMPORT
-		Math, Stores, 
+		Math, Stores := Stores64, 
 		GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterContinuous, UpdaterUpdaters;

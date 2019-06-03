@@ -86,7 +86,7 @@ MODULE MathTT800;
 
 	IMPORT
 		SYSTEM,
-		Stores,
+		Stores := Stores64,
 		MathRandnum;
 
 	CONST
@@ -124,6 +124,14 @@ MODULE MathTT800;
 		wr.WriteLong(g.count)
 	END Externalize;
 
+	PROCEDURE (g: Generator) ExternalizeSize (): INTEGER;
+		VAR
+			size: INTEGER;
+	BEGIN
+		size := N * SIZE(SET) + SIZE(INTEGER) + SIZE(LONGINT);
+		RETURN size
+	END ExternalizeSize;
+	
 	PROCEDURE (g: Generator) GetState (OUT state: ARRAY OF INTEGER);
 		VAR
 			i: INTEGER;

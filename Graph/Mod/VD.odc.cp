@@ -10,7 +10,7 @@ MODULE GraphVD;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphStochastic, 
 		GraphUnivariate, GraphVector;
 

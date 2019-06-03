@@ -13,7 +13,7 @@ MODULE MonitorSummary;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphDeviance, GraphNodes, GraphStochastic,
 		MonitorMonitors;
 

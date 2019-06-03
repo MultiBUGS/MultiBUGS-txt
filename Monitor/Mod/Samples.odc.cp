@@ -13,7 +13,7 @@ MODULE MonitorSamples;
 	
 
 	IMPORT
-		Services, Stores,
+		Services, Stores := Stores64,
 		GraphDeviance, GraphNodes,
 		MonitorMonitors;
 

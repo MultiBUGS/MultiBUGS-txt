@@ -13,7 +13,7 @@ MODULE UpdaterGamma;
 	
 
 	IMPORT
-		MPIworker, Stores,
+		MPIworker, Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
@@ -44,31 +44,33 @@ MODULE UpdaterGamma;
 		p[0] := 0.0;
 		p[1] := 0.0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		prior.SetValue(1.0);
-		WHILE i < num DO
-			node := children[i];
-			WITH node: GraphConjugateUV.Node DO
-				node.LikelihoodForm(as, x, p0, p1)
-			|node: GraphMultivariate.Node DO
-				node.LikelihoodForm(as, x, p0, p1)
-			END;
-			IF x = prior THEN
-				p[0] := p[0] + p0;
-				p[1] := p[1] + p1
-			ELSIF GraphStochastic.continuous IN prior.props THEN
-				weight := x.Value();
-				p[0] := p[0] + p0;
-				p[1] := p[1] + weight * p1
-			ELSE (*	might have mixture model	*)
-				x.ValDiff(prior, val, weight);
-				IF weight > eps THEN
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			prior.SetValue(1.0);
+			WHILE i < num DO
+				node := children[i];
+				WITH node: GraphConjugateUV.Node DO
+					node.LikelihoodForm(as, x, p0, p1)
+				|node: GraphMultivariate.Node DO
+					node.LikelihoodForm(as, x, p0, p1)
+				END;
+				IF x = prior THEN
+					p[0] := p[0] + p0;
+					p[1] := p[1] + p1
+				ELSIF GraphStochastic.continuous IN prior.props THEN
+					weight := x.Value();
 					p[0] := p[0] + p0;
 					p[1] := p[1] + weight * p1
-				END
-			END;
-			INC(i)
+				ELSE (*	might have mixture model	*)
+					x.ValDiff(prior, val, weight);
+					IF weight > eps THEN
+						p[0] := p[0] + p0;
+						p[1] := p[1] + weight * p1
+					END
+				END;
+				INC(i)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)
@@ -144,7 +146,7 @@ MODULE UpdaterGamma;
 			RETURN
 		END;
 		IF lambda < lambdaMin THEN
-			res := {GraphNodes.arg2, GraphNodes.invalidPosative}; 
+			res := {GraphNodes.arg2, GraphNodes.invalidPosative};
 			RETURN
 		END;
 		bounds := prior.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};

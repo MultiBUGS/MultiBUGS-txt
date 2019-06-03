@@ -12,7 +12,7 @@ MODULE GraphMapped;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphMultivariate, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE

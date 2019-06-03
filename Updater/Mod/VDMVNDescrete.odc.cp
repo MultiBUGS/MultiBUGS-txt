@@ -10,7 +10,7 @@ MODULE UpdaterVDMVNDescrete;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		BugsRegistry,
 		GraphRules, GraphStochastic, GraphVD, GraphVDDescrete,
 		MathFunc, MathRandnum,

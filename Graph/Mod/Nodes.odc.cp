@@ -14,7 +14,7 @@ MODULE GraphNodes;
 	
 
 	IMPORT 
-		Meta, Stores, Strings;
+		Meta, Stores := Stores64, Strings;
 
 	CONST
 		(*	node properties	*)
@@ -75,7 +75,7 @@ MODULE GraphNodes;
 		Vector* = POINTER TO ARRAY OF Node;
 
 		(*	set of equally spaced elements from a vector	*)
-		SubVector* = POINTER TO LIMITED RECORD
+		SubVector* = RECORD
 			start*: INTEGER; 	(*	first element in sub vector	*)
 			nElem*: INTEGER; 	(*	number of elements in sub vector	*)
 			step*: INTEGER; 	(*	spacing of elements in sub vector	*)
@@ -103,7 +103,7 @@ MODULE GraphNodes;
 		nodeList: List;
 		installProc: ARRAY maxNumTypes OF String;
 		factories: ARRAY maxNumTypes OF Factory;
-		startOfGraph: INTEGER;
+		startOfGraph: LONGINT;
 
 	PROCEDURE InstallFactory* (IN install: ARRAY OF CHAR): Factory;
 		VAR
@@ -243,18 +243,15 @@ MODULE GraphNodes;
 		END
 	END ClearList;
 
-	(*	create new sub vector	*)
-	PROCEDURE NewVector* (): SubVector;
-		VAR
-			vector: SubVector;
+	(*	init new sub vector	*)
+	PROCEDURE  (VAR vector: SubVector) Init*, NEW;
 	BEGIN
-		NEW(vector);
 		vector.start := - 1;
 		vector.nElem := - 1;
 		vector.step := - 1;
 		vector.components := NIL;
-		RETURN vector
-	END NewVector;
+		vector.values := NIL
+	END Init;
 
 	(*	Writes out a pointer to a node to store, if it is the first time this pointer has been
 	written type information is also written so that the object can be recreated when it is
@@ -397,7 +394,7 @@ MODULE GraphNodes;
 		VAR
 			i, nElem, n: INTEGER;
 	BEGIN
-		NEW(v);
+		v.Init;
 		rd.ReadInt(n);
 		nElem := ABS(n); 
 		v.start := 0; v.nElem := nElem; v.step := 1;
@@ -497,10 +494,9 @@ MODULE GraphNodes;
 		VAR
 			i, len: INTEGER;
 	BEGIN
-		(*		wr.WriteLong(timeStamp);*)
 		startOfGraph := wr.Pos();
 		wr.WriteInt(MIN(INTEGER));
-		wr.WriteInt(MIN(INTEGER));
+		wr.WriteLong(MIN(INTEGER));
 		nodes := NIL;
 		nodeList := NIL;
 		nodeLabel := 0;
@@ -517,13 +513,14 @@ MODULE GraphNodes;
 	(*	finalizes the externalization of graph	*)
 	PROCEDURE EndExternalize* (VAR wr: Stores.Writer);
 		VAR
-			endPos, numNodes, i, numTypes: INTEGER;
+			endPos: LONGINT;
+			numNodes, i, numTypes: INTEGER;
 	BEGIN
 		endPos := wr.Pos();
 		wr.SetPos(startOfGraph);
 		numNodes := nodeLabel;
 		wr.WriteInt(numNodes);
-		wr.WriteInt(endPos);
+		wr.WriteLong(endPos);
 		UnlabelNodes;
 		wr.SetPos(endPos);
 		numTypes := typeLabel;
@@ -538,13 +535,14 @@ MODULE GraphNodes;
 	(*	initialize the internalization of graph	*)
 	PROCEDURE BeginInternalize* (VAR rd: Stores.Reader);
 		VAR
-			numNodes, endPos, pos, numTypes, i: INTEGER;
+			numNodes, numTypes, i: INTEGER;
+			endPos, pos: LONGINT;
 	BEGIN
 		rd.ReadInt(numNodes);
 		NEW(nodes, numNodes + 1);
 		nodes[0] := NIL;
 		nodeLabel := 0;
-		rd.ReadInt(endPos);
+		rd.ReadLong(endPos);
 		pos := rd.Pos();
 		rd.SetPos(endPos);
 		rd.ReadInt(numTypes);

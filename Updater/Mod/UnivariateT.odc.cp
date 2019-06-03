@@ -13,7 +13,7 @@ MODULE UpdaterUnivariateT;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRegistry,
 		GraphNodes, GraphStochastic,
 		UpdaterUnivariate, UpdaterUpdaters;

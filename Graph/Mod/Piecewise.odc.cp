@@ -12,7 +12,7 @@ MODULE GraphPiecewise;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphDummy, GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	CONST

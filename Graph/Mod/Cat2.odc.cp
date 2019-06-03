@@ -12,7 +12,7 @@ MODULE GraphCat2;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate;
 
 	TYPE

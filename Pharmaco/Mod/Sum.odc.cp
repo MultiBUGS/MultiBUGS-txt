@@ -12,7 +12,7 @@ MODULE PharmacoSum;
 
 
 	IMPORT
-		Math, Meta, Stores, Strings,
+		Math, Meta, Stores := Stores64, Strings,
 		BugsMsg,
 		GraphConstant, GraphNodes,
 		GraphRules, GraphScalar, GraphStochastic, PharmacoInputs;
@@ -366,7 +366,7 @@ MODULE PharmacoSum;
 				AddOmega; IF res # {} THEN RETURN END;
 				install0 := install0 + ".Install";
 				AddConstants; IF res # {} THEN RETURN END;
-				theta := GraphNodes.NewVector();
+				theta.Init;
 				theta.start := 0; theta.nElem := nDisp + inpVar.nPar; theta.step := 1;
 				NEW(theta.components, theta.nElem);
 				AddDisp; AddAbs;

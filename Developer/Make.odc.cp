@@ -10,7 +10,7 @@ DevCompiler.CompileThis
 
 HostMenus
 
-Environment MPI MPIlib MPIimp MPIworker MPImaster
+Environment MPI MPIlib MPIimp  MPImaster MPIworker
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi
@@ -36,7 +36,7 @@ GraphConstant GraphMixture GraphMAP
 DeviancePlugin
 
 BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
-BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo 
+BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo BugsMaster
 
 BugsRectData BugsSplusData
 
@@ -55,8 +55,6 @@ DevianceMonitors DeviancePluginS DevianceParents
 DevianceIndex DevianceInterface DevianceFormatted DevianceMessages DevianceResources
 
 CorrelInterface CorrelFormatted CorrelMessages CorrelResources
-
-BugsMaster
 
 GraphPiecewise GraphODEmath GraphODElang GraphODEBlockL GraphODEBlockM
 
@@ -78,18 +76,17 @@ GraphUnivariatetemp1
 
 GraphCoSelection GraphSpline GraphSplinecon GraphSplinescalar
 
-UpdaterAM UpdaterDE UpdaterHamiltonian 
+UpdaterAM UpdaterKernel UpdaterDE UpdaterHamiltonian UpdaterSlicebase
 
 UpdaterForward
 
-UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial UpdaterSlicebase
+UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial 
 
-UpdaterICM
+UpdaterICM UpdaterHMC
 
 UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 
-UpdaterAMblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet
-UpdaterElliptical UpdaterEllipticalMVN UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
+UpdaterAMblock UpdaterKernelblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet UpdaterElliptical UpdaterEllipticalMVN UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
 
 UpdaterUnivariateT UpdaterMultivariateT
 
@@ -156,17 +153,17 @@ StdCmds1
 
 BugsC
 
-TestScript
-
 BugsPackage
 
 MathSeeds
 
-ParallelRandnum ParallelActions ParallelWorker ParallelDebug
+ParallelFiles ParallelRandnum ParallelActions ParallelWorker ParallelDebug
 
 ParallelDebug 
 
 PlotsWindows
+
+TestScript
 
 BugsTraphandler
 

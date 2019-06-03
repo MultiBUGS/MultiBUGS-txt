@@ -13,7 +13,7 @@ MODULE GraphSample;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
@@ -62,22 +62,24 @@ MODULE GraphSample;
 		size0 := - 1;
 		i := 0;
 		children := node.theta.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		j := 0;
-		WHILE j < num DO
-			IF children[j] IS Node THEN
-				sNode := children[j](Node);
-				theta := sNode.theta;
-				props := theta.props;
-				theta.SetProps(props + {GraphNodes.mark});
-				size1 := sNode.Size();
-				IF (size0 # - 1) & (size0 # size1) THEN class := GraphRules.invalid END;
-				size0 := size1;
-				INC(i)
-			ELSE
-				class := GraphRules.invalid
-			END;
-			INC(j)
+		IF children # NIL THEN
+			num := LEN(children);
+			j := 0;
+			WHILE j < num DO
+				IF children[j] IS Node THEN
+					sNode := children[j](Node);
+					theta := sNode.theta;
+					props := theta.props;
+					theta.SetProps(props + {GraphNodes.mark});
+					size1 := sNode.Size();
+					IF (size0 # - 1) & (size0 # size1) THEN class := GraphRules.invalid END;
+					size0 := size1;
+					INC(i)
+				ELSE
+					class := GraphRules.invalid
+				END;
+				INC(j)
+			END
 		END;
 		IF i # size THEN class := GraphRules.invalid END;
 		IF node.theta IS GraphMultivariate.Node THEN
@@ -108,6 +110,12 @@ MODULE GraphSample;
 	BEGIN
 		RETURN 0.0
 	END Deviance;
+
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+	BEGIN
+		HALT(126);
+		RETURN 0.0
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN

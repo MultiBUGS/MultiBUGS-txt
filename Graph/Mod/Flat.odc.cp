@@ -13,7 +13,7 @@ MODULE GraphFlat;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateUV, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate;
 
 	TYPE

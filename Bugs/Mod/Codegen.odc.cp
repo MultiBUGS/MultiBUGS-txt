@@ -68,15 +68,12 @@ MODULE BugsCodegen;
 		BugsMsg.StoreError(errorMes)
 	END NodeError;
 
-	PROCEDURE Vector (t: BugsParser.Node): GraphNodes.SubVector;
+	PROCEDURE Vector (t: BugsParser.Node; OUT vector: GraphNodes.SubVector);
 		VAR
 			var: BugsParser.Variable;
-			vector: GraphNodes.SubVector;
 	BEGIN
 		var := t(BugsParser.Variable);
-		vector := BugsEvaluate.RHVector(var);
-		IF vector = NIL THEN RETURN NIL END;
-		RETURN vector
+		BugsEvaluate.RHVector(var, vector);
 	END Vector;
 
 	PROCEDURE WriteVectorToFunc (t: BugsParser.Node; VAR args: GraphStochastic.ArgsLogical);
@@ -84,8 +81,8 @@ MODULE BugsCodegen;
 			vector: GraphNodes.SubVector;
 			i, nElem, start, step: INTEGER;
 	BEGIN
-		vector := Vector(t);
-		IF vector = NIL THEN args.valid := FALSE; RETURN END;
+		Vector(t, vector);
+		IF (vector.components = NIL) & (vector.values = NIL) THEN args.valid := FALSE; RETURN END;
 		i := 0;
 		start := vector.start;
 		step := vector.step;
@@ -93,7 +90,7 @@ MODULE BugsCodegen;
 		WHILE i < nElem DO
 			IF (vector.components # NIL) & (vector.components[start + i * step] = NIL) THEN 
 				args.valid := FALSE; RETURN 
-			ELSIF (vector.values # NIL) & (vector.values[start + i * step] = INF) THEN
+			ELSIF (vector.values # NIL) & (vector.values[start + i * step] = INF) THEN 
 				args.valid := FALSE; RETURN 
 			END;
 			INC(i)
@@ -390,8 +387,8 @@ MODULE BugsCodegen;
 			IF parents[j] IS BugsParser.Variable THEN
 				IF signature[i] = "v" THEN
 					variable := parents[j](BugsParser.Variable);
-					vector := Vector(variable);
-					IF vector = NIL THEN args.valid := FALSE; RETURN END;
+					Vector(variable, vector);
+					IF vector.components = NIL THEN args.valid := FALSE; RETURN END;
 					args.vectors[args.numVectors] := vector;
 					INC(args.numVectors)
 				ELSIF signature[i] = "F" THEN

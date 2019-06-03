@@ -12,7 +12,7 @@ MODULE BugsRandnum;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		MathRandnum;
 
 	VAR

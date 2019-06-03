@@ -8,7 +8,7 @@ copyright:	"Rsrc/About"
 MODULE GraphSplinescalar;
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -116,7 +116,7 @@ MODULE GraphSplinescalar;
 		wr.WriteInt(node.order);
 		wr.WriteInt(node.continuity);
 		GraphNodes.Externalize(node.x, wr);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.beta; v.values := node.betaValues;
 		v.start := node.betaStart; v.nElem := node.betaSize; v.step := node.betaStep;
 		GraphNodes.ExternalizeSubvector(v, wr);

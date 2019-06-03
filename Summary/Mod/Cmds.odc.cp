@@ -66,7 +66,8 @@ MODULE SummaryCmds;
 	BEGIN
 		name := dialog.node.item$;
 		IF SummaryInterface.IsStar(name) THEN
-			Dialog.GetOK("This will delete all set monitors", "", "", "", {Dialog.ok, Dialog.cancel}, res);
+			BugsMsg.Lookup("SummaryCmds:DeleteAll", msg);
+			Dialog.GetOK(msg, "", "", "", {Dialog.ok, Dialog.cancel}, res);
 			IF res # Dialog.ok THEN RETURN END
 		END;
 		SummaryInterface.Clear(name, ok);

@@ -12,7 +12,7 @@ MODULE UpdaterHamiltonian;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphStochastic,
 		MathRandnum,
 		UpdaterMetropolisMV;

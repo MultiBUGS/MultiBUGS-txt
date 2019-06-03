@@ -13,8 +13,8 @@ MODULE BugsInterface;
 	
 
 	IMPORT
-		Dialog, Files, Kernel, Services, Strings, BugsCPCompiler, 
-		BugsData, BugsEvaluate, BugsGraph, BugsIndex,
+		Dialog, Files, Kernel, Services, Strings, Stores := Stores64, 
+		BugsCPCompiler, BugsData, BugsEvaluate, BugsGraph, BugsIndex,
 		BugsMappers, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		BugsVariables, GraphDeviance,
 		GraphNodes, GraphStochastic, MathRandnum,
@@ -24,7 +24,8 @@ MODULE BugsInterface;
 	TYPE
 		DistributeHook* = POINTER TO ABSTRACT RECORD
 			numChains-, workersPerChain-: INTEGER;
-			writeTime*, linkTime*, fileSize*, masterMemory*: INTEGER;
+			writeTime*, linkTime*, masterMemory*: INTEGER;
+			fileSize*: LONGINT;
 			rank*, setupTime*, memory*: POINTER TO ARRAY OF INTEGER;
 			modules*: POINTER TO ARRAY OF Files.Name
 		END;
@@ -36,18 +37,32 @@ MODULE BugsInterface;
 		maintainer-: ARRAY 40 OF CHAR;
 		hook-: DistributeHook;
 
+	CONST
+		update* = 0;
+		terminate* = 1;
+		recvMonitorInfo* = 2;
+		sendMCMCState* = 3;
+		setWAIC* = 4;
+		clearWAIC* = 5;
+		checkPoint* = 6;
+		restart* = 7;
+
 	PROCEDURE (h: DistributeHook) Clear-, NEW, ABSTRACT;
 
 	PROCEDURE (h: DistributeHook) Deviance- (chain: INTEGER): REAL, NEW, ABSTRACT;
 
-	PROCEDURE (h: DistributeHook) Distribute-, NEW, ABSTRACT;
+	PROCEDURE (h: DistributeHook) Distribute- , NEW, ABSTRACT;
 
 	PROCEDURE (h: DistributeHook) RecvMCMCState-, NEW, ABSTRACT;
+
+	PROCEDURE (h: DistributeHook) RecvMutable- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (h: DistributeHook) MonitorChanged-, NEW, ABSTRACT;
 
 	PROCEDURE (h: DistributeHook) SendCommand- (IN command: Command), NEW, ABSTRACT;
 
+	PROCEDURE (h: DistributeHook) SendMutable- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+	
 	PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
 	VAR endOfAdating: INTEGER), NEW, ABSTRACT;
 
@@ -77,6 +92,127 @@ MODULE BugsInterface;
 		BugsMsg.StoreError(errorMsg)
 	END Error;
 
+	PROCEDURE HasInits (numChains: INTEGER): BOOLEAN;
+		VAR
+			hasInits: BOOLEAN;
+			chain: INTEGER;
+	BEGIN
+		chain := 0;
+		hasInits := TRUE;
+		WHILE (chain < numChains) & hasInits DO
+			hasInits := UpdaterActions.IsInitialized(chain);
+			INC(chain)
+		END;
+		RETURN hasInits
+	END HasInits;
+
+	PROCEDURE ReplaceSampler (node: GraphStochastic.Node; fact: UpdaterUpdaters.Factory; OUT ok: BOOLEAN);
+		VAR
+			i, size: INTEGER;
+			match: BOOLEAN;
+			p: GraphStochastic.Node;
+			newUpdater, oldUpdater: UpdaterUpdaters.Updater;
+		CONST
+			chain = 0;
+	BEGIN
+		ok := FALSE;
+		IF ~(UpdaterUpdaters.enabled IN fact.props) THEN RETURN END;
+		oldUpdater := UpdaterActions.FindSampler(chain, node);
+		IF oldUpdater # NIL THEN
+			size := oldUpdater.Size();
+			i := 0;
+			WHILE i < size DO
+				p := oldUpdater.Prior(i);
+				p.SetProps(p.props - {GraphStochastic.update});
+				INC(i)
+			END;
+			IF fact.CanUpdate(node) THEN
+				newUpdater := fact.New(node);
+			ELSE
+				newUpdater := NIL
+			END;
+			i := 0;
+			WHILE i < size DO
+				p := oldUpdater.Prior(i);
+				p.SetProps(p.props + {GraphStochastic.update});
+				INC(i)
+			END;
+			IF (newUpdater # NIL) & (newUpdater.Size() = size) THEN
+				i := 0;
+				match := TRUE;
+				WHILE	(i < size) & match DO
+					match := oldUpdater.Prior(i) = newUpdater.Prior(i);
+					INC(i)
+				END;
+				IF match THEN
+					ok := TRUE;
+					fact.SetProps(fact.props + {UpdaterUpdaters.active});
+					UpdaterActions.ReplaceUpdater(newUpdater);
+					oldUpdater.LoadSample();
+					newUpdater.StoreSample();
+				END
+			END
+		END
+	END ReplaceSampler;
+
+	PROCEDURE AllocatedMemory* (): INTEGER;
+	BEGIN
+		Services.Collect;
+		RETURN Kernel.Allocated()
+	END AllocatedMemory;
+
+	PROCEDURE ChangeSampler* (IN string: ARRAY OF CHAR; factIndex: INTEGER; OUT ok: BOOLEAN);
+		VAR
+			var: BugsParser.Variable;
+			offsets: POINTER TO ARRAY OF INTEGER;
+			name: BugsNames.Name;
+			i, size: INTEGER;
+			fact: UpdaterUpdaters.Factory;
+			node: GraphNodes.Node;
+			ok1: BOOLEAN;
+	BEGIN
+		ok := FALSE;
+		IF (factIndex # - 1) & (factIndex < LEN(UpdaterMethods.factories)) THEN
+			fact := UpdaterMethods.factories[factIndex];
+			var := BugsParser.StringToVariable(string);
+			IF var # NIL THEN
+				offsets := BugsEvaluate.Offsets(var);
+				IF offsets # NIL THEN
+					name := var.name;
+					size := LEN(offsets);
+					i := 0;
+					ok := TRUE;
+					WHILE i < size DO
+						node := name.components[offsets[i]];
+						IF node IS GraphStochastic.Node THEN
+							ReplaceSampler(node(GraphStochastic.Node), fact, ok1);
+							ok := ok & ok1
+						END;
+						INC(i)
+					END;
+					IF BugsGraph.IsAdapting(BugsRandnum.numberChains) THEN
+						UpdaterActions.SetAdaption(UpdaterActions.iteration, MAX(INTEGER))
+					END
+				END
+			END
+		END
+	END ChangeSampler;
+
+	PROCEDURE CheckPoint* (VAR wr: Stores.Writer);
+		VAR
+			command: Command;
+	BEGIN
+		IF hook # NIL THEN
+			command[0] := checkPoint;
+			command[1] := -1;
+			command[2] := -1; 
+			command[3] := -1;
+			command[4] := -1;
+			hook.SendCommand(command);
+			hook.RecvMutable(wr)
+		END
+	END CheckPoint;
+	
 	PROCEDURE Clear*;
 	BEGIN
 		IF hook # NIL THEN
@@ -106,7 +242,7 @@ MODULE BugsInterface;
 		hook.workersPerChain := workersPerChain;
 		hook.Distribute
 	END Distribute;
-
+	
 	PROCEDURE GenerateInitsForChain* (chain: INTEGER; fixFounder: BOOLEAN; OUT ok: BOOLEAN);
 		CONST
 			maxTrials = 100;
@@ -209,26 +345,26 @@ MODULE BugsInterface;
 		loader.Data(s, ok)
 	END LoadData;
 
-	PROCEDURE RecvMCMCState*;
+	PROCEDURE LoadDeviance* (chain: INTEGER);
+		VAR
+			node: GraphNodes.Node;
+			name: BugsNames.Name;
+			value: REAL;
 	BEGIN
 		IF hook # NIL THEN
-			hook.RecvMCMCState
+			name := BugsIndex.Find("deviance");
+			IF name # NIL THEN
+				node := name.components[0];
+				value := hook.Deviance(chain);
+				GraphDeviance.SetValue(node, value)
+			END
 		END
-	END RecvMCMCState;
+	END LoadDeviance;
 
-	PROCEDURE HasInits (numChains: INTEGER): BOOLEAN;
-		VAR
-			hasInits: BOOLEAN;
-			chain: INTEGER;
+	PROCEDURE LoadGenerator* (chain: INTEGER);
 	BEGIN
-		chain := 0;
-		hasInits := TRUE;
-		WHILE (chain < numChains) & hasInits DO
-			hasInits := UpdaterActions.IsInitialized(chain);
-			INC(chain)
-		END;
-		RETURN hasInits
-	END HasInits;
+		MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
+	END LoadGenerator;
 
 	PROCEDURE LoadInits* (VAR s: BugsMappers.Scanner; chain, numChains: INTEGER;
 	fixFounder: BOOLEAN; OUT ok: BOOLEAN);
@@ -286,13 +422,6 @@ MODULE BugsInterface;
 		RETURN UpdaterActions.NumberChains()
 	END NumberChains;
 
-	PROCEDURE SendCommand* (IN command: Command);
-	BEGIN
-		IF hook # NIL THEN
-			hook.SendCommand(command)
-		END
-	END SendCommand;
-
 	PROCEDURE ParseModel* (VAR s: BugsMappers.Scanner; OUT ok: BOOLEAN);
 		VAR
 			pos: INTEGER;
@@ -319,26 +448,45 @@ MODULE BugsInterface;
 		IF ~ok THEN BugsParser.Clear END
 	END ParseModel;
 
-	PROCEDURE LoadDeviance* (chain: INTEGER);
-		VAR
-			node: GraphNodes.Node;
-			name: BugsNames.Name;
-			value: REAL;
+	PROCEDURE RecvMCMCState*;
 	BEGIN
 		IF hook # NIL THEN
-			name := BugsIndex.Find("deviance");
-			IF name # NIL THEN
-				node := name.components[0];
-				value := hook.Deviance(chain);
-				GraphDeviance.SetValue(node, value)
-			END
+			hook.RecvMCMCState
 		END
-	END LoadDeviance;
+	END RecvMCMCState;
+
+	PROCEDURE Restart* (VAR rd: Stores.Reader);
+		VAR
+			command: Command;
+			numWorkers: INTEGER;
+	BEGIN
+		IF hook # NIL THEN
+			command[0] := restart;
+			command[1] := -1;
+			command[2] := -1; 
+			command[3] := -1;
+			command[4] := -1;
+			hook.SendCommand(command);
+			hook.SendMutable(rd)
+		END
+	END Restart;
+
+	PROCEDURE SendCommand* (IN command: Command);
+	BEGIN
+		IF hook # NIL THEN
+			hook.SendCommand(command)
+		END
+	END SendCommand;
 
 	PROCEDURE SetDistributeHook* (h: DistributeHook);
 	BEGIN
 		hook := h
 	END SetDistributeHook;
+
+	PROCEDURE SetNumChainsMonitors* (numChains: INTEGER);
+	BEGIN
+		MonitorMonitors.SetNumChainsMonitors(numChains)
+	END SetNumChainsMonitors;
 
 	PROCEDURE UpdateModel* (numChains, thin: INTEGER; overRelax: BOOLEAN; OUT ok: BOOLEAN);
 		VAR
@@ -416,108 +564,6 @@ MODULE BugsInterface;
 			INC(chain)
 		END
 	END UpdateMonitors;
-
-	PROCEDURE ReplaceSampler (node: GraphStochastic.Node; fact: UpdaterUpdaters.Factory; OUT ok: BOOLEAN);
-		VAR
-			i, size: INTEGER;
-			match: BOOLEAN;
-			p: GraphStochastic.Node;
-			newUpdater, oldUpdater: UpdaterUpdaters.Updater;
-		CONST
-			chain = 0;
-	BEGIN
-		ok := FALSE;
-		IF ~(UpdaterUpdaters.enabled IN fact.props) THEN RETURN END;
-		oldUpdater := UpdaterActions.FindSampler(chain, node);
-		IF oldUpdater # NIL THEN
-			size := oldUpdater.Size();
-			i := 0;
-			WHILE i < size DO
-				p := oldUpdater.Prior(i);
-				p.SetProps(p.props - {GraphStochastic.update});
-				INC(i)
-			END;
-			IF fact.CanUpdate(node) THEN
-				newUpdater := fact.New(node);
-			ELSE
-				newUpdater := NIL
-			END;
-			i := 0;
-			WHILE i < size DO
-				p := oldUpdater.Prior(i);
-				p.SetProps(p.props + {GraphStochastic.update});
-				INC(i)
-			END;
-			IF (newUpdater # NIL) & (newUpdater.Size() = size) THEN
-				i := 0;
-				match := TRUE;
-				WHILE	(i < size) & match DO
-					match := oldUpdater.Prior(i) = newUpdater.Prior(i);
-					INC(i)
-				END;
-				IF match THEN
-					ok := TRUE;
-					fact.SetProps(fact.props + {UpdaterUpdaters.active});
-					UpdaterActions.ReplaceUpdater(newUpdater);
-					oldUpdater.LoadSample();
-					newUpdater.StoreSample();
-				END
-			END
-		END
-	END ReplaceSampler;
-
-	PROCEDURE ChangeSampler* (IN string: ARRAY OF CHAR; factIndex: INTEGER; OUT ok: BOOLEAN);
-		VAR
-			var: BugsParser.Variable;
-			offsets: POINTER TO ARRAY OF INTEGER;
-			name: BugsNames.Name;
-			i, size: INTEGER;
-			fact: UpdaterUpdaters.Factory;
-			node: GraphNodes.Node;
-			ok1: BOOLEAN;
-	BEGIN
-		ok := FALSE;
-		IF (factIndex # - 1) & (factIndex < LEN(UpdaterMethods.factories)) THEN
-			fact := UpdaterMethods.factories[factIndex];
-			var := BugsParser.StringToVariable(string);
-			IF var # NIL THEN
-				offsets := BugsEvaluate.Offsets(var);
-				IF offsets # NIL THEN
-					name := var.name;
-					size := LEN(offsets);
-					i := 0;
-					ok := TRUE;
-					WHILE i < size DO
-						node := name.components[offsets[i]];
-						IF node IS GraphStochastic.Node THEN
-							ReplaceSampler(node(GraphStochastic.Node), fact, ok1);
-							ok := ok & ok1
-						END;
-						INC(i)
-					END;
-					IF BugsGraph.IsAdapting(BugsRandnum.numberChains) THEN
-						UpdaterActions.SetAdaption(UpdaterActions.iteration, MAX(INTEGER))
-					END
-				END
-			END
-		END
-	END ChangeSampler;
-
-	PROCEDURE LoadGenerator* (chain: INTEGER);
-	BEGIN
-		MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
-	END LoadGenerator;
-
-	PROCEDURE AllocatedMemory* (): INTEGER;
-	BEGIN
-		Services.Collect;
-		RETURN Kernel.Allocated()
-	END AllocatedMemory;
-
-	PROCEDURE SetNumChainsMonitors* (numChains: INTEGER);
-	BEGIN
-		MonitorMonitors.SetNumChainsMonitors(numChains)
-	END SetNumChainsMonitors;
 
 	PROCEDURE Maintainer;
 	BEGIN

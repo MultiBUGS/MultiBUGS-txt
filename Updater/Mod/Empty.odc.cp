@@ -13,7 +13,7 @@ MODULE UpdaterEmpty;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphStochastic,
 		UpdaterUpdaters;
 
@@ -54,11 +54,6 @@ MODULE UpdaterEmpty;
 	BEGIN
 		RETURN 0
 	END Depth;
-	
-	PROCEDURE (updater: Updater) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN 0
-	END DiffLogConditional;
 
 	PROCEDURE (updater: Updater) Externalize (VAR wr: Stores.Writer);
 	BEGIN

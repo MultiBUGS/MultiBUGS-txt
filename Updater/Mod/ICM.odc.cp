@@ -13,7 +13,7 @@ MODULE UpdaterICM;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRegistry,
 		GraphMAP, GraphRules, GraphStochastic,
 		UpdaterContinuous, UpdaterUpdaters;

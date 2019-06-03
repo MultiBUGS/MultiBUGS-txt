@@ -12,7 +12,7 @@ MODULE ParallelActions;
 
 	IMPORT
 		SYSTEM,
-		MPIworker, Math, Stores,
+		MPIworker, Math, Stores := Stores64,
 		GraphNodes, GraphStochastic,
 		MonitorDeviance,
 		ParallelRandnum,
@@ -25,11 +25,27 @@ MODULE ParallelActions;
 		observations: GraphStochastic.Vector;
 		namePointers: GraphNodes.Vector;
 		globalStochs-: POINTER TO ARRAY OF ARRAY OF GraphStochastic.Node;
-		distributedDevMonitors: POINTER TO ARRAY OF MonitorDeviance.Monitor;
+		waicMonitors: POINTER TO ARRAY OF MonitorDeviance.Monitor;
 		values, globalValues: POINTER TO ARRAY OF REAL;
-
+		sizeUpdaters: INTEGER;
+		
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
+
+	PROCEDURE Clear;
+	BEGIN
+		debug := FALSE;
+		updaters := NIL;
+		id := NIL;
+		addresses := NIL;
+		observations := NIL;
+		namePointers := NIL;
+		globalStochs := NIL;
+		waicMonitors := NIL;
+		values := NIL;
+		globalValues := NIL;
+		sizeUpdaters := 0
+	END Clear;
 
 	PROCEDURE InternalizeId (VAR rd: Stores.Reader);
 		VAR
@@ -62,59 +78,46 @@ MODULE ParallelActions;
 			INC(i)
 		END
 	END InternalizeStochastics;
-
+	
 	PROCEDURE CalculateWAIC* (OUT lpd, pW: REAL);
 		VAR
 			i, numObs: INTEGER;
 			meanDensity, meanDeviance, meanDeviance2, variance: REAL;
 			monitor: MonitorDeviance.Monitor;
 	BEGIN
-		IF distributedDevMonitors = NIL THEN RETURN END;
-		numObs := LEN(distributedDevMonitors);
-		i := 0;
 		lpd := 0.0;
 		pW := 0.0;
-		WHILE i < numObs DO
-			monitor := distributedDevMonitors[i];
-			monitor.Stats(meanDeviance, meanDeviance2, meanDensity);
-			variance := meanDeviance2 - meanDeviance * meanDeviance;
-			pW := pW + 0.25 * variance;
-			lpd := lpd + Math.Ln(meanDensity);
-			INC(i)
+		IF waicMonitors # NIL THEN 
+			numObs := LEN(waicMonitors);
+			i := 0;
+			WHILE i < numObs DO
+				monitor := waicMonitors[i];
+				monitor.Stats(meanDeviance, meanDeviance2, meanDensity);
+				variance := meanDeviance2 - meanDeviance * meanDeviance;
+				pW := pW + 0.25 * variance;
+				lpd := lpd + Math.Ln(meanDensity);
+				INC(i)
+			END
 		END
 	END CalculateWAIC;
-
-	PROCEDURE Clear*;
-	BEGIN
-		debug := FALSE;
-		updaters := NIL;
-		id := NIL;
-		addresses := NIL;
-		observations := NIL;
-		namePointers := NIL;
-		globalStochs := NIL;
-		distributedDevMonitors := NIL;
-		values := NIL;
-		globalValues := NIL
-	END Clear;
-
+	
 	PROCEDURE ClearWAIC*;
 	BEGIN
-		distributedDevMonitors := NIL
+		waicMonitors := NIL
 	END ClearWAIC;
 
-	PROCEDURE CollectMonitored* (IN col, row: ARRAY OF INTEGER; OUT values: ARRAY OF REAL);
+	PROCEDURE CollectMonitored* (IN col, row: ARRAY OF INTEGER; OUT monitorValues: ARRAY OF REAL);
 		VAR
 			i, j, k, numMonitored: INTEGER;
 			p: GraphStochastic.Node;
 	BEGIN
-		numMonitored := LEN(values);
+		numMonitored := LEN(monitorValues);
 		i := 0;
 		WHILE i < numMonitored DO
 			j := col[i];
 			k := row[i];
 			p := globalStochs[j, k];
-			values[i] := p.value;
+			monitorValues[i] := p.value;
 			INC(i)
 		END
 	END CollectMonitored;
@@ -126,39 +129,57 @@ MODULE ParallelActions;
 	BEGIN
 		deviance := 0.0;
 		IF observations # NIL THEN
-			numObs := LEN(observations)
-		ELSE
-			numObs := 0
-		END;
-		i := 0;
-		WHILE i < numObs DO
-			deviance := deviance + observations[i].Deviance();
-			INC(i)
+			numObs := LEN(observations);
+			i := 0;
+			WHILE i < numObs DO
+				deviance := deviance + observations[i].Deviance();
+				INC(i)
+			END
 		END;
 		RETURN deviance
 	END Deviance;
 
-	PROCEDURE ExternalizeUpdaterData* (VAR wr: Stores.Writer);
+	PROCEDURE ExternalizeMutable* (VAR wr: Stores.Writer);
 		VAR
-			j, numUpdaters, oldPos, pos, start: INTEGER;
+			i, j, numObs, numUpdaters: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 	BEGIN
 		numUpdaters := LEN(updaters);
-		oldPos := wr.Pos();
-		wr.WriteInt( - 1);
+		ParallelRandnum.ExternalizeGenerators(wr);
 		j := 0;
-		start := wr.Pos();
 		WHILE j < numUpdaters DO
 			updater := updaters[j];
 			UpdaterUpdaters.Externalize(updater, wr);
 			INC(j)
 		END;
-		pos := wr.Pos();
-		wr.SetPos(oldPos);
-		wr.WriteInt(start);
-		wr.SetPos(pos)
-	END ExternalizeUpdaterData;
-
+		IF waicMonitors # NIL THEN
+			numObs := LEN(waicMonitors);
+			wr.WriteInt(numObs);
+			i := 0;
+			WHILE i < numObs DO
+				waicMonitors[i].Externalize(wr);
+				INC(i)
+			END
+		ELSE
+			wr.WriteInt(0)
+		END
+	END ExternalizeMutable;
+	
+	PROCEDURE ExternalizeMutableSize* (): INTEGER;
+		VAR
+			numObs, sizeRandnum, sizeWAIC, size: INTEGER;
+	BEGIN
+		IF waicMonitors # NIL THEN
+			numObs := LEN(waicMonitors)
+		ELSE 
+			numObs := 0
+		END;
+		sizeWAIC := SIZE(INTEGER) + numObs * (SIZE(INTEGER) + 3 * SIZE(REAL));
+		sizeRandnum := ParallelRandnum.ExternalizeSize();
+		size := sizeRandnum + sizeUpdaters + sizeWAIC;
+		RETURN size
+	END ExternalizeMutableSize;
+	
 	PROCEDURE FindStochasticPointer* (p: INTEGER; OUT col, row: INTEGER);
 		VAR
 			num0, num1: INTEGER;
@@ -184,6 +205,35 @@ MODULE ParallelActions;
 		RETURN updaters[index]
 	END GetUpdater;
 
+	PROCEDURE InternalizeMutable* (VAR rd: Stores.Reader);
+		VAR
+			i, j, numObs, numUpdaters: INTEGER;
+			updater: UpdaterUpdaters.Updater;
+			monitor: MonitorDeviance.Monitor;
+			observation: GraphStochastic.Node;
+	BEGIN
+		numUpdaters := LEN(updaters);
+		ParallelRandnum.InternalizeGenerators(rd);
+		j := 0;
+		WHILE j < numUpdaters DO
+			updater := updaters[j];
+			UpdaterUpdaters.Internalize(updater, rd);
+			INC(j)
+		END;
+		rd.ReadInt(numObs);
+		IF numObs # 0 THEN
+			NEW(waicMonitors, numObs);
+			i := 0;
+			WHILE i < numObs DO
+				observation := observations[i];
+				monitor := MonitorDeviance.fact.New(observation);
+				monitor.Internalize(rd);
+				waicMonitors[i] := monitor;
+				INC(i)
+			END
+		END
+	END InternalizeMutable;
+
 	PROCEDURE IsAdapting* (): BOOLEAN;
 		VAR
 			isAdapting: BOOLEAN;
@@ -204,9 +254,8 @@ MODULE ParallelActions;
 	PROCEDURE JointPDF* (map: BOOLEAN): REAL;
 		VAR
 			jointPDF: REAL;
-			i, j, numObs, numStochPointers, rank, size: INTEGER;
+			i, numObs, numStochPointers, rank: INTEGER;
 			p: GraphStochastic.Node;
-			u: UpdaterUpdaters.Updater;
 	BEGIN
 		IF observations # NIL THEN numObs := LEN(observations) ELSE numObs := 0 END;
 		jointPDF := 0.0;
@@ -294,9 +343,10 @@ MODULE ParallelActions;
 
 	PROCEDURE Read* (chain: INTEGER; VAR rd: Stores.Reader);
 		VAR
-			commSize, i, num, numChains, numStochasticPointers, numNamePointers, uEndPos: INTEGER;
+			commSize, i, num, numChains, numStochasticPointers, numNamePointers: INTEGER;
+			uEndPos: LONGINT;
 			dummy, dummyMV, p: GraphNodes.Node;
-			pos: POINTER TO ARRAY OF INTEGER;
+			pos: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		rd.ReadBool(debug);
 		rd.ReadInt(commSize);
@@ -341,8 +391,8 @@ MODULE ParallelActions;
 		NEW(updaters, num);
 		i := 0; WHILE i < num DO updaters[i] := UpdaterUpdaters.InternalizePointer(rd); INC(i) END;
 		NEW(pos, numChains);
-		i := 0; WHILE i < numChains DO rd.ReadInt(pos[i]); INC(i) END;
-		rd.ReadInt(uEndPos);
+		i := 0; WHILE i < numChains DO rd.ReadLong(pos[i]); INC(i) END;
+		rd.ReadLong(uEndPos); 
 		rd.SetPos(pos[chain]);
 		i := 0;
 		WHILE i < num DO
@@ -350,9 +400,10 @@ MODULE ParallelActions;
 			updaters[i].LoadSample;
 			INC(i)
 		END;
+		sizeUpdaters := SHORT(rd.Pos() + 1 - pos[chain]);
 		rd.SetPos(uEndPos);
 		UpdaterUpdaters.EndInternalize(rd);
-		GraphNodes.EndInternalize(rd);
+		GraphNodes.EndInternalize(rd)
 	END Read;
 
 	PROCEDURE SendSample*;
@@ -383,17 +434,17 @@ MODULE ParallelActions;
 		i := 0;
 		IF observations # NIL THEN
 			numObs := LEN(observations);
-			NEW(distributedDevMonitors, numObs);
+			NEW(waicMonitors, numObs);
 			WHILE i < numObs DO
 				observation := observations[i];
 				monitor := MonitorDeviance.fact.New(observation);
-				distributedDevMonitors[i] := monitor;
+				waicMonitors[i] := monitor;
 				INC(i)
 			END
 		END
 	END SetWAIC;
 
-	PROCEDURE Update* (overRelax: BOOLEAN; OUT res: SET);
+	PROCEDURE Update* (local, overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			blockSize, i, j, k, numWorker, rank, numUpdaters, end, start, size: INTEGER;
 	BEGIN
@@ -453,11 +504,11 @@ MODULE ParallelActions;
 			i, numObs: INTEGER;
 			monitor: MonitorDeviance.Monitor;
 	BEGIN
-		IF distributedDevMonitors = NIL THEN RETURN END;
-		numObs := LEN(distributedDevMonitors);
+		IF waicMonitors = NIL THEN RETURN END;
+		numObs := LEN(waicMonitors);
 		i := 0;
 		WHILE i < numObs DO
-			monitor := distributedDevMonitors[i];
+			monitor := waicMonitors[i];
 			monitor.Update;
 			INC(i)
 		END

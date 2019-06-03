@@ -12,7 +12,7 @@ MODULE GraphStable;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphDummy, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathRandnum, UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
 
@@ -81,11 +81,6 @@ MODULE GraphStable;
 	PROCEDURE (auxillary: Auxillary) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
-	
-	PROCEDURE (auxillary: Auxillary) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN UpdaterUpdaters.DiffLogConditional(auxillary.node(Node).y)
-	END DiffLogConditional;
 
 	PROCEDURE (auxillary: Auxillary) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN

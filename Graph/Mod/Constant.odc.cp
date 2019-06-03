@@ -13,7 +13,7 @@ MODULE GraphConstant;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes;
 
 	TYPE

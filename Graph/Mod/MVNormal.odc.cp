@@ -20,7 +20,7 @@ MODULE GraphMVNormal;
 	
 
 	IMPORT
-		Math, Stores,
+		MPIworker, Math, Stores := Stores64,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum;
 
@@ -203,6 +203,29 @@ MODULE GraphMVNormal;
 		RETURN - 2.0 * logDensity
 	END Deviance;
 
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+		VAR
+			diffLogCond: REAL;
+			i, num: INTEGER;
+			children: GraphStochastic.Vector;
+	BEGIN
+		diffLogCond := 0.0;
+		children := node.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
+				INC(i)
+			END
+		END;
+		IF GraphStochastic.distributed IN node.props THEN
+			diffLogCond := MPIworker.SumReal(diffLogCond)
+		END;
+		diffLogCond := node.DiffLogPrior() + diffLogCond;
+		RETURN diffLogCond
+	END DiffLogConditional;
+
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
 			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
@@ -269,7 +292,7 @@ MODULE GraphMVNormal;
 	BEGIN
 		IF node.index = 0 THEN
 			size := node.Size();
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.mu;
 			v.start := node.muStart; v.nElem := size; v.step := node.muStep;
 			GraphNodes.ExternalizeSubvector(v, wr);

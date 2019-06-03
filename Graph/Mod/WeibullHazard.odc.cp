@@ -10,7 +10,7 @@ copyright:	"Rsrc/About"
 MODULE GraphWeibullHazard;
 
 	IMPORT
-		Math, Stores, 
+		Math, Stores := Stores64, 
 		GraphJacobi, GraphLogical, GraphNodes, GraphRules, GraphStochastic;
 
 	TYPE
@@ -66,6 +66,11 @@ MODULE GraphWeibullHazard;
 	BEGIN
 		RETURN -2.0 * node.LogLikelihood()
 	END Deviance;
+	
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+	BEGIN
+		RETURN 0.0
+	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN

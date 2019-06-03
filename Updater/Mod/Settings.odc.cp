@@ -343,7 +343,7 @@ MODULE UpdaterSettings;
 		BugsInterface.ChangeSampler(dialog.node, index , ok);
 		IF ~ok THEN
 			p[0] := dialog.node$;
-			BugsMsg.LookupParam("BugsCmds:couldNotChangeUpdater", p, errorMsg);
+			BugsMsg.LookupParam("BugsCmds:CouldNotChangeUpdater", p, errorMsg);
 			BugsFiles.ShowStatus(errorMsg)
 		END;
 		FillDialog;

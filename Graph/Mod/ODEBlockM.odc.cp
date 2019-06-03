@@ -16,7 +16,7 @@ MODULE GraphODEBlockM;
 	
 
 	IMPORT
-		Meta, Stores,
+		Meta, Stores := Stores64,
 		GraphDummy, GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathODE;
 

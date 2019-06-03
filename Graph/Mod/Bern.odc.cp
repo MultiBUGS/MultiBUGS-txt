@@ -15,7 +15,7 @@ MODULE GraphBern;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateUV, GraphConstant, GraphNodes, GraphRules,
 		GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum;

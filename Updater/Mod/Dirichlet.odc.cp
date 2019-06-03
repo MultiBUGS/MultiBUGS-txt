@@ -52,39 +52,41 @@ MODULE UpdaterDirichlet;
 			INC(i)
 		END;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		j := 0;
-		WHILE j < num DO
-			child := children[j];
-			WITH child: GraphConjugateMV.Node DO	(*	multinomial likelihood	*)
-				child.MVLikelihoodForm(as, xVector, start, step, value, beta);
-				i := 0;
-				WHILE i < size DO
-					IF xVector[start + i * step] = components[i] THEN
-						p[i] := p[i] + value[i]
+		IF children # NIL THEN
+			num := LEN(children);
+			j := 0;
+			WHILE j < num DO
+				child := children[j];
+				WITH child: GraphConjugateMV.Node DO	(*	multinomial likelihood	*)
+					child.MVLikelihoodForm(as, xVector, start, step, value, beta);
+					i := 0;
+					WHILE i < size DO
+						IF xVector[start + i * step] = components[i] THEN
+							p[i] := p[i] + value[i]
+						ELSE
+							components[i].SetValue(0.0);
+							weight := xVector[start + i * step].Value();
+							components[i].SetValue(1.0);
+							weight := xVector[start + i * step].Value() - weight;
+							p[i] := p[i] + weight * value[i]
+						END;
+						INC(i)
+					END
+				|child: GraphConjugateUV.Node DO (*	catagorical likelihood	*)
+					child.LikelihoodForm(as, x, q0, q1);
+					i := SHORT(ENTIER(q0 + eps - 1));
+					IF x = components[i] THEN
+						p[i] := p[i] + 1
 					ELSE
 						components[i].SetValue(0.0);
-						weight := xVector[start + i * step].Value();
+						weight := x.Value();
 						components[i].SetValue(1.0);
-						weight := xVector[start + i * step].Value() - weight;
-						p[i] := p[i] + weight * value[i]
-					END;
-					INC(i)
-				END
-			|child: GraphConjugateUV.Node DO (*	catagorical likelihood	*)
-				child.LikelihoodForm(as, x, q0, q1);
-				i := SHORT(ENTIER(q0 + eps - 1));
-				IF x = components[i] THEN
-					p[i] := p[i] + 1
-				ELSE
-					components[i].SetValue(0.0);
-					weight := x.Value();
-					components[i].SetValue(1.0);
-					weight := x.Value() - weight;
-					p[i] := p[i] + weight
-				END
-			END;
-			INC(j)
+						weight := x.Value() - weight;
+						p[i] := p[i] + weight
+					END
+				END;
+				INC(j)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)

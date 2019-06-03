@@ -10,9 +10,9 @@ MODULE UpdaterStage1M;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphChain, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
+		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -167,7 +167,7 @@ MODULE UpdaterStage1M;
 			theta: GraphNodes.Node;
 			mV: GraphMultivariate.Node;
 			stage1: POINTER TO ARRAY OF GraphMultivariate.Node;
-			i, j, index, size, num: INTEGER;
+			j, index, size, num: INTEGER;
 			p0, p1: REAL;
 			install: ARRAY 128 OF CHAR;
 		CONST
@@ -179,22 +179,23 @@ MODULE UpdaterStage1M;
 		size := prior.Size();
 		stage1 := NIL;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		j := 0;
-		WHILE j < num DO
-			node := children[j];
-			node.Install(install);
-			i := 0; WHILE install[i] # "." DO INC(i) END; install[i] := 0X;
-			IF install = "GraphSample" THEN
-				IF stage1 = NIL THEN NEW(stage1, size) END;
-				node(GraphChain.Node).LikelihoodForm(as, theta, p0, p1);
-				mV := theta(GraphMultivariate.Node);
-				index := mV.index;
-				stage1[index] := node(GraphMultivariate.Node)
-			ELSE
-				RETURN FALSE
-			END;
-			INC(j)
+		IF children # NIL THEN
+			num := LEN(children);
+			j := 0;
+			WHILE j < num DO
+				node := children[j];
+				node.Install(install);
+				IF install = "GraphSample.Install" THEN
+					IF stage1 = NIL THEN NEW(stage1, size) END;
+					node(GraphConjugateMV.Node).LikelihoodForm(as, theta, p0, p1);
+					mV := theta(GraphMultivariate.Node);
+					index := mV.index;
+					stage1[index] := node(GraphMultivariate.Node)
+				ELSE
+					RETURN FALSE
+				END;
+				INC(j)
+			END
 		END;
 		RETURN TRUE
 	END CanUpdate;

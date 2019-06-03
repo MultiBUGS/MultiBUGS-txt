@@ -13,15 +13,15 @@ MODULE UpdaterEllipticalMVN;
 	
 
 	IMPORT
-		Math, Stores, MPIworker,
+		MPIworker, Stores := Stores64, Math,
 		BugsRegistry,
-		GraphChain, GraphConjugateUV, GraphConjugateMV, GraphMRF, GraphMultivariate, 
+		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphMRF, GraphMultivariate,
 		GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
-		Updater = POINTER TO RECORD(UpdaterMultivariate.Updater) 
+		Updater = POINTER TO RECORD(UpdaterMultivariate.Updater)
 			generic: GraphStochastic.Node
 		END;
 
@@ -55,7 +55,7 @@ MODULE UpdaterEllipticalMVN;
 		END;
 		i := 1;
 		WHILE i < num DO
-			class :=  likelihood[i].ClassifyLikelihood(prior);
+			class := likelihood[i].ClassifyLikelihood(prior);
 			IF class # GraphRules.mVN THEN
 				IF generic = NIL THEN
 					generic := likelihood[i]
@@ -71,8 +71,8 @@ MODULE UpdaterEllipticalMVN;
 	END FindGeneric;
 
 	(*	this has side effect of changing value of prior	*)
-	PROCEDURE MVNormalLikelihood (prior, children: GraphStochastic.Vector; 
-		generic: GraphStochastic.Node; OUT p: ARRAY OF REAL);
+	PROCEDURE MVNormalLikelihood (prior, children: GraphStochastic.Vector;
+	generic: GraphStochastic.Node; OUT p: ARRAY OF REAL);
 		VAR
 			as, i, j, k, paramsSize, size, size2, start, step, num: INTEGER;
 			m, t, c: REAL;
@@ -85,59 +85,60 @@ MODULE UpdaterEllipticalMVN;
 		paramsSize := size + size2;
 		IF size > LEN(p0) THEN NEW(p0, size) END;
 		IF size > LEN(p1, 0) THEN NEW(p1, size, size) END;
-		as := GraphRules.mVN;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
 		i := 0;
 		WHILE i < paramsSize DO
 			p[i] := 0.0;
 			INC(i)
 		END;
-		k := 0;
-		WHILE k < num DO
-			child := children[k];
-			IF child # generic THEN
-				WITH child: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
-					as := GraphRules.mVN;
-					child.MVLikelihoodForm(as, xVector, start, step, p0, p1);
-					i := 0;
-					WHILE i < size DO
-						j := 0;
-						WHILE j < size DO
-							p[i * size + j] := p[i * size + j] + p1[i, j];
-							p[size2 + i] := p[size2 + i] + p1[i, j] * p0[j];
-							INC(j)
+		IF children # NIL THEN
+			num := LEN(children);
+			k := 0;
+			WHILE k < num DO
+				child := children[k];
+				IF child # generic THEN
+					WITH child: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
+						as := GraphRules.mVN;
+						child.MVLikelihoodForm(as, xVector, start, step, p0, p1);
+						i := 0;
+						WHILE i < size DO
+							j := 0;
+							WHILE j < size DO
+								p[i * size + j] := p[i * size + j] + p1[i, j];
+								p[size2 + i] := p[size2 + i] + p1[i, j] * p0[j];
+								INC(j)
+							END;
+							INC(i)
+						END
+					|child: GraphConjugateUV.Node DO (*	univariate normal likelihood	*)
+						as := GraphRules.normal;
+						child.LikelihoodForm(as, x, m, t);
+						i := 0;
+						WHILE i < size DO
+							prior[i].SetValue(0.0);
+							INC(i)
 						END;
-						INC(i)
-					END
-				|child: GraphConjugateUV.Node DO (*	univariate normal likelihood	*)
-					as := GraphRules.normal;
-					child.LikelihoodForm(as, x, m, t);
-					i := 0;
-					WHILE i < size DO
-						prior[i].SetValue(0.0);
-						INC(i)
-					END;
-					c := x.Value();
-					i := 0;
-					WHILE i < size DO
-						prior[i].SetValue(1.0);
-						p0[i] := x.Value() - c;
-						prior[i].SetValue(0.0);
-						p[size2 + i] := p[size2 + i] + (m - c) * t * p0[i];
-						INC(i)
-					END;
-					i := 0;
-					WHILE i < size DO
-						j := 0;
-						WHILE j < size DO
-							p[i * size + j] := p[i * size + j] + p0[i] * p0[j] * t;
-							INC(j)
+						c := x.Value();
+						i := 0;
+						WHILE i < size DO
+							prior[i].SetValue(1.0);
+							p0[i] := x.Value() - c;
+							prior[i].SetValue(0.0);
+							p[size2 + i] := p[size2 + i] + (m - c) * t * p0[i];
+							INC(i)
 						END;
-						INC(i)
+						i := 0;
+						WHILE i < size DO
+							j := 0;
+							WHILE j < size DO
+								p[i * size + j] := p[i * size + j] + p0[i] * p0[j] * t;
+								INC(j)
+							END;
+							INC(i)
+						END
 					END
-				END
-			END;
-			INC(k)
+				END;
+				INC(k)
+			END
 		END;
 		IF GraphStochastic.distributed IN prior[0].props THEN
 			MPIworker.SumReals(p)
@@ -228,7 +229,7 @@ MODULE UpdaterEllipticalMVN;
 		MVNormalLikelihood(prior.components, children, updater.generic, updater.params);
 		prior.MVPriorForm(p0, p1);
 		IF prior.ClassifyPrior() = GraphRules.mVNSigma THEN
-			(*	Prior is Gaussian Process prior. Therefore p1 is Cholesky of covariance matrix and must 
+			(*	Prior is Gaussian Process prior. Therefore p1 is Cholesky of covariance matrix and must
 			calculate precision matrix	*)
 			i := 0;
 			WHILE i < size DO
@@ -290,7 +291,7 @@ MODULE UpdaterEllipticalMVN;
 			END;
 			IF generic # NIL THEN logLikelihood := generic.LogLikelihood() ELSE logLikelihood := 0.0 END;
 			IF GraphStochastic.distributed IN prior.props THEN
-				logLikelihood:= MPIworker.SumReal(logLikelihood)
+				logLikelihood := MPIworker.SumReal(logLikelihood)
 			END;
 			IF logLikelihood > y THEN EXIT
 			ELSIF theta < 0.0 THEN thetaMin := theta
@@ -307,8 +308,8 @@ MODULE UpdaterEllipticalMVN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		class := prior.ClassifyPrior();
-		IF ~(class IN {GraphRules.mVN, GraphRules.mVNLin, GraphRules.mVNSigma}) THEN 
-			RETURN FALSE 
+		IF ~(class IN {GraphRules.mVN, GraphRules.mVNLin, GraphRules.mVNSigma}) THEN
+			RETURN FALSE
 		END;
 		IF ~(prior IS GraphConjugateMV.Node) & ~(prior IS GraphChain.Node) THEN
 			RETURN FALSE

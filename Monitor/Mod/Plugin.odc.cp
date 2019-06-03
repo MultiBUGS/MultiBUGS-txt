@@ -13,7 +13,7 @@ MODULE MonitorPlugin;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphVector;
 
 	TYPE

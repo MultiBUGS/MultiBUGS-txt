@@ -10,7 +10,7 @@ MODULE GraphODEmath;
 	
 
 	IMPORT
-		Meta, Stores,
+		Meta, Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector,
 		MathODE;
 
@@ -125,7 +125,7 @@ MODULE GraphODEmath;
 	BEGIN
 		wr.WriteReal(node.t0);
 		wr.WriteReal(node.tol);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.x0;
 		v.start := node.x0Start;
 		v.nElem := node.x0Size;

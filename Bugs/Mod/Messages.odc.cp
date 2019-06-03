@@ -24,36 +24,38 @@ MODULE BugsMessages;
 	BEGIN
 		RegisterKey("BugsCheck1", "array index less than one");
 		RegisterKey("BugsCheck2", "array index greater than array upper bound for ^0");
-
-		RegisterKey("BugsCmds:OkSyntax", "model is syntactically correct");
+		
+		RegisterKey("BugsCmds:AlreadyCompiled", "this option can not be changed once the model is compiled");
+		RegisterKey("BugsCmds:AlreadyInits", "model is already initialized");
+		RegisterKey("BugsCmds:ChainsWrittenOut", "current values for chain(s) written");
+		RegisterKey("BugsCmds:CommandError", "script command ");
+		RegisterKey("BugsCmds:CouldNotChangeUpdater", "could not change (all) updaters for ^0");
+		RegisterKey("BugsCmds:DataOut", "model data");
+		RegisterKey("BugsCmds:DataWritten", "data values written");
+		RegisterKey("BugsCmds:ModelDistibuted", "model distributed");
+		RegisterKey("BugsCmds:ModelExternalized", "model is externalized");
+		RegisterKey("BugsCmds:ModelInternalized", "model is internalized");
+		RegisterKey("BugsCmds:NoCheckCompile", "model must be checked before compiling");
+		RegisterKey("BugsCmds:NoCheckData", "model must be checked before data is loaded");
+		RegisterKey("BugsCmds:NoCompileGenInits", "model must be compiled before generating initial values");
+		RegisterKey("BugsCmds:NoCompileInits", "model must be compiled before initial values loaded");
+		RegisterKey("BugsCmds:NoDeviance", "no deviance for model");
+		RegisterKey("BugsCmds:NoFile", "file ^0 does not exist");
+		RegisterKey("BugsCmds:NotInit", "initial values loaded but chain contains uninitialized variables");
+		RegisterKey("BugsCmds:NotInits", "model must be initialized before updating");
 		RegisterKey("BugsCmds:OkData", "data loaded");
 		RegisterKey("BugsCmds:OkCompile", "model compiled in ^0 s");
-		RegisterKey("BugsCmds:UninitOther", "initial values loaded and chain initialized but another chain contains uninitialized variables");
-		RegisterKey("BugsCmds:NotInit", "initial values loaded but chain contains uninitialized variables");
-		RegisterKey("BugsCmds:OkInits", "model is initialized");
 		RegisterKey("BugsCmds:OkGenInits", "initial values generated, model initialized");
+		RegisterKey("BugsCmds:OkInits", "model is initialized");
+		RegisterKey("BugsCmds:OkSyntax", "model is syntactically correct");
+		RegisterKey("BugsCmds:ScriptFailed", "script failed in interpretation");
+		RegisterKey("BugsCmds:ScripIsLog", "script must not be in the log window");
+		RegisterKey("BugsCmds:SeedZero", "seed of random number generator must not be zero");
+		(*RegisterKey("BugsCmds:UninitializedNodes", "unitialized nodes ");*)
+		RegisterKey("BugsCmds:UninitializedNodes", "all nodes in model are initialized");
+		RegisterKey("BugsCmds:UninitOther", "initial values loaded and chain initialized but another chain contains uninitialized variables");
 		RegisterKey("BugsCmds:UpdatesTook", "^0 updates took ^1 s");
 		RegisterKey("BugsCmds:Updating", "model is updating");
-		RegisterKey("BugsCmds:ScriptFailed", "script failed in interpretation");
-		RegisterKey("BugsCmds:CommandError", "script command ");
-		RegisterKey("BugsCmds:NoFile", "file ^0 does not exist");
-		RegisterKey("BugsCmds:NoCheckData", "model must be checked before data is loaded");
-		RegisterKey("BugsCmds:NoCheckCompile", "model must be checked before compiling");
-		RegisterKey("BugsCmdsNoCompileInits", "model must be compiled before initial values loaded");
-		RegisterKey("BugsCmds:NoCompileGenInits", "model must be compiled before generating initial values");
-		RegisterKey("BugsCmds:AlreadyInits", "model is already initialized");
-		RegisterKey("BugsCmds:NotInits", "model must be initialized before updating");
-		RegisterKey("BugsCmds:SeedZero", "seed of random number generator must not be zero");
-		RegisterKey("BugsCmds:AlreadyCompiled", "this option can not be changed once the model is compiled");
-		RegisterKey("BugsCmds:ChainsWrittenOut", "current values for chain(s) written");
-		RegisterKey("BugsCmds:DataWritten", "data values written");
-		RegisterKey("BugsCmds:UninitializedNdes", "unitialized nodes ");
-		RegisterKey("BugsCmds:couldNotChangeUpdater", "could not change (all) updaters for ^0");
-		RegisterKey("BugsCmds:UninitializedNodes", "all nodes in model are initialized");
-		RegisterKey("BugsCmds:DataOut", "model data");
-		RegisterKey("BugsCmds:NoDeviance", "no deviance for model");
-		RegisterKey("BugsCmds:ModelDistibuted", "model distributed");
-		RegisterKey("BugsCmds:ScripIsLog", "script must not be in the log window");
 
 		RegisterKey("BugsCodegen1", "logical expression contains too many operators");
 		RegisterKey("BugsCodegen2", "logical expression contains too many constants");
@@ -92,8 +94,7 @@ MODULE BugsMessages;
 		RegisterKey("BugsMask5", "variable name ^0 must begin with a character");
 		RegisterKey("BugsMask6", "name ^0 does not occur in model");
 		
-		RegisterKey("BugsMaster.NoGraphFile", "unable to write graph file for worker");
-		RegisterKey("BugsMaster.LinkingFailure", "unable to link BugsWorker executable");
+		RegisterKey("BugsMaster:LinkingFailure", "unable to link BugsWorker executable");
 
 		RegisterKey("BugsNodes1", "array index is greater than array upper bound for ^0");
 		RegisterKey("BugsNodes2", "array index is greater than array upper bound for ^0");

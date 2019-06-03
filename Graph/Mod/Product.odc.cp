@@ -13,7 +13,7 @@ MODULE GraphProduct;
 	
 
 	IMPORT
-		Stores, 
+		Stores := Stores64, 
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -64,7 +64,7 @@ MODULE GraphProduct;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.vector; v.values := node.constant;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step; 
 		GraphNodes.ExternalizeSubvector(v, wr)

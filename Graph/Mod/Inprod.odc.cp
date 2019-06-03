@@ -12,7 +12,7 @@ MODULE GraphInprod;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -72,7 +72,7 @@ MODULE GraphInprod;
 			v: GraphNodes.SubVector;
 			i, len: INTEGER;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.vector0; v.values := node.constant0;
 		v.start := node.start0; v.step := node.step0; v.nElem := node.nElem;
 		GraphNodes.ExternalizeSubvector(v, wr);

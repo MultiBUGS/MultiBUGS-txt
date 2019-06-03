@@ -12,11 +12,11 @@ MODULE BugsGraph;
 	
 
 	IMPORT
-		Strings, 
+		Strings,
 		BugsIndex, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		GraphConjugateMV, GraphDeviance, GraphLogical, GraphNodes, GraphRules,
 		GraphStochastic, GraphUnivariate,
-		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
+		UpdaterActions, UpdaterMethods, UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
 		BuildConditional = POINTER TO RECORD(BugsNames.ElementVisitor)
@@ -233,33 +233,35 @@ MODULE BugsGraph;
 		CONST
 			noUpdater = {GraphNodes.data, GraphStochastic.hidden};
 	BEGIN
-		node := name.components[v.index];
-		IF node # NIL THEN
-			IF node IS GraphStochastic.Node THEN
-				stoch := node(GraphStochastic.Node);
-				IF noUpdater * stoch.props = {} THEN
-					IF stoch.classConditional IN v.class THEN
-						IF stoch IS GraphConjugateMV.Node THEN
-							mv := stoch(GraphConjugateMV.Node);
-							size := mv.Size();
-							i := 0;
-							comp := mv.components;
-							WHILE (i < size) & (noUpdater * comp[i].props = {}) DO INC(i) END;
-							IF i = size THEN
+		IF name.passByreference THEN
+			node := name.components[v.index];
+			IF node # NIL THEN
+				IF node IS GraphStochastic.Node THEN
+					stoch := node(GraphStochastic.Node);
+					IF noUpdater * stoch.props = {} THEN
+						IF stoch.classConditional IN v.class THEN
+							IF stoch IS GraphConjugateMV.Node THEN
+								mv := stoch(GraphConjugateMV.Node);
+								size := mv.Size();
 								i := 0;
-								WHILE i < size DO
-									GraphStochastic.AddToList(comp[i], v.list);
-									comp[i].SetProps(comp[i].props + {GraphNodes.mark});
-									INC(i)
+								comp := mv.components;
+								WHILE (i < size) & (noUpdater * comp[i].props = {}) DO INC(i) END;
+								IF i = size THEN
+									i := 0;
+									WHILE i < size DO
+										GraphStochastic.AddToList(comp[i], v.list);
+										comp[i].SetProps(comp[i].props + {GraphNodes.mark});
+										INC(i)
+									END
 								END
-							END
-						ELSE
-							GraphStochastic.AddToList(stoch, v.list);
-							stoch.SetProps(stoch.props + {GraphNodes.mark})
-						END;
+							ELSE
+								GraphStochastic.AddToList(stoch, v.list);
+								stoch.SetProps(stoch.props + {GraphNodes.mark})
+							END;
+						END
 					END
+				ELSE
 				END
-			ELSE
 			END
 		END
 	END Do;
@@ -425,31 +427,33 @@ MODULE BugsGraph;
 					IF GraphStochastic.update IN stochastic.props THEN
 						hints := {};
 						children := stochastic.children;
-						IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-						i := 0;
-						WHILE i < num DO
-							child := children[i];
-							parents := child.Parents(all);
-							numParam := 0;
-							hint := 0;
-							WHILE parents # NIL DO
-								p := parents.node;
-								INC(numParam);
-								class := GraphStochastic.ClassFunction(p, node);
-								IF class # GraphRules.const THEN
-									hint := numParam;
-									IF hint = 1 THEN
-										INCL(hints, GraphStochastic.hint1)
-									ELSIF hint = 2 THEN
-										INCL(hints, GraphStochastic.hint2)
-									END
+						IF children # NIL THEN
+							num := LEN(children);
+							i := 0;
+							WHILE i < num DO
+								child := children[i];
+								parents := child.Parents(all);
+								numParam := 0;
+								hint := 0;
+								WHILE parents # NIL DO
+									p := parents.node;
+									INC(numParam);
+									class := GraphStochastic.ClassFunction(p, node);
+									IF class # GraphRules.const THEN
+										hint := numParam;
+										IF hint = 1 THEN
+											INCL(hints, GraphStochastic.hint1)
+										ELSIF hint = 2 THEN
+											INCL(hints, GraphStochastic.hint2)
+										END
+									END;
+									parents := parents.next
 								END;
-								parents := parents.next
-							END;
-							IF numParam = 2 THEN
-								stochastic.SetProps(stochastic.props + hints)
-							END;
-							INC(i)
+								IF numParam = 2 THEN
+									stochastic.SetProps(stochastic.props + hints)
+								END;
+								INC(i)
+							END
 						END;
 						IF (GraphStochastic.hint1 IN stochastic.props)
 							 & (GraphStochastic.hint2 IN stochastic.props) THEN
@@ -649,9 +653,9 @@ MODULE BugsGraph;
 			components: GraphStochastic.Vector;
 			all: BOOLEAN;
 	BEGIN
-		IF GraphLogical.dependent IN node.props THEN 
+		IF GraphLogical.dependent IN node.props THEN
 			all := TRUE;
-			pList := GraphStochastic.Parents(node, all); 
+			pList := GraphStochastic.Parents(node, all);
 			WHILE pList # NIL DO
 				parent := pList.node;
 				WITH parent: GraphConjugateMV.Node DO
@@ -731,7 +735,7 @@ MODULE BugsGraph;
 	PROCEDURE BuildDependantLists;
 		VAR
 			v: BuildDependent;
-	BEGIN 
+	BEGIN
 		NEW(v);
 		BugsIndex.Accept(v)
 	END BuildDependantLists;
@@ -740,7 +744,7 @@ MODULE BugsGraph;
 		VAR
 			inits: BOOLEAN;
 			chain: INTEGER;
-			
+			namedStochastics: GraphStochastic.Vector;
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
 		WriteGraph(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
@@ -749,6 +753,10 @@ MODULE BugsGraph;
 		AllocateLikelihoods;
 		ClassifyConditionals;
 		BuildDependantLists;
+		IF UpdaterMultivariate.globalBlock THEN
+			namedStochastics := ConditionalsOfClass({0..31});
+			GraphStochastic.SetStochastics(namedStochastics)
+		END;
 		IF updaterByMethod THEN
 			CreateUpdatersByMethod
 		ELSE

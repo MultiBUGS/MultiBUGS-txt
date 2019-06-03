@@ -1099,7 +1099,8 @@ MODULE BugsInfo;
 
 	PROCEDURE DistributeInfo* (VAR f: TextMappers.Formatter);
 		VAR
-			worker, workersPerChain, numChains, numWorkers, memory, size, time, i, num, pos: INTEGER;
+			worker, workersPerChain, numChains, numWorkers, memory, time, i, num, pos: INTEGER;
+			size: LONGINT;
 			hook: BugsInterface.DistributeHook;
 			string: ARRAY 128 OF CHAR;
 	BEGIN

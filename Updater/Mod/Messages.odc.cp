@@ -34,20 +34,23 @@ MODULE UpdaterMessages;
 		RegisterKey("UpdaterMethods:notOverRelax", "can not set updater's over relax option");
 
 		(*	mapping between TYPE names and user friendly names	*)
-
-		RegisterKey("UpdaterAMblock.InstallNL", "adaptive metropolis block");
-		RegisterKey("UpdaterAMblock.InstallGLM", "adaptive metropolis (glm) block");
+		
 		RegisterKey("UpdaterAMblock.InstallDirichlet", "adaptive metropolis (dirichlet) block");
+		RegisterKey("UpdaterAMblock.InstallGLM", "adaptive metropolis (glm) block");
+		RegisterKey("UpdaterAMblock.InstallGlobal", "adaptive metropolis global block");
+		RegisterKey("UpdaterAMblock.InstallNL", "adaptive metropolis block");
 		RegisterKey("UpdaterAMblock.InstallWishart", "adaptive metropolis (wishart) block");
 
 		RegisterKey("UpdaterBeta.Install", "conjugate beta");
 
 		RegisterKey("UpdaterCatagorical.Install", "categorical");
+		
+		RegisterKey("UpdaterICM.Install", "iterative conditional mode");
 
 		RegisterKey("UpdaterDEblock.InstallHetro", "differential evolution (mixed) block");
 		RegisterKey("UpdaterDEblock.InstallGLM", "differential evolution (glm) block");
 
-		RegisterKey("UpdaterDescreteSlice.Interval", "discrete slice (with upper bound) updater");
+		RegisterKey("UpdaterDescreteSlice.IntervalInstall", "discrete slice (with upper bound) updater");
 		RegisterKey("UpdaterDescreteSlice.Install", "discrete slice");
 
 		RegisterKey("UpdaterDirichlet.Install", "conjugate dirichlet");
@@ -57,7 +60,6 @@ MODULE UpdaterMessages;
 		RegisterKey("UpdaterEllipticalD.Install", "ESS for block of univariate normal priors");
 		RegisterKey("UpdaterRandEffect.Install", " ESS univariate normal");
 		RegisterKey("UpdaterGMRFess.Install", "ESS for GMRF prior");
-
 
 		RegisterKey("UpdaterEmpty.Install", "dummy");
 
@@ -77,7 +79,9 @@ MODULE UpdaterMessages;
 
 		RegisterKey("UpdaterHamiltonianglm.Install", "hamiltonian");
 
-		RegisterKey("UpdaterICM.Install", "iterative conditional mode");
+		RegisterKey("UpdaterKernelblock.InstallGlobal", "KAMELEON global block");
+
+		RegisterKey("UpdaterKernelblock.InstallNL", "KAMELEON block (depth 1)");
 
 		RegisterKey("UpdaterMetover.Install", "over-relaxed metropolis");
 

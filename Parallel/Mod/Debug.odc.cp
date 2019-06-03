@@ -12,7 +12,7 @@ MODULE ParallelDebug;
 
 	IMPORT
 		SYSTEM,
-		Dialog, Files, Ports, Stores, Strings, Views,
+		Dialog, Files := Files64, Ports, Stores := Stores64, Strings, Views,
 		TextMappers, TextModels,
 		BugsComponents, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsParallel,
 		BugsRandnum,
@@ -74,7 +74,7 @@ MODULE ParallelDebug;
 			adr, i, j, numRows: INTEGER;
 			devianceExists: BOOLEAN;
 			rd: Stores.Reader;
-			pos: POINTER TO ARRAY OF INTEGER;
+			pos: POINTER TO ARRAY OF LONGINT;
 			p: GraphStochastic.Node;
 			v: Views.View;
 			label: ARRAY 64 OF CHAR;
@@ -99,7 +99,7 @@ MODULE ParallelDebug;
 		BugsRandnum.InternalizeRNGenerators(rd);
 		rd.ReadBool(allThis);
 		NEW(pos, workersPerChain);
-		i := 0; WHILE i < workersPerChain DO rd.ReadInt(pos[i]); INC(i) END;
+		i := 0; WHILE i < workersPerChain DO rd.ReadLong(pos[i]); INC(i) END;
 		rd.SetPos(pos[rank]);
 		ParallelActions.Read(chain, rd);
 		rd.ConnectTo(NIL);
@@ -173,7 +173,7 @@ MODULE ParallelDebug;
 			res: SET;
 	BEGIN
 		REPEAT
-			ParallelActions.Update(FALSE, res); DEC(iterations)
+			ParallelActions.Update(FALSE, FALSE, res); DEC(iterations)
 		UNTIL iterations = 0
 	END Update;
 	

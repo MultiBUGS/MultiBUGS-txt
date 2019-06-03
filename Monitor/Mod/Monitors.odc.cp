@@ -11,7 +11,7 @@ MODULE MonitorMonitors;
 	
 
 	IMPORT
-		Kernel, Meta, Stores,
+		Kernel, Meta, Stores := Stores64,
 		GraphNodes, GraphStochastic;
 
 	TYPE
@@ -98,11 +98,12 @@ MODULE MonitorMonitors;
 	(*	Externalize monitors	*)
 	PROCEDURE ExternalizeMonitors* (VAR wr: Stores.Writer);
 		VAR
-			i, numTypes, pos, start: INTEGER;
+			i, numTypes: INTEGER;
+			pos, start: LONGINT;
 			cursor: MonitorList;
 			monitor: Monitor;
 			install: ARRAY 128 OF CHAR;
-			offsets: POINTER TO ARRAY OF INTEGER;
+			offsets: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		(*	at start write info where data for each type of monitor starts	*)
 		numTypes := 0;
@@ -112,7 +113,7 @@ MODULE MonitorMonitors;
 		IF numTypes > 0 THEN
 			NEW(offsets, numTypes);
 			start := wr.Pos();
-			i := 0; WHILE i < numTypes DO wr.WriteInt( - 1); INC(i) END
+			i := 0; WHILE i < numTypes DO wr.WriteLong( - 1); INC(i) END
 		END;
 		cursor := monitorList;
 		i := 0;
@@ -128,7 +129,7 @@ MODULE MonitorMonitors;
 		IF numTypes > 0 THEN
 			pos := wr.Pos();
 			wr.SetPos(start);
-			i := 0; WHILE i < numTypes DO wr.WriteInt(offsets[i]); INC(i) END;
+			i := 0; WHILE i < numTypes DO wr.WriteLong(offsets[i]); INC(i) END;
 			wr.SetPos(pos)
 		END
 	END ExternalizeMonitors;
@@ -160,14 +161,15 @@ MODULE MonitorMonitors;
 	PROCEDURE InternalizeMonitors* (VAR rd: Stores.Reader);
 		VAR
 			cursor: MonitorList;
-			i, numTypes, start: INTEGER;
+			i, numTypes: INTEGER;
+			start: LONGINT;
 			install: ARRAY 256 OF CHAR;
 			monitor: Monitor;
 	BEGIN
 		ASSERT(monitorList = NIL, 21);
 		rd.ReadInt(numTypes);
 		(*	read start info for each monitor type	*)
-		i := 0; WHILE i < numTypes DO rd.ReadInt(start); ASSERT(start # - 1, 66); INC(i) END;
+		i := 0; WHILE i < numTypes DO rd.ReadLong(start); ASSERT(start # - 1, 66); INC(i) END;
 		i := 0;
 		WHILE i < numTypes DO
 			rd.ReadString(install);

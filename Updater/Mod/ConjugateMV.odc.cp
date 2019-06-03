@@ -12,7 +12,7 @@ MODULE UpdaterConjugateMV;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphConjugateMV, GraphStochastic,
 		UpdaterMultivariate, UpdaterUpdaters;
 

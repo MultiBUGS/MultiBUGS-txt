@@ -10,7 +10,7 @@ MODULE GraphSpline;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConstant, GraphNodes, GraphNormal, GraphRules, GraphScalar,
 		GraphStochastic, GraphUnivariate, GraphVDDescrete, GraphVector;
 
@@ -371,13 +371,13 @@ MODULE GraphSpline;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.ArgsLogical DO
-			ASSERT(args.vectors[0] # NIL, 21);
+			ASSERT(args.vectors[0].components # NIL, 21);
 			IF args.vectors[0].components[0] IS Node THEN
 				predictor.node := args.vectors[0].components[0]
 			ELSE
 				res := {GraphNodes.arg1, GraphNodes.invalidParameters}
 			END;
-			ASSERT(args.vectors[1] # NIL, 22);
+			ASSERT(args.vectors[1].components # NIL, 22);
 		END
 	END Set;
 

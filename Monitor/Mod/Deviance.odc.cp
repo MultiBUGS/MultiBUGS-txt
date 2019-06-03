@@ -13,7 +13,7 @@ MODULE MonitorDeviance;
 	
 
 	IMPORT
-		Math, Stores, 
+		Math, Stores := Stores64, 
 		GraphStochastic;
 
 	TYPE

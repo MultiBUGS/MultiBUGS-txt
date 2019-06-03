@@ -13,7 +13,7 @@ MODULE UpdaterGLM;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		MPIworker, Math, Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateMV, GraphConjugateUV, GraphLinkfunc, GraphNodes, GraphRules,
 		GraphStochastic,
@@ -50,7 +50,7 @@ MODULE UpdaterGLM;
 		priorMu, propMu: POINTER TO ARRAY OF REAL;
 		choleskiDecomp, priorTau, deriv2LogLik, z: POINTER TO ARRAY OF ARRAY OF REAL;
 
-	PROCEDURE FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	PROCEDURE FindBlock (prior: GraphStochastic.Node; allowBounds: BOOLEAN): GraphStochastic.Vector;
 		CONST
 			mult = 5;
 		VAR
@@ -69,8 +69,8 @@ MODULE UpdaterGLM;
 			END
 		ELSE
 			class := {prior.classConditional};
-			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
-			IF block # NIL THEN 
+			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, allowBounds);
+			IF block # NIL THEN
 				size := LEN(block);
 				likelihood := UpdaterMultivariate.BlockLikelihood(block);
 				(*	huristic to try and stop algorithm finding random effect blocks	*)
@@ -102,23 +102,25 @@ MODULE UpdaterGLM;
 			val: REAL;
 			children: GraphStochastic.Vector;
 	BEGIN
-		size := updater.Size();
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		j := 0;
-		WHILE j < size DO
-			i := 0;
-			WHILE i < num DO
-				updater.predictors[i].ValDiff(updater.prior[j], val, z[j, i]);
-				INC(i)
-			END;
-			INC(j)
+		IF children # NIL THEN
+			size := updater.Size();
+			num := LEN(children);
+			j := 0;
+			WHILE j < size DO
+				i := 0;
+				WHILE i < num DO
+					updater.predictors[i].ValDiff(updater.prior[j], val, z[j, i]);
+					INC(i)
+				END;
+				INC(j)
+			END
 		END
 	END DesignMatrix;
 
 	PROCEDURE (updater: Updater) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
 	BEGIN
-		RETURN FindBlock(prior)
+		RETURN FindBlock(prior, TRUE)
 	END FindBlock;
 
 	PROCEDURE (updater: Updater) CalculateDerivatives (distributed: BOOLEAN), NEW;
@@ -128,8 +130,6 @@ MODULE UpdaterGLM;
 	BEGIN
 		size := updater.Size();
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-
 		j := 0;
 		WHILE j < size DO
 			derivLogLik[j] := 0.0;
@@ -140,22 +140,23 @@ MODULE UpdaterGLM;
 			END;
 			INC(j)
 		END;
-
-		i := 0;
-		WHILE i < num DO
-			j := 0;
-			WHILE j < size DO
-				derivLogLik[j] := derivLogLik[j] + z[j, i] * (y[i] - mu[i]);
-				k := 0;
-				WHILE k < size DO
-					deriv2LogLik[j, k] := deriv2LogLik[j, k] + z[j, i] * w[i] * z[k, i];
-					INC(k)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				j := 0;
+				WHILE j < size DO
+					derivLogLik[j] := derivLogLik[j] + z[j, i] * (y[i] - mu[i]);
+					k := 0;
+					WHILE k < size DO
+						deriv2LogLik[j, k] := deriv2LogLik[j, k] + z[j, i] * w[i] * z[k, i];
+						INC(k)
+					END;
+					INC(j)
 				END;
-				INC(j)
-			END;
-			INC(i)
+				INC(i)
+			END
 		END;
-
 		IF distributed THEN
 			j := 0;
 			WHILE j < size DO
@@ -179,7 +180,6 @@ MODULE UpdaterGLM;
 				INC(j)
 			END
 		END;
-
 		j := 0; (*	add prior contribution	*)
 		WHILE j < size DO
 			k := 0;
@@ -190,7 +190,6 @@ MODULE UpdaterGLM;
 			END;
 			INC(j)
 		END;
-
 		j := 0; 	(*	what does this loop do?	*) (*	taylors series expansion	*)
 		WHILE j < size DO
 			k := 0;
@@ -200,7 +199,6 @@ MODULE UpdaterGLM;
 			END;
 			INC(j)
 		END;
-
 		j := 0;
 		WHILE j < size DO
 			k := 0;
@@ -422,14 +420,16 @@ MODULE UpdaterGLM;
 			predictor: REAL;
 			children: GraphStochastic.Vector;
 	BEGIN
-		i := 0;
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			predictor := updater.predictors[i].Value();
-			mu[i] := n[i] / (1.0 + Math.Exp( - predictor));
-			w[i] := (1.0 - mu[i] / n[i]) * mu[i];
-			INC(i)
+		IF children # NIL THEN
+			i := 0;
+			num := LEN(children);
+			WHILE i < num DO
+				predictor := updater.predictors[i].Value();
+				mu[i] := n[i] / (1.0 + Math.Exp( - predictor));
+				w[i] := (1.0 - mu[i] / n[i]) * mu[i];
+				INC(i)
+			END
 		END
 	END CalculateGLMParams;
 
@@ -454,17 +454,19 @@ MODULE UpdaterGLM;
 			p0, p1: REAL;
 			x: GraphNodes.Node;
 	BEGIN
-		as := GraphRules.beta;
-		i := 0;
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			node := children[i](GraphConjugateUV.Node);
-			node.LikelihoodForm(as, x, p0, p1);
-			updater.predictors[i] := x(GraphLinkfunc.Node).predictor;
-			y[i] := p0;
-			n[i] := p1 + p0;
-			INC(i)
+		IF children # NIL THEN
+			as := GraphRules.beta;
+			i := 0;
+			num := LEN(children);
+			WHILE i < num DO
+				node := children[i](GraphConjugateUV.Node);
+				node.LikelihoodForm(as, x, p0, p1);
+				updater.predictors[i] := x(GraphLinkfunc.Node).predictor;
+				y[i] := p0;
+				n[i] := p1 + p0;
+				INC(i)
+			END
 		END
 	END LikelihoodParameters;
 
@@ -474,14 +476,16 @@ MODULE UpdaterGLM;
 			predictor: REAL;
 			children: GraphStochastic.Vector;
 	BEGIN
-		i := 0;
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			predictor := updater.predictors[i].Value();
-			mu[i] := n[i] * Math.Exp(predictor);
-			w[i] := n[i] * Math.Exp(predictor);
-			INC(i)
+		IF children # NIL THEN
+			i := 0;
+			num := LEN(children);
+			WHILE i < num DO
+				predictor := updater.predictors[i].Value();
+				mu[i] := n[i] * Math.Exp(predictor);
+				w[i] := n[i] * Math.Exp(predictor);
+				INC(i)
+			END
 		END
 	END CalculateGLMParams;
 
@@ -506,17 +510,19 @@ MODULE UpdaterGLM;
 			node: GraphConjugateUV.Node;
 			children: GraphStochastic.Vector;
 	BEGIN
-		as := GraphRules.gamma;
-		i := 0;
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			node := children[i](GraphConjugateUV.Node);
-			node.LikelihoodForm(as, x, p0, p1);
-			updater.predictors[i] := x(GraphLinkfunc.Node).predictor;
-			y[i] := p0;
-			n[i] := p1;
-			INC(i)
+		IF children # NIL THEN
+			as := GraphRules.gamma;
+			i := 0;
+			num := LEN(children);
+			WHILE i < num DO
+				node := children[i](GraphConjugateUV.Node);
+				node.LikelihoodForm(as, x, p0, p1);
+				updater.predictors[i] := x(GraphLinkfunc.Node).predictor;
+				y[i] := p0;
+				n[i] := p1;
+				INC(i)
+			END
 		END
 	END LikelihoodParameters;
 
@@ -526,16 +532,35 @@ MODULE UpdaterGLM;
 			predictor: REAL;
 			children: GraphStochastic.Vector;
 	BEGIN
-		i := 0;
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			predictor := updater.predictors[i].Value();
-			mu[i] := n[i] * predictor;
-			w[i] := n[i];
-			INC(i)
+		IF children # NIL THEN
+			i := 0;
+			num := LEN(children);
+			WHILE i < num DO
+				predictor := updater.predictors[i].Value();
+				mu[i] := n[i] * predictor;
+				w[i] := n[i];
+				INC(i)
+			END
 		END
 	END CalculateGLMParams;
+
+	PROCEDURE (updater: UpdaterNormal) CheckBounds (values: POINTER TO ARRAY OF REAL): BOOLEAN, NEW;
+		VAR
+			lower, upper: REAL;
+			i, size: INTEGER;
+			boundsOk: BOOLEAN;
+	BEGIN
+		boundsOk := TRUE;
+		size := updater.Size();
+		i := 0;
+		WHILE boundsOk & (i < size) DO
+			updater.prior[i].Bounds(lower, upper);
+			boundsOk := (lower < values[i]) & (upper > values[i]);
+			INC(i)
+		END;
+		RETURN TRUE
+	END CheckBounds;
 
 	PROCEDURE (updater: UpdaterNormal) Clone (): UpdaterNormal;
 		VAR
@@ -574,17 +599,19 @@ MODULE UpdaterGLM;
 			p0, p1: REAL;
 			x: GraphNodes.Node;
 	BEGIN
-		as := GraphRules.normal;
-		i := 0;
 		children := updater.Children();
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			node := children[i](GraphConjugateUV.Node);
-			node.LikelihoodForm(as, x, p0, p1);
-			updater.predictors[i] := x;
-			y[i] := p0 * p1;
-			n[i] := p1;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			as := GraphRules.normal;
+			i := 0;
+			WHILE i < num DO
+				node := children[i](GraphConjugateUV.Node);
+				node.LikelihoodForm(as, x, p0, p1);
+				updater.predictors[i] := x;
+				y[i] := p0 * p1;
+				n[i] := p1;
+				INC(i)
+			END
 		END
 	END LikelihoodParameters;
 
@@ -603,13 +630,15 @@ MODULE UpdaterGLM;
 		updater.DesignMatrix;
 		updater.SetValue(updater.oldVals);
 		updater.CalculateGLMParams;
-		updater.CalculateDerivatives(distributed); ;
-		IF overRelax THEN
-			alpha := - (1 - 1 / Math.Sqrt(factNormal.overRelaxation));
-			MathRandnum.RelaxedMNormal(choleskiDecomp, propMu, updater.oldVals, size, alpha, newValues)
-		ELSE
-			MathRandnum.MNormal(choleskiDecomp, propMu, size, newValues)
-		END;
+		updater.CalculateDerivatives(distributed);
+		REPEAT
+			IF overRelax THEN
+				alpha := - (1 - 1 / Math.Sqrt(factNormal.overRelaxation));
+				MathRandnum.RelaxedMNormal(choleskiDecomp, propMu, updater.oldVals, size, alpha, newValues)
+			ELSE
+				MathRandnum.MNormal(choleskiDecomp, propMu, size, newValues)
+			END
+		UNTIL updater.CheckBounds(newValues);
 		updater.SetValue(newValues)
 	END Sample;
 
@@ -641,7 +670,7 @@ MODULE UpdaterGLM;
 		IF prior.classConditional # GraphRules.logitReg THEN
 			RETURN FALSE
 		END;
-		block := FindBlock(prior);
+		block := FindBlock(prior, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
 		IF UpdaterMultivariate.ClassifyBlock(block) # GraphRules.logitReg THEN RETURN FALSE END;
@@ -673,7 +702,7 @@ MODULE UpdaterGLM;
 		IF prior.classConditional # GraphRules.logReg THEN
 			RETURN FALSE
 		END;
-		block := FindBlock(prior);
+		block := FindBlock(prior, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
 		IF UpdaterMultivariate.ClassifyBlock(block) # GraphRules.logReg THEN RETURN FALSE END;
@@ -725,11 +754,10 @@ MODULE UpdaterGLM;
 			block: GraphStochastic.Vector;
 			i, len: INTEGER;
 	BEGIN
-		IF ~UpdaterUpdaters.block THEN RETURN FALSE END;
+		IF ~UpdaterMultivariate.normalBlock THEN RETURN FALSE END;
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF bounds * prior.props # {} THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.normal THEN RETURN FALSE END;
-		block := FindBlock(prior);
+		block := FindBlock(prior, TRUE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
 		IF UpdaterMultivariate.ClassifyBlock(block) # GraphRules.normal THEN RETURN FALSE END;

@@ -12,7 +12,7 @@ MODULE GraphSentinel;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar;
 
 	TYPE

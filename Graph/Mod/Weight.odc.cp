@@ -13,7 +13,7 @@ MODULE GraphWeight;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE

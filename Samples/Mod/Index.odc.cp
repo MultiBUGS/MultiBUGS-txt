@@ -13,7 +13,7 @@ MODULE SamplesIndex;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		MonitorMonitors,
 		SamplesMonitors;
 
@@ -167,9 +167,10 @@ MODULE SamplesIndex;
 
 	PROCEDURE (m: Monitor) Externalize (VAR wr: Stores.Writer);
 		VAR
-			i, numMonitors, pos, start: INTEGER;
+			i, numMonitors: INTEGER;
+			pos, start: LONGINT;
 			cursor: List;
-			filePos: POINTER TO ARRAY OF INTEGER;
+			filePos: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		cursor := m.list;
 		numMonitors := 0;
@@ -177,7 +178,7 @@ MODULE SamplesIndex;
 		wr.WriteInt(numMonitors);
 		IF numMonitors > 0 THEN
 			start := wr.Pos();
-			i := 0; WHILE i < numMonitors DO wr.WriteInt( - 1); INC(i) END;
+			i := 0; WHILE i < numMonitors DO wr.WriteLong( - 1); INC(i) END;
 			NEW(filePos, numMonitors)
 		END;
 		cursor := m.list;
@@ -193,7 +194,7 @@ MODULE SamplesIndex;
 			wr.SetPos(start);
 			i := 0;
 			WHILE i < numMonitors DO
-				wr.WriteInt(filePos[i]);
+				wr.WriteLong(filePos[i]);
 				INC(i)
 			END;
 			wr.SetPos(pos)
@@ -202,13 +203,14 @@ MODULE SamplesIndex;
 
 	PROCEDURE (m: Monitor) Internalize (VAR rd: Stores.Reader);
 		VAR
-			i, filePos, numMonitors: INTEGER;
+			i, numMonitors: INTEGER;
+			filePos: LONGINT;
 			monitor: SamplesMonitors.Monitor;
 	BEGIN
 		rd.ReadInt(numMonitors);
 		i := 0;
 		WHILE i < numMonitors DO
-			rd.ReadInt(filePos); ASSERT(filePos #  - 1, 66);
+			rd.ReadLong(filePos); ASSERT(filePos #  - 1, 66);
 			INC(i)
 		END;
 		i := 0;

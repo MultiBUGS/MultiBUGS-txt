@@ -13,7 +13,7 @@ MODULE MonitorRanks;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphStochastic,
 		MonitorMonitors;
 

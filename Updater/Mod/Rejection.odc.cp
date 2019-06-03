@@ -14,7 +14,7 @@ MODULE UpdaterRejection;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		MPIworker, Math, Stores := Stores64,
 		BugsRegistry,
 		GraphConjugateUV, GraphLinkfunc, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,

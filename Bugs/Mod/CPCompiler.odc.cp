@@ -16,7 +16,7 @@ MODULE BugsCPCompiler;
 	
 
 	IMPORT
-		Dialog, Files, Kernel, Services, Stores, Strings, Views,
+		Dialog, Files, Kernel, Services, Strings, Stores := Stores64, Views,
 		TextMappers, TextModels, TextViews,
 		BugsCPWrite, 
 		DevCPB, DevCPM, DevCPP, DevCPT, DevCPV486,
@@ -296,7 +296,7 @@ MODULE BugsCPCompiler;
 		END
 	END Internalize;
 
-	PROCEDURE OptDynamic*;
+(*	PROCEDURE OptDynamic*;
 		VAR
 			i, j, len, op, numDynamic: INTEGER;
 			cursor, elem, list: FactoryList;
@@ -340,7 +340,7 @@ MODULE BugsCPCompiler;
 			INC(numDynamic);
 			cursor := cursor.next
 		END;
-	END OptDynamic;
+	END OptDynamic;*)
 
 	PROCEDURE Maintainer;
 	BEGIN

@@ -11,7 +11,7 @@ MODULE ParallelRandnum;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsRandnum,
 		MathRandnum, MathTT800;
 
@@ -21,12 +21,20 @@ MODULE ParallelRandnum;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	PROCEDURE ExeternalizeGenerators* (VAR wr: Stores.Writer);
+	PROCEDURE ExternalizeGenerators* (VAR wr: Stores.Writer);
 	BEGIN
 		MathRandnum.Externalize(privateStream, wr);
 		MathRandnum.Externalize(sameStream, wr)
-	END ExeternalizeGenerators;
+	END ExternalizeGenerators;
 
+	PROCEDURE ExternalizeSize* (): INTEGER;
+		VAR
+			size: INTEGER;
+	BEGIN
+		size := MathRandnum.ExternalizeSize(privateStream) + MathRandnum.ExternalizeSize(sameStream);
+		RETURN size
+	END ExternalizeSize;
+	
 	PROCEDURE InternalizeGenerators* (VAR rd: Stores.Reader);
 	BEGIN
 		privateStream := MathRandnum.Internalize(rd);

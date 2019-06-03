@@ -13,7 +13,7 @@ MODULE SamplesMonitors;
 	
 
 	IMPORT
-		Math, Stores,
+		Stores := Stores64,
 		BugsIndex, BugsNames,
 		GraphNodes,
 		MonitorSamples;
@@ -76,8 +76,7 @@ MODULE SamplesMonitors;
 
 	PROCEDURE (monitor: StdMonitor) Externalize (VAR wr: Stores.Writer);
 		VAR
-			beg, end, i, j, numChains, size: INTEGER;
-			filePos: POINTER TO ARRAY OF INTEGER;
+			i, j, numChains, size: INTEGER;
 	BEGIN
 		wr.WriteString(monitor.name.string);
 		IF monitor.samples # NIL THEN
@@ -85,12 +84,8 @@ MODULE SamplesMonitors;
 			numChains := LEN(monitor.samples[0]);
 			wr.WriteInt(size);
 			wr.WriteInt(numChains);
-			beg := wr.Pos();
-			i := 0; WHILE i < size DO wr.WriteInt(MIN(INTEGER)); INC(i) END;
-			NEW(filePos, size);
 			i := 0;
 			WHILE i < size DO
-				filePos[i] := wr.Pos();
 				j := 0;
 				WHILE j < numChains DO
 					IF monitor.samples[i, j] # NIL THEN
@@ -103,10 +98,6 @@ MODULE SamplesMonitors;
 				END;
 				INC(i)
 			END;
-			end := wr.Pos();
-			wr.SetPos(beg);
-			i := 0; WHILE i < size DO wr.WriteInt(filePos[i]); INC(i) END;
-			wr.SetPos(end)
 		ELSE
 			size := 0;
 			wr.WriteInt(size)
@@ -115,7 +106,7 @@ MODULE SamplesMonitors;
 
 	PROCEDURE (monitor: StdMonitor) Internalize (VAR rd: Stores.Reader);
 		VAR
-			i, filePos, j, numChains, size: INTEGER;
+			i, j, numChains, size: INTEGER;
 			present: BOOLEAN;
 			string: ARRAY 128 OF CHAR;
 			node: GraphNodes.Node;
@@ -126,12 +117,6 @@ MODULE SamplesMonitors;
 		IF size > 0 THEN
 			NEW(monitor.samples, size);
 			rd.ReadInt(numChains);
-			i := 0;
-			WHILE i < size DO
-				rd.ReadInt(filePos);
-				ASSERT(filePos # MIN(INTEGER), 66);
-				INC(i)
-			END;
 			i := 0;
 			WHILE i < size DO
 				NEW(monitor.samples[i], numChains);

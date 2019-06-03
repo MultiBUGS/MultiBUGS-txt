@@ -13,7 +13,7 @@ MODULE GraphPriorNP;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathRandnum;
 
@@ -80,7 +80,7 @@ MODULE GraphPriorNP;
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.sample;
 		v.start := node.start; v.nElem := node.size; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);

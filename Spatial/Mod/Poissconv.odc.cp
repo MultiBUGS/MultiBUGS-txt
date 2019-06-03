@@ -13,7 +13,7 @@ MODULE SpatialPoissconv;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphNodes, GraphPoisson, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
@@ -79,11 +79,6 @@ MODULE SpatialPoissconv;
 	PROCEDURE (multinomial: Multinomial) CopyFromAuxillary (source: UpdaterUpdaters.Updater);
 	BEGIN
 	END CopyFromAuxillary;
-	
-	PROCEDURE (multinomial: Multinomial) DiffLogConditional (index: INTEGER): REAL;
-	BEGIN
-		RETURN 0
-	END DiffLogConditional;
 
 	PROCEDURE (multinomial: Multinomial) ExternalizeAuxillary (VAR wr: Stores.Writer);
 	BEGIN
@@ -254,7 +249,7 @@ MODULE SpatialPoissconv;
 			v: GraphNodes.SubVector;
 	BEGIN
 		len := LEN(node.poissons);
-		v := GraphNodes.NewVector();
+		v.Init;
 		v.components := node.lambda;
 		v.start := node.lambdaStart; v.nElem := len; v.step := node.lambdaStep;
 		GraphNodes.ExternalizeSubvector(v, wr);

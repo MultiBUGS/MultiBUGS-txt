@@ -12,7 +12,7 @@ MODULE ReliabilityWrapper;
 	
 
 	IMPORT
-		Math, Stores, Strings,
+		Math, Stores := Stores64, Strings,
 		GraphGrammar, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
 		MathCumulative, MathFunc, MathRandnum;
 

@@ -12,7 +12,7 @@ MODULE GraphUnivariate;
 	
 
 	IMPORT
-		Math, Stores,
+		MPIworker, Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphStochastic;
 
 	CONST
@@ -60,7 +60,7 @@ MODULE GraphUnivariate;
 
 	PROCEDURE (limits: Limits) Internalize (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-	PROCEDURE (limits: Limits) NormalizingConstant (node: Node): REAL,
+		PROCEDURE (limits: Limits) NormalizingConstant (node: Node): REAL,
 	NEW, ABSTRACT;
 
 	PROCEDURE (limits: Limits) Parents (OUT left, right: GraphNodes.Node), NEW, ABSTRACT;
@@ -93,13 +93,13 @@ MODULE GraphUnivariate;
 		RETURN limits
 	END NewLimits;
 
-		(*	abstract methods the node calss	*)
+	(*	abstract methods the node calss	*)
 
 	PROCEDURE (node: Node) BoundsUnivariate- (OUT lower, upper: REAL), NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) CheckUnivariate- (): SET, NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate- (parent: GraphStochastic.Node): INTEGER,
+		PROCEDURE (node: Node) ClassifyLikelihoodUnivariate- (parent: GraphStochastic.Node): INTEGER,
 	NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) Cumulative* (x: REAL): REAL, NEW, ABSTRACT;
@@ -201,6 +201,49 @@ MODULE GraphUnivariate;
 		RETURN deviance
 	END Deviance;
 
+	(*	differentiates the log conditional for node wrt to node, mapping node so that it has support on
+	whole real line. Adds in the differential of appropiate Jacobean	*)
+	PROCEDURE (node: Node) DiffLogConditional* (): REAL;
+		VAR
+			dxdy, diffLogCond, diffLogJacobian, lower, upper, x: REAL;
+			i, num: INTEGER;
+			children: GraphStochastic.Vector;
+	BEGIN
+		x := node.value;
+		IF {GraphStochastic.rightNatural, GraphStochastic.rightImposed} * node.props # {} THEN
+			node.Bounds(lower, upper);
+			IF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
+				diffLogJacobian := (upper + lower - 2 * x) / (upper - lower);
+				dxdy := (x - lower) * (upper - x) / (upper - lower)
+			ELSE
+				diffLogJacobian := - 1.0;
+				dxdy := upper - x
+			END
+		ELSIF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
+			node.Bounds(lower, upper);
+			diffLogJacobian := 1.0;
+			dxdy := x - lower
+		ELSE
+			diffLogJacobian := 0.0;
+			dxdy := 1.0
+		END;
+		diffLogCond := node.DiffLogPrior();
+		children := node.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
+				INC(i)
+			END;
+			IF GraphStochastic.distributed IN node.props THEN
+				diffLogCond := MPIworker.SumReal(diffLogCond)
+			END
+		END;
+		diffLogCond := dxdy * diffLogCond + diffLogJacobian;
+		RETURN diffLogCond
+	END DiffLogConditional;
+
 	(*	writes internal base fields of univariate node to store	*)
 	PROCEDURE (node: Node) ExternalizeStochastic- (VAR wr: Stores.Writer);
 		VAR
@@ -250,7 +293,7 @@ MODULE GraphUnivariate;
 				exp := Math.Exp(y);
 				x := (lower + upper * exp) / (1 + exp)
 			ELSE
-				x := upper - Math.Exp(y)
+				x := upper - Math.Exp(-y)
 			END
 		ELSIF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
 			node.Bounds(lower, upper);
@@ -314,7 +357,7 @@ MODULE GraphUnivariate;
 			IF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
 				y := Math.Ln((x - lower) / (upper - x))
 			ELSE
-				y := Math.Ln(upper - x)
+				y := -Math.Ln(upper - x)
 			END
 		ELSIF {GraphStochastic.leftNatural, GraphStochastic.leftImposed} * node.props # {} THEN
 			node.Bounds(lower, upper);
@@ -378,7 +421,7 @@ MODULE GraphUnivariate;
 			IF args.leftTrunc = NIL THEN
 				IF args.rightTrunc = NIL THEN type := non ELSE type := right END
 			ELSE
-				IF args.rightTrunc = NIL THEN type := left ELSE type := both END 
+				IF args.rightTrunc = NIL THEN type := left ELSE type := both END
 			END;
 			IF type = left THEN
 				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed})
@@ -404,7 +447,7 @@ MODULE GraphUnivariate;
 	(*	narrow return type of factory	*)
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
 
-	(*	concrete types of bounds	*)
+		(*	concrete types of bounds	*)
 
 	PROCEDURE (limits: NoBounds) Bounds (OUT left, right: REAL);
 	BEGIN

@@ -15,7 +15,7 @@ MODULE UpdaterGMRF;
 	
 
 	IMPORT
-		Math, Meta, Stores,
+		Math, Meta, Stores := Stores64,
 		BugsRegistry,
 		GraphMRF, GraphMultivariate, GraphRules, GraphStochastic, 
 		MathDiagmatrix, MathMatrix, MathRandnum, MathSparsematrix,

@@ -13,7 +13,7 @@ MODULE DevianceMonitors;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		BugsIndex, BugsNames, GraphNodes, GraphStochastic,
 		MonitorDeviance;
 

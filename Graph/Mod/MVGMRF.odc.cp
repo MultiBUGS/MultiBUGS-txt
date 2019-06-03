@@ -12,7 +12,7 @@ MODULE GraphMVGMRF;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphMRF, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum, MathSparsematrix;
 
@@ -146,7 +146,7 @@ MODULE GraphMVGMRF;
 		IF node.index = 0 THEN
 			dim := node.dim;
 			wr.WriteInt(node.dim);
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.tau;
 			v.start := node.tauStart; v.nElem := dim * dim; v.step := node.tauStep;
 			GraphNodes.ExternalizeSubvector(v, wr);

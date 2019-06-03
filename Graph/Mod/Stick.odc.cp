@@ -13,7 +13,7 @@ MODULE GraphStick;
 	
 
 	IMPORT
-		Stores,
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphStochastic, GraphVector;
 
 	TYPE
@@ -100,7 +100,7 @@ MODULE GraphStick;
 		IF node.index = 0 THEN
 			dim := node.dim;
 			wr.WriteInt(dim);
-			v := GraphNodes.NewVector();
+			v.Init;
 			v.components := node.prop; v.values := node.constant;
 			v.start := node.start; v.nElem := dim * dim; v.step := node.step;
 			GraphNodes.ExternalizeSubvector(v, wr)

@@ -13,7 +13,7 @@ MODULE UpdaterSCDE;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphStochastic,
 		MathRandnum,

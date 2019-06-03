@@ -13,7 +13,7 @@ MODULE BugsParser;
 	
 
 	IMPORT
-		Stores, Strings,
+		Strings, Stores := Stores64, 
 		BugsIndex, BugsMappers, BugsMsg, BugsNames,
 		GraphGrammar, GraphLogical, GraphNodes, GraphStochastic;
 
@@ -91,7 +91,8 @@ MODULE BugsParser;
 		nodeLabel: INTEGER;
 		nodes: POINTER TO ARRAY OF Node;
 		nodeList: List;
-		startOfGraph, numIfs: INTEGER;
+		startOfGraph: LONGINT;
+		numIfs: INTEGER;
 
 	PROCEDURE (node: Node) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
@@ -1687,7 +1688,7 @@ MODULE BugsParser;
 
 	PROCEDURE EndExternalize (VAR wr: Stores.Writer);
 		VAR
-			endPos: INTEGER;
+			endPos: LONGINT;
 	BEGIN
 		endPos := wr.Pos();
 		wr.SetPos(startOfGraph);

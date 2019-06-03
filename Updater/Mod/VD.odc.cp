@@ -12,7 +12,7 @@ MODULE UpdaterVD;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphConstant, GraphNodes, GraphRules, GraphStochastic, GraphVD,
 		MathRandnum,
 		UpdaterGamma, UpdaterRejection, UpdaterSlice, UpdaterMultivariate, UpdaterUpdaters;

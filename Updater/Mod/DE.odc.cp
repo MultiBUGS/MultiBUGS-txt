@@ -12,7 +12,7 @@ MODULE UpdaterDE;
 	
 
 	IMPORT
-		Math, Stores,
+		Math, Stores := Stores64,
 		GraphStochastic,
 		MathRandnum,
 		UpdaterActions, UpdaterMetropolisMV, UpdaterUpdaters;
