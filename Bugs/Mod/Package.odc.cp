@@ -477,8 +477,10 @@ MODULE BugsPackage;
 			CopyFile("Graph/Sym/Stochastic.osf", dest);
 			CopyFile("System/Sym/Math.osf", dest);
 			CopyFile("System/Sym/Stores.osf", dest);
+			CopyFile("System/Sym/Stores64.osf", dest);
 			CopyFile("Sym/Math.osf", dest);
 			CopyFile("Sym/Stores.osf", dest);
+			CopyFile("Sym/Stores64.osf", dest);
 
 			(*	if config and startup files exist overwrite standard BB files	*)
 			CopyFile("Code/Config.ocf", dest + "/System");
