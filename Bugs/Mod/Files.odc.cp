@@ -14,6 +14,7 @@ MODULE BugsFiles;
 
 	IMPORT
 		Containers, Converters, Dialog, Documents, Files, Log, Ports, Strings, Views,
+		StdLog,
 		TextMappers, TextModels, TextRulers, TextViews;
 
 	CONST
@@ -125,10 +126,12 @@ MODULE BugsFiles;
 			v := TextViews.dir.New(text);
 			OpenView(v, title, w, h)
 		|log:
-			Log.String(title);
+			(*Log.String(title);
 			Log.Ln;
 			v := TextViews.dir.New(text);
-			Log.View(v)
+			Log.View(v)*)
+			StdLog.Ln; StdLog.String(title); StdLog.Ln;
+			StdLog.text.Append(text)
 		|file:
 			v := TextViews.dir.New(text);
 			loc := tempLoc;

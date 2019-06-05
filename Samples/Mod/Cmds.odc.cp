@@ -13,11 +13,11 @@ MODULE SamplesCmds;
 
 	IMPORT
 		Dialog, Ports, Strings,
-		BugsCmds, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
-		SamplesFormatted,
-		SamplesIndex, SamplesInterface, SamplesMonitors, SamplesPlots, TextModels,
-		UpdaterActions,
-		TextMappers;
+		TextMappers, TextModels, BugsCmds, BugsDialog, BugsFiles, BugsIndex,
+		BugsInterface,
+		BugsMsg, SamplesFormatted, SamplesIndex, SamplesInterface, SamplesMonitors,
+		SamplesPlots,
+		UpdaterActions;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
@@ -194,6 +194,7 @@ MODULE SamplesCmds;
 				INC(i)
 			END;
 			BugsCmds.displayDialog.whereOut := oldWhereOut;
+			BugsFiles.SetDest(oldWhereOut);
 			BugsMsg.Lookup("SamplesCmds:CODAFilesWritten", msg);
 			BugsFiles.ShowStatus(msg)
 		END
@@ -236,6 +237,8 @@ MODULE SamplesCmds;
 				BugsFiles.Save(stemName + "CODAchain" + numAsString + ".txt", text[i]);
 				INC(i)
 			END;
+			BugsCmds.displayDialog.whereOut := oldWhereOut;
+			BugsFiles.SetDest(oldWhereOut);
 			BugsMsg.Lookup("SamplesCmds:CODAFilesWritten", msg);
 			BugsFiles.ShowStatus(msg)
 		END
@@ -250,7 +253,7 @@ MODULE SamplesCmds;
 	BEGIN
 		dialog.options.Incl(opt, opt)
 	END OptionsIncl;
-	
+
 	PROCEDURE PlotMarkov*;
 		VAR
 			beg, end, thin, firstChain, lastChain, numChains: INTEGER;
@@ -393,7 +396,7 @@ MODULE SamplesCmds;
 			var[i] := 0X;
 			IF BugsIndex.Find(var) = NIL THEN
 				par.disabled := TRUE;
-				IF BugsCmds.script THEN 
+				IF BugsCmds.script THEN
 					p[0] := var$;
 					BugsMsg.LookupParam("SamplesCmds:NotVariable", p, par.label);
 				END
@@ -410,13 +413,13 @@ MODULE SamplesCmds;
 		par.disabled := dialog.lastChain < dialog.firstChain;
 		IF ~BugsInterface.IsInitialized() THEN
 			par.disabled := TRUE;
-			IF BugsCmds.script THEN 
+			IF BugsCmds.script THEN
 				BugsMsg.Lookup("SamplesCmds:NotInitialized", par.label);
 			END
 		ELSE
 			IF BugsInterface.IsAdapting() THEN
 				par.disabled := TRUE;
-				IF BugsCmds.script THEN 
+				IF BugsCmds.script THEN
 					BugsMsg.Lookup("SamplesCmds:Adapting", par.label);
 				END
 			ELSE
@@ -429,7 +432,7 @@ MODULE SamplesCmds;
 					var[i] := 0X;
 					IF SamplesIndex.Find(var) = NIL THEN
 						par.disabled := TRUE;
-						IF BugsCmds.script THEN 
+						IF BugsCmds.script THEN
 							p[0] := var$;
 							BugsMsg.LookupParam("SamplesCmds:NotVariable", p, par.label);
 						END
@@ -438,7 +441,7 @@ MODULE SamplesCmds;
 					numMonitors := SamplesIndex.NumberOfMonitors();
 					IF numMonitors = 0 THEN
 						par.disabled := TRUE;
-						IF BugsCmds.script THEN 
+						IF BugsCmds.script THEN
 							BugsMsg.Lookup("SamplesCmds:NoMonitors", par.label);
 						END
 					END
@@ -449,7 +452,7 @@ MODULE SamplesCmds;
 
 	PROCEDURE BGRGuard* (VAR par: Dialog.Par);
 	BEGIN
-		IF (BugsCmds.specificationDialog.numChains = 1) OR (dialog.lastChain <= dialog.firstChain)  THEN
+		IF (BugsCmds.specificationDialog.numChains = 1) OR (dialog.lastChain <= dialog.firstChain) THEN
 			par.disabled := TRUE;
 			IF BugsCmds.script THEN
 				BugsMsg.Lookup("SamplesCmds:OnlyOneChain", par.label);
@@ -478,7 +481,7 @@ MODULE SamplesCmds;
 				var[i] := 0X;
 				IF SamplesIndex.Find(var) = NIL THEN
 					par.disabled := TRUE;
-					IF BugsCmds.script THEN 
+					IF BugsCmds.script THEN
 						p[0] := var$;
 						BugsMsg.LookupParam("SamplesCmds:NotVariable", p, par.label);
 					END
@@ -487,7 +490,7 @@ MODULE SamplesCmds;
 				numMonitors := SamplesIndex.NumberOfMonitors();
 				IF numMonitors = 0 THEN
 					par.disabled := TRUE;
-					IF BugsCmds.script THEN 
+					IF BugsCmds.script THEN
 						BugsMsg.Lookup("SamplesCmds:NoMonitors", par.label);
 					END
 				END
