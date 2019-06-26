@@ -206,8 +206,9 @@ MODULE GraphMultinom;
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
 			i, r, nElem, start, step: INTEGER;
-			derivative, diffP, pValue: REAL;
+			derivative, diffP, valP: REAL;
 			p: GraphNodes.Vector;
+			q: GraphNodes.Node;
 	BEGIN
 		p := node.p;
 		start := node.start;
@@ -218,8 +219,9 @@ MODULE GraphMultinom;
 		WHILE i < nElem DO
 			r := SHORT(ENTIER(node.components[i].value + eps));
 			IF r > 0 THEN
-				p[start + i * step].ValDiff(x, pValue, diffP);
-				derivative := derivative + diffP * r / pValue
+				q := p[start + i * step];
+				q.ValDiff(x, valP, diffP);
+				derivative := derivative + diffP * r / valP
 			END;
 			INC(i)
 		END;

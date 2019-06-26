@@ -52,11 +52,6 @@ MODULE GraphReplicate;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Scalar) EvaluateVD (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
-
 	PROCEDURE (node: Scalar) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
@@ -77,6 +72,11 @@ MODULE GraphReplicate;
 			node.prior := args.scalars[0]
 		END
 	END Set;
+
+	PROCEDURE (node: Scalar) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	BEGIN
+		HALT(126)
+	END ValDiff;
 
 	PROCEDURE (node: ScalarPostNode) Check (): SET;
 		VAR
@@ -341,19 +341,19 @@ MODULE GraphReplicate;
 			nElem: INTEGER;
 			p: VectorPostNode;
 	BEGIN
-	IF node.index = 0 THEN
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.nElem := v.nElem; node.start := v.start; node.step := v.step;
-		node.prior := v.components;
-		nElem := node.Size();
-		IF nElem > LEN(oldValues) THEN NEW(oldValues, nElem) END;
-	ELSE
-		p := node.components[0](VectorPostNode);
-		node.nElem := p.nElem;
-		node.start := p.start;
-		node.step := p.step;
-		node.prior := p.prior
-	END
+		IF node.index = 0 THEN
+			GraphNodes.InternalizeSubvector(v, rd);
+			node.nElem := v.nElem; node.start := v.start; node.step := v.step;
+			node.prior := v.components;
+			nElem := node.Size();
+			IF nElem > LEN(oldValues) THEN NEW(oldValues, nElem) END;
+		ELSE
+			p := node.components[0](VectorPostNode);
+			node.nElem := p.nElem;
+			node.start := p.start;
+			node.step := p.step;
+			node.prior := p.prior
+		END
 	END InternalizeVector;
 
 	PROCEDURE (node: VectorPostNode) InitLogical;

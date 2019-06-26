@@ -34,7 +34,7 @@ MODULE GraphDirichlet;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		alpha, diagJacob, diffWork, proportions, value: POINTER TO ARRAY OF REAL;
+		alpha, diagJacob, diffWork, props, value: POINTER TO ARRAY OF REAL;
 
 	PROCEDURE (node: Node) Bounds (OUT left, right: REAL);
 	BEGIN
@@ -87,8 +87,8 @@ MODULE GraphDirichlet;
 		sumAlphas := 0;
 		WHILE i < nElem DO
 			alpha[i] := node.alpha[start + i * step].Value();
-			proportions[i] := node.components[i].value;
-			logLikelihood := logLikelihood + (alpha[i] - 1) * Math.Ln(proportions[i]) - 
+			props[i] := node.components[i].value;
+			logLikelihood := logLikelihood + (alpha[i] - 1) * Math.Ln(props[i]) - 
 			MathFunc.LogGammaFunc(alpha[i]);
 			sumAlphas := sumAlphas + alpha[i];
 			INC(i)
@@ -114,7 +114,7 @@ MODULE GraphDirichlet;
 			i := 0;
 			WHILE i < size DO
 				p := components[i];
-				diffWork[i] := 0.0;
+				diffWork[i] := p.DiffLogPrior();
 				children := node.children;
 				IF children # NIL THEN
 					num := LEN(children);
@@ -129,19 +129,13 @@ MODULE GraphDirichlet;
 			IF GraphStochastic.distributed IN node.props THEN
 				MPIworker.SumReals(diffWork)
 			END;
-			i := 0;
-			WHILE i < size DO
-				p := components[i];
-				diffWork[i] := p.DiffLogPrior();
-				INC(i)
-			END;
 			(*	calculate jacobian matrix of parameter transformation	*)
 			stickLen := 1.0;
 			i := 0;
 			WHILE i < size - 1 DO
 				prop := components[i].value;
 				q := prop / stickLen;
-				proportions[i] := q;
+				props[i] := q;
 				diagJacob[i] := q * (1.0 - q) * stickLen;
 				stickLen := stickLen - prop;
 				INC(i)
@@ -154,15 +148,15 @@ MODULE GraphDirichlet;
 			diff := (diffWork[index] - diffWork[size - 1]) * diagJacob[index];
 			i := index + 1;
 			WHILE i < size - 1 DO
-				diff := diff - proportions[i] * diagJacob[index] * diffWork[i];
+				diff := diff - props[i] * diagJacob[index] * diffWork[i];
 				INC(i)
 			END;
 			(*	add in differential of log Jacobean	*)
-			q := proportions[i];
+			q := props[i];
 			diff := diff + 1.0 - 2.0 * q;
 			i := index + 1;
 			WHILE i < size - 1 DO
-				q := proportions[i];
+				q := props[i];
 				diff := diff - q * (1.0 - q);
 				INC(i)
 			END
@@ -173,7 +167,7 @@ MODULE GraphDirichlet;
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
 			i, nElem, start, step: INTEGER;
-			differential, sumAlphas, sumDiffAlphas, a, diffA: REAL;
+			differential, sumAlphas, sumDiffAlphas, alpha, diffAlpha: REAL;
 	BEGIN
 		nElem := node.Size();
 		start := node.start;
@@ -183,11 +177,11 @@ MODULE GraphDirichlet;
 		sumAlphas := 0;
 		sumDiffAlphas := 0;
 		WHILE i < nElem DO
-			node.alpha[start + i * step].ValDiff(x, a, diffA);
-			proportions[i] := node.components[i].value;
-			differential := differential + diffA * Math.Ln(proportions[i]) - diffA * MathFunc.Digamma(a);
-			sumAlphas := sumAlphas + a;
-			sumDiffAlphas := sumDiffAlphas + diffA;
+			node.alpha[start + i * step].ValDiff(x, alpha, diffAlpha);
+			props[i] := node.components[i].value;
+			differential := differential + diffAlpha * Math.Ln(props[i]) - diffAlpha * MathFunc.Digamma(alpha);
+			sumAlphas := sumAlphas + alpha;
+			sumDiffAlphas := sumDiffAlphas + diffAlpha;
 			INC(i)
 		END;
 		differential := differential + sumDiffAlphas * MathFunc.Digamma(sumAlphas);
@@ -339,8 +333,8 @@ MODULE GraphDirichlet;
 		sumAlphas := 0;
 		WHILE i < nElem DO
 			alpha[i] := node.alpha[start + i * step].Value();
-			proportions[i] := node.components[i].value;
-			logLikelihood := logLikelihood + (alpha[i] - 1) * Math.Ln(proportions[i]) - 
+			props[i] := node.components[i].value;
+			logLikelihood := logLikelihood + (alpha[i] - 1) * Math.Ln(props[i]) - 
 			MathFunc.LogGammaFunc(alpha[i]);
 			sumAlphas := sumAlphas + alpha[i];
 			INC(i)
@@ -464,11 +458,11 @@ MODULE GraphDirichlet;
 			alpha[i] := node.alpha[start + i * step].Value();
 			INC(i)
 		END;
-		MathRandnum.Dirichlet(alpha, nElem, proportions);
+		MathRandnum.Dirichlet(alpha, nElem, props);
 		i := 0;
 		components := node.components;
 		WHILE i < nElem DO
-			components[i].SetValue(proportions[i]);
+			components[i].SetValue(props[i]);
 			INC(i)
 		END;
 		res := {}
@@ -493,7 +487,7 @@ MODULE GraphDirichlet;
 			END;
 			IF nElem > LEN(alpha) THEN
 				NEW(alpha, nElem);
-				NEW(proportions, nElem);
+				NEW(props, nElem);
 				NEW(diagJacob, nElem);
 				NEW(diffWork, nElem);
 				NEW(value, nElem)
@@ -536,7 +530,7 @@ MODULE GraphDirichlet;
 		NEW(f);
 		fact := f;
 		NEW(alpha, nElem);
-		NEW(proportions, nElem);
+		NEW(props, nElem);
 		NEW(diffWork, nElem);
 		NEW(diagJacob, nElem);
 		NEW(value, nElem)

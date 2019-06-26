@@ -110,11 +110,6 @@ MODULE GraphRanks;
 		value := MathSort.Ranked(workValues, rank, nElem)
 	END Evaluate;
 
-	PROCEDURE (node: RankedNode) EvaluateVD (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
-
 	PROCEDURE (node: RankedNode) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
@@ -224,6 +219,11 @@ MODULE GraphRanks;
 		END
 	END Set;
 
+	PROCEDURE (node: RankedNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	BEGIN
+		HALT(126)
+	END ValDiff;
+
 	PROCEDURE (node: RankNode) Check (): SET;
 	BEGIN
 		RETURN {}
@@ -304,11 +304,6 @@ MODULE GraphRanks;
 		END;
 		value := iValue
 	END Evaluate;
-
-	PROCEDURE (node: RankNode) EvaluateVD (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
 
 	PROCEDURE (node: RankNode) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
@@ -415,6 +410,11 @@ MODULE GraphRanks;
 			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
 		END
 	END Set;
+
+	PROCEDURE (node: RankNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	BEGIN
+		HALT(126)
+	END ValDiff;
 
 	PROCEDURE (node: SortNode) Check (): SET;
 	BEGIN

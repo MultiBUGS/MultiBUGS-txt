@@ -52,11 +52,6 @@ MODULE GraphPValue;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Scalar) EvaluateVD (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(0)
-	END EvaluateVD;
-
 	PROCEDURE (node: Scalar) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
@@ -77,6 +72,11 @@ MODULE GraphPValue;
 			node.prior := args.scalars[0]
 		END
 	END Set;
+
+	PROCEDURE (node: Scalar) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	BEGIN
+		HALT(0)
+	END ValDiff;
 
 	PROCEDURE (node: ScalarPostNode) Check (): SET;
 		VAR

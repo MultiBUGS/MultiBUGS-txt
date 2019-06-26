@@ -131,7 +131,7 @@ UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfigLinux
+BugsCmds BugsBatch BugsConfigLinux BugsHMC
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 
@@ -166,7 +166,7 @@ BugsPackage
 
 MathSeeds
 
-ParallelFiles ParallelRandnum ParallelActions ParallelWorker ParallelDebug
+ParallelFiles ParallelRandnum ParallelActions ParallelHMC ParallelWorker ParallelDebug
 
 ParallelDebug
 

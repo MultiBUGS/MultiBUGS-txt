@@ -30,25 +30,6 @@ MODULE BugsMAP;
 		f.WriteRealForm(x, BugsFiles.prec, 0, 0, TextModels.digitspace)
 	END WriteReal;
 
-	PROCEDURE Differential (prior: GraphStochastic.Node): REAL;
-		VAR
-			diff: REAL;
-			children: GraphStochastic.Vector;
-			i, num: INTEGER;
-	BEGIN
-		diff := prior.DiffLogPrior();
-		children := prior.children;
-		IF children # NIL THEN
-			num := LEN(children);
-			i := 0;
-			WHILE i < num DO
-				diff := diff + children[i].DiffLogLikelihood(prior);
-				INC(i)
-			END
-		END;
-		RETURN diff
-	END Differential;
-
 	PROCEDURE Deviance (): REAL;
 		VAR
 			deviance: REAL;
@@ -62,31 +43,48 @@ MODULE BugsMAP;
 	PROCEDURE Estimates* (priors: GraphStochastic.Vector; VAR f: TextMappers.Formatter);
 		VAR
 			inverse: POINTER TO ARRAY OF ARRAY OF REAL;
-			oldVals: POINTER TO ARRAY OF REAL;
+			deriv, oldVals: POINTER TO ARRAY OF REAL;
 			i, j, dim, pos, prec: INTEGER;
 			label: ARRAY 128 OF CHAR;
 			deviance, sd: REAL;
 			newAttr, oldAttr: TextModels.Attributes;
+			error: BOOLEAN;
 	BEGIN
 		dim := LEN(priors);
 		NEW(oldVals, dim);
+		NEW(deriv, dim);
 		NEW(inverse, dim, dim);
 		i := 0;
 		WHILE i < dim DO
 			oldVals[i] := priors[i].value; INC(i)
 		END;
-		GraphMAP.MAP(priors);
-		GraphMAP.Hessian(priors, inverse);
+		GraphMAP.MAP(priors, error);
 		i := 0;
 		WHILE i < dim DO
-			j := 0;
-			WHILE j < dim DO
-				inverse[i, j] := - inverse[i, j];
-				INC(j)
-			END;
-			INC(i)
+			deriv[i] := GraphMAP.DiffLogConditional(priors[i]); INC(i)
 		END;
-		MathMatrix.Invert(inverse, dim);
+		IF error THEN
+			f.WriteString("can not find MAP: "); f.WriteLn;
+			i := 0;
+			WHILE i < dim DO
+				WriteReal(priors[i].value, f); f.WriteTab; WriteReal(deriv[i], f); f.WriteLn; INC(i)
+			END;
+			i := 0; WHILE i < dim DO priors[i].SetValue(oldVals[i]); INC(i) END;
+			RETURN
+		END;
+		GraphMAP.Hessian(priors, inverse, error);
+		IF ~error THEN
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					inverse[i, j] := - inverse[i, j];
+					INC(j)
+				END;
+				INC(i)
+			END;
+			MathMatrix.Invert(inverse, dim)
+		END;
 		deviance := Deviance();
 		prec := BugsFiles.prec;
 		BugsFiles.SetPrec(8);
@@ -102,9 +100,9 @@ MODULE BugsMAP;
 		f.WriteTab;
 		f.WriteString(" name"); f.WriteTab;
 		f.WriteString("MAP"); f.WriteTab;
-		f.WriteString("sd"); f.WriteTab;
+		IF ~error THEN f.WriteString("sd"); f.WriteTab END;
 		f.WriteString("derivative"); f.WriteTab;
-		f.WriteString("correlations");
+		IF ~error THEN f.WriteString("correlations") END; ;
 		f.WriteLn;
 		f.rider.SetAttr(oldAttr);
 		i := 0;
@@ -116,12 +114,16 @@ MODULE BugsMAP;
 			label[0] := " ";
 			f.WriteString(label); f.WriteTab;
 			WriteReal(priors[i].value, f); f.WriteTab;
-			sd := Math.Sqrt(inverse[i, i]);
-			WriteReal(sd, f); f.WriteTab;
-			WriteReal(Differential(priors[i]), f); f.WriteTab;
-			j := 0;
-			WHILE j <= i DO
-				WriteReal(inverse[i, j] / Math.Sqrt(inverse[i, i] * inverse[j, j]), f); f.WriteTab; INC(j)
+			IF ~error THEN
+				sd := Math.Sqrt(inverse[i, i]);
+				WriteReal(sd, f); f.WriteTab;
+			END;
+			WriteReal(deriv[i], f); f.WriteTab;
+			IF ~error THEN
+				j := 0;
+				WHILE j <= i DO
+					WriteReal(inverse[i, j] / Math.Sqrt(inverse[i, i] * inverse[j, j]), f); f.WriteTab; INC(j)
+				END
 			END;
 			f.WriteLn;
 			INC(i)

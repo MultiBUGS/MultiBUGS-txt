@@ -274,6 +274,7 @@ MODULE BugsExternal;
 		Function("diffLCmapFD", "GraphValDiff.FDLogCondMapInstall");
 		Function("diff", "GraphValDiff.ADInstall");
 		Function("diffFD", "GraphValDiff.FDInstall");
+		Function("classify", "GraphValDiff.ClassifyInstall");
 
 		Function("map", "GraphMapped.Install");
 		

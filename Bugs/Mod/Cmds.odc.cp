@@ -291,7 +291,7 @@ MODULE BugsCmds;
 		overRelax := updateDialog.overRelax;
 		numChains := specificationDialog.numChains;
 		ok := TRUE;
-		WHILE(i < refresh) & (a.updates < updates) & ok DO
+		WHILE (i < refresh) & (a.updates < updates) & ok DO
 			INC(i);
 			INC(a.updates);
 			BugsInterface.UpdateModel(numChains, thin, overRelax, ok);
@@ -317,9 +317,10 @@ MODULE BugsCmds;
 			BugsInterface.LoadDeviance(0);
 			a.updating := FALSE;
 			elapsedTime := Services.Ticks() - startTime;
-			elapsedTime := ENTIER(1.0 * elapsedTime / Services.resolution + eps);
 			Strings.IntToString(updates, p[0]);
-			Strings.IntToString(elapsedTime, p[1]);
+			Strings.IntToString(elapsedTime DIV Services.resolution , p[1]);
+			Strings.IntToString(elapsedTime MOD Services.resolution , msg);
+			p[1] := p[1] + "." + msg;
 			BugsMsg.LookupParam("BugsCmds:UpdatesTook", p, msg);
 			BugsFiles.ShowStatus(msg)
 		END
@@ -780,7 +781,7 @@ MODULE BugsCmds;
 			stochastics: GraphStochastic.Vector;
 			tabs: POINTER TO ARRAY OF INTEGER;
 	BEGIN
-		stochastics := BugsGraph.ConditionalsOfClass({GraphRules.genDiff.. GraphRules.mVNLin});
+		stochastics := GraphStochastic.stochastics;
 		dim := LEN(stochastics);
 		numTabs := dim + 5;
 		NEW(tabs, numTabs);

@@ -248,7 +248,7 @@ MODULE GraphInprod;
 		END;
 	END Evaluate;
 
-	PROCEDURE (node: Node) EvaluateVD (x: GraphNodes.Node; OUT value, differ: REAL);
+	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
 		VAR
 			value0, value1, diff0, diff1: REAL;
 			i, off0, off1, nElem: INTEGER;
@@ -301,7 +301,7 @@ MODULE GraphInprod;
 				END
 			END
 		END
-	END EvaluateVD;
+	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphMemory.Node;
 		VAR

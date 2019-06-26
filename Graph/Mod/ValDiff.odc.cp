@@ -16,7 +16,8 @@ MODULE GraphValDiff;
 
 	IMPORT
 		Stores := Stores64,
-		GraphMultivariate, GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate,
+		GraphLogical, GraphMultivariate, GraphNodes, GraphRules, GraphScalar,
+		GraphStochastic, GraphUnivariate,
 		MathFunc;
 
 	TYPE
@@ -42,11 +43,15 @@ MODULE GraphValDiff;
 
 		FDNode = POINTER TO RECORD(NodeLogical) END;
 
+		ClassifyNode = POINTER TO RECORD(NodeLogical) END;
+
 		LogCondFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		ADFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		FDFactory = POINTER TO RECORD(GraphScalar.Factory) END;
+
+		ClassifyFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		ADLogCondFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
@@ -55,7 +60,7 @@ MODULE GraphValDiff;
 		FDLogCondMapFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	VAR
-		aDFact-, fDFact-, aDLogCondFact-,
+		aDFact-, fDFact-, aDLogCondFact-, classifyFact-,
 		fDLogCondFact-, fDLogCondMapFact-, logCondFact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -206,6 +211,25 @@ MODULE GraphValDiff;
 		diff := diff / (2 * eps);
 		node.x.SetValue(value);
 		RETURN diff
+	END Value;
+
+	PROCEDURE (node: ClassifyNode) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphValDiff.ClassifyInstall"
+	END Install;
+
+	PROCEDURE (node: ClassifyNode) Value (): REAL;
+		VAR
+			class: INTEGER;
+			p: GraphNodes.Node;
+	BEGIN
+		p := node.parent;
+		WITH p: GraphLogical.Node DO
+			class := p.ClassFunction(node.x)
+		ELSE
+			class := GraphRules.const
+		END;
+		RETURN class
 	END Value;
 
 	PROCEDURE (node: NodeStochastic) Check (): SET;
@@ -414,6 +438,20 @@ MODULE GraphValDiff;
 		signature := "ss"
 	END Signature;
 
+	PROCEDURE (f: ClassifyFactory) New (): GraphScalar.Node;
+		VAR
+			node: ClassifyNode;
+	BEGIN
+		NEW(node);
+		node.Init;
+		RETURN node
+	END New;
+
+	PROCEDURE (f: ClassifyFactory) Signature (OUT signature: ARRAY OF CHAR);
+	BEGIN
+		signature := "ss"
+	END Signature;
+
 	PROCEDURE (f: ADLogCondFactory) New (): GraphScalar.Node;
 		VAR
 			node: ADLogCondNode;
@@ -480,6 +518,11 @@ MODULE GraphValDiff;
 		GraphNodes.SetFactory(fDFact)
 	END FDInstall;
 
+	PROCEDURE ClassifyInstall*;
+	BEGIN
+		GraphNodes.SetFactory(classifyFact)
+	END ClassifyInstall;
+
 	PROCEDURE ADLogCondInstall*;
 	BEGIN
 		GraphNodes.SetFactory(aDLogCondFact)
@@ -510,6 +553,7 @@ MODULE GraphValDiff;
 		VAR
 			fAD: ADFactory;
 			fFD: FDFactory;
+			fClassify: ClassifyFactory;
 			diffLogCondF: ADLogCondFactory;
 			diffLogCondFDF: FDLogCondFactory;
 			diffLogCondMapFDF: FDLogCondMapFactory;
@@ -520,6 +564,8 @@ MODULE GraphValDiff;
 		aDFact := fAD;
 		NEW(fFD);
 		fDFact := fFD;
+		NEW(fClassify);
+		classifyFact := fClassify;
 		NEW(diffLogCondF);
 		aDLogCondFact := diffLogCondF;
 		NEW(diffLogCondFDF);

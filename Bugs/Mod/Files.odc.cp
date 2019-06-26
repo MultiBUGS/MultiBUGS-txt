@@ -13,7 +13,7 @@ MODULE BugsFiles;
 	
 
 	IMPORT
-		Containers, Converters, Dialog, Documents, Files, Log, Ports, Strings, Views,
+		Containers, Converters, Dialog, Documents, Files, Ports, Strings, Views,
 		StdLog,
 		TextMappers, TextModels, TextRulers, TextViews;
 
@@ -126,10 +126,6 @@ MODULE BugsFiles;
 			v := TextViews.dir.New(text);
 			OpenView(v, title, w, h)
 		|log:
-			(*Log.String(title);
-			Log.Ln;
-			v := TextViews.dir.New(text);
-			Log.View(v)*)
 			StdLog.Ln; StdLog.String(title); StdLog.Ln;
 			StdLog.text.Append(text)
 		|file:
@@ -213,7 +209,7 @@ MODULE BugsFiles;
 	BEGIN
 		IF (whereOut = window) OR (whereOut = log) THEN
 			Dialog.ShowStatus(msg);
-			Log.String(msg); Log.Ln
+			StdLog.String(msg); StdLog.Ln
 		END
 	END ShowStatus;
 

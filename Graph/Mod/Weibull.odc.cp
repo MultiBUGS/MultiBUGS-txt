@@ -62,7 +62,7 @@ MODULE GraphWeibull;
 		IF (GraphNodes.data IN node.nu.props) & (node.nu.Value() >= 1.0) THEN
 			class := GraphRules.logCon
 		ELSE
-			class := GraphRules.general
+			class := GraphRules.genDiff
 		END;
 		RETURN class
 	END ClassifyPrior;

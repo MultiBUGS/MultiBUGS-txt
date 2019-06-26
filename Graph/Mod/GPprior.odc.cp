@@ -140,10 +140,6 @@ MODULE GraphGPprior;
 		END;
 		MathMatrix.Cholesky(node.cov, nElem)
 	END Evaluate;
-	
-	PROCEDURE (kernel: Kernel) EvaluateVD- (x: GraphNodes.Node; OUT value, diff: REAL);
-	BEGIN
-	END EvaluateVD;
 
 	PROCEDURE (kernel: Kernel) ExternalizeMemory- (VAR wr: Stores.Writer);
 	BEGIN
@@ -193,6 +189,10 @@ MODULE GraphGPprior;
 			kernel.node := args.scalars[0](Node)
 		END
 	END Set;
+	
+	PROCEDURE (kernel: Kernel) ValDiff* (x: GraphNodes.Node; OUT value, diff: REAL);
+	BEGIN
+	END ValDiff;
 
 	(*	log determinant of covariance matrix, is minus log determinant of precision matrix	*)
 	PROCEDURE LogDet (node: Node): REAL;

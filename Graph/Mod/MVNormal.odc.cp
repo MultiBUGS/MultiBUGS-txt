@@ -228,39 +228,66 @@ MODULE GraphMVNormal;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
-			i, j, muStart, muStep, nElem, tauStart, tauStep: INTEGER;
-			differential, mu, diffMu, prec, z, y: REAL;
+			i, j, i0, j0, muStart, muStep, nElem, tauStart, tauStep, index: INTEGER;
+			diff, prec: REAL;
+			muVal, muDiff: POINTER TO ARRAY OF REAL;
+			wishart: GraphMultivariate.Node;
+		CONST
+			eps = 1.0E-3;
 	BEGIN
 		nElem := node.Size();
 		muStart := node.muStart;
 		muStep := node.muStep;
 		tauStart := node.tauStart;
 		tauStep := node.tauStep;
-		differential := 0.0;
+		muVal := mu; (*	reuse allocated global storage	*)
+		muDiff := value;
+		diff := 0.0;
 		CASE x.classConditional OF
 		|GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin, GraphRules.genDiff:
 			i := 0;
 			WHILE i < nElem DO
-				node.mu[muStart + i * muStep].ValDiff(x, mu, diffMu);
-				z := node.components[i].value - mu;
+				node.mu[muStart + i * muStep].ValDiff(x, muVal[i], muDiff[i]);
+				INC(i)
+			END;
+			i := 0;
+			WHILE i < nElem DO
 				j := 0;
-				WHILE j < i DO
-					y := node.components[j].value - node.mu[muStart + j * muStep].Value();
+				WHILE j < nElem DO
 					prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
-					tau[i, j] := prec;
-					tau[j, i] := prec;
-					differential := differential - diffMu * prec * y;
+					diff := diff + muDiff[j] * prec * (node.components[i].value - muVal[i]);
 					INC(j)
 				END;
-				prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
-				tau[i, i] := prec;
-				differential := differential - diffMu * prec * z;
 				INC(i)
 			END
 		|GraphRules.wishart:
-
+			(*	x contains cholesky decomposition of precision matrix	*)
+			wishart := x(GraphMultivariate.Node);
+			index := wishart.index;
+			i0 := index DIV nElem;
+			j0 := index MOD nElem;
+			i := 0;
+			WHILE i < nElem DO
+				value[i] := node.components[i].value - node.mu[muStart + i * muStep].Value();
+				mu[i] := value[i];
+				j := 0;
+				WHILE j <= i DO
+					tau[i, j] := wishart.components[tauStart + (i * nElem + j) * tauStep].Value();
+					INC(j)
+				END;
+				INC(i)
+			END;
+			prec:= tau[i0, j0];
+			tau[i0, j0] := prec + eps;
+			MathMatrix.ForwardSub(tau, value, nElem);
+			diff := MathMatrix.DotProduct(value, value, nElem);
+			tau[i0, j0] := prec - eps;
+			MathMatrix.ForwardSub(tau, value, nElem);
+			diff := diff - MathMatrix.DotProduct(mu, mu, nElem);
+			diff := -0.5 * diff / (2.0 * eps);
+			IF i0 = j0 THEN diff := diff * prec + 1 END
 		END;
-		RETURN differential
+		RETURN diff
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
@@ -604,8 +631,7 @@ MODULE GraphMVNormal;
 
 	PROCEDURE (node: Node) MVSample (OUT res: SET);
 		VAR
-			ok: BOOLEAN;
-			i, its, j, nElem, start, step: INTEGER;
+			i, j, nElem, start, step: INTEGER;
 	BEGIN
 		res := {};
 		nElem := LEN(node.components);

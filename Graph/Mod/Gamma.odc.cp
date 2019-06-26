@@ -116,12 +116,12 @@ MODULE GraphGamma;
 			differential, diffMu, diffR, mu, r, val: REAL;
 	BEGIN
 		val := node.value;
-		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.r.props) THEN
+		IF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.r.props) THEN
 			node.mu.ValDiff(x, mu, diffMu);
 			r := node.r.Value();
 			differential := diffMu * (r / mu - val)
-		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.r.Value();
+		ELSIF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
+			mu := node.mu.Value();
 			node.r.ValDiff(x, r, diffR);
 			differential := diffR * (Math.Ln(mu) + Math.Ln(val) - MathFunc.Digamma(r));
 		ELSE

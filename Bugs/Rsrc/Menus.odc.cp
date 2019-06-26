@@ -28,6 +28,7 @@ MENU "Model"
 	"PK Specification..."	""	"StdCmds.OpenToolDialog('PKBugs/Rsrc/SpecificationDialog', 'PK Specification Tool')"	""
 	SEPARATOR
 	"Update..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/UpdateDialog', 'Update Tool')"		"BugsCmds.UpdateGuard"
+	"Update. HMC.."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/HMCDialog', 'HMC Update Tool')"		"BugsCmds.UpdateGuard"
 	SEPARATOR
 	"Random number generator..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/RNDialog', 'RN state')"		"BugsCmds.NotCompiledGuard"	
 	SEPARATOR	

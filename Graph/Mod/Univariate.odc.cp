@@ -205,7 +205,7 @@ MODULE GraphUnivariate;
 	whole real line. Adds in the differential of appropiate Jacobean	*)
 	PROCEDURE (node: Node) DiffLogConditional* (): REAL;
 		VAR
-			dxdy, diffLogCond, diffLogJacobian, lower, upper, x: REAL;
+			dxdy, diffChild, diffLogCond, diffLogJacobian,diffLogPrior, lower, upper, x: REAL;
 			i, num: INTEGER;
 			children: GraphStochastic.Vector;
 	BEGIN
@@ -227,19 +227,22 @@ MODULE GraphUnivariate;
 			diffLogJacobian := 0.0;
 			dxdy := 1.0
 		END;
-		diffLogCond := node.DiffLogPrior();
+		diffLogPrior := node.DiffLogPrior();
+		diffLogCond := 0.0;
 		children := node.children;
 		IF children # NIL THEN
 			num := LEN(children);
 			i := 0;
 			WHILE i < num DO
-				diffLogCond := diffLogCond + children[i].DiffLogLikelihood(node);
+				diffChild := children[i].DiffLogLikelihood(node);
+				diffLogCond := diffLogCond + diffChild;
 				INC(i)
 			END;
 			IF GraphStochastic.distributed IN node.props THEN
 				diffLogCond := MPIworker.SumReal(diffLogCond)
 			END
 		END;
+		diffLogCond := diffLogCond + diffLogPrior;
 		diffLogCond := dxdy * diffLogCond + diffLogJacobian;
 		RETURN diffLogCond
 	END DiffLogConditional;

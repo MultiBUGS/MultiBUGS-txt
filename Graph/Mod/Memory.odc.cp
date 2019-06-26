@@ -34,8 +34,6 @@ MODULE GraphMemory;
 
 	PROCEDURE (node: Node) Evaluate- (OUT value: REAL), NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) EvaluateVD- (x: GraphNodes.Node; OUT value, diff: REAL), NEW, ABSTRACT;
-
 	(*	writes internal base fields of logical node to store	*)
 	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
 	BEGIN
@@ -62,18 +60,6 @@ MODULE GraphMemory;
 		END;
 		RETURN node.value
 	END Value;
-
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT val, diff: REAL);
-		CONST
-			evaluate = {GraphLogical.alwaysEvaluate, GraphLogical.dirty};
-	BEGIN
-		IF evaluate * node.props # {} THEN
-			node.EvaluateVD(x, val, diff);
-			node.value := val;
-			node.differ := diff;
-			node.SetProps(node.props - {GraphLogical.dirty})
-		END
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
 

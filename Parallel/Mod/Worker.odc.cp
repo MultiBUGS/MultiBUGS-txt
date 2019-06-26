@@ -17,7 +17,7 @@ MODULE ParallelWorker;
 		Files := Files64, Kernel, MPIworker, Services, Stores := Stores64, Strings,
 		BugsRandnum,
 		GraphStochastic,
-		ParallelActions, ParallelFiles, ParallelRandnum;
+		ParallelActions, ParallelFiles, ParallelHMC, ParallelRandnum;
 
 	CONST
 		fileStemName = "Bugs";
@@ -35,25 +35,27 @@ MODULE ParallelWorker;
 
 	VAR
 		sampleSize: INTEGER;
-		devianceExists, devianceMonitored, local, waicSet: BOOLEAN;
+		devianceExists, devianceMonitored, seperable, waicSet: BOOLEAN;
 		informationCriteria: ARRAY 2 OF REAL;
 		deviance, meanDeviance, meanDeviance2: REAL;
 		col, row: POINTER TO ARRAY OF INTEGER;
 		monitoredValues: POINTER TO ARRAY OF REAL;
 		worldRankString: ARRAY 64 OF CHAR;
-
+		numSteps, warmUpPeriod: INTEGER;
+		eps: REAL;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	PROCEDURE Update (thin, iteration: INTEGER; local, overRelax: BOOLEAN; endOfAdapting: INTEGER);
+	PROCEDURE Update (thin, iteration: INTEGER; seperable, overRelax: BOOLEAN; endOfAdapting: INTEGER);
 		VAR
 			i: INTEGER;
 			res: SET;
+			reject: BOOLEAN;
 	BEGIN
 		i := 0;
 		res := {};
 		WHILE (i < thin) & (res = {}) DO
-			ParallelActions.Update(local, overRelax, res);
+			ParallelActions.Update(seperable, overRelax, res);
 			INC(i)
 		END;
 		ASSERT(res = {}, 77);
@@ -63,6 +65,8 @@ MODULE ParallelWorker;
 			END
 		END;
 		MPIworker.SendInteger(endOfAdapting);
+		(*ParallelHMC.Update(seperable, numSteps, iteration, warmUpPeriod, eps, reject);
+		MPIworker.SendInteger(warmUpPeriod + 1);*)
 		IF devianceMonitored OR waicSet THEN
 			deviance := ParallelActions.Deviance();
 			deviance := MPIworker.SumReal(deviance)
@@ -100,9 +104,10 @@ MODULE ParallelWorker;
 		ASSERT(f # NIL, 21);
 		rd.ConnectTo(f);
 		rd.SetPos(0);
-		rd.ReadBool(devianceExists); 
+		rd.ReadBool(devianceExists);
 		BugsRandnum.InternalizeRNGenerators(rd);
-		rd.ReadBool(local);
+		rd.ReadBool(seperable);
+		IF MPIworker.commSize = 1 THEN seperable := TRUE END;
 		numChains := BugsRandnum.numberChains;
 		MPIworker.InitMPI(numChains);
 		chain := MPIworker.chain;
@@ -114,7 +119,7 @@ MODULE ParallelWorker;
 		Strings.IntToString(worldRank, worldRankString);
 		NEW(pos, commSize);
 		i := 0; WHILE i < commSize DO rd.ReadLong(pos[i]); INC(i) END;
-		rd.SetPos(pos[rank]); 
+		rd.SetPos(pos[rank]);
 		ParallelActions.Read(chain, rd);
 		rd.ConnectTo(NIL);
 		f.Close;
@@ -129,7 +134,7 @@ MODULE ParallelWorker;
 
 	PROCEDURE Init;
 		VAR
-			action, endOfAdapting, i, iteration, memory, mutableSize, numMonitored, 
+			action, endOfAdapting, i, iteration, memory, mutableSize, numMonitored,
 			res, setUpTime, thin: INTEGER;
 			resultParams: ARRAY 3 OF INTEGER;
 			command: Command;
@@ -154,7 +159,11 @@ MODULE ParallelWorker;
 		resultParams[1] := memory;
 		resultParams[2] := MPIworker.rank;
 		MPIworker.SendIntegers(resultParams);
-		ParallelActions.LoadSample;
+		ParallelActions.LoadSample;(*
+		ParallelHMC.Setup;
+		numSteps := 8;
+		warmUpPeriod := 1000;
+		eps := 0.25;*)
 		(*	loop to handle request from master	*)
 		LOOP
 			MPIworker.RecvIntegers(command);
@@ -165,8 +174,8 @@ MODULE ParallelWorker;
 				devianceMonitored := command[2] > 0;
 				IF (numMonitored > 0) & (MPIworker.rank = 0) THEN
 					NEW(monitoredValues, numMonitored);
-					NEW(col, numMonitored); 
-					NEW(row, numMonitored); 
+					NEW(col, numMonitored);
+					NEW(row, numMonitored);
 					MPIworker.RecvIntegers(col);
 					MPIworker.RecvIntegers(row)
 				ELSE
@@ -175,7 +184,7 @@ MODULE ParallelWorker;
 				MPIworker.RecvIntegers(command);
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
 				overRelax := command[4] = 1;
-				Update(thin, iteration, local, overRelax, endOfAdapting);
+				Update(thin, iteration, seperable, overRelax, endOfAdapting);
 			|sendMCMCState:
 				IF devianceExists THEN
 					IF ~devianceMonitored & ~waicSet THEN
@@ -206,14 +215,14 @@ MODULE ParallelWorker;
 			|update:
 				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
 				overRelax := command[4] = 1;
-				Update(thin, iteration, local, overRelax, endOfAdapting);
+				Update(thin, iteration, seperable, overRelax, endOfAdapting);
 			|setWAIC:
 				waicSet := TRUE;
 				ParallelActions.SetWAIC;
 				sampleSize := 0;
 				meanDeviance := 0.0;
 				meanDeviance2 := 0.0
-			|clearWAIC:		
+			|clearWAIC:
 				waicSet := FALSE;
 				ParallelActions.ClearWAIC;
 			|checkPoint:
@@ -230,14 +239,14 @@ MODULE ParallelWorker;
 				MPIworker.SendInteger(mutableSize);
 				MPIworker.SendBytes(mutableState);
 				f.Close;
-			|restart:   
+			|restart:
 				f := ParallelFiles.dir.Temp();
 				ASSERT(f # NIL, 55);
 				wr.ConnectTo(f);
 				wr.SetPos(0);
-				mutableSize := MPIworker.RecvInteger(); 
+				mutableSize := MPIworker.RecvInteger();
 				NEW(mutableState, mutableSize);
-				MPIworker.RecvBytes(mutableState); 
+				MPIworker.RecvBytes(mutableState);
 				i := 0; WHILE i < mutableSize DO wr.WriteByte(mutableState[i]); INC(i) END;
 				rd.ConnectTo(f);
 				rd.SetPos(0);

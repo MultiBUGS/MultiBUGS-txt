@@ -108,8 +108,9 @@ MODULE ReliabilityFlexibleWeibull;
 		val := node.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
 			node.alpha.ValDiff(x, alpha, diffAlpha);
+			beta := node.beta.Value();
 			exp := Math.Exp(alpha * val - beta / val);
-			diff := diffAlpha * (1 / (alpha + beta / (val * val)) + val * (1 - exp))
+			diff := diffAlpha * (1 / (alpha + (beta / (val * val))) + val * (1 - exp))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
 			alpha := node.alpha.Value();
 			node.beta.ValDiff(x, beta, diffBeta);
@@ -119,7 +120,7 @@ MODULE ReliabilityFlexibleWeibull;
 			node.alpha.ValDiff(x, alpha, diffAlpha);
 			node.beta.ValDiff(x, beta, diffBeta);
 			exp := Math.Exp(alpha * val - beta / val);
-			diff := diffAlpha * (1 / (alpha + beta / (val * val)) + val * (1 - exp)) + 
+			diff := diffAlpha * (1 / (alpha + (beta / (val * val))) + val * (1 - exp)) + 
 			diffBeta * (1 / (alpha * val * val + beta) - (1 - exp) / val)
 		END;
 		RETURN diff

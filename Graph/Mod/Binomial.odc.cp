@@ -135,7 +135,11 @@ MODULE GraphBinomial;
 		r := node.value;
 		n := node.n.Value();
 		node.p.ValDiff(x, p, diff);
-		RETURN diff * (r / p - (n - r) / (1 - p))
+		IF r > 0.5 THEN
+			RETURN diff * (r / p - (n - r) / (1 - p))
+		ELSE
+			RETURN - diff * (n - r) / (1 - p)
+		END
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;

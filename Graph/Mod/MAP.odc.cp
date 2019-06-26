@@ -13,7 +13,7 @@ MODULE GraphMAP;
 	
 
 	IMPORT
-		GraphStochastic,
+		GraphStochastic, 
 		MathMatrix;
 
 	VAR
@@ -22,9 +22,9 @@ MODULE GraphMAP;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE DiffLogConditional (node: GraphStochastic.Node): REAL;
+	PROCEDURE DiffLogConditional* (node: GraphStochastic.Node): REAL;
 		VAR
-			diff: REAL;
+			diff, value: REAL;
 			children: GraphStochastic.Vector;
 			i, num: INTEGER;
 	BEGIN
@@ -41,7 +41,8 @@ MODULE GraphMAP;
 		RETURN diff
 	END DiffLogConditional;
 
-	PROCEDURE Hessian* (priors: GraphStochastic.Vector; VAR matrix: ARRAY OF ARRAY OF REAL);
+	PROCEDURE Hessian* (priors: GraphStochastic.Vector; VAR matrix: ARRAY OF ARRAY OF REAL;
+	OUT error: BOOLEAN);
 		VAR
 			i, j, dim: INTEGER;
 			val: REAL;
@@ -76,24 +77,22 @@ MODULE GraphMAP;
 				INC(j)
 			END;
 			INC(i)
-		END
+		END;
+		i := 0; error := FALSE; WHILE (i < dim) & ~error DO error := matrix[i, i] > 0.0; INC(i) END;
 	END Hessian;
 
 	PROCEDURE Converged (priors: GraphStochastic.Vector; tol: REAL): BOOLEAN;
 		VAR
 			i, dim: INTEGER;
-			converged: BOOLEAN;
-			deriv: REAL;
 	BEGIN
-		converged := TRUE;
 		i := 0;
 		dim := LEN(priors);
-		WHILE (i < dim) & converged DO
-			deriv := DiffLogConditional(priors[i]);
-			converged := converged & (ABS(deriv) < tol);
+		WHILE i < dim DO
+			deriv[i] := DiffLogConditional(priors[i]);
+			IF ABS(deriv[i]) > tol THEN RETURN FALSE END;
 			INC(i)
 		END;
-		RETURN converged
+		RETURN TRUE
 	END Converged;
 
 
@@ -185,14 +184,15 @@ MODULE GraphMAP;
 		END
 	END MAP1D;
 
-	PROCEDURE MAP* (priors: GraphStochastic.Vector);
+	PROCEDURE MAP* (priors: GraphStochastic.Vector; OUT error: BOOLEAN);
 		VAR
 			i, j, dim, count, icm: INTEGER;
 			lower, upper, x: REAL;
+			converged: BOOLEAN;
 		CONST
 			tol = 1.0E-6;
 			maxIts = 100;
-			numICM = 25;
+			numICM = 100;
 	BEGIN
 		dim := LEN(priors);
 		IF dim > LEN(tau, 0) THEN
@@ -206,12 +206,14 @@ MODULE GraphMAP;
 				MAP1D(priors[i]);
 				INC(i)
 			END;
+			converged := Converged(priors, tol);
 			INC(icm)
-		UNTIL (icm = numICM) OR Converged(priors, tol);
+		UNTIL (icm = numICM) OR converged; 
 		(*	do some block Newton updates with hessian matrix	*)
 		count := 0;
-		REPEAT
-			Hessian(priors, tau);
+		error := FALSE;
+		WHILE ~converged & (count < maxIts) DO
+			Hessian(priors, tau, error); IF error THEN RETURN END;
 			i := 0;
 			WHILE i < dim DO
 				deriv[i] := DiffLogConditional(priors[i]);
@@ -239,7 +241,9 @@ MODULE GraphMAP;
 				INC(i)
 			END;
 			INC(count);
-		UNTIL (count = maxIts) OR Converged(priors, tol)
+			converged := Converged(priors, tol);
+		END;
+		error := ~converged
 	END MAP;
 
 	PROCEDURE Maintainer;

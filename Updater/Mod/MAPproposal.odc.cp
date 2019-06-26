@@ -48,12 +48,13 @@ MODULE UpdaterMAPproposal;
 	PROCEDURE InitializeSampler (updater: Updater);
 		VAR
 			i, j, nElem: INTEGER;
+			error: BOOLEAN;
 		CONST
 			scale = 2.4* 2.4;
 	BEGIN
 		nElem := updater.Size();
-		GraphMAP.MAP(updater.prior);
-		GraphMAP.Hessian(updater.prior, updater.hessian);
+		GraphMAP.MAP(updater.prior, error);
+		GraphMAP.Hessian(updater.prior, updater.hessian, error);
 		i := 0;
 		WHILE i < nElem DO
 			j := 0;

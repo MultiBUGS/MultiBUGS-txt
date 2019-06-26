@@ -20,15 +20,15 @@ MODULE ParallelActions;
 
 	VAR
 		debug: BOOLEAN;
-		updaters: UpdaterUpdaters.Vector;
-		id, addresses: POINTER TO ARRAY OF INTEGER;
-		observations: GraphStochastic.Vector;
+		updaters-: UpdaterUpdaters.Vector;
+		id-, addresses: POINTER TO ARRAY OF INTEGER;
+		observations-: GraphStochastic.Vector;
 		namePointers: GraphNodes.Vector;
-		globalStochs-: POINTER TO ARRAY OF ARRAY OF GraphStochastic.Node;
+		globalStochs-: POINTER TO ARRAY OF GraphStochastic.Vector;
 		waicMonitors: POINTER TO ARRAY OF MonitorDeviance.Monitor;
-		values, globalValues: POINTER TO ARRAY OF REAL;
+		values-, globalValues-: POINTER TO ARRAY OF REAL;
 		sizeUpdaters: INTEGER;
-		
+
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
@@ -66,9 +66,10 @@ MODULE ParallelActions;
 			i, j: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
-		NEW(globalStochs, commSize, numStochPointers);
+		NEW(globalStochs, commSize);
 		i := 0;
 		WHILE i < commSize DO
+			NEW(globalStochs[i], numStochPointers);
 			j := 0;
 			WHILE j < numStochPointers DO
 				p := GraphNodes.InternalizePointer(rd);
@@ -78,7 +79,7 @@ MODULE ParallelActions;
 			INC(i)
 		END
 	END InternalizeStochastics;
-	
+
 	PROCEDURE CalculateWAIC* (OUT lpd, pW: REAL);
 		VAR
 			i, numObs: INTEGER;
@@ -87,7 +88,7 @@ MODULE ParallelActions;
 	BEGIN
 		lpd := 0.0;
 		pW := 0.0;
-		IF waicMonitors # NIL THEN 
+		IF waicMonitors # NIL THEN
 			numObs := LEN(waicMonitors);
 			i := 0;
 			WHILE i < numObs DO
@@ -100,7 +101,7 @@ MODULE ParallelActions;
 			END
 		END
 	END CalculateWAIC;
-	
+
 	PROCEDURE ClearWAIC*;
 	BEGIN
 		waicMonitors := NIL
@@ -164,14 +165,14 @@ MODULE ParallelActions;
 			wr.WriteInt(0)
 		END
 	END ExternalizeMutable;
-	
+
 	PROCEDURE ExternalizeMutableSize* (): INTEGER;
 		VAR
 			numObs, sizeRandnum, sizeWAIC, size: INTEGER;
 	BEGIN
 		IF waicMonitors # NIL THEN
 			numObs := LEN(waicMonitors)
-		ELSE 
+		ELSE
 			numObs := 0
 		END;
 		sizeWAIC := SIZE(INTEGER) + numObs * (SIZE(INTEGER) + 3 * SIZE(REAL));
@@ -179,7 +180,7 @@ MODULE ParallelActions;
 		size := sizeRandnum + sizeUpdaters + sizeWAIC;
 		RETURN size
 	END ExternalizeMutableSize;
-	
+
 	PROCEDURE FindStochasticPointer* (p: INTEGER; OUT col, row: INTEGER);
 		VAR
 			num0, num1: INTEGER;
@@ -257,25 +258,27 @@ MODULE ParallelActions;
 			i, numObs, numStochPointers, rank: INTEGER;
 			p: GraphStochastic.Node;
 	BEGIN
-		IF observations # NIL THEN numObs := LEN(observations) ELSE numObs := 0 END;
 		jointPDF := 0.0;
-		i := 0;
-		WHILE i < numObs DO
-			p := observations[i];
-			IF ~(GraphStochastic.censored IN p.props) THEN
-				jointPDF := jointPDF + p.LogLikelihood()
-			END;
-			INC(i)
+		IF observations # NIL THEN
+			numObs := LEN(observations);
+			i := 0;
+			WHILE i < numObs DO
+				p := observations[i];
+				IF ~(GraphStochastic.censored IN p.props) THEN
+					jointPDF := jointPDF + p.LogLikelihood()
+				END;
+				INC(i)
+			END
 		END;
 		rank := MPIworker.rank;
-		numStochPointers := LEN(globalStochs, 1);
+		numStochPointers := LEN(globalStochs[0]);
 		i := 0;
 		WHILE i < numStochPointers DO
 			p := globalStochs[rank, i];
 			IF (p # NIL) & (p = p.Representative()) THEN
 				IF (MPIworker.rank = 0) OR ~(GraphStochastic.distributed IN p.props) THEN
 					jointPDF := jointPDF + p.LogLikelihood();
-					IF map THEN  jointPDF := jointPDF + p.LogDetJacobian() END
+					IF map THEN jointPDF := jointPDF + p.LogDetJacobian() END
 				END
 			END;
 			INC(i)
@@ -392,7 +395,7 @@ MODULE ParallelActions;
 		i := 0; WHILE i < num DO updaters[i] := UpdaterUpdaters.InternalizePointer(rd); INC(i) END;
 		NEW(pos, numChains);
 		i := 0; WHILE i < numChains DO rd.ReadLong(pos[i]); INC(i) END;
-		rd.ReadLong(uEndPos); 
+		rd.ReadLong(uEndPos);
 		rd.SetPos(pos[chain]);
 		i := 0;
 		WHILE i < num DO
@@ -411,7 +414,7 @@ MODULE ParallelActions;
 			offset, i, j, numWorker, numStoch: INTEGER;
 	BEGIN
 		numWorker := MPIworker.commSize;
-		numStoch := LEN(globalStochs, 1);
+		numStoch := LEN(globalStochs[0]);
 		i := 0;
 		WHILE i < numWorker DO
 			j := 0;
@@ -444,7 +447,7 @@ MODULE ParallelActions;
 		END
 	END SetWAIC;
 
-	PROCEDURE Update* (local, overRelax: BOOLEAN; OUT res: SET);
+	PROCEDURE Update* (seperable, overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			blockSize, i, j, k, numWorker, rank, numUpdaters, end, start, size: INTEGER;
 	BEGIN
@@ -456,7 +459,7 @@ MODULE ParallelActions;
 		end := 0;
 		IF id # NIL THEN (*	chain is distributed	*)
 			WHILE (i < numUpdaters) & (res = {}) DO
-				IF id[i] = 0 THEN ParallelRandnum.UseSameStream; END;
+				IF id[i] = 0 THEN ParallelRandnum.UseSameStream END;
 				updaters[i].Sample(overRelax, res);
 				IF res # {} THEN
 					(*	handle error	*) HALT(0)
@@ -484,7 +487,7 @@ MODULE ParallelActions;
 						INC(j)
 					END
 				ELSIF id[i] = 0 THEN
-					ParallelRandnum.UsePrivateStream;
+					ParallelRandnum.UsePrivateStream
 				END;
 				INC(i)
 			END;

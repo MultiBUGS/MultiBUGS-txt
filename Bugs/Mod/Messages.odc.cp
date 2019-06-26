@@ -55,6 +55,7 @@ MODULE BugsMessages;
 		RegisterKey("BugsCmds:UninitializedNodes", "all nodes in model are initialized");
 		RegisterKey("BugsCmds:UninitOther", "initial values loaded and chain initialized but another chain contains uninitialized variables");
 		RegisterKey("BugsCmds:UpdatesTook", "^0 updates took ^1 s");
+		RegisterKey("BugsCmds:UpdatesTookHMC", "^0 updates took ^1 s: acceptance rate ^2%");
 		RegisterKey("BugsCmds:Updating", "model is updating");
 
 		RegisterKey("BugsCodegen1", "logical expression contains too many operators");

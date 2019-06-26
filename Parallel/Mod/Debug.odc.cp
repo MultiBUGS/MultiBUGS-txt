@@ -26,7 +26,6 @@ MODULE ParallelDebug;
 		END;
 
 	VAR
-		allThis: BOOLEAN;
 		dialog*: DialogBox;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
@@ -55,7 +54,7 @@ MODULE ParallelDebug;
 			IF label0[0] = "[" THEN (*	maybe auxillary variable	*)
 				IF p.children # NIL THEN (*	try and get some more information	*)
 					a := SYSTEM.VAL(INTEGER, p.children[0]);
-					BugsIndex.MapGraphAddress(a, label0); 
+					BugsIndex.MapGraphAddress(a, label0);
 					label0[0] := "_"; label0[LEN(label0$) - 1] := ">";
 					label0 := "<aux" + label0
 				END
@@ -72,7 +71,7 @@ MODULE ParallelDebug;
 			f: Files.File;
 			restartLoc: Files.Locator;
 			adr, i, j, numRows: INTEGER;
-			devianceExists: BOOLEAN;
+			devianceExists, seperable: BOOLEAN;
 			rd: Stores.Reader;
 			pos: POINTER TO ARRAY OF LONGINT;
 			p: GraphStochastic.Node;
@@ -97,7 +96,7 @@ MODULE ParallelDebug;
 		rd.SetPos(0);
 		rd.ReadBool(devianceExists);
 		BugsRandnum.InternalizeRNGenerators(rd);
-		rd.ReadBool(allThis);
+		rd.ReadBool(seperable);
 		NEW(pos, workersPerChain);
 		i := 0; WHILE i < workersPerChain DO rd.ReadLong(pos[i]); INC(i) END;
 		rd.SetPos(pos[rank]);
@@ -118,6 +117,9 @@ MODULE ParallelDebug;
 			i := 0;
 			form.WriteString("Number of workers per chain: ");
 			form.WriteInt(workersPerChain);
+			form.WriteLn;
+			form.WriteString("Shards are ");
+			IF ~seperable THEN form.WriteString("not ") END; form.WriteString("seperable");
 			form.WriteLn;
 			form.WriteLn;
 			form.WriteTab;
@@ -176,7 +178,7 @@ MODULE ParallelDebug;
 			ParallelActions.Update(FALSE, FALSE, res); DEC(iterations)
 		UNTIL iterations = 0
 	END Update;
-	
+
 	PROCEDURE Guard* (VAR par: Dialog.Par);
 	BEGIN
 		par.disabled := ~BugsInterface.IsInitialized()

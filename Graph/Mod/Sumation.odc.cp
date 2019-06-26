@@ -191,10 +191,16 @@ MODULE GraphSumation;
 		END
 	END Evaluate;
 
-	PROCEDURE (node: SumNode) EvaluateVD (x: GraphNodes.Node; OUT value, differ: REAL);
+	PROCEDURE (node: SumNode) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphSumation.SumInstall"
+	END Install;
+
+	PROCEDURE (node: SumNode) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
 		VAR
 			i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			d, l: REAL;
 	BEGIN
 		value := 0.0;
 		differ := 0.0;
@@ -206,19 +212,22 @@ MODULE GraphSumation;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				IF p = x THEN differ := differ + 1.0 END;
-				value := value + p.Value()
+				IF p = x THEN
+					differ := differ + 1.0;
+					value := value + p.Value()
+				ELSIF ~(GraphNodes.data IN p.props) THEN
+					p.ValDiff(x, l, d);
+					differ := differ + d;
+					value := value + l
+				ELSE
+					value := value + p.Value()
+				END
 			ELSE
 				value := value + node.values[off]
 			END;
 			INC(i)
 		END
-	END EvaluateVD;
-
-	PROCEDURE (node: SumNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphSumation.SumInstall"
-	END Install;
+	END ValDiff;
 
 	PROCEDURE (node: MeanNode) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
@@ -251,10 +260,16 @@ MODULE GraphSumation;
 		value := value / node.nElem
 	END Evaluate;
 
-	PROCEDURE (node: MeanNode) EvaluateVD (x: GraphNodes.Node; OUT value, differ: REAL);
+	PROCEDURE (node: MeanNode) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphSumation.MeanInstall"
+	END Install;
+
+	PROCEDURE (node: MeanNode) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
 		VAR
 			i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			d, l: REAL;
 	BEGIN
 		value := 0.0;
 		differ := 0.0;
@@ -266,8 +281,16 @@ MODULE GraphSumation;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				IF p = x THEN differ := differ + 1.0 END;
-				value := value + p.Value()
+				IF p = x THEN
+					differ := differ + 1.0;
+					value := value + p.Value()
+				ELSIF ~(GraphNodes.data IN p.props) THEN
+					p.ValDiff(x, l, d);
+					differ := differ + d;
+					value := value + l
+				ELSE
+					value := value + p.Value()
+				END
 			ELSE
 				value := value + node.values[off]
 			END;
@@ -275,12 +298,7 @@ MODULE GraphSumation;
 		END;
 		value := value / node.nElem;
 		differ := differ / node.nElem
-	END EvaluateVD;
-
-	PROCEDURE (node: MeanNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphSumation.MeanInstall"
-	END Install;
+	END ValDiff;
 
 	PROCEDURE (node: SdNode) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
@@ -334,10 +352,15 @@ MODULE GraphSumation;
 		value := Math.Sqrt(nElem * (node2 - node1 * node1) / (nElem - 1))
 	END Evaluate;
 
-	PROCEDURE (node: SdNode) EvaluateVD (x: GraphNodes.Node; OUT value, differ: REAL);
+	PROCEDURE (node: SdNode) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphSumation.SdInstall"
+	END Install;
+
+	PROCEDURE (node: SdNode) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
 		VAR
 			i, off, nElem, start, step: INTEGER;
-			node1, node2, differ1, differ2: REAL;
+			node1, node2, differ1, differ2, d, l: REAL;
 			p: GraphNodes.Node;
 	BEGIN
 		node1 := 0.0;
@@ -356,6 +379,10 @@ MODULE GraphSumation;
 				IF p = x THEN
 					differ1 := differ1 + 1.0;
 					differ2 := differ2 + 2.0 * value
+				ELSIF ~(GraphNodes.data IN p.props) THEN
+					p.ValDiff(x, l, d);
+					differ1 := differ1 + d;
+					differ2 := differ2 + 2.0 * value * d
 				END
 			ELSE
 				value := node.values[off]
@@ -370,12 +397,7 @@ MODULE GraphSumation;
 		differ2 := differ2 / nElem;
 		value := Math.Sqrt(nElem * (node2 - node1 * node1) / (nElem - 1));
 		differ := (differ2 - 2.0 * node1 * differ1) * nElem / ((nElem - 1) * 2.0 * value)
-	END EvaluateVD;
-
-	PROCEDURE (node: SdNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphSumation.SdInstall"
-	END Install;
+	END ValDiff;
 
 	PROCEDURE (f: SumFactory) New (): GraphMemory.Node;
 		VAR

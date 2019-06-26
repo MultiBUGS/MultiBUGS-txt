@@ -98,11 +98,6 @@ MODULE GraphLogdet;
 		value := MathMatrix.LogDet(matrix, dim)
 	END Evaluate;
 
-	PROCEDURE (node: Node) EvaluateVD (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
-
 	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
 		VAR
 			dim: INTEGER;
@@ -221,6 +216,11 @@ MODULE GraphLogdet;
 			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
 		END
 	END Set;
+
+	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	BEGIN
+		HALT(126)
+	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphMemory.Node;
 		VAR

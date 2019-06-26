@@ -52,11 +52,6 @@ MODULE GraphJacobi;
 		MathJacobi.QuadratureRule(node.absisca, node.weights, alpha, beta, order);
 	END Evaluate;
 
-	PROCEDURE (node: Node) EvaluateVD- (x: GraphNodes.Node; OUT value, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
-
 	PROCEDURE (node: Node) ExternalizeMemory- (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
@@ -129,6 +124,11 @@ MODULE GraphJacobi;
 			node.SetProps(node.props + {GraphLogical.dirty});
 		END
 	END Set;
+
+	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT value, diff: REAL);
+	BEGIN
+		HALT(126)
+	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphMemory.Node;
 		VAR

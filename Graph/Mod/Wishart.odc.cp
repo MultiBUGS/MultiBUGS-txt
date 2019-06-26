@@ -15,12 +15,16 @@ MODULE GraphWishart;
 
 	IMPORT
 		Math, Stores := Stores64,
+		MPIworker,
 		GraphConjugateMV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum;
 
 		(*	The Wishart distribution can only be used as a prior in statistical models
 
 		Its parameters must have fixed values, that is they can not be estimated.
+		
+		To reparameterize the wishart variable to independent variables on the whole real line
+		take the cholesky decomposition and then the log of the diagonal elements
 
 		*)
 
@@ -41,8 +45,8 @@ MODULE GraphWishart;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		value, r: POINTER TO ARRAY OF ARRAY OF REAL;
-		indVals: POINTER TO ARRAY OF REAL;
+		oldVals, r, value: POINTER TO ARRAY OF ARRAY OF REAL;
+		diff, indVals: POINTER TO ARRAY OF REAL;
 
 	PROCEDURE (node: Node) Bounds (OUT lower, upper: REAL);
 	BEGIN
@@ -76,22 +80,158 @@ MODULE GraphWishart;
 		RETURN 0.0
 	END Deviance;
 
-	PROCEDURE (node: Node) DiffLogConditional(): REAL;
+	(*	easier to work with the cholesky of the wishart variable. calculate all the derivatives
+	at once and store them until needed. only works if accessed sequentially	*) 
+	PROCEDURE (node: Node) DiffLogConditional (): REAL;
+		VAR
+			i, j, k, dim, index, indSize, numChild, offset: INTEGER;
+			children, components: GraphStochastic.Vector;
+			p: GraphStochastic.Node;
 	BEGIN
-		HALT(0); (*	need to implement ???	*)
-		RETURN 0.0
+		index := node.index;
+		dim := node.dim;
+		indSize := (dim * (dim + 1)) DIV 2;
+		IF index = 0 THEN
+			components := node.components;
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < i DO
+					value[i, j] := components[i * dim + j].value;
+					value[j, i] := 0.0;
+					oldVals[i, j] := value[i, j];
+					oldVals[j, i] := value[i, j];
+					INC(j)
+				END;
+				value[i, i] := components[i * dim + i].value;
+				oldVals[i, i] := value[i, i];
+				INC(i)
+			END;
+			MathMatrix.Cholesky(value, dim);
+			(*	place the cholesky into the node so that it can be used by the likelihood	*)
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j <= i DO
+					components[i * dim + j].SetValue(value[i, j]);
+					INC(j)
+				END;
+				INC(i)
+			END;
+			i := 0;
+			offset := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j <= i DO
+					p := components[i * dim + j];
+					diff[offset] := p.DiffLogPrior();
+					children := node.children;
+					IF children # NIL THEN
+						numChild := LEN(children);
+						k := 0;
+						WHILE k < numChild DO
+							diff[offset] := diff[offset] + children[k].DiffLogLikelihood(p);
+							INC(k)
+						END;
+					END;
+					INC(j)
+				END;
+				INC(offset);
+				INC(i)
+			END;
+			IF GraphStochastic.distributed IN node.props THEN
+				MPIworker.SumReals(diff)
+			END;
+			(*	restore original values of node	*)
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					components[i * dim + j].SetValue(oldVals[i, j]);
+					INC(j)
+				END;
+				INC(i)
+			END
+		END;
+		IF index < indSize THEN
+			RETURN diff[index]
+		ELSE
+			RETURN 0.0
+		END
 	END DiffLogConditional;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 	BEGIN
-		HALT(0); (*	need to implement ???	*)
+		HALT(0); (*	no need to implement  because parameters of wishart fixed	*)
 		RETURN 0.0
 	END DiffLogLikelihood;
-
+	
+	(*	the Tr(Rx) is a quadratic form in the cholesky factor of x so it can be differentiated wrt to
+	the cholesky factors my using central finite differences.
+	
+	the diagonal components are multiplied because of the log transform
+	
+	the diagonal elements get contributions from the |x| and we put in the differential of the log 
+	determinant of the jacobian. 	*)
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
+		VAR
+			diff, k, old, trace: REAL;
+			i, j, l, i0, j0, dim, start, step: INTEGER;
+		CONST
+			eps = 1.0E-3;
 	BEGIN
-		HALT(0); (*	need to implement ???	*)
-		RETURN 0.0
+		dim := node.dim;
+		start := node.start;
+		step := node.step;
+		i0 := node.index DIV dim;
+		j0 := node.index MOD dim;
+		k := node.k.Value();
+		diff := 0.0;
+		i := 0;
+		WHILE i < dim DO
+			j := 0;
+			WHILE j < dim DO
+				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				INC(j)
+			END;
+			INC(i)
+		END;
+		old := node.value;
+		value[i0, j0] := old + eps;
+		i := 0;
+		WHILE i < dim DO
+			j := 0;
+			WHILE j < dim DO
+				l := 0;
+				WHILE k < dim DO
+					diff := diff + r[i, j] * value[j, l] * value[i, l];
+					INC(l)
+				END;
+				INC(j)
+			END;
+			INC(i)
+		END;
+		value[i0, j0] := old - eps;
+		i := 0;
+		WHILE i < dim DO
+			j := 0;
+			WHILE j < dim DO
+				l := 0;
+				WHILE k < dim DO
+					diff := diff + r[i, j] * value[j, l] * value[i, l];
+					INC(l)
+				END;
+				INC(j)
+			END;
+			INC(i)
+		END;
+		diff := -0.5 * diff / (2.0 * eps);
+		i := node.index DIV dim;
+		j := node.index MOD j;
+		IF i = j THEN
+			diff := diff * old + (k - dim - 1) + (1 + dim - i)
+		END;
+		RETURN diff
 	END DiffLogPrior;
 
 	PROCEDURE (node: Node) ExternalizeConjugateMV (VAR wr: Stores.Writer);
@@ -120,9 +260,11 @@ MODULE GraphWishart;
 			size := node.Size();
 			rd.ReadInt(dim);
 			IF dim > LEN(value, 0) THEN
-				NEW(value, dim, dim);
+				NEW(oldVals, dim, dim);
 				NEW(r, dim, dim);
-				NEW(indVals, (dim * (dim + 1)) DIV 2)
+				NEW(value, dim, dim);
+				NEW(indVals, (dim * (dim + 1)) DIV 2);
+				NEW(diff, (dim * (dim + 1)) DIV 2);
 			END;
 			GraphNodes.InternalizeSubvector(v, rd);
 			node.r := v.components;
@@ -165,7 +307,7 @@ MODULE GraphWishart;
 		dim := node.dim;
 		indSize := (dim * (dim + 1)) DIV 2;
 		index := node.index;
-		indVals[index] := y;
+		IF index < indSize THEN indVals[index] := y END;
 		IF index = indSize - 1 THEN
 			i := 0;
 			WHILE i < dim DO
@@ -444,9 +586,11 @@ MODULE GraphWishart;
 			END;
 			node.dim := dim;
 			IF dim > LEN(r, 0) THEN
+				NEW(oldVals, dim, dim);
 				NEW(r, dim, dim);
 				NEW(value, dim, dim);
-				NEW(indVals, (dim * (dim + 1)) DIV 2)
+				NEW(indVals, (dim * (dim + 1)) DIV 2);
+				NEW(diff, (dim * (dim + 1)) DIV 2)
 			END;
 			ASSERT(args.vectors[0].components # NIL, 21);
 			IF args.vectors[0].nElem # nElem THEN
@@ -521,9 +665,11 @@ MODULE GraphWishart;
 	BEGIN
 		Maintainer;
 		NEW(f);
+		NEW(oldVals, nElem, nElem);
 		NEW(r, nElem, nElem);
 		NEW(value, nElem, nElem);
 		NEW(indVals, (nElem * (nElem + 1)) DIV 2);
+		NEW(diff, (nElem * (nElem + 1)) DIV 2);
 		fact := f
 	END Init;
 

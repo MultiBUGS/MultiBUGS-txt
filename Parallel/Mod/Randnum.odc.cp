@@ -34,7 +34,7 @@ MODULE ParallelRandnum;
 		size := MathRandnum.ExternalizeSize(privateStream) + MathRandnum.ExternalizeSize(sameStream);
 		RETURN size
 	END ExternalizeSize;
-	
+
 	PROCEDURE InternalizeGenerators* (VAR rd: Stores.Reader);
 	BEGIN
 		privateStream := MathRandnum.Internalize(rd);
@@ -59,6 +59,7 @@ MODULE ParallelRandnum;
 		MathTT800.Install;
 		offset := BugsRandnum.offset;
 		privateStream := MathRandnum.NewGenerator(numChains + offset + worldRank);
+		(*	the generators for same stream already exist on the master	*)
 		sameStream := BugsRandnum.generators[chain];
 		IF numChains = worldSize THEN
 			MathRandnum.SetGenerator(sameStream)

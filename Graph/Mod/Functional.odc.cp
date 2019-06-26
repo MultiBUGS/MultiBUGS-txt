@@ -74,11 +74,6 @@ MODULE GraphFunctional;
 		value := node.functional.Value(x0, x1, tol, theta)
 	END Evaluate;
 
-	PROCEDURE (node: Node) EvaluateVD (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END EvaluateVD;
-
 	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteReal(node.tol);
@@ -152,6 +147,11 @@ MODULE GraphFunctional;
 		function.node := node;
 		node.functional.Init(function);
 	END SetFunctional;
+
+	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	BEGIN
+		HALT(126)
+	END ValDiff;
 
 	PROCEDURE (function: Function) Value (x: REAL; IN theta: ARRAY OF REAL): REAL;
 		VAR
