@@ -28,6 +28,7 @@ MODULE GraphMAP;
 			children: GraphStochastic.Vector;
 			i, num: INTEGER;
 	BEGIN
+		node.EvaluateDiffs;
 		diff := node.DiffLogPrior();
 		children := node.children;
 		IF children # NIL THEN
@@ -38,6 +39,7 @@ MODULE GraphMAP;
 				INC(i)
 			END
 		END;
+		node.ClearDiffs;
 		RETURN diff
 	END DiffLogConditional;
 
@@ -53,19 +55,21 @@ MODULE GraphMAP;
 		i := 0;
 		WHILE i < dim DO
 			val := priors[i].value;
-			priors[i].SetValue(val + delta);
+			priors[i].value := val + delta;
+			priors[i].Evaluate;
 			j := 0;
 			WHILE j < dim DO
 				matrix[i, j] := DiffLogConditional(priors[j]);
 				INC(j)
 			END;
-			priors[i].SetValue(val - delta);
+			priors[i].value := val - delta;
+			priors[i].Evaluate;
 			j := 0;
 			WHILE j < dim DO
 				matrix[i, j] := (matrix[i, j] - DiffLogConditional(priors[j])) / (2 * delta);
 				INC(j)
 			END;
-			priors[i].SetValue(val);
+			priors[i].value := val;
 			INC(i)
 		END;
 		i := 0;
@@ -111,15 +115,18 @@ MODULE GraphMAP;
 			prior.Bounds(x0, x1);
 			x0 := x0 + eps;
 			x1 := x1 - eps;
-			prior.SetValue(x0);
+			prior.value := x0;
+			prior.Evaluate;
 			y0 := DiffLogConditional(prior);
-			prior.SetValue(x1);
+			prior.value := x1;
+			prior.Evaluate;
 			y1 := DiffLogConditional(prior);
 			(*	pegasus solver	*)
 			count := 0;
 			LOOP
 				x := x1 - y1 * (x1 - x0) / (y1 - y0);
-				prior.SetValue(x);
+				prior.value := x;
+				prior.Evaluate;
 				y := DiffLogConditional(prior);
 				IF ABS(y) < eps THEN EXIT END;
 				IF y * y1 > 0 THEN
@@ -151,12 +158,15 @@ MODULE GraphMAP;
 		diff := DiffLogConditional(prior);
 		x := prior.value;
 		LOOP
-			prior.SetValue(x);
+			prior.value := x;
+			prior.Evaluate;
 			diff := DiffLogConditional(prior);
 			IF ABS(diff) < tol THEN EXIT END;
-			prior.SetValue(x + delta);
+			prior.value := x + delta;
+			prior.Evaluate;
 			diffPlus := DiffLogConditional(prior);
-			prior.SetValue(x - delta);
+			prior.value := x - delta;
+			prior.Evaluate;
 			diffMinus := DiffLogConditional(prior);
 			diff2 := (diffPlus - diffMinus) / (2 * delta);
 			IF diff2 > 0 THEN EXIT END;
@@ -237,7 +247,7 @@ MODULE GraphMAP;
 				ELSIF x > upper THEN
 					x := 0.5 * (upper + priors[i].value);
 				END;
-				priors[i].SetValue(x);
+				priors[i].value := x;
 				INC(i)
 			END;
 			INC(count);

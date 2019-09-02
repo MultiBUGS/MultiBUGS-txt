@@ -129,7 +129,7 @@ MODULE PharmacoInputs;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		RETURN SHORT(ENTIER(node.Value() + eps));
+		RETURN SHORT(ENTIER(node.value + eps));
 	END RealToInt;
 
 	PROCEDURE IsInteger* (node: GraphNodes.Node): BOOLEAN;
@@ -139,7 +139,7 @@ MODULE PharmacoInputs;
 			x: REAL;
 			int: INTEGER;
 	BEGIN
-		x := node.Value();
+		x := node.value;
 		int := SHORT(ENTIER(x + eps));
 		RETURN ABS(x - int) < eps
 	END IsInteger;
@@ -252,10 +252,10 @@ MODULE PharmacoInputs;
 			IF ~IsConstant(p) THEN (* all time fields in dosing matrix must be constants *)
 				res := {GraphNodes.arg4, GraphNodes.notData}; RETURN
 			END;
-			IF (resInt = 0) & (p.Value() < prev) THEN (* each section of dosing matrix must be chronological *)
+			IF (resInt = 0) & (p.value < prev) THEN (* each section of dosing matrix must be chronological *)
 				res := {GraphNodes.arg4, GraphNodes.invalidValue}; RETURN
 			END;
-			prev := p.Value();
+			prev := p.value;
 			IF resInt = 0 THEN
 				errorOff := start + level;
 				p := hist.components[start + level];
@@ -389,7 +389,7 @@ MODULE PharmacoInputs;
 			off := hist.start + i * nCol;
 			ASSERT(IsInteger(hist.components[off + reset]), trap);
 			ASSERT(RealToInt(hist.components[off + reset]) = 0, trap);
-			s := hist.components[off + time].Value(); ASSERT(tobs >= s, trap);
+			s := hist.components[off + time].value; ASSERT(tobs >= s, trap);
 			INC(n);
 			errorOff := off + addl;
 			p := hist.components[off + addl];
@@ -407,7 +407,7 @@ MODULE PharmacoInputs;
 				IF ~IsConstant(p) THEN
 					res := {GraphNodes.arg4, GraphNodes.notData}; RETURN
 				END;
-				interval := p.Value();
+				interval := p.value;
 				IF interval <= 0 THEN (* dosing interval values in dosing matrix must be > 0 *)
 					res := {GraphNodes.arg4, GraphNodes.invalidValue}; RETURN
 				END;

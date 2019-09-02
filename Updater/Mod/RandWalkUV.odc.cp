@@ -70,45 +70,42 @@ MODULE UpdaterRandWalkUV;
 
 	PROCEDURE (updater: Updater) SampleProposal- (): REAL, NEW, ABSTRACT;
 
-	(*	Antithetic delayed rejection metropolis	*)
+		(*	Antithetic delayed rejection metropolis	*)
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			eltaValue, logAlpha, newVal, newLogCond, delta0, delta1, deltaValue, oldVal, psiBar,
-			new1LogCond, oldLogLike, oldLogCond, oldValMap, psiBarLogCond: REAL;
+			logAlpha, newVal, newLogCond, delta0, delta1, deltaValue, psiBar,
+			new1LogCond, oldLogCond, oldValMap, psiBarLogCond: REAL;
 			prior: GraphStochastic.Node;
 			reject: BOOLEAN;
 	BEGIN
 		res := {};
 		prior := updater.prior;
-		oldVal := prior.value;
+		updater.Store;
 		oldValMap := prior.Map();
 		oldLogCond := updater.LogConditional() + prior.LogDetJacobian();
 		deltaValue := updater.SampleProposal();
 		newVal := oldValMap + deltaValue;
-		prior.InvMap(newVal);
+		prior.InvMap(newVal); prior.Evaluate;
 		newLogCond := updater.LogConditional() + prior.LogDetJacobian();
 		logAlpha := newLogCond - oldLogCond;
 		reject := logAlpha < Math.Ln(MathRandnum.Rand());
 		IF reject THEN
 			IF updater.delayedRejection THEN
 				psiBar := oldValMap - 2 * deltaValue;
-				prior.InvMap(psiBar);
+				prior.InvMap(psiBar); prior.Evaluate;
 				psiBarLogCond := updater.LogConditional() + prior.LogDetJacobian();
 				newVal := oldValMap - deltaValue;
-				prior.InvMap(newVal);
+				prior.InvMap(newVal); prior.Evaluate;
 				new1LogCond := updater.LogConditional() + prior.LogDetJacobian();
 				delta0 := new1LogCond - oldLogCond;
-				delta1:= psiBarLogCond - new1LogCond;
+				delta1 := psiBarLogCond - new1LogCond;
 				reject := delta1 > 0.0;
 				IF ~reject THEN
 					logAlpha := delta0 + Math.Ln(1 - Math.Exp(delta1)) - Math.Ln(1 - Math.Exp(logAlpha));
 					reject := logAlpha < Math.Ln(MathRandnum.Rand());
 				END
 			END;
-			IF reject THEN
-				prior.SetValue(oldVal);
-				INC(updater.rejectCount)
-			END
+			IF reject THEN updater.Restore; INC(updater.rejectCount) END
 		END;
 		INC(updater.iteration);
 		updater.AdaptProposal;

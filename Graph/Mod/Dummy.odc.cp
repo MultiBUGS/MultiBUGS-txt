@@ -83,8 +83,8 @@ MODULE GraphDummy;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.initialized,
-		GraphStochastic.hidden, GraphStochastic.update})
+		node.props := node.props + {GraphStochastic.noMean, GraphStochastic.initialized,
+		GraphStochastic.hidden, GraphStochastic.update}
 	END InitStochastic;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -94,7 +94,7 @@ MODULE GraphDummy;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (node: Node) IsLikelihoodTerm (): BOOLEAN;

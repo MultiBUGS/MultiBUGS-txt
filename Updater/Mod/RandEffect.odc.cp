@@ -85,11 +85,11 @@ MODULE UpdaterRandEffect;
 		oldX := prior.value;
 		children := prior.children;
 		f := updater.LogLikelihood();
-		prior.SetValue(oldX + delta);
+		prior.value := oldX + delta;
 		fPlus := updater.LogLikelihood();
-		prior.SetValue(oldX - delta);
+		prior.value := oldX - delta;
 		fMinus := updater.LogLikelihood();
-		prior.SetValue(oldX);
+		prior.value := oldX;
 		derivFirst := (fPlus - fMinus) / (2 * delta);
 		derivSecond := (fPlus - 2.0 * f + fMinus) / (delta * delta);
 		derivSecond := MIN(derivSecond, 0);
@@ -109,7 +109,7 @@ MODULE UpdaterRandEffect;
 			cos := Math.Cos(theta);
 			sin := Math.Sin(theta);
 			x := mu + (oldX - mu) * cos + nu * sin;
-			prior.SetValue(x);
+			prior.value := x;
 			IF updater.LogLikelihood() - LogNormalLikelihood(muTau, tau1, x) > y THEN EXIT
 			ELSIF theta < 0.0 THEN thetaMin := theta
 			ELSE thetaMax := theta

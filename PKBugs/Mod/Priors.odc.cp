@@ -80,10 +80,10 @@ MODULE PKBugsPriors;
 		len := LEN(mean.components);
 		i := 0;
 		WHILE i < len DO
-			value := u * mean.components[i].Value();
+			value := u * mean.components[i].value;
 			node := mu.components[i](GraphStochastic.Node);
-			node.SetValue(value);
-			node.SetProps(node.props + {GraphStochastic.initialized});
+			node.value := value;
+			INCL(node.props, GraphStochastic.initialized);
 			INC(i)
 		END
 	END WriteMu;
@@ -107,7 +107,7 @@ MODULE PKBugsPriors;
 		WHILE i < nPar DO
 			j := 0;
 			WHILE j < nPar DO
-				inv[i, j] := matrix.components[i * nPar + j].Value(); INC(j)
+				inv[i, j] := matrix.components[i * nPar + j].value; INC(j)
 			END;
 			INC(i)
 		END;
@@ -116,10 +116,10 @@ MODULE PKBugsPriors;
 		WHILE i < nPar DO
 			j := 0;
 			WHILE j < nPar DO
-				value := dof.components[0].Value() * inv[i, j];
+				value := dof.components[0].value * inv[i, j];
 				node := omegaInv.components[i * nPar + j](GraphStochastic.Node);
-				node.SetValue(value);
-				node.SetProps(node.props + {GraphStochastic.initialized});
+				node.value := value;
+				INCL(node.props, GraphStochastic.initialized);
 				INC(j)
 			END;
 			INC(i)
@@ -142,10 +142,10 @@ MODULE PKBugsPriors;
 		WHILE i < nInd DO
 			j := 0;
 			WHILE j < nPar DO
-				value := thetaMean.components[i * nPar + j].Value();
+				value := thetaMean.components[i * nPar + j].value;
 				node := theta.components[i * nPar + j](GraphStochastic.Node);
-				node.SetValue(value);
-				node.SetProps(node.props + {GraphStochastic.initialized});
+				node.value := value;
+				INCL(node.props, GraphStochastic.initialized);
 				INC(j)
 			END;
 			INC(i)
@@ -160,18 +160,18 @@ MODULE PKBugsPriors;
 		CONST
 			fixFounder = FALSE;
 	BEGIN
-		UpdaterActions.LoadSamples(chain);
+		(*UpdaterActions.LoadSamples(chain);*)
 		name := BugsIndex.Find("tau"); ASSERT(name # NIL, 25);
 		node := name.components[0](GraphStochastic.Node);
-		node.SetValue(1.0);
-		node.SetProps(node.props + {GraphStochastic.initialized});
+		node.value := 1.0;
+		INCL(node.props, GraphStochastic.initialized);
 		(*	if more than one chain jigle initial values	*)
 		WriteMu(u);
 		WriteOmegaInv;
 		WriteTheta;
-		UpdaterActions.StoreSamples(chain);
+		(*UpdaterActions.StoreSamples(chain);*)
 		BugsInterface.GenerateInitsForChain(chain, fixFounder, ok);
-		UpdaterActions.StoreSamples(chain);
+		(*UpdaterActions.StoreSamples(chain);*)
 		ASSERT(ok, 100)
 	END GenerateInitsForChain;
 

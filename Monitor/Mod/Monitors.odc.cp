@@ -4,7 +4,7 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
 
- *)
+*)
 
 MODULE MonitorMonitors;
 
@@ -12,11 +12,11 @@ MODULE MonitorMonitors;
 
 	IMPORT
 		Kernel, Meta, Stores := Stores64,
-		GraphNodes, GraphStochastic;
+		GraphLogical, GraphNodes, GraphStochastic;
 
 	TYPE
 
-	(*	Draws visual output	*)
+		(*	Draws visual output	*)
 		Drawer* = POINTER TO ABSTRACT RECORD END;
 
 		DrawerList = POINTER TO RECORD
@@ -42,34 +42,34 @@ MODULE MonitorMonitors;
 		monitorList: MonitorList;
 		drawerList: DrawerList;
 
-	(*	Clears (freezes, cut link to simulation of) drawing	*)
+		(*	Clears (freezes, cut link to simulation of) drawing	*)
 	PROCEDURE (drawer: Drawer) Clear-, NEW, EMPTY;
 
-	(*	Updates the drawing	*)
+		(*	Updates the drawing	*)
 	PROCEDURE (drawer: Drawer) Update-, NEW, ABSTRACT;
 
-	(*	Clears monitor	*)
+		(*	Clears monitor	*)
 	PROCEDURE (monitor: Monitor) Clear-, NEW, EMPTY;
 
-	(*	Externalize monitor	*)
+		(*	Externalize monitor	*)
 	PROCEDURE (monitor: Monitor) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
-	(*	Internalize monitor	*)
+		(*	Internalize monitor	*)
 	PROCEDURE (monitor: Monitor) Internalize- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) MarkMonitored-, NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	(*	Set number of chains for monitor	*)
+		(*	Set number of chains for monitor	*)
 	PROCEDURE (monitor: Monitor) SetNumChains- (numChains: INTEGER), NEW, ABSTRACT;
 
-	(*	Update monitor	*)
+		(*	Update monitor	*)
 	PROCEDURE (monitor: Monitor) Update- (chain: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE (f: Factory) New* (): Monitor, NEW, ABSTRACT;
 
-	(*	Clears the monitor and draw lists	*)
+		(*	Clears the monitor and draw lists	*)
 	PROCEDURE Clear*;
 		VAR
 			cursor: DrawerList;
@@ -192,20 +192,25 @@ MODULE MonitorMonitors;
 	PROCEDURE Mark* (node: GraphNodes.Node);
 		VAR
 			list: GraphStochastic.List;
+			listL: GraphLogical.List;
+			p: GraphNodes.Node;
 			props: SET;
 		CONST
 			all = TRUE;
 	BEGIN
-		IF node IS GraphStochastic.Node THEN
-			props := node.props + {GraphStochastic.mark};
-			node.SetProps(props);
-		ELSE
+		INCL(node.props, GraphStochastic.mark);
+		IF node IS GraphLogical.Node THEN
 			list := GraphStochastic.Parents(node, all);
+			listL := GraphLogical.Parents(node, all);
 			WHILE list # NIL DO
-				node := list.node;
-				props := node.props + {GraphStochastic.mark};
-				node.SetProps(props);
+				p := list.node;
+				INCL(p.props, GraphStochastic.mark);
 				list := list.next
+			END;
+			WHILE listL # NIL DO
+				p := listL.node;
+				INCL(p.props, GraphStochastic.mark);
+				listL := listL.next
 			END
 		END
 	END Mark;

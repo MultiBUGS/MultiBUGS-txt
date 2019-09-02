@@ -129,13 +129,13 @@ MODULE UpdaterVD;
 		k := SHORT(ENTIER(updater.prior[0].value + 0.5));	(*	check that k within bounds	*)
 		k := MAX(k, updater.kMin);
 		k := MIN(k, updater.kMax);
-		updater.prior[0].SetValue(0);
+		updater.prior[0].value := 0;
 		updater.Birth(k);	(*	set up k active hidden variables	*)
-		updater.prior[0].SetValue(k);
+		updater.prior[0].value := k;
 		activeNumBeta := updater.vdNode.ActiveNumBeta();
 		updater.CalculateBetaParams(activeNumBeta);
 		updater.SampleBeta(activeNumBeta);
-		updater.StoreSample
+		(*updater.StoreSample*)
 	END InitializeJump;
 	
 	PROCEDURE (updater: Updater) InitializeVD-,NEW, ABSTRACT;
@@ -248,7 +248,7 @@ MODULE UpdaterVD;
 	BEGIN
 		res := {};
 		IF ~updater.jumpInit THEN updater.jumpInit := TRUE; updater.InitializeJump END;
-		updater.LoadSample;
+		(*updater.LoadSample;*)
 		k := SHORT(ENTIER(updater.prior[0].value + 0.5));
 		oldDim := updater.vdNode.ActiveNumBeta();
 		maxNumBeta := LEN(updater.vdNode.beta);
@@ -268,7 +268,7 @@ MODULE UpdaterVD;
 				pJThere := jumpSizeTable[maxJump - 1, jumpSize - 1];
 				updater.Birth(jumpSize);
 				INC(k, jumpSize);
-				updater.prior[0].SetValue(k);
+				updater.prior[0].value := k;
 				updater.MoveTypeProbs(qReverse);
 				pMBack := qReverse[death];
 				maxJump := MIN(k - updater.kMin, maxJumpSize);
@@ -281,7 +281,7 @@ MODULE UpdaterVD;
 				pJThere := jumpSizeTable[maxJump - 1, jumpSize - 1];
 				updater.Death(jumpSize);
 				DEC(k, jumpSize);
-				updater.prior[0].SetValue(k);
+				updater.prior[0].value := k;
 				updater.MoveTypeProbs(qReverse);
 				pMBack := qReverse[birth];
 				maxJump := MIN(updater.kMax - k, maxJumpSize);
@@ -316,7 +316,7 @@ MODULE UpdaterVD;
 				END;
 			ELSE
 				newDim := oldDim;
-				updater.LoadSample 	(*	restore the old sample and allocation	*)
+				(*updater.LoadSample*)	(*	restore the old sample and allocation	*)
 			END
 		END;
 		(*	update any phi parameters	*)
@@ -334,7 +334,7 @@ MODULE UpdaterVD;
 				updater.phiUpdaters[i].Sample(overRelax, res); INC(i)
 			END
 		END;
-		updater.StoreSample
+		(*updater.StoreSample*)
 	END Sample;
 	
 	PROCEDURE Maintainer;

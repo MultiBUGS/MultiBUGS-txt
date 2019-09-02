@@ -106,8 +106,8 @@ MODULE GraphSplinecon;
 			ASSERT(args.scalars[1] # NIL, 21);
 			prec := args.scalars[1];
 			mu := GraphConstant.New(0.0);
-			lower := args.scalars[2].Value();
-			upper := args.scalars[3].Value();
+			lower := args.scalars[2].value;
+			upper := args.scalars[3].value;
 			node.SetBeta(GraphNormal.fact, k, mu, prec, numBeta);
 			node.SetTheta(numTheta, lower, upper);
 			IF node.index = 0 THEN
@@ -118,7 +118,7 @@ MODULE GraphSplinecon;
 				xStep := args.vectors[0].step;
 				i := 0;
 				WHILE i < xSize DO
-					node.x[i] := args.vectors[0].components[xStart + i * xStep].Value();
+					node.x[i] := args.vectors[0].components[xStart + i * xStep].value;
 					INC(i)
 				END
 			ELSE
@@ -146,7 +146,7 @@ MODULE GraphSplinecon;
 		i := 0;
 		len := LEN(node.beta);
 		WHILE i < len DO
-			node.beta[i].SetValue(0.0);
+			node.beta[i].value := 0.0;
 			INC(i)
 		END;
 		RETURN {}
@@ -223,7 +223,7 @@ MODULE GraphSplinecon;
 		RETURN value
 	END Spline;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, size: INTEGER;
 	BEGIN
@@ -231,10 +231,50 @@ MODULE GraphSplinecon;
 		size := node.Size();
 		i := 0;
 		WHILE i < size DO
-			values[i] := node.Spline(node.x[i]);
+			node.components[i].value := node.Spline(node.x[i]);
 			INC(i)
 		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+		CONST
+			eps = 1.0E-40;
+		VAR
+			i, j, k, index, continuity, order, N: INTEGER;
+			d, lower: REAL;
+			x: GraphNodes.Vector;
+	BEGIN
+		x := node.diffWRT;
+		order := node.order;
+		continuity := node.continuity;
+		i := 0;
+		WHILE i < N DO
+		index := 0; WHILE node.beta[index] # x[i] DO INC(index) END;
+		j := index DIV (order + 1);
+		k := index MOD (order + 1);
+		IF j = 0 THEN
+			IF k = 0 THEN
+				node.diffs[i] := 1.0
+			ELSE
+				lower := node.p0Theta;
+				d := node.x[node.index] - lower;
+				node.diffs[i] := Math.IntPower(d, k)
+			END
+		ELSE
+			j := (index - order - 1) DIV (order - continuity + 1);
+			k := continuity + (index - order - 1) MOD (order - continuity + 1);
+			d := node.x[node.index] - node.knotValues[j];
+			IF d >  - eps THEN
+				IF k = 0 THEN
+					node.diffs[i] := 1.0
+				ELSE
+					node.diffs[i] := Math.IntPower(d, k)
+				END
+			END
+		END;
+		INC(i)
+		END
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeContinuous (VAR wr: Stores.Writer);
 	BEGIN
@@ -247,7 +287,6 @@ MODULE GraphSplinecon;
 	BEGIN
 		node.knotValues := NIL;
 		node.x := NIL;
-		node.SetProps(node.props + {GraphLogical.dependent})
 	END InitVD;
 
 	PROCEDURE (node: Node) InternalizeContinuous (VAR rd: Stores.Reader);
@@ -268,42 +307,6 @@ MODULE GraphSplinecon;
 	BEGIN
 		RETURN NIL
 	END ParentsVD;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-		CONST
-			eps = 1.0E-40;
-		VAR
-			i, j, k, continuity, order: INTEGER;
-			d, lower: REAL;
-	BEGIN
-		val := node.Value();
-		order := node.order;
-		continuity := node.continuity;
-		i := 0;
-		WHILE node.beta[i] # x DO INC(i) END;
-		j := i DIV (order + 1);
-		k := i MOD (order + 1);
-		IF j = 0 THEN
-			IF k = 0 THEN
-				diff := 1.0
-			ELSE
-				lower := node.p0Theta;
-				d := node.x[node.index] - lower;
-				diff := Math.IntPower(d, k)
-			END
-		ELSE
-			j := (i - order - 1) DIV (order - continuity + 1);
-			k := continuity + (i - order - 1) MOD (order - continuity + 1);
-			d := node.x[node.index] - node.knotValues[j];
-			IF d >  - eps THEN
-				IF k = 0 THEN
-					diff := 1.0
-				ELSE
-					diff := Math.IntPower(d, k)
-				END
-			END
-		END
-	END ValDiff;
 
 	PROCEDURE (node: LinearNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -352,9 +355,9 @@ MODULE GraphSplinecon;
 	BEGIN
 		WITH args: GraphStochastic.ArgsLogical DO
 			ASSERT(args.scalars[4] # NIL, 21);
-			generic.order := SHORT(ENTIER(args.scalars[4].Value() + eps));
+			generic.order := SHORT(ENTIER(args.scalars[4].value + eps));
 			ASSERT(args.scalars[5] # NIL, 22);
-			generic.continuity := SHORT(ENTIER(args.scalars[5].Value() + eps));
+			generic.continuity := SHORT(ENTIER(args.scalars[5].value + eps));
 			Set(generic, args, res);
 		END
 	END Set;
@@ -409,33 +412,31 @@ MODULE GraphSplinecon;
 		END
 	END Set;
 
-	PROCEDURE (predictor: PredictorNode) Value (): REAL;
+	PROCEDURE (predictor: PredictorNode) Evaluate;
 		VAR
 			node: Node;
-			value: REAL;
 	BEGIN
 		node := predictor.node(Node);
 		node.GetKnots;
-		value := node.Spline(predictor.x);
-		RETURN value
-	END Value;
+		predictor.value := node.Spline(predictor.x);
+	END Evaluate;
 
-	PROCEDURE (predictor: PredictorNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (predictor: PredictorNode) EvaluateDiffs ;
 	BEGIN
 		HALT(126)
-	END ValDiff;
+	END EvaluateDiffs;
 
-	PROCEDURE (predictor: PredictorNode) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (predictor: PredictorNode) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(predictor.node, wr);
 		wr.WriteReal(predictor.x)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (predictor: PredictorNode) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (predictor: PredictorNode) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
 		predictor.node := GraphNodes.Internalize(rd);
 		rd.ReadReal(predictor.x)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (f: FactoryLinear) New (): GraphVector.Node;
 		VAR

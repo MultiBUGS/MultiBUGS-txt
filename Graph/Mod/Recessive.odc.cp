@@ -73,7 +73,7 @@ MODULE GraphRecessive;
 			genotype, r: INTEGER;
 			logDensity: REAL;
 	BEGIN
-		genotype := SHORT(ENTIER(node.genotype.Value() + eps));
+		genotype := SHORT(ENTIER(node.genotype.value + eps));
 		r := SHORT(ENTIER(node.value + eps));
 		IF genotype < 3 THEN
 			IF r = 1 THEN
@@ -110,9 +110,9 @@ MODULE GraphRecessive;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
+		node.props := node.props + 
 		{GraphStochastic.integer, GraphStochastic.leftNatural,
-		GraphStochastic.rightNatural, GraphStochastic.noMean});
+		GraphStochastic.rightNatural, GraphStochastic.noMean};
 		node.genotype := NIL
 	END InitUnivariate;
 
@@ -131,7 +131,7 @@ MODULE GraphRecessive;
 			genotype, r: INTEGER;
 			logLikelihood: REAL;
 	BEGIN
-		genotype := SHORT(ENTIER(node.genotype.Value() + eps));
+		genotype := SHORT(ENTIER(node.genotype.value + eps));
 		r := SHORT(ENTIER(node.value + eps));
 		IF genotype < 3 THEN
 			IF r = 1 THEN
@@ -154,7 +154,7 @@ MODULE GraphRecessive;
 			genotype, r: INTEGER;
 			logPrior: REAL;
 	BEGIN
-		genotype := SHORT(ENTIER(node.genotype.Value() + eps));
+		genotype := SHORT(ENTIER(node.genotype.value + eps));
 		r := SHORT(ENTIER(node.value + eps));
 		IF genotype < 3 THEN
 			IF r = 1 THEN
@@ -194,13 +194,13 @@ MODULE GraphRecessive;
 		VAR
 			genotype, r: INTEGER;
 	BEGIN
-		genotype := SHORT(ENTIER(node.genotype.Value() + eps));
+		genotype := SHORT(ENTIER(node.genotype.value + eps));
 		IF genotype < 3 THEN
 			r := 1
 		ELSE
 			r := 2
 		END;
-		node.SetValue(r);
+		node.value := r;
 		res := {}
 	END Sample;
 

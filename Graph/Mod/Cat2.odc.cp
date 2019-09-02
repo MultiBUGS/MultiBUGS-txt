@@ -57,7 +57,7 @@ MODULE GraphCat2;
 
 	PROCEDURE (node: Node) DevianceUnivariate (): REAL;
 	BEGIN
-		RETURN 2 * Math.Ln(1 + Math.Exp(node.s.Value()))
+		RETURN 2 * Math.Ln(1 + Math.Exp(node.s.value))
 	END DevianceUnivariate;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
@@ -65,7 +65,8 @@ MODULE GraphCat2;
 			s, differential, sDiff, val: REAL;
 	BEGIN
 		val := node.value;
-		node.s.ValDiff(x, s, sDiff);
+		s := node.s.value;
+		sDiff := node.s.Diff(x);
 		differential := sDiff / (1 + Math.Exp( - s)) - sDiff;
 		RETURN differential
 	END DiffLogLikelihood;
@@ -83,7 +84,7 @@ MODULE GraphCat2;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean});
+		INCL(node.props, GraphStochastic.noMean);
 		node.s := NIL
 	END InitUnivariate;
 
@@ -106,7 +107,7 @@ MODULE GraphCat2;
 	PROCEDURE (node: Node) LogLikelihoodUnivariate (): REAL;
 	BEGIN
 		(* Calculate the log likelihood. Any purely numerical normalizing constants can be dropped. *)
-		RETURN - Math.Ln(1 + Math.Exp(node.s.Value()))
+		RETURN - Math.Ln(1 + Math.Exp(node.s.value))
 	END LogLikelihoodUnivariate;
 
 	PROCEDURE (node: Node) LogPrior (): REAL;

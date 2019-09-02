@@ -49,13 +49,13 @@ MODULE PharmacoPKZOlag1ss;
 		END ProfileSS;
 
 	BEGIN
-		CL := Math.Exp(params[0].Value());
-		V := Math.Exp(params[1].Value());
-		Tlag := Math.Exp(params[2].Value());
-		TI := Math.Exp(params[3].Value());
-		s := scalars[PharmacoModel.time].Value() - Tlag;
-		dose := scalars[PharmacoModel.dose].Value();
-		omega := scalars[PharmacoModel.omega].Value();
+		CL := Math.Exp(params[0].value);
+		V := Math.Exp(params[1].value);
+		Tlag := Math.Exp(params[2].value);
+		TI := Math.Exp(params[3].value);
+		s := scalars[PharmacoModel.time].value - Tlag;
+		dose := scalars[PharmacoModel.dose].value;
+		omega := scalars[PharmacoModel.omega].value;
 		IF s < 0 THEN s := s + omega * Math.Ceiling( - s / omega) END;
 		value := ProfileSS(s);
 		IF value < 0 THEN value := 0 END;
@@ -72,10 +72,10 @@ MODULE PharmacoPKZOlag1ss;
 		install := "PharmacoPKZOlag1ss.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

@@ -264,7 +264,7 @@ MODULE UpdaterGMRFess;
 			i := 0;
 			WHILE i < size DO
 				x := mu[i] + (oldX[i] - mu[i]) * cos + nu[i] * sin;
-				updater.prior[i].SetValue(x);
+				updater.prior[i].value := x;
 				INC(i)
 			END;
 			IF updater.LogLikelihood() > y THEN EXIT

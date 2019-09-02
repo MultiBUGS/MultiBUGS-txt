@@ -53,10 +53,10 @@ MODULE ReliabilityExpoWeibull;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.theta.Value() < - eps THEN
+		IF node.theta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -86,8 +86,8 @@ MODULE ReliabilityExpoWeibull;
 		VAR
 			alpha, theta: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		RETURN MathCumulative.ExpoWeibull(alpha, theta, x)
 	END Cumulative;
 
@@ -96,8 +96,8 @@ MODULE ReliabilityExpoWeibull;
 			logFactor, logDensity, alpha, theta, logAlpha, logTheta, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		logAlpha := MathFunc.Ln(alpha);
 		logTheta := MathFunc.Ln(theta);
 		factor := Math.Exp( - Math.Power(x, alpha));
@@ -112,22 +112,22 @@ MODULE ReliabilityExpoWeibull;
 			alpha, theta, diff, diffAlpha, diffTheta, exp, pow, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.theta.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			theta := node.theta.Value();
+			diffAlpha := node.alpha.Diff(x);
 			pow := Math.Power(val, alpha);
 			exp := Math.Exp( - pow);
 			diff := diffAlpha * (1 / alpha + Math.Ln(val) - pow * Math.Ln(val)
 			 + (theta - 1) * exp * pow * Math.Ln(val) / (1 - exp))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.theta.ValDiff(x, theta, diffTheta);
+			diffTheta := node.theta.Diff(x);
 			pow := Math.Power(val, alpha);
 			exp := Math.Exp( - pow);
 			diff := diffTheta * (1 / theta + Math.Ln(1 - exp))
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.theta.ValDiff(x, theta, diffTheta);
+			diffAlpha := node.alpha.Diff(x);
+			diffTheta := node.theta.Diff(x);
 			pow := Math.Power(val, alpha);
 			exp := Math.Exp( - pow);
 			diff := diffAlpha * (1 / alpha + Math.Ln(val) - pow * Math.Ln(val)
@@ -142,8 +142,8 @@ MODULE ReliabilityExpoWeibull;
 			alpha, theta, exp, pow, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		pow := Math.Power(x, alpha);
 		exp := Math.Exp( - pow);
 		RETURN (alpha - 1) / x - alpha * pow / x + (theta - 1) * alpha * exp * pow / (x * (1 - exp))
@@ -157,7 +157,7 @@ MODULE ReliabilityExpoWeibull;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.theta := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -179,8 +179,8 @@ MODULE ReliabilityExpoWeibull;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		mean := Math.Power( - Math.Ln(1 - Math.Power(p50, 1.0 / theta)), 1.0 / alpha);
 		RETURN mean
 	END Location;
@@ -190,8 +190,8 @@ MODULE ReliabilityExpoWeibull;
 			logFactor, alpha, theta, logAlpha, logTheta, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		logAlpha := MathFunc.Ln(alpha);
 		logTheta := MathFunc.Ln(theta);
 		factor := Math.Exp( - Math.Power(x, alpha));
@@ -205,8 +205,8 @@ MODULE ReliabilityExpoWeibull;
 			logFactor, alpha, theta, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		factor := Math.Exp( - Math.Power(x, alpha));
 		logFactor := MathFunc.Ln(1 - factor);
 		RETURN (alpha - 1) * MathFunc.Ln(x) - Math.Power(x, alpha) + (theta - 1) * logFactor
@@ -227,8 +227,8 @@ MODULE ReliabilityExpoWeibull;
 			theta, alpha, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.ExpoWeibull(alpha, theta)
@@ -242,7 +242,7 @@ MODULE ReliabilityExpoWeibull;
 				x := MathRandnum.ExpoWeibullIB(alpha, theta, lower, upper);
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

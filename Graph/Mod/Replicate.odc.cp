@@ -13,12 +13,12 @@ MODULE GraphReplicate;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphMemory, GraphMultivariate, GraphNodes,
+		GraphLogical, GraphMultivariate, GraphNodes,
 		GraphRules, GraphScalar, GraphStochastic, GraphVector;
 
 	TYPE
 
-		Scalar = POINTER TO ABSTRACT RECORD(GraphMemory.Node)
+		Scalar = POINTER TO ABSTRACT RECORD(GraphScalar.Node)
 			prior: GraphNodes.Node
 		END;
 
@@ -33,9 +33,9 @@ MODULE GraphReplicate;
 			nElem, start, step: INTEGER
 		END;
 
-		ScalarPostFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		ScalarPostFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
-		ScalarPriorFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		ScalarPriorFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		VectorPostFactory = POINTER TO RECORD(GraphVector.Factory) END;
 
@@ -51,6 +51,11 @@ MODULE GraphReplicate;
 	BEGIN
 		RETURN GraphRules.other
 	END ClassFunction;
+
+	PROCEDURE (node: Scalar) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Scalar) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -73,11 +78,6 @@ MODULE GraphReplicate;
 		END
 	END Set;
 
-	PROCEDURE (node: Scalar) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
 	PROCEDURE (node: ScalarPostNode) Check (): SET;
 		VAR
 			nElem: INTEGER;
@@ -90,21 +90,7 @@ MODULE GraphReplicate;
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: ScalarPostNode) ExternalizeMemory (VAR wr: Stores.Writer);
-	BEGIN
-		GraphNodes.Externalize(node.prior, wr)
-	END ExternalizeMemory;
-
-	PROCEDURE (node: ScalarPostNode) InternalizeMemory (VAR rd: Stores.Reader);
-		VAR
-			nElem: INTEGER;
-	BEGIN
-		node.prior := GraphNodes.Internalize(rd);
-		nElem := node.prior.Size();
-		IF nElem > LEN(oldValues) THEN NEW(oldValues, nElem) END
-	END InternalizeMemory;
-
-	PROCEDURE (node: ScalarPostNode) Evaluate (OUT value: REAL);
+	PROCEDURE (node: ScalarPostNode) Evaluate;
 		VAR
 			i, nElem: INTEGER;
 			res: SET;
@@ -119,25 +105,38 @@ MODULE GraphReplicate;
 			oldValues[0] := prior.value;
 		END;
 		prior.Sample(res);
-		value := prior.value;
+		node.value := prior.value;
 		WITH prior: GraphMultivariate.Node DO
 			i := 0;
-			WHILE i < nElem DO prior.components[i].SetValue(oldValues[i]); INC(i) END
+			WHILE i < nElem DO prior.components[i].value := oldValues[i]; INC(i) END
 		ELSE
-			prior.SetValue(oldValues[0]);
+			prior.value := oldValues[0];
 		END
 	END Evaluate;
+
+	PROCEDURE (node: ScalarPostNode) ExternalizeScalar (VAR wr: Stores.Writer);
+	BEGIN
+		GraphNodes.Externalize(node.prior, wr)
+	END ExternalizeScalar;
 
 	PROCEDURE (node: ScalarPostNode) InitLogical;
 	BEGIN
 		node.prior := NIL;
-		node.SetProps(node.props + {GraphLogical.dependent})
 	END InitLogical;
 
 	PROCEDURE (node: ScalarPostNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphReplicate.ScalarPostInstall"
 	END Install;
+
+	PROCEDURE (node: ScalarPostNode) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			nElem: INTEGER;
+	BEGIN
+		node.prior := GraphNodes.Internalize(rd);
+		nElem := node.prior.Size();
+		IF nElem > LEN(oldValues) THEN NEW(oldValues, nElem) END
+	END InternalizeScalar;
 
 	PROCEDURE (node: ScalarPriorNode) Check (): SET;
 		VAR
@@ -174,68 +173,7 @@ MODULE GraphReplicate;
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: ScalarPriorNode) ExternalizeMemory (VAR wr: Stores.Writer);
-		VAR
-			i, len: INTEGER;
-			vector: GraphStochastic.Vector;
-	BEGIN
-		GraphNodes.Externalize(node.prior, wr);
-		vector := node.priorParents;
-		IF vector # NIL THEN len := LEN(vector) ELSE len := 0 END;
-		wr.WriteInt(len);
-		i := 0;
-		WHILE i < len DO
-			GraphNodes.Externalize(vector[i], wr); INC(i)
-		END
-	END ExternalizeMemory;
-
-	PROCEDURE (node: ScalarPriorNode) InternalizeMemory (VAR rd: Stores.Reader);
-		VAR
-			i, len, nElem: INTEGER;
-			prior: GraphNodes.Node;
-			p: GraphNodes.Node;
-			vector: GraphStochastic.Vector;
-	BEGIN
-		node.prior := GraphNodes.Internalize(rd);
-		rd.ReadInt(len);
-		IF len > 0 THEN NEW(vector, len) ELSE vector := NIL END;
-		i := 0;
-		WHILE i < len DO
-			p := GraphNodes.Internalize(rd);
-			vector[i] := p(GraphStochastic.Node);
-			INC(i)
-		END;
-		node.priorParents := vector;
-		prior := node.prior;
-		nElem := prior.Size();
-		IF nElem > LEN(oldValues) THEN NEW(oldValues, nElem) END;
-		IF len > LEN(oldParentValues) THEN
-			NEW(oldParentValues, len); i := 0; WHILE i < len DO oldParentValues[i] := NIL; INC(i) END
-		END;
-		i := 0;
-		WHILE i < len DO
-			p := vector[i];
-			nElem := p.Size();
-			IF (oldParentValues[i] = NIL) OR (LEN(oldParentValues[i]) < nElem) THEN
-				NEW(oldParentValues[i], nElem)
-			END;
-			INC(i)
-		END
-	END InternalizeMemory;
-
-	PROCEDURE (node: ScalarPriorNode) InitLogical;
-	BEGIN
-		node.prior := NIL;
-		node.priorParents := NIL;
-		node.SetProps(node.props + {GraphLogical.dependent})
-	END InitLogical;
-
-	PROCEDURE (node: ScalarPriorNode) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphReplicate.ScalarPriorInstall"
-	END Install;
-
-	PROCEDURE (node: ScalarPriorNode) Evaluate (OUT value: REAL);
+	PROCEDURE (node: ScalarPriorNode) Evaluate;
 		VAR
 			i, j, len, nElem: INTEGER;
 			res: SET;
@@ -272,12 +210,12 @@ MODULE GraphReplicate;
 			oldValues[0] := prior.value;
 		END;
 		prior.Sample(res);
-		value := prior.value;
+		node.value := prior.value;
 		WITH prior: GraphMultivariate.Node DO
 			i := 0;
-			WHILE i < nElem DO prior.components[i].SetValue(oldValues[i]); INC(i) END
+			WHILE i < nElem DO prior.components[i].value := oldValues[i]; INC(i) END
 		ELSE
-			prior.SetValue(oldValues[0]);
+			prior.value := oldValues[0];
 		END;
 		(*	restore current values of parents	 *)
 		i := 0;
@@ -285,13 +223,73 @@ MODULE GraphReplicate;
 			parent := vector[i];
 			WITH parent: GraphMultivariate.Node DO
 				nElem := parent.Size();
-				j := 0; WHILE j < nElem DO parent.components[j].SetValue(oldParentValues[i, j]); INC(j) END
+				j := 0; WHILE j < nElem DO parent.components[j].value := oldParentValues[i, j]; INC(j) END
 			ELSE
-				parent.SetValue(oldParentValues[i, 0])
+				parent.value := oldParentValues[i, 0]
 			END;
 			INC(i)
 		END
 	END Evaluate;
+
+	PROCEDURE (node: ScalarPriorNode) ExternalizeScalar (VAR wr: Stores.Writer);
+		VAR
+			i, len: INTEGER;
+			vector: GraphStochastic.Vector;
+	BEGIN
+		GraphNodes.Externalize(node.prior, wr);
+		vector := node.priorParents;
+		IF vector # NIL THEN len := LEN(vector) ELSE len := 0 END;
+		wr.WriteInt(len);
+		i := 0;
+		WHILE i < len DO
+			GraphNodes.Externalize(vector[i], wr); INC(i)
+		END
+	END ExternalizeScalar;
+
+	PROCEDURE (node: ScalarPriorNode) InitLogical;
+	BEGIN
+		node.prior := NIL;
+		node.priorParents := NIL;
+	END InitLogical;
+
+	PROCEDURE (node: ScalarPriorNode) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphReplicate.ScalarPriorInstall"
+	END Install;
+
+	PROCEDURE (node: ScalarPriorNode) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			i, len, nElem: INTEGER;
+			prior: GraphNodes.Node;
+			p: GraphNodes.Node;
+			vector: GraphStochastic.Vector;
+	BEGIN
+		node.prior := GraphNodes.Internalize(rd);
+		rd.ReadInt(len);
+		IF len > 0 THEN NEW(vector, len) ELSE vector := NIL END;
+		i := 0;
+		WHILE i < len DO
+			p := GraphNodes.Internalize(rd);
+			vector[i] := p(GraphStochastic.Node);
+			INC(i)
+		END;
+		node.priorParents := vector;
+		prior := node.prior;
+		nElem := prior.Size();
+		IF nElem > LEN(oldValues) THEN NEW(oldValues, nElem) END;
+		IF len > LEN(oldParentValues) THEN
+			NEW(oldParentValues, len); i := 0; WHILE i < len DO oldParentValues[i] := NIL; INC(i) END
+		END;
+		i := 0;
+		WHILE i < len DO
+			p := vector[i];
+			nElem := p.Size();
+			IF (oldParentValues[i] = NIL) OR (LEN(oldParentValues[i]) < nElem) THEN
+				NEW(oldParentValues[i], nElem)
+			END;
+			INC(i)
+		END
+	END InternalizeScalar;
 
 	PROCEDURE (node: VectorPostNode) Check (): SET;
 		VAR
@@ -322,6 +320,32 @@ MODULE GraphReplicate;
 	BEGIN
 		RETURN GraphRules.other
 	END ClassFunction;
+
+	PROCEDURE (node: VectorPostNode) Evaluate;
+		VAR
+			i, nElem, start, step: INTEGER;
+			res: SET;
+			prior: GraphNodes.Node;
+	BEGIN
+		start := node.start;
+		step := node.step;
+		prior := node.prior[start];
+		nElem := node.Size();
+		WITH prior: GraphMultivariate.Node DO
+			i := 0;
+			WHILE i < nElem DO oldValues[i] := prior.components[i].value; INC(i) END;
+			prior.MVSample(res);
+			i := 0;
+			WHILE i < nElem DO node.components[i].value := prior.components[i].value; INC(i); END;
+			i := 0;
+			WHILE i < nElem DO prior.components[i].value := oldValues[i]; INC(i) END
+		END
+	END Evaluate;
+
+	PROCEDURE (node: VectorPostNode) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (node: VectorPostNode) ExternalizeVector (VAR wr: Stores.Writer);
 		VAR
@@ -359,7 +383,6 @@ MODULE GraphReplicate;
 	PROCEDURE (node: VectorPostNode) InitLogical;
 	BEGIN
 		node.prior := NIL;
-		node.SetProps(node.props + {GraphLogical.dependent})
 	END InitLogical;
 
 	PROCEDURE (node: VectorPostNode) Install (OUT install: ARRAY OF CHAR);
@@ -399,33 +422,7 @@ MODULE GraphReplicate;
 		END
 	END Set;
 
-	PROCEDURE (node: VectorPostNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
-	PROCEDURE (node: VectorPostNode) Evaluate (OUT values: ARRAY OF REAL);
-		VAR
-			i, nElem, start, step: INTEGER;
-			res: SET;
-			prior: GraphNodes.Node;
-	BEGIN
-		start := node.start;
-		step := node.step;
-		prior := node.prior[start];
-		nElem := node.Size();
-		WITH prior: GraphMultivariate.Node DO
-			i := 0;
-			WHILE i < nElem DO oldValues[i] := prior.components[i].value; INC(i) END;
-			prior.MVSample(res);
-			i := 0;
-			WHILE i < nElem DO values[i] := prior.components[i].value; INC(i); END;
-			i := 0;
-			WHILE i < nElem DO prior.components[i].SetValue(oldValues[i]); INC(i) END
-		END
-	END Evaluate;
-
-	PROCEDURE (f: ScalarPostFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: ScalarPostFactory) New (): GraphScalar.Node;
 		VAR
 			node: ScalarPostNode;
 	BEGIN
@@ -439,7 +436,7 @@ MODULE GraphReplicate;
 		signature := "s"
 	END Signature;
 
-	PROCEDURE (f: ScalarPriorFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: ScalarPriorFactory) New (): GraphScalar.Node;
 		VAR
 			node: ScalarPriorNode;
 	BEGIN

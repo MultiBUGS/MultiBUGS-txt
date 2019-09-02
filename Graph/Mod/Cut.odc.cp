@@ -44,15 +44,15 @@ MODULE GraphCut;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.cutParent, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
 		node.cutParent := GraphNodes.Internalize(rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -87,23 +87,25 @@ MODULE GraphCut;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 		VAR
-			value: REAL;
 			p: GraphNodes.Node;
 	BEGIN
 		p := node.cutParent;
-		value := p.Value();
-		RETURN value
-	END Value;
+		node.value := p.value;
+	END Evaluate;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs ;
 		VAR
 			p: GraphNodes.Node;
+			x: GraphNodes.Vector;
+			i, N: INTEGER;
 	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
 		p := node.cutParent;
-		p.ValDiff(x, val, diff)
-	END ValDiff;
+		i := 0; WHILE i < N DO node.diffs[i] := p.Diff(x[i]); INC(i) END
+	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

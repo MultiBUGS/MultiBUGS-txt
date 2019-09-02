@@ -28,7 +28,6 @@ MENU "Model"
 	"PK Specification..."	""	"StdCmds.OpenToolDialog('PKBugs/Rsrc/SpecificationDialog', 'PK Specification Tool')"	""
 	SEPARATOR
 	"Update..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/UpdateDialog', 'Update Tool')"		"BugsCmds.UpdateGuard"
-	"Update. HMC.."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/HMCDialog', 'HMC Update Tool')"		"BugsCmds.UpdateGuard"
 	SEPARATOR
 	"Random number generator..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/RNDialog', 'RN state')"		"BugsCmds.NotCompiledGuard"	
 	SEPARATOR	
@@ -37,6 +36,7 @@ MENU "Model"
 	"Output options..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/DisplayDialog', 'Display options')"	 ""
 	"Compile options..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/CompileDialog', 'Compile options')"	 ""		
 	"Updater options..."	""	"StdCmds.OpenToolDialog('Updater/Rsrc/SettingsDialog', 'Updater options')"	 ""	
+	"HMC options.."	""	"StdCmds.OpenToolDialog('Updater/Rsrc/HMCDialog', 'HMC options')"		""
 	SEPARATOR	
 	"Externalize..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/OutBugDialog', 'Externalize model')"	""
 	"Internalize..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/InBugDialog', 'Internalize model')"	""

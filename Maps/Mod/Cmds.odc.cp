@@ -310,7 +310,7 @@ MODULE MapsCmds;
 			INC(i)
 		END;
 		IF i < len THEN
-			min := name.components[i].Value();
+			min := name.components[i].value;
 			max := min
 		ELSE
 			ok := FALSE; Error(3); RETURN
@@ -320,7 +320,7 @@ MODULE MapsCmds;
 		i := 0;
 		WHILE i < len DO
 			IF name.components[i] # NIL THEN
-				values[i] := name.components[i].Value();
+				values[i] := name.components[i].value;
 				min := MIN(values[i], min);
 				max := MAX(values[i], max);
 				mask[i] := TRUE

@@ -13,7 +13,7 @@ MODULE UpdaterDE;
 
 	IMPORT
 		Math, Stores := Stores64,
-		GraphStochastic,
+		GraphLogical, GraphStochastic,
 		MathRandnum,
 		UpdaterActions, UpdaterMetropolisMV, UpdaterUpdaters;
 
@@ -23,74 +23,75 @@ MODULE UpdaterDE;
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMetropolisMV.Updater)
 			chain: INTEGER;
-			updaters: UpdaterUpdaters.Vector
+			index: POINTER TO ARRAY OF INTEGER;
 		END;
 
 	VAR
-		xNew, xR1, xR2: POINTER TO ARRAY OF REAL;
+		xNew, xMap, xR1, xR2: POINTER TO ARRAY OF REAL;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE CheckBounds (updater: Updater; IN value: ARRAY OF REAL): BOOLEAN;
-		VAR
-			checkBounds: BOOLEAN;
-			i, size: INTEGER;
-			lower, upper: REAL;
-			prior: GraphStochastic.Vector;
-	BEGIN
-		prior := updater.prior;
-		checkBounds := TRUE;
-		size := updater.Size();
-		i := 0;
-		WHILE checkBounds & (i < size) DO
-			prior[i].Bounds(lower, upper);
-			checkBounds := (value[i] > lower) & (value[i] < upper);
-			INC(i)
-		END;
-		RETURN checkBounds
-	END CheckBounds;
-
 	PROCEDURE BuildProposal (updater: Updater);
 		VAR
-			i, numChains, index: INTEGER;
+			i, j, numStoch, size: INTEGER;
+			p: GraphStochastic.Node;
+			stochastics: GraphStochastic.Vector;
 	BEGIN
-		numChains := UpdaterActions.NumberChains();
-		NEW(updater.updaters, numChains);
-		UpdaterActions.FindUpdater(updater, updater.chain, index);
+		UpdaterActions.FindUpdater(updater, updater.chain, i);
+		size := updater.Size();
+		NEW(updater.index, size);
+		stochastics := GraphStochastic.nodes;
+		numStoch := LEN(stochastics);
 		i := 0;
-		WHILE i < numChains DO
-			updater.updaters[i] := UpdaterActions.updaters[i, index];
+		WHILE i < size DO
+			p := updater.prior[i];
+			j := 0;
+			WHILE (j < numStoch) & (p # stochastics[j]) DO INC(j) END;
+			updater.index[i] := j;
 			INC(i)
 		END
 	END BuildProposal;
 
-	PROCEDURE SampleProposal (updater: Updater; OUT x: ARRAY OF REAL);
+	PROCEDURE SampleProposal (updater: Updater);
 		VAR
 			chain, i, r1, r2, numChains, size: INTEGER;
 			gamma: REAL;
-			u1, u2: UpdaterUpdaters.Updater;
+			prior: GraphStochastic.Vector;
 		CONST
 			b = 1.0E-4;
 	BEGIN
 		size := updater.Size();
 		numChains := UpdaterActions.NumberChains();
 		chain := updater.chain;
-		ASSERT(numChains >= 3, 21);
+		prior := updater.prior;
+		ASSERT(numChains >= 3 * size, 21);
 		gamma := 2.38 / Math.Sqrt(2 * size);
 		IF updater.iteration MOD 10 = 0 THEN gamma := gamma / 10 END;
 		REPEAT r1 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL r1 # chain;
 		REPEAT r2 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL (r2 # chain) & (r2 # r1);
-		u1 := updater.updaters[r1];
-		u1.LoadSample;
-		u1(UpdaterMetropolisMV.Updater).GetValue(xR1);
-		u2 := updater.updaters[r2];
-		u2.LoadSample;
-		u2(UpdaterMetropolisMV.Updater).GetValue(xR2);
 		i := 0;
 		WHILE i < size DO
-			x[i] := updater.oldVals[i] + gamma * (xR1[i] - xR2[i]) + MathRandnum.Uniform( - b, b);
+			xMap[i] := prior[i].Map();
 			INC(i)
-		END
+		END;
+		i := 0;
+		WHILE i < size DO
+			prior[i].value := GraphStochastic.values[r1, updater.index[i]];
+			xR1[i] := prior[i].Map();
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < size DO
+			prior[i].value := GraphStochastic.values[r2, updater.index[i]];
+			xR2[i] := prior[i].Map();
+			INC(i)
+		END;
+		i := 0;
+		WHILE i < size DO
+			xNew[i] := xMap[i] + gamma * (xR1[i] - xR2[i]) + MathRandnum.Normal(0, b);
+			INC(i)
+		END;
+		i := 0; WHILE i < size DO prior[i].InvMap(xNew[i]); INC(i) END
 	END SampleProposal;
 
 	PROCEDURE (updater: Updater) CopyFromMetropolisMV- (source: UpdaterUpdaters.Updater);
@@ -99,35 +100,43 @@ MODULE UpdaterDE;
 	BEGIN
 		s := source(Updater);
 		updater.chain := s.chain;
+		updater.index := s.index
 	END CopyFromMetropolisMV;
 
 	PROCEDURE (updater: Updater) ExternalizeMetropolisMV- (VAR wr: Stores.Writer);
+		VAR
+			i, size: INTEGER;
 	BEGIN
 		wr.WriteInt(updater.chain);
+		size := updater.Size(); i := 0; WHILE i < size DO wr.WriteInt(updater.index[i]); INC(i) END;
 	END ExternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) InternalizeMetropolisMV- (VAR rd: Stores.Reader);
 		VAR
-			len, size: INTEGER;
+			i, size: INTEGER;
 	BEGIN
 		rd.ReadInt(updater.chain);
 		size := updater.Size();
 		IF size > LEN(xNew) THEN
 			NEW(xNew, size);
+			NEW(xMap, size);
 			NEW(xR1, size);
 			NEW(xR2, size)
 		END;
-		updater.updaters := NIL
+		NEW(updater.index, size);
+		i := 0; WHILE i < size DO rd.ReadInt(updater.index[i]); INC(i) END
 	END InternalizeMetropolisMV;
 
 	PROCEDURE (updater: Updater) InitializeMetropolisMV-;
 		VAR
 			size: INTEGER;
 	BEGIN
-		updater.chain :=  - 1;
+		updater.chain := - 1;
+		updater.index := NIL;
 		size := updater.Size();
 		IF size > LEN(xNew) THEN
 			NEW(xNew, size);
+			NEW(xMap, size);
 			NEW(xR1, size);
 			NEW(xR2, size)
 		END
@@ -146,25 +155,16 @@ MODULE UpdaterDE;
 	PROCEDURE (updater: Updater) Sample* (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			logAlpha, newLogDen, oldLogDen: REAL;
-			accept: BOOLEAN;
 	BEGIN
-		IF updater.updaters = NIL THEN
-			BuildProposal(updater)
-		END;
-		updater.GetValue(updater.oldVals);
-		SampleProposal(updater, xNew);
-		accept := CheckBounds(updater, xNew);
-		IF accept THEN
-			oldLogDen := updater.LogConditional();
-			updater.SetValue(xNew);
-			newLogDen := updater.LogConditional();
-			logAlpha := newLogDen - oldLogDen;
-			IF logAlpha < Math.Ln(MathRandnum.Rand()) THEN
-				updater.SetValue(updater.oldVals);
-				INC(updater.rejectCount)
-			END
-		ELSE
-			updater.SetValue(updater.oldVals);
+		IF updater.index = NIL THEN BuildProposal(updater) END;
+		updater.Store;
+		oldLogDen := updater.LogConditional() + updater.LogDetJacobian();
+		SampleProposal(updater);
+		GraphLogical.Evaluate(updater.dependents);
+		newLogDen := updater.LogConditional() + updater.LogDetJacobian();
+		logAlpha := newLogDen - oldLogDen;
+		IF logAlpha < Math.Ln(MathRandnum.Rand()) THEN
+			updater.Restore;
 			INC(updater.rejectCount)
 		END;
 		INC(updater.iteration);
@@ -182,10 +182,11 @@ MODULE UpdaterDE;
 
 	PROCEDURE Init;
 		CONST
-			size = 100;
+			size = 1;
 	BEGIN
 		Maintainer;
 		NEW(xNew, size);
+		NEW(xMap, size);
 		NEW(xR1, size);
 		NEW(xR2, size)
 	END Init;

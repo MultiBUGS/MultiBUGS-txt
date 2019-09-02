@@ -34,12 +34,12 @@ MODULE PharmacoPKFOlag1;
 		VAR
 			CL, V, s, dose, Tlag, ka, value: REAL;
 	BEGIN
-		CL := Math.Exp(params[0].Value());
-		V := Math.Exp(params[1].Value());
-		Tlag := Math.Exp(params[2].Value());
-		ka := Math.Exp(params[3].Value()) + CL / V;
-		s := scalars[PharmacoModel.time].Value() - Tlag;
-		dose := scalars[PharmacoModel.dose].Value();
+		CL := Math.Exp(params[0].value);
+		V := Math.Exp(params[1].value);
+		Tlag := Math.Exp(params[2].value);
+		ka := Math.Exp(params[3].value) + CL / V;
+		s := scalars[PharmacoModel.time].value - Tlag;
+		dose := scalars[PharmacoModel.dose].value;
 		IF s < 0 THEN value := 0
 		ELSE value := dose * ka * (Math.Exp( - ka * s) - Math.Exp( - CL * s / V)) / (CL - ka * V)
 		END;
@@ -57,10 +57,10 @@ MODULE PharmacoPKFOlag1;
 		install := "PharmacoPKFOlag1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

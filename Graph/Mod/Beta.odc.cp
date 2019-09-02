@@ -57,8 +57,8 @@ MODULE GraphBeta;
 		VAR
 			class: INTEGER;
 	BEGIN
-		IF (GraphNodes.data IN node.a.props) & (node.a.Value() > 1.0)
-			 & (GraphNodes.data IN node.b.props) & (node.b.Value() > 1.0) THEN
+		IF (GraphNodes.data IN node.a.props) & (node.a.value > 1.0)
+			 & (GraphNodes.data IN node.b.props) & (node.b.value > 1.0) THEN
 			class := GraphRules.beta1
 		ELSE
 			class := GraphRules.beta
@@ -70,8 +70,8 @@ MODULE GraphBeta;
 		VAR
 			a, b, cumulative: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		cumulative := MathCumulative.Beta(a, b, p);
 		RETURN cumulative
 	END Cumulative;
@@ -81,8 +81,8 @@ MODULE GraphBeta;
 			a, b, logDensity, p: REAL;
 	BEGIN
 		p := node.value;
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		logDensity := (a - 1) * Math.Ln(p) + (b - 1) * Math.Ln(1 - p) + MathFunc.LogGammaFunc(a + b)
 		 - MathFunc.LogGammaFunc(a) - MathFunc.LogGammaFunc(b);
 		RETURN - 2.0 * logDensity
@@ -93,8 +93,10 @@ MODULE GraphBeta;
 			a, b, diffA, diffB, differential, p: REAL;
 	BEGIN
 		p := node.value;
-		node.a.ValDiff(x, a, diffA);
-		node.b.ValDiff(x, b, diffB);
+		a := node.a.value;
+		b := node.b.value;
+		diffA := node.a.Diff(x);
+		diffB := node.b.Diff(x);
 		differential := diffA * Math.Ln(p) + diffB * Math.Ln(1 - p)
 		 + (diffA + diffB) * MathFunc.Digamma(a + b)
 		 - diffA * MathFunc.Digamma(a) - diffB * MathFunc.Digamma(b);
@@ -105,8 +107,8 @@ MODULE GraphBeta;
 		VAR
 			a, b, p: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		p := node.value;
 		RETURN ((a - 1) / p) - ((b - 1) / (1 - p))
 	END DiffLogPrior;
@@ -127,8 +129,8 @@ MODULE GraphBeta;
 			a, b, logLikelihood, p: REAL;
 	BEGIN
 		p := node.value;
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		logLikelihood := (a - 1) * Math.Ln(p) + (b - 1) * Math.Ln(1 - p);
 		IF ~(GraphNodes.data IN node.a.props) OR ~(GraphNodes.data IN node.b.props) THEN
 			logLikelihood := logLikelihood + MathFunc.LogGammaFunc(a + b)
@@ -142,8 +144,8 @@ MODULE GraphBeta;
 			a, b, logPrior, p: REAL;
 	BEGIN
 		p := node.value;
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		logPrior := (a - 1) * Math.Ln(p) + (b - 1) * Math.Ln(1 - p);
 		RETURN logPrior
 	END LogPrior;
@@ -152,16 +154,16 @@ MODULE GraphBeta;
 		VAR
 			a, b: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		RETURN a / (a + b)
 	END Location;
 
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.beta, 21);
-		p0 := prior.a.Value();
-		p1 := prior.b.Value()
+		p0 := prior.a.value;
+		p1 := prior.b.value
 	END PriorForm;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
@@ -191,10 +193,10 @@ MODULE GraphBeta;
 		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.lhs}
 		END;
-		IF node.a.Value() < eps THEN
+		IF node.a.value < eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.b.Value() < eps THEN
+		IF node.b.value < eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -214,7 +216,7 @@ MODULE GraphBeta;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.a := NIL;
 		node.b := NIL
 	END InitUnivariate;
@@ -236,8 +238,8 @@ MODULE GraphBeta;
 			a, b, p, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		IF a < minParam THEN
 			res := {GraphNodes.arg1, GraphNodes.invalidPosative};
 			RETURN
@@ -259,7 +261,7 @@ MODULE GraphBeta;
 				p := MathRandnum.BetaIB(a, b, lower, upper)
 			END
 		END;
-		node.SetValue(p);
+		node.value := p;
 		res := {}
 	END Sample;
 

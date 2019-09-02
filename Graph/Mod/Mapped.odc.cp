@@ -38,18 +38,36 @@ MODULE GraphMapped;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) Evaluate;
+		VAR
+			value: REAL;
+			x: GraphStochastic.Node;
+	BEGIN
+		x := node.x;
+		WITH x: GraphMultivariate.Node DO
+			value := x.components[0].Map(); (*	needed for side effects	*)
+		ELSE
+		END;
+		node.value := x.Map();
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.x, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		node.x := p(GraphStochastic.Node);
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -94,25 +112,6 @@ MODULE GraphMapped;
 			END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Value (): REAL;
-		VAR
-			value: REAL;
-			x: GraphStochastic.Node;
-	BEGIN
-		x := node.x;
-		WITH x: GraphMultivariate.Node DO
-			value := x.components[0].Map(); (*	needed for side effects	*)
-		ELSE
-		END;
-		value := x.Map();
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (z: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

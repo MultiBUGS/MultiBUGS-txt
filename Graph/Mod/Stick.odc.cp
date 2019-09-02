@@ -41,7 +41,7 @@ MODULE GraphStick;
 			p: GraphNodes.Node;
 	BEGIN
 		IF node.constant # NIL THEN RETURN GraphRules.const END;
-		dim := node.dim ;
+		dim := node.dim;
 		start := node.start;
 		step := node.step;
 		index := node.index;
@@ -49,7 +49,7 @@ MODULE GraphStick;
 		LOOP
 			off := start + i * step;
 			p := node.prop[off];
-			IF p = parent THEN 
+			IF p = parent THEN
 				IF i = index THEN
 					form := GraphRules.ident
 				ELSIF i > index THEN
@@ -57,7 +57,7 @@ MODULE GraphStick;
 				ELSE
 					form := GraphRules.linear
 				END;
-				EXIT 
+				EXIT
 			END;
 			INC(i);
 			IF i = dim THEN form := GraphRules.const; EXIT END
@@ -65,32 +65,39 @@ MODULE GraphStick;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			dim, i, off, start, step: INTEGER;
 			p: GraphNodes.Node;
 			pVal, len: REAL;
 	BEGIN
-		dim := node.dim;
-		start := node.start;
-		step := node.step;
-		p := node.prop[start];
-		len := 1.0;
-		i := 0;
-		WHILE i < dim - 1 DO
-			off := start + i * step;
-			IF node.prop # NIL THEN
-				p := node.prop[off];
-				pVal := p.Value()
-			ELSE
-				pVal := node.constant[off]
+		IF node.index = 0 THEN
+			dim := node.dim;
+			start := node.start;
+			step := node.step;
+			p := node.prop[start];
+			len := 1.0;
+			i := 0;
+			WHILE i < dim - 1 DO
+				off := start + i * step;
+				IF node.prop # NIL THEN
+					p := node.prop[off];
+					pVal := p.value
+				ELSE
+					pVal := node.constant[off]
+				END;
+				node.components[i].value := len * pVal;
+				len := len - node.components[i].value;
+				INC(i)
 			END;
-			values[i] := len * pVal;
-			len := len - values[i];
-			INC(i)
-		END;
-		values[dim - 1] := len
+			node.components[dim - 1].value := len
+		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 		VAR
@@ -136,7 +143,6 @@ MODULE GraphStick;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent})
 	END InitLogical;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -206,20 +212,15 @@ MODULE GraphStick;
 						END
 					END
 				ELSE
-					IF node.constant[off] = INF THEN 
-						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN 
+					IF node.constant[off] = INF THEN
+						res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
 					END
 				END;
 				INC(i)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(0)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR

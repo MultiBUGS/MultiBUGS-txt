@@ -59,19 +59,16 @@ MODULE UpdaterWishart;
 				stoch := children[l];
 				WITH stoch: GraphConjugateMV.Node DO	(*	multivariate normal likelihood	*)
 					stoch.MVLikelihoodForm(as, xVector, start, step, p0, value);
+					IF xVector[start] = prior THEN
+						weight := 1.0
+					ELSE
+						weight := xVector[start].value / prior.value
+					END;
 					i := 0;
 					WHILE i < len DO
 						j := 0;
 						WHILE j < len DO
 							k := i * len + j;
-							IF xVector[start + k * step] = prior.components[k] THEN
-								weight := 1
-							ELSE
-								prior.components[k].SetValue(0.0);
-								weight := xVector[start + k * step].Value();
-								prior.components[k].SetValue(1.0);
-								weight := xVector[start + k * step].Value() - weight
-							END;
 							p[k] := p[k] + weight * value[i, j];
 							INC(j)
 						END;
@@ -174,11 +171,12 @@ MODULE UpdaterWishart;
 		WHILE i < len DO
 			j := 0;
 			WHILE j < len DO
-				prior.components[i * len + j].SetValue(value[i, j]);
+				prior.components[i * len + j].value := value[i, j];
 				INC(j)
 			END;
 			INC(i)
 		END;
+		prior.Evaluate;
 		res := {}
 	END Sample;
 

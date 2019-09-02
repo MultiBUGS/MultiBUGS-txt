@@ -246,7 +246,7 @@ MODULE GraphODEBlockL;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate ;
 		CONST
 			eps = 1.0E-10;
 		VAR
@@ -260,17 +260,17 @@ MODULE GraphODEBlockL;
 		numEq := LEN(node.x0);
 		i := 0;
 		WHILE i < numEq DO
-			node.x0[i] := node.inits[0, i].Value();
+			node.x0[i] := node.inits[0, i].value;
 			INC(i)
 		END;
 		numBlocks := LEN(node.origins); gridSize := LEN(node.grid);
-		index := node.block(GraphStochastic.Node); index.SetValue(0);
-		start := node.origins[0].Value();
+		index := node.block(GraphStochastic.Node); index.value := 0;
+		start := node.origins[0].value;
 		gridIndex := 0; block := 0;
 		WHILE gridIndex < gridSize DO
 			IF block < numBlocks - 1 THEN
-				nextOrigin := node.origins[block + 1].Value();
-				nextGP := node.grid[gridIndex].Value();
+				nextOrigin := node.origins[block + 1].value;
+				nextGP := node.grid[gridIndex].value;
 				IF ABS(nextGP - nextOrigin) < eps THEN
 					end := nextGP;
 					incBlock := TRUE;
@@ -285,7 +285,7 @@ MODULE GraphODEBlockL;
 					incGrid := FALSE
 				END
 			ELSE
-				end := node.grid[gridIndex].Value();
+				end := node.grid[gridIndex].value;
 				incBlock := FALSE;
 				incGrid := TRUE
 			END;
@@ -296,21 +296,21 @@ MODULE GraphODEBlockL;
 			IF incBlock THEN
 				INC(block);
 				stochastic := node.t(GraphStochastic.Node);
-				stochastic.SetValue(end);
+				stochastic.value := end;
 				i := 0;
 				WHILE i < numEq DO
 					stochastic := node.x[i](GraphStochastic.Node); 
-					stochastic.SetValue(node.x1[i]);
+					stochastic.value := node.x1[i];
 					INC(i)
 				END;
 				i := 0;
 				WHILE i < numEq DO
 					IF node.inits[block, i] # NIL THEN
-						node.x1[i] := node.x1[i] + node.inits[block, i].Value();
+						node.x1[i] := node.x1[i] + node.inits[block, i].value;
 					END;
 					INC(i)
 				END;
-				index.SetValue(block)
+				index.value := block
 			END;
 			i := 0;
 			WHILE i < numEq DO
@@ -320,7 +320,7 @@ MODULE GraphODEBlockL;
 			IF incGrid THEN
 				i := 0;
 				WHILE i < numEq DO
-					values[gridIndex * numEq + i] := node.x1[i];
+					node.components[gridIndex * numEq + i].value := node.x1[i];
 					INC(i)
 				END;
 				INC(gridIndex)
@@ -329,9 +329,13 @@ MODULE GraphODEBlockL;
 		END
 	END Evaluate;
 
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.linked := FALSE;
 		node.tol := 0.0;
 		node.atol := 0.0;
@@ -412,7 +416,7 @@ MODULE GraphODEBlockL;
 				NEW(node.grid, gridSize); NEW(node.deriv, numEq);
 				NEW(node.x, numEq); NEW(node.origins, numBlocks);
 				node.t := args.scalars[0]; ASSERT(args.scalars[0] # NIL, trap);
-				node.t.SetProps(node.t.props + {GraphStochastic.hidden});
+				INCL(node.t.props, GraphStochastic.hidden);
 				ASSERT(args.vectors[0].components # NIL, trap);
 				ASSERT(args.vectors[1].components # NIL, trap);
 				ASSERT(args.vectors[2].components # NIL, trap);
@@ -435,7 +439,7 @@ MODULE GraphODEBlockL;
 				(*	need to set node.block	*)
 				argsS.Init;
 				node.block.Set(argsS, res);
-				node.block.SetProps(node.block.props + {GraphStochastic.hidden});
+				INCL(node.block.props, GraphStochastic.hidden);
 				i := 0;
 				WHILE i < numBlocks DO
 					j := 0;
@@ -476,7 +480,7 @@ MODULE GraphODEBlockL;
 					ASSERT(off < LEN(args.vectors[3].components), trap);
 					ASSERT(args.vectors[3].components[off] # NIL, trap);
 					node.x[i] := args.vectors[3].components[off];
-					node.x[i].SetProps(node.x[i].props + {GraphStochastic.hidden});
+					INCL(node.x[i].props, GraphStochastic.hidden);
 					INC(i)
 				END;
 				i := 0;
@@ -489,9 +493,9 @@ MODULE GraphODEBlockL;
 				END;
 				ASSERT(args.vectors[5].components # NIL, 21);
 				ASSERT(args.vectors[5].nElem > 0, 21);
-				node.tol := args.vectors[5].components[0].Value();
+				node.tol := args.vectors[5].components[0].value;
 				IF LEN(args.vectors[5].components) > 1 THEN
-					node.atol := args.vectors[5].components[1].Value();
+					node.atol := args.vectors[5].components[1].value;
 				ELSE
 					node.atol := 0.0;
 				END;
@@ -500,11 +504,6 @@ MODULE GraphODEBlockL;
 			Copy(node)
 		END
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (equations: Equations) Derivatives (IN theta, x: ARRAY OF REAL; numEq: INTEGER;
 	t: REAL; OUT dxdt: ARRAY OF REAL);
@@ -515,16 +514,16 @@ MODULE GraphODEBlockL;
 	BEGIN
 		node := equations.node;
 		time := node.t(GraphStochastic.Node);
-		time.SetValue(t);
+		time.value := t;
 		i := 0;
 		WHILE i < numEq DO
 			xx := node.x[i](GraphStochastic.Node);
-			xx.SetValue(x[i]);
+			xx.value := x[i];
 			INC(i)
 		END;
 		i := 0;
 		WHILE i < numEq DO
-			dxdt[i] := node.deriv[i].Value();
+			dxdt[i] := node.deriv[i].value;
 			INC(i)
 		END
 	END Derivatives;

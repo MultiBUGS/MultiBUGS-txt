@@ -80,9 +80,9 @@ MODULE GraphGengamma;
 			RETURN 0.0;
 		END;
 		(* beta = shape,  r = k, mu = 1/scale in notation from R flexsurv package *)
-		r := node.r.Value();
-		mu := node.mu.Value();
-		beta := node.beta.Value();
+		r := node.r.value;
+		mu := node.mu.value;
+		beta := node.beta.value;
 		RETURN MathCumulative.Gengamma(r, mu, beta, x)
 	END Cumulative;
 
@@ -91,10 +91,10 @@ MODULE GraphGengamma;
 			beta, logBeta, logDensity, logMu, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		logMu := MathFunc.Ln(mu);
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
 		logDensity := logBeta + beta * r * logMu + (beta * r - 1.0) * Math.Ln(x) - 
 		Math.Power(x * mu, beta) - MathFunc.LogGammaFunc(r);
@@ -106,9 +106,12 @@ MODULE GraphGengamma;
 			diffBeta, beta, differential, diffMu, mu, diffR, r, val: REAL;
 	BEGIN
 		val := node.value;
-		node.r.ValDiff(x, r, diffR);
-		node.mu.ValDiff(x, mu, diffMu);
-		node.beta.ValDiff(x, beta, diffBeta);
+		r := node.r.value;
+		mu := node.mu.value;
+		beta := node.beta.value;
+		diffR := node.r.Diff(x);
+		diffMu := node.mu.Diff(x);
+		diffBeta := node.beta.Diff(x);
 		differential := diffBeta * (1 / beta + r * Math.Ln(mu) + r * Math.Ln(val) + Math.Ln(mu * val) * 
 		Math.Power(val * mu, beta));
 		differential := differential + diffR * (beta * Math.Ln(mu) + beta * Math.Ln(val) - MathFunc.Digamma(r));
@@ -121,9 +124,9 @@ MODULE GraphGengamma;
 			beta, differential, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
-		beta := node.beta.Value();
+		r := node.r.value;
+		mu := node.mu.value;
+		beta := node.beta.value;
 		differential := (beta * r - 1.0) / x - mu * Math.Power(x * mu, beta - 1);
 		RETURN differential
 	END DiffLogPrior;
@@ -138,10 +141,10 @@ MODULE GraphGengamma;
 			beta, logBeta, logLikelihood, logMu, r, mu, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		logMu := MathFunc.Ln(mu);
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
 		logLikelihood := logBeta + beta * r * logMu + (beta * r - 1.0) * Math.Ln(x) - 
 		Math.Power(x * mu, beta) - MathFunc.LogGammaFunc(r);
@@ -153,9 +156,9 @@ MODULE GraphGengamma;
 			beta, logPrior, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
-		beta := node.beta.Value();
+		r := node.r.value;
+		mu := node.mu.value;
+		beta := node.beta.value;
 		logPrior := (beta * r - 1.0) * Math.Ln(x) - Math.Power(x * mu, beta);
 		RETURN logPrior
 	END LogPrior;
@@ -164,9 +167,9 @@ MODULE GraphGengamma;
 		VAR
 			beta, mu, r, norm: REAL;
 	BEGIN
-		beta := node.beta.Value();
-		mu := node.mu.Value();
-		r := node.r.Value();
+		beta := node.beta.value;
+		mu := node.mu.value;
+		r := node.r.value;
 		norm := MathFunc.LogGammaFunc(r);
 		RETURN Math.Exp(MathFunc.LogGammaFunc(r + 1 / beta) - norm) / mu
 	END Location;
@@ -182,13 +185,13 @@ MODULE GraphGengamma;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.r.Value() < 0 THEN
+		IF node.r.value < 0 THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.mu.Value() < - eps THEN
+		IF node.mu.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -210,7 +213,7 @@ MODULE GraphGengamma;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.r := NIL;
 		node.mu := NIL;
 		node.beta := NIL
@@ -246,9 +249,9 @@ MODULE GraphGengamma;
 			bounds: SET;
 	BEGIN
 		res := {};
-		r := node.r.Value();
-		mu := node.mu.Value();
-		beta := node.beta.Value();
+		r := node.r.value;
+		mu := node.mu.value;
+		beta := node.beta.value;
 		IF r < rMin THEN
 			res := {GraphNodes.arg1, GraphNodes.invalidPosative};
 			RETURN
@@ -270,7 +273,7 @@ MODULE GraphGengamma;
 				x := MathRandnum.GengammaIB(r, mu, beta, lower, upper)
 			END
 		END;
-		node.SetValue(x)
+		node.value := x
 	END Sample;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;

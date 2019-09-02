@@ -86,7 +86,7 @@ MODULE GraphDirichlet;
 		logLikelihood := 0;
 		sumAlphas := 0;
 		WHILE i < nElem DO
-			alpha[i] := node.alpha[start + i * step].Value();
+			alpha[i] := node.alpha[start + i * step].value;
 			props[i] := node.components[i].value;
 			logLikelihood := logLikelihood + (alpha[i] - 1) * Math.Ln(props[i]) - 
 			MathFunc.LogGammaFunc(alpha[i]);
@@ -177,7 +177,8 @@ MODULE GraphDirichlet;
 		sumAlphas := 0;
 		sumDiffAlphas := 0;
 		WHILE i < nElem DO
-			node.alpha[start + i * step].ValDiff(x, alpha, diffAlpha);
+			diffAlpha := node.alpha[start + i * step].Diff(x);
+			alpha := node.alpha[start + i * step].value;
 			props[i] := node.components[i].value;
 			differential := differential + diffAlpha * Math.Ln(props[i]) - diffAlpha * MathFunc.Digamma(alpha);
 			sumAlphas := sumAlphas + alpha;
@@ -196,7 +197,7 @@ MODULE GraphDirichlet;
 		start := node.start;
 		step := node.step;
 		i := node.index;
-		a := node.alpha[start + i * step].Value();
+		a := node.alpha[start + i * step].value;
 		p := node.value;
 		differential := (a - 1) / p;
 		RETURN differential
@@ -216,7 +217,7 @@ MODULE GraphDirichlet;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.alpha := NIL;
 		node.start := - 1;
 		node.step := 0
@@ -266,11 +267,11 @@ MODULE GraphDirichlet;
 			WHILE i < indSize DO
 				q := value[i];
 				p := q * stickLen;
-				node.components[i].SetValue(p);
+				node.components[i].value := p;
 				stickLen := stickLen - p;
 				INC(i)
 			END;
-			node.components[indSize].SetValue(stickLen)
+			node.components[indSize].value := stickLen
 		END
 	END InvMap;
 
@@ -291,7 +292,7 @@ MODULE GraphDirichlet;
 		step := node.step;
 		sum := 0.0;
 		WHILE i < size DO
-			alphaI := node.alpha[start + i * step].Value();
+			alphaI := node.alpha[start + i * step].value;
 			IF i = node.index THEN alphaIndex := alphaI END;
 			sum := sum + alphaI;
 			INC(i)
@@ -332,7 +333,7 @@ MODULE GraphDirichlet;
 		logLikelihood := 0;
 		sumAlphas := 0;
 		WHILE i < nElem DO
-			alpha[i] := node.alpha[start + i * step].Value();
+			alpha[i] := node.alpha[start + i * step].value;
 			props[i] := node.components[i].value;
 			logLikelihood := logLikelihood + (alpha[i] - 1) * Math.Ln(props[i]) - 
 			MathFunc.LogGammaFunc(alpha[i]);
@@ -360,7 +361,7 @@ MODULE GraphDirichlet;
 		logPrior := 0.0;
 		WHILE i < nElem DO
 			x := node.components[i].value;
-			alpha := node.alpha[start + i * step].Value();
+			alpha := node.alpha[start + i * step].value;
 			logPrior := logPrior + (alpha - 1) * MathFunc.Ln(x);
 			INC(i)
 		END;
@@ -408,7 +409,7 @@ MODULE GraphDirichlet;
 		start := node.start;
 		step := node.step;
 		WHILE i < nElem DO
-			p0[i] := node.alpha[start + i * step].Value();
+			p0[i] := node.alpha[start + i * step].value;
 			INC(i)
 		END
 	END MVPriorForm;
@@ -455,14 +456,14 @@ MODULE GraphDirichlet;
 		step := node.step;
 		i := 0;
 		WHILE i < nElem DO
-			alpha[i] := node.alpha[start + i * step].Value();
+			alpha[i] := node.alpha[start + i * step].value;
 			INC(i)
 		END;
 		MathRandnum.Dirichlet(alpha, nElem, props);
 		i := 0;
 		components := node.components;
 		WHILE i < nElem DO
-			components[i].SetValue(props[i]);
+			components[i].value := props[i];
 			INC(i)
 		END;
 		res := {}

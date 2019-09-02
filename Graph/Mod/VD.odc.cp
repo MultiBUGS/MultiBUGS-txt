@@ -11,16 +11,16 @@ MODULE GraphVD;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphNodes, GraphStochastic, 
+		GraphLogical, GraphNodes, GraphStochastic,
 		GraphUnivariate, GraphVector;
 
 	TYPE
 
-		Node* = POINTER TO ABSTRACT RECORD(GraphVector.Node) 
-							k-: GraphStochastic.Node;
-							p0-, p1-: GraphNodes.Node;
-							beta-: GraphStochastic.Vector
-					  END;
+		Node* = POINTER TO ABSTRACT RECORD(GraphVector.Node)
+			k-: GraphStochastic.Node;
+			p0-, p1-: GraphNodes.Node;
+			beta-: GraphStochastic.Vector
+		END;
 
 	VAR
 		version-: INTEGER;
@@ -35,7 +35,7 @@ MODULE GraphVD;
 			cursor, list: GraphStochastic.List;
 			i, len, start: INTEGER;
 	BEGIN
-		len := 1 + LEN(node.beta) ;
+		len := 1 + LEN(node.beta);
 		prec := node.p1;
 		(*	make list of precision or parents of precision (if precision logical node) to add to end of block	*)
 		list := NIL;
@@ -67,12 +67,12 @@ MODULE GraphVD;
 		END;
 		RETURN block
 	END Block;
-		
-	PROCEDURE(node: Node) ExternalizeVD- (VAR wr: Stores.Writer), NEW, ABSTRACT;
-	
-	PROCEDURE(node: Node) ExternalizeVector- (VAR wr: Stores.Writer);
+
+	PROCEDURE (node: Node) ExternalizeVD- (VAR wr: Stores.Writer), NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) ExternalizeVector- (VAR wr: Stores.Writer);
 		VAR
-			i, numBeta, numTheta, size: INTEGER;		
+			i, numBeta, numTheta, size: INTEGER;
 	BEGIN
 		IF node.index = 0 THEN
 			GraphNodes.Externalize(node.k, wr);
@@ -88,25 +88,24 @@ MODULE GraphVD;
 		END;
 		node.ExternalizeVD(wr)
 	END ExternalizeVector;
-	
-	PROCEDURE(node: Node) InternalizeVD- (VAR rd: Stores.Reader), NEW, ABSTRACT;
-	
+
+	PROCEDURE (node: Node) InternalizeVD- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) InitVD-, NEW, ABSTRACT;
-	
+
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.k := NIL;
 		node.p0 := NIL;
 		node.p1 := NIL;
 		node.beta := NIL;
 		node.InitVD
 	END InitLogical;
-	
-	PROCEDURE(node: Node) InternalizeVector- (VAR rd: Stores.Reader);
+
+	PROCEDURE (node: Node) InternalizeVector- (VAR rd: Stores.Reader);
 		VAR
 			i, numBeta, numTheta, size: INTEGER;
-			p: GraphNodes.Node;	
+			p: GraphNodes.Node;
 			vd: Node;
 	BEGIN
 		IF node.index = 0 THEN
@@ -131,11 +130,11 @@ MODULE GraphVD;
 		END;
 		node.InternalizeVD(rd)
 	END InternalizeVector;
-	
-	PROCEDURE(node: Node) MinNumBeta* (): INTEGER, NEW, ABSTRACT;
-	
+
+	PROCEDURE (node: Node) MinNumBeta* (): INTEGER, NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) ParentsVD- (all: BOOLEAN): GraphNodes.List, NEW, ABSTRACT;
-	
+
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
 		VAR
 			list: GraphNodes.List;
@@ -151,9 +150,9 @@ MODULE GraphVD;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
-	
-	PROCEDURE (node: Node) SetBeta* (fact: GraphStochastic.Factory; k: GraphStochastic.Node;  
-																p0, p1: GraphNodes.Node; numBeta: INTEGER), NEW;
+
+	PROCEDURE (node: Node) SetBeta* (fact: GraphStochastic.Factory; k: GraphStochastic.Node;
+	p0, p1: GraphNodes.Node; numBeta: INTEGER), NEW;
 		VAR
 			i, size: INTEGER;
 			res: SET;
@@ -174,36 +173,41 @@ MODULE GraphVD;
 				node.beta[i] := fact.New();
 				node.beta[i].Init;
 				node.beta[i].Set(args, res);
-				node.beta[i].SetProps(node.beta[i].props + {GraphStochastic.initialized});
-				GraphStochastic.RegisterAuxillary(node.beta[i]); 
-				INC(i) 
+				INCL(node.beta[i].props, GraphStochastic.initialized);
+				GraphStochastic.RegisterAuxillary(node.beta[i]);
+				INC(i)
 			END
 		ELSE
 			vd := node.components[0](Node);
 			node.beta := vd.beta
 		END
 	END SetBeta;
-	
-	PROCEDURE (node: Node) SetTheta* (numTheta: INTEGER; p0,p1: REAL), NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) SetTheta* (numTheta: INTEGER; p0, p1: REAL), NEW, ABSTRACT;
 
 	PROCEDURE VDNode* (prior: GraphStochastic.Node): Node;
 		VAR
-			logicals: GraphLogical.List;
+			logicals: GraphLogical.Vector;
 			logical: GraphLogical.Node;
 			jumpNode: Node;
+			i, num: INTEGER;
 	BEGIN
 		jumpNode := NIL;
 		IF (prior IS GraphUnivariate.Node) & (GraphStochastic.integer IN prior.props) THEN
-			logicals := prior.dependents; 
-			WHILE (logicals # NIL) & (jumpNode = NIL) DO
-				logical := logicals.node;
-				IF logical IS Node THEN jumpNode := logical(Node) END;
-				logicals := logicals.next
+			logicals := prior.dependents;
+			IF logicals # NIL THEN
+				num := LEN(logicals);
+				i := 0;
+				WHILE (i < num) & (jumpNode = NIL) DO
+					logical := logicals[i];
+					IF logical IS Node THEN jumpNode := logical(Node) END;
+					INC(i)
+				END
 			END
 		END;
 		RETURN jumpNode
 	END VDNode;
-	
+
 	PROCEDURE Block* (prior: GraphStochastic.Node): GraphStochastic.Vector;
 		VAR
 			jumpNode: Node;

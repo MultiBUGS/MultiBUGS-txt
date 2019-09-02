@@ -48,10 +48,10 @@ MODULE GraphGamma;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.r.Value() < - eps THEN
+		IF node.r.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.mu.Value() < - eps THEN
+		IF node.mu.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -81,7 +81,7 @@ MODULE GraphGamma;
 		VAR
 			class: INTEGER;
 	BEGIN
-		IF (GraphNodes.data IN node.r.props) & (node.r.Value() >= 1.0) THEN
+		IF (GraphNodes.data IN node.r.props) & (node.r.value >= 1.0) THEN
 			class := GraphRules.gamma1
 		ELSE
 			class := GraphRules.gamma
@@ -93,8 +93,8 @@ MODULE GraphGamma;
 		VAR
 			cumulative, mu, r: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		r := node.r.Value();
+		mu := node.mu.value;
+		r := node.r.value;
 		cumulative := MathCumulative.Gamma(mu, r, x);
 		RETURN cumulative
 	END Cumulative;
@@ -104,8 +104,8 @@ MODULE GraphGamma;
 			logMu, logDensity, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		logMu := MathFunc.Ln(mu);
 		logDensity := r * logMu + (r - 1.0) * Math.Ln(x) - x * mu - MathFunc.LogGammaFunc(r);
 		RETURN - 2.0 * logDensity
@@ -116,17 +116,17 @@ MODULE GraphGamma;
 			differential, diffMu, diffR, mu, r, val: REAL;
 	BEGIN
 		val := node.value;
+		r := node.r.value;
+		mu := node.mu.value;
 		IF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.r.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
-			r := node.r.Value();
+			diffMu := node.mu.Diff(x);
 			differential := diffMu * (r / mu - val)
 		ELSIF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.r.ValDiff(x, r, diffR);
+			diffR := node.r.Diff(x);
 			differential := diffR * (Math.Ln(mu) + Math.Ln(val) - MathFunc.Digamma(r));
 		ELSE
-			node.r.ValDiff(x, r, diffR);
-			node.mu.ValDiff(x, mu, diffMu);
+			diffR := node.r.Diff(x);
+			diffMu := node.mu.Diff(x);
 			differential := diffMu * (r / mu - val) + diffR * (Math.Ln(mu) + Math.Ln(val) - MathFunc.Digamma(r))
 		END;
 		RETURN differential
@@ -137,8 +137,8 @@ MODULE GraphGamma;
 			differential, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		differential := (r - 1) / x - mu;
 		RETURN differential
 	END DiffLogPrior;
@@ -151,7 +151,7 @@ MODULE GraphGamma;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.mu := NIL;
 		node.r := NIL
 	END InitUnivariate;
@@ -172,7 +172,7 @@ MODULE GraphGamma;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
 		x := offspring.mu;
-		p0 := offspring.r.Value();
+		p0 := offspring.r.value;
 		p1 := offspring.value
 	END LikelihoodForm;
 
@@ -180,8 +180,8 @@ MODULE GraphGamma;
 		VAR
 			r, mu: REAL;
 	BEGIN
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		RETURN r / mu
 	END Location;
 
@@ -190,8 +190,8 @@ MODULE GraphGamma;
 			logMu, logLikelihood, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		logMu := MathFunc.Ln(mu);
 		logLikelihood := r * logMu + (r - 1.0) * Math.Ln(x) - x * mu;
 		IF ~(GraphNodes.data IN node.r.props) THEN
@@ -205,8 +205,8 @@ MODULE GraphGamma;
 			logPrior, mu, r, x: REAL;
 	BEGIN
 		x := node.value;
-		r := node.r.Value();
-		mu := node.mu.Value();
+		r := node.r.value;
+		mu := node.mu.value;
 		logPrior := (r - 1.0) * MathFunc.Ln(x) - x * mu;
 		RETURN logPrior
 	END LogPrior;
@@ -224,8 +224,8 @@ MODULE GraphGamma;
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		p0 := prior.r.Value();
-		p1 := prior.mu.Value()
+		p0 := prior.r.value;
+		p1 := prior.mu.value
 	END PriorForm;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
@@ -233,8 +233,8 @@ MODULE GraphGamma;
 			mu, r, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		r := node.r.Value();
+		mu := node.mu.value;
+		r := node.r.value;
 		IF r < rMin THEN
 			res := {GraphNodes.arg1, GraphNodes.invalidPosative};
 			RETURN
@@ -256,7 +256,7 @@ MODULE GraphGamma;
 				x := MathRandnum.GammaIB(r, mu, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

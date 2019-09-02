@@ -121,6 +121,7 @@ MODULE SamplesStatistics;
 		mean2 := 0.0;
 		mean3 := 0.0;
 		mean4 := 0.0;
+		(*	first calculate the mean	*)
 		n := 0;
 		i := 0;
 		WHILE i < noChains DO
@@ -130,20 +131,33 @@ MODULE SamplesStatistics;
 				n1 := n + 1;
 				delta := n / n1;
 				mean := delta * mean + x / n1;
-				mean2 := delta * mean2 + x * x / n1;
-				mean3 := delta * mean3 + x * x * x / n1;
-				mean4 := delta * mean4 + x * x * x * x / n1;
 				INC(n);
 				INC(j)
 			END;
 			INC(i)
 		END;
-		var := mean2 - mean * mean;
+		(*	now use the mean to calculate higher moments	*)
+		n := 0;
+		i := 0;
+		WHILE i < noChains DO
+			j := 0;
+			WHILE j < sampleSize DO
+				x := sample[i, j];
+				n1 := n + 1;
+				delta := n / n1;
+				mean2 := delta * mean2 + (x - mean) * (x - mean) / n1;
+				mean3 := delta * mean3 + (x - mean) * (x - mean) * (x - mean) / n1;
+				mean4 := delta * mean4 + (x - mean) * (x - mean) * (x - mean) * (x - mean) / n1;
+				INC(n);
+				INC(j)
+			END;
+			INC(i)
+		END;
+		var := mean2;
 		IF var > 0 THEN
 			sd := Math.Sqrt(var + eps);
-			skew := (mean3 - 3 * mean2 * mean + 2 * mean * mean * mean) / (sd * sd * sd);
-			exKur := (mean4 - 4 * mean3 * mean + 6 * mean2 * mean * mean - 3 * mean * mean * mean * mean) / 
-			(sd * sd * sd * sd) - 3
+			skew := mean3 / (sd * sd * sd);
+			exKur := mean4 / (sd * sd * sd * sd) - 3
 		ELSE
 			sd := 0;
 			skew := 0;

@@ -46,7 +46,7 @@ MODULE ReliabilityGumbel;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() < - eps THEN
+		IF node.tau.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -76,8 +76,8 @@ MODULE ReliabilityGumbel;
 		VAR
 			alpha, tau: REAL;
 	BEGIN
-		tau := node.tau.Value();
-		alpha := node.alpha.Value();
+		tau := node.tau.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.Gumbel(alpha, tau, x)
 	END Cumulative;
 
@@ -86,8 +86,8 @@ MODULE ReliabilityGumbel;
 			logDensity, logTau, alpha, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		tau := node.tau.Value();
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		logDensity := logTau - tau * (x - alpha) - Math.Exp( - tau * (x - alpha));
 		RETURN - 2.0 * logDensity
@@ -98,19 +98,19 @@ MODULE ReliabilityGumbel;
 			alpha, tau, diff, diffAlpha, diffTau, exp, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.tau.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			tau := node.tau.Value();
+			diffAlpha := node.alpha.Diff(x);
 			exp := Math.Exp( - tau * (val - alpha));
 			diff := diffAlpha * (tau - tau * exp)
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.tau.ValDiff(x, tau, diffTau);
+			diffTau := node.tau.Diff(x);
 			exp := Math.Exp( - tau * (val - alpha));
 			diff := diffTau * (1 / tau - (val - alpha) + (val - alpha) * exp)
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.tau.ValDiff(x, tau, diffTau);
+			diffAlpha := node.alpha.Diff(x);
+			diffTau := node.tau.Diff(x);
 			exp := Math.Exp( - tau * (val - alpha));
 			diff := diffAlpha * (tau - tau * exp) + 
 			diffTau * (1 / tau - (val - alpha) + (val - alpha) * exp)
@@ -123,8 +123,8 @@ MODULE ReliabilityGumbel;
 			alpha, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		tau := node.tau.Value();
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		RETURN - tau + tau * Math.Exp( - tau * (x - alpha))
 	END DiffLogPrior;
 
@@ -136,7 +136,7 @@ MODULE ReliabilityGumbel;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.alpha := NIL;
 		node.tau := NIL
 	END InitUnivariate;
@@ -158,8 +158,8 @@ MODULE ReliabilityGumbel;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		tau := node.tau.Value();
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		median := alpha - Math.Ln( - Math.Ln(p50)) / tau;
 		RETURN median
 	END Location;
@@ -169,8 +169,8 @@ MODULE ReliabilityGumbel;
 			logDensity, logTau, alpha, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		tau := node.tau.Value();
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		logDensity := logTau - tau * (x - alpha) - Math.Exp( - tau * (x - alpha));
 		RETURN logDensity
@@ -181,8 +181,8 @@ MODULE ReliabilityGumbel;
 			logPrior, alpha, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		tau := node.tau.Value();
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		logPrior := - tau * (x - alpha) - Math.Exp( - tau * (x - alpha));
 		RETURN logPrior
 	END LogPrior;
@@ -203,8 +203,8 @@ MODULE ReliabilityGumbel;
 			alpha, tau, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		tau := node.tau.Value();
+		alpha := node.alpha.value;
+		tau := node.tau.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Gumbel(alpha, tau)
@@ -218,7 +218,7 @@ MODULE ReliabilityGumbel;
 				x := MathRandnum.GumbelIB(alpha, tau, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

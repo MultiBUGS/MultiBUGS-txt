@@ -99,7 +99,7 @@ MODULE UpdaterMultinomial;
 		IF newLikelihood - oldLikelihood < Math.Ln(MathRandnum.Rand()) THEN
 			i := 0;
 			WHILE i < size DO
-				prior.components[i].SetValue(oldValue[i]);
+				prior.components[i].value := oldValue[i];
 				INC(i)
 			END
 		END

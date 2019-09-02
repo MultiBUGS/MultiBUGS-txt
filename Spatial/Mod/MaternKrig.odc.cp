@@ -14,21 +14,21 @@ MODULE SpatialMaternKrig;
 
 	IMPORT
 		Math,
-		GraphChain, GraphGPprior, GraphMemory, GraphMultivariate, GraphNodes, GraphStochastic,
+		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes, GraphScalar, GraphStochastic,
 		MathFunc;
 
 	TYPE
 
 		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 		
-		FactoryKernel = POINTER TO RECORD(GraphMemory.Factory) END;
+		FactoryKernel = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		Factory = POINTER TO RECORD(GraphMultivariate.Factory) 
 							kernel: Kernel
 						END;
 
 	VAR
-		factKernel-: GraphMemory.Factory;
+		factKernel-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 

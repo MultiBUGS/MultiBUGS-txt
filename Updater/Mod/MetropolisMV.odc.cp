@@ -14,15 +14,16 @@ MODULE UpdaterMetropolisMV;
 
 	IMPORT
 		Stores := Stores64,
+		GraphLogical, GraphStochastic,
 		UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMultivariate.Updater)
-			oldVals-: POINTER TO ARRAY OF REAL;
 			iteration*, rejectCount*: INTEGER
 		END;
 
 	VAR
+		cache: POINTER TO ARRAY OF REAL;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -32,16 +33,8 @@ MODULE UpdaterMetropolisMV;
 	PROCEDURE (updater: Updater) CopyFromMultivariate- (source: UpdaterUpdaters.Updater);
 		VAR
 			s: Updater;
-			i, size: INTEGER;
 	BEGIN
-		size := source.Size();
 		s := source(Updater);
-		NEW(updater.oldVals, size);
-		i := 0;
-		WHILE i < size DO
-			updater.oldVals[i] := s.oldVals[i];
-			INC(i)
-		END;
 		updater.iteration := s.iteration;
 		updater.rejectCount := s.rejectCount;
 		updater.CopyFromMetropolisMV(source)
@@ -60,10 +53,17 @@ MODULE UpdaterMetropolisMV;
 
 	PROCEDURE (updater: Updater) InitializeMultivariate-;
 		VAR
-			i, size: INTEGER;
+			cacheSize, i, size: INTEGER;
+			dependents: GraphLogical.Vector;
 	BEGIN
 		size := updater.Size();
-		NEW(updater.oldVals, size);
+		dependents:= updater.dependents;
+		IF dependents # NIL THEN
+			cacheSize := LEN(dependents) + LEN(updater.prior);
+		ELSE
+			cacheSize := LEN(updater.prior);
+		END;
+		IF cacheSize > LEN(cache) THEN NEW(cache, cacheSize) END;
 		updater.iteration := 0;
 		updater.rejectCount := 0;
 		updater.InitializeMetropolisMV
@@ -78,10 +78,39 @@ MODULE UpdaterMetropolisMV;
 		updater.InternalizeMetropolisMV(rd)
 	END InternalizeMultivariate;
 
-(*	PROCEDURE (updater: Updater) StoreOldValue*, NEW;
+	PROCEDURE (updater: Updater) Restore*, NEW;
+		VAR
+			prior: GraphStochastic.Vector;
+			dependents: GraphLogical.Vector;
+			i, j, num, size: INTEGER;	
 	BEGIN
-		updater.GetValue(updater.oldVals)
-	END StoreOldValue;*)
+		prior := updater.prior;
+		dependents := updater.dependents;
+		i := 0; 
+		IF dependents # NIL THEN
+			num := LEN(dependents);
+			WHILE i < num DO dependents[i].value := cache[i]; INC(i) END;
+		END;
+		size := LEN(updater.prior);
+		j := 0; WHILE j < size DO prior[j].value := cache[i]; INC(i); INC(j) END
+	END Restore;
+
+	PROCEDURE (updater: Updater) Store*, NEW;
+		VAR
+			prior: GraphStochastic.Vector;
+			dependents: GraphLogical.Vector;
+			i, j, num, size: INTEGER;	
+	BEGIN
+		prior := updater.prior;
+		dependents := updater.dependents;
+		i := 0; 
+		IF dependents # NIL THEN
+			num := LEN(dependents);
+			WHILE i < num DO cache[i] := dependents[i].value; INC(i) END;
+		END;
+		size := LEN(updater.prior);
+		j := 0; WHILE j < size DO cache[i] := prior[j].value; INC(i); INC(j) END
+	END Store;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -91,6 +120,7 @@ MODULE UpdaterMetropolisMV;
 
 	PROCEDURE Init;
 	BEGIN
+		NEW(cache, 1);
 		Maintainer;
 	END Init;
 

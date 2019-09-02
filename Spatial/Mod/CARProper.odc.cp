@@ -77,10 +77,10 @@ MODULE SpatialCARProper;
 			i, numNeigh, col: INTEGER;
 			p: Node;
 	BEGIN
-		gamma := node.gamma.Value();
+		gamma := node.gamma.value;
 		IF gamma > node.gammaMax + eps THEN RETURN MathFunc.logOfZero END;
 		IF gamma < node.gammaMin - eps THEN RETURN MathFunc.logOfZero END;
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		v0 := node.value - mu;
 		v1 := v0 / node.m;
 		quadForm := 0.5 * v0 * v1;
@@ -90,7 +90,7 @@ MODULE SpatialCARProper;
 		WHILE i < numNeigh DO
 			col := node.neighs[i];
 			p := node.components[col](Node);
-			mu := p.mu.Value();
+			mu := p.mu.value;
 			v0 := p.value - mu;
 			v2 := v2 + node.weights[i] * v0;
 			INC(i)
@@ -107,7 +107,7 @@ MODULE SpatialCARProper;
 			gamma, mRow, mCol, weight, weightCol: REAL;
 			p: Node;
 	BEGIN
-		gamma := node.gamma.Value();
+		gamma := node.gamma.value;
 		IF gamma < node.gammaMin - eps THEN RETURN {GraphNodes.arg7, GraphNodes.invalidValue} END;
 		IF gamma > node.gammaMax + eps THEN RETURN {GraphNodes.arg7, GraphNodes.invalidValue} END;
 		index := node.index;
@@ -217,7 +217,7 @@ MODULE SpatialCARProper;
 		VAR
 			logLikelihood, gamma: REAL;
 	BEGIN
-		gamma := node.gamma.Value();
+		gamma := node.gamma.value;
 		logLikelihood := 0.5 * Math.Ln(1.0 - gamma * node.eigenValue); 
 		RETURN logLikelihood
 	END LogDet;
@@ -238,8 +238,8 @@ MODULE SpatialCARProper;
 			gamma, mInverse, tau: REAL;
 			p: Node;
 	BEGIN
-		gamma := node.gamma.Value();
-		tau := node.tau.Value();
+		gamma := node.gamma.value;
+		tau := node.tau.value;
 		i := 0;
 		nnz := 0;
 		nElem := node.Size();
@@ -269,7 +269,7 @@ MODULE SpatialCARProper;
 		size := node.Size();
 		i := 0;
 		WHILE i < size DO
-			p0[i] := node.components[i](Node).mu.Value();
+			p0[i] := node.components[i](Node).mu.value;
 			INC(i)
 		END
 	END MVPriorForm;
@@ -305,14 +305,14 @@ MODULE SpatialCARProper;
 			p: Node;
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
-		p0 := node.mu.Value();
-		gamma := node.gamma.Value();
-		p1 := node.tau.Value() / node.m;
+		p0 := node.mu.value;
+		gamma := node.gamma.value;
+		p1 := node.tau.value / node.m;
 		i := 0;
 		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		WHILE i < len DO
 			p := node.components[node.neighs[i]](Node);
-			p0 := p0 + gamma * node.weights[i] * (p.value - p.mu.Value());
+			p0 := p0 + gamma * node.weights[i] * (p.value - p.mu.value);
 			INC(i)
 		END
 	END PriorForm;
@@ -346,7 +346,7 @@ MODULE SpatialCARProper;
 			node.mu := args.vectors[3].components[start + step * index];
 			start := args.vectors[4].start;
 			step := args.vectors[4].step;
-			node.m := args.vectors[4].components[start + step * index].Value();
+			node.m := args.vectors[4].components[start + step * index].value;
 			IF index = nElem - 1 THEN (*	last component	*)
 				node.CountIslands;
 				eigenValues := EigenValues(node);

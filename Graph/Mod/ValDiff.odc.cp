@@ -120,20 +120,20 @@ MODULE GraphValDiff;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: NodeLogical) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: NodeLogical) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.parent, wr);
 		GraphNodes.Externalize(node.x, wr);
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: NodeLogical) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: NodeLogical) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		node.parent := GraphNodes.Internalize(rd);
 		p := GraphNodes.Internalize(rd);
 		node.x := p(GraphStochastic.Node)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: NodeLogical) InitLogical;
 	BEGIN
@@ -170,32 +170,30 @@ MODULE GraphValDiff;
 		END;
 	END Set;
 
-	PROCEDURE (node: NodeLogical) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: NodeLogical) EvaluateDiffs ;
 	BEGIN
 		HALT(126)
-	END ValDiff;
+	END EvaluateDiffs;
 
 	PROCEDURE (node: ADNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.ADInstall"
 	END Install;
 
-	PROCEDURE (node: ADNode) Value (): REAL;
+	PROCEDURE (node: ADNode) Evaluate;
 		VAR
-			diff, value: REAL;
 			p: GraphNodes.Node;
 	BEGIN
 		p := node.parent;
-		p.ValDiff(node.x, value, diff);
-		RETURN diff
-	END Value;
+		node.value := p.Diff(node.x);
+	END Evaluate;
 
 	PROCEDURE (node: FDNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.FDInstall"
 	END Install;
 
-	PROCEDURE (node: FDNode) Value (): REAL;
+	PROCEDURE (node: FDNode) Evaluate;
 		VAR
 			diff, value: REAL;
 			p: GraphNodes.Node;
@@ -204,21 +202,21 @@ MODULE GraphValDiff;
 	BEGIN
 		p := node.parent;
 		value := node.x.value;
-		node.x.SetValue(value + eps);
-		diff := p.Value();
-		node.x.SetValue(value - eps);
-		diff := diff - p.Value();
+		node.x.value := value + eps;
+		diff := p.value;
+		node.x.value := value - eps;
+		diff := diff - p.value;
 		diff := diff / (2 * eps);
-		node.x.SetValue(value);
-		RETURN diff
-	END Value;
+		node.x.value := value;
+		node.value := diff
+	END Evaluate;
 
 	PROCEDURE (node: ClassifyNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.ClassifyInstall"
 	END Install;
 
-	PROCEDURE (node: ClassifyNode) Value (): REAL;
+	PROCEDURE (node: ClassifyNode) Evaluate;
 		VAR
 			class: INTEGER;
 			p: GraphNodes.Node;
@@ -229,8 +227,8 @@ MODULE GraphValDiff;
 		ELSE
 			class := GraphRules.const
 		END;
-		RETURN class
-	END Value;
+		node.value :=  class
+	END Evaluate;
 
 	PROCEDURE (node: NodeStochastic) Check (): SET;
 	BEGIN
@@ -245,18 +243,23 @@ MODULE GraphValDiff;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: NodeStochastic) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: NodeStochastic) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: NodeStochastic) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.prior, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: NodeStochastic) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: NodeStochastic) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		node.prior := p(GraphStochastic.Node);
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: NodeStochastic) InitLogical;
 	BEGIN
@@ -290,30 +293,25 @@ MODULE GraphValDiff;
 		END
 	END Set;
 
-	PROCEDURE (node: NodeStochastic) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
 	PROCEDURE (node: ADLogCondNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.ADLogCondInstall"
 	END Install;
 
-	PROCEDURE (node: ADLogCondNode) Value (): REAL;
+	PROCEDURE (node: ADLogCondNode) Evaluate;
 		VAR
 			diff: REAL;
 	BEGIN
 		diff := DiffLogConditional(node.prior);
-		RETURN diff
-	END Value;
+		node.value := diff
+	END Evaluate;
 
 	PROCEDURE (node: FDLogCondNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.FDLogCondInstall"
 	END Install;
 
-	PROCEDURE (node: FDLogCondNode) Value (): REAL;
+	PROCEDURE (node: FDLogCondNode) Evaluate;
 		VAR
 			prior: GraphStochastic.Node;
 			diff, x: REAL;
@@ -322,21 +320,21 @@ MODULE GraphValDiff;
 	BEGIN
 		prior := node.prior;
 		x := prior.value;
-		prior.SetValue(x + delta);
+		prior.value := x + delta;
 		diff := LogConditional(prior);
-		prior.SetValue(x - delta);
+		prior.value := x - delta;
 		diff := diff - LogConditional(prior);
 		diff := diff / (2 * delta);
-		prior.SetValue(x);
-		RETURN diff
-	END Value;
+		prior.value := x;
+		node.value := diff
+	END Evaluate;
 
 	PROCEDURE (node: FDLogCondMapNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.FDLogCondMapInstall"
 	END Install;
 
-	PROCEDURE (node: FDLogCondMapNode) Value (): REAL;
+	PROCEDURE (node: FDLogCondMapNode) Evaluate;
 		VAR
 			prior: GraphStochastic.Node;
 			components: GraphStochastic.Vector;
@@ -381,15 +379,15 @@ MODULE GraphValDiff;
 			diff := diff - LogConditional(prior);
 			diff := diff / (2.0 * delta)
 		END;
-		RETURN diff
-	END Value;
+		node.value := diff
+	END Evaluate;
 
 	PROCEDURE (node: LogCondNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphValDiff.LogCondInstall"
 	END Install;
 
-	PROCEDURE (node: LogCondNode) Value (): REAL;
+	PROCEDURE (node: LogCondNode) Evaluate;
 		VAR
 			prior: GraphUnivariate.Node;
 			children: GraphStochastic.Vector;
@@ -407,8 +405,8 @@ MODULE GraphValDiff;
 				INC(i)
 			END
 		END;
-		RETURN log
-	END Value;
+		node.value := log
+	END Evaluate;
 
 	PROCEDURE (f: ADFactory) New (): GraphScalar.Node;
 		VAR

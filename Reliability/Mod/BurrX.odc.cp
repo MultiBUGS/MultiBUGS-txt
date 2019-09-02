@@ -52,10 +52,10 @@ MODULE ReliabilityBurrX;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -85,8 +85,8 @@ MODULE ReliabilityBurrX;
 		VAR
 			lambda, alpha: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
-		alpha := node.alpha.Value();
+		lambda := node.lambda.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.BurrX(alpha, lambda, x)
 	END Cumulative;
 
@@ -95,9 +95,9 @@ MODULE ReliabilityBurrX;
 			alpha, logAlpha, lambda, logLambda, factor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := lambda * x * lambda * x;
 		logLikelihood := logAlpha + 2 * logLambda + MathFunc.Ln(x) - factor
@@ -110,20 +110,20 @@ MODULE ReliabilityBurrX;
 			alpha, lambda, diff, diffAlpha, diffLambda, exp, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.lambda.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			lambda := node.lambda.Value();
+			diffAlpha := node.alpha.Diff(x);
 			exp := Math.Exp( - lambda * val * lambda * val);
 			diff := diffAlpha * (1 / alpha + Math.Ln(1 - exp))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffLambda := node.lambda.Diff(x);
 			exp := Math.Exp( - lambda * val * lambda * val);
 			diff := diffLambda * (2 / lambda - 2 * lambda * val * val + 
 			2 * lambda * (alpha - 1) * val * val * exp / (1 - exp))
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffAlpha := node.alpha.Diff(x);
+			diffLambda := node.lambda.Diff(x);
 			exp := Math.Exp( - lambda * val * lambda * val);
 			diff := diffAlpha * (1 / alpha + Math.Ln(1 - exp)) + 
 			diffLambda * (2 / lambda - 2 * lambda * val * val + 
@@ -137,8 +137,8 @@ MODULE ReliabilityBurrX;
 			alpha, lambda, exp, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		exp := Math.Exp( - lambda * x * lambda * x);
 		RETURN 1 / x - 2 * lambda * lambda * x + 2 * lambda * lambda * (alpha - 1) * x * exp / (1 - exp)
 	END DiffLogPrior;
@@ -151,7 +151,7 @@ MODULE ReliabilityBurrX;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.lambda := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -173,8 +173,8 @@ MODULE ReliabilityBurrX;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		median := (1.0 / lambda) * Math.Power( - Math.Ln(1.0 - Math.Power(p50, 1.0 / alpha)), 0.5);
 		RETURN median
 	END Location;
@@ -184,9 +184,9 @@ MODULE ReliabilityBurrX;
 			alpha, logAlpha, lambda, logLambda, factor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := lambda * x * lambda * x;
 		logLikelihood := logAlpha + 2 * logLambda + MathFunc.Ln(x) - factor
@@ -199,8 +199,8 @@ MODULE ReliabilityBurrX;
 			alpha, lambda, factor, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		factor := lambda * x * lambda * x;
 		logPrior := MathFunc.Ln(x) - factor + (alpha - 1.0) * MathFunc.Ln(1.0 - Math.Exp( - factor));
 		RETURN logPrior
@@ -221,8 +221,8 @@ MODULE ReliabilityBurrX;
 			lambda, alpha, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.BurrX(alpha, lambda)
@@ -236,7 +236,7 @@ MODULE ReliabilityBurrX;
 				x := MathRandnum.BurrXIB(alpha, lambda, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

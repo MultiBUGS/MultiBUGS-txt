@@ -16,7 +16,7 @@ MODULE GraphRules;
 
 		const* = 0; ident* = 1; prod* = 2; linear* = 3;
 		logLink* = 4; logitLink* = 5; probitLink* = 6; cloglogLink* = 7;
-		linkFun* = 8; expon* = 9; linExp* = 11; power* = 11; differ* = 12;
+		linkFun* = 8; expon* = 9; linExp* = 10; power* = 11; differ* = 12;
 		other* = 13;
 		noClasses = 14;
 

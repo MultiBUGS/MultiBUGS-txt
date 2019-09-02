@@ -34,8 +34,8 @@ MODULE GraphTrapezium;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left := node.a.Value();
-		right := node.d.Value()
+		left := node.a.value;
+		right := node.d.value
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
@@ -43,8 +43,8 @@ MODULE GraphTrapezium;
 			a, d, x: REAL;
 	BEGIN
 		x := node.value;
-		a := node.a.Value();
-		d := node.d.Value();
+		a := node.a.value;
+		d := node.d.value;
 		IF x < a - eps THEN
 			RETURN {GraphNodes.leftBound, GraphNodes.lhs}
 		END;
@@ -87,10 +87,10 @@ MODULE GraphTrapezium;
 		VAR
 			a, b, c, culm, d, norm: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
-		c := node.c.Value();
-		d := node.d.Value();
+		a := node.a.value;
+		b := node.b.value;
+		c := node.c.value;
+		d := node.d.value;
 		norm := 0.5 * (c + d - a - b);
 		IF x < b THEN
 			culm := 0.5 * (x - a) * (x - a) / (norm * (b - a))
@@ -140,7 +140,7 @@ MODULE GraphTrapezium;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.a := NIL;
 		node.b := NIL;
 		node.c := NIL;
@@ -156,10 +156,10 @@ MODULE GraphTrapezium;
 		VAR
 			a, b, c, d, logLikelihood, norm, x: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
-		c := node.c.Value();
-		d := node.d.Value();
+		a := node.a.value;
+		b := node.b.value;
+		c := node.c.value;
+		d := node.d.value;
 		x := node.value;
 		IF (b < a) OR (c < a) OR (d < a) THEN
 			logLikelihood := MathFunc.logOfZero
@@ -204,10 +204,10 @@ MODULE GraphTrapezium;
 		VAR
 			a, b, c, d, logPrior, x: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
-		c := node.c.Value();
-		d := node.d.Value();
+		a := node.a.value;
+		b := node.b.value;
+		c := node.c.value;
+		d := node.d.value;
 		x := node.value;
 		IF x < a THEN
 			logPrior := MathFunc.logOfZero
@@ -227,11 +227,11 @@ MODULE GraphTrapezium;
 		VAR
 			a, d, logDensity, rand, x: REAL;
 	BEGIN
-		a := node.a.Value();
-		d := node.d.Value();
+		a := node.a.value;
+		d := node.d.value;
 		REPEAT
 			x := MathRandnum.Uniform(a, d);
-			node.SetValue(x);
+			node.value := x;
 			logDensity := node.LogPrior();
 			rand := MathRandnum.Rand()
 		UNTIL Math.Ln(rand) < logDensity;

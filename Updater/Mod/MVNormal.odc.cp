@@ -16,7 +16,7 @@ MODULE UpdaterMVNormal;
 		MPIworker,
 		Math,
 		BugsRegistry,
-		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphMultivariate, GraphNodes,
+		GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMultivariate, GraphNodes,
 		GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterConjugateMV, UpdaterMultivariate, UpdaterUpdaters;
@@ -75,17 +75,15 @@ MODULE UpdaterMVNormal;
 				|child: GraphConjugateUV.Node DO (*	univariate normal likelihood	*)
 					as := GraphRules.normal;
 					child.LikelihoodForm(as, x, m, t);
+					c := x.value;
 					i := 0;
 					WHILE i < size DO
-						prior[i].SetValue(0.0);
+						p0[i] := x.Diff(prior[i]);
+						c := c - p0[i] * prior[i].value;
 						INC(i)
 					END;
-					c := x.Value();
 					i := 0;
 					WHILE i < size DO
-						prior[i].SetValue(1.0);
-						p0[i] := x.Value() - c;
-						prior[i].SetValue(0.0);
 						p[size2 + i] := p[size2 + i] + (m - c) * t * p0[i];
 						INC(i)
 					END;
@@ -152,6 +150,36 @@ MODULE UpdaterMVNormal;
 		install := "UpdaterMVNormal.Install"
 	END Install;
 
+	PROCEDURE (updater: Updater) Optimize;
+		VAR
+			i, num: INTEGER;
+			prior: GraphStochastic.Node;
+			optimizeDiffs: BOOLEAN;
+			p: GraphLogical.Node;
+	BEGIN
+		optimizeDiffs := TRUE;
+		IF updater.dependents # NIL THEN
+			num := LEN(updater.dependents);
+			i := 0;
+			WHILE (i < num) & optimizeDiffs DO
+				p := updater.dependents[i];
+				IF ~(GraphLogical.prediction IN p.props) THEN
+					IF ~(GraphLogical.linear IN p.props) THEN optimizeDiffs := FALSE END
+				END;
+				INC(i)
+			END;
+		END;
+		IF optimizeDiffs THEN
+			num := LEN(updater.prior);
+			i := 0;
+			WHILE i < num DO
+				prior := updater.prior[i];
+				INCL(prior.props, GraphStochastic.optimizeDiffs);
+				INC(i)
+			END
+		END
+	END Optimize;
+
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
 			i, j, size, size2: INTEGER;
@@ -168,7 +196,13 @@ MODULE UpdaterMVNormal;
 		updater.GetValue(z);
 		mu := updater.mu;
 		tau := updater.tau;
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN
+			GraphLogical.EvaluateDiffs(updater.dependents)
+		END;
 		MVNormalLikelihood(prior.components, children, updater.params);
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN
+			GraphLogical.ClearDiffs(updater.dependents)
+		END;
 		prior.MVPriorForm(p0, p1);
 		IF prior.ClassifyPrior() = GraphRules.mVNSigma THEN
 			(*	have Cholesky of covariance matrix so must calculate precision matrix	*)
@@ -223,7 +257,7 @@ MODULE UpdaterMVNormal;
 		ELSE
 			MathRandnum.MNormal(tau, mu, size, value)
 		END;
-		updater.SetValue(value);
+		updater.SetValue(value); GraphLogical.Evaluate(updater.dependents);
 		res := {}
 	END Sample;
 

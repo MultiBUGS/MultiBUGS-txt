@@ -91,8 +91,8 @@ MODULE ReliabilityWrapper;
 		culm := inner.Cumulative(x);
 		relia := 1.0 - culm;
 		xTran := culm / relia;
-		outer.SetValue(xTran);
-		inner.SetValue(x);
+		outer.value := xTran;
+		inner.value := x;
 		logLike := outer.LogLikelihood() + inner.LogLikelihood() - 2.0 * Math.Ln(relia);
 		RETURN logLike
 	END LogLikelihoodUnivariate;
@@ -149,7 +149,7 @@ MODULE ReliabilityWrapper;
 		cursor := list;
 		WHILE cursor # NIL DO
 			p := cursor.node;
-			p.SetProps(p.props + {GraphNodes.mark});
+			INCL(p.props, GraphNodes.mark);
 			cursor := cursor.next
 		END;
 		cursor := node.inner.Parents(all);
@@ -198,7 +198,7 @@ MODULE ReliabilityWrapper;
 	BEGIN
 		univariate := f.innerFactory.New();
 		univariate.Init;
-		univariate.SetProps(univariate.props + {GraphStochastic.hidden});
+		INCL(univariate.props, GraphStochastic.hidden);
 		RETURN univariate
 	END NewInner;
 
@@ -208,7 +208,7 @@ MODULE ReliabilityWrapper;
 	BEGIN
 		univariate := f.outerFactory.New();
 		univariate.Init;
-		univariate.SetProps(univariate.props + {GraphStochastic.hidden});
+		INCL(univariate.props , GraphStochastic.hidden);
 		RETURN univariate
 	END NewOuter;
 

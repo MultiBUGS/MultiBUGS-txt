@@ -34,8 +34,8 @@ MODULE GraphTriangle;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left := node.a.Value();
-		right := node.c.Value()
+		left := node.a.value;
+		right := node.c.value
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
@@ -43,8 +43,8 @@ MODULE GraphTriangle;
 			a, c, x: REAL;
 	BEGIN
 		x := node.value;
-		a := node.a.Value();
-		c := node.c.Value();
+		a := node.a.value;
+		c := node.c.value;
 		IF x < a - eps THEN
 			RETURN {GraphNodes.leftBound, GraphNodes.lhs}
 		END;
@@ -83,9 +83,9 @@ MODULE GraphTriangle;
 		VAR
 			a, b, c, culm, norm: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
-		c := node.c.Value();
+		a := node.a.value;
+		b := node.b.value;
+		c := node.c.value;
 		norm := 0.5 * (c - a);
 		IF x < b THEN
 			culm := 0.5 * (x - a) * (x - a) / (norm * (b - a))
@@ -131,7 +131,7 @@ MODULE GraphTriangle;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.a := NIL;
 		node.b := NIL;
 		node.c := NIL
@@ -146,9 +146,9 @@ MODULE GraphTriangle;
 		VAR
 			a, b, c, logLikelihood, norm, x: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
-		c := node.c.Value();
+		a := node.a.value;
+		b := node.b.value;
+		c := node.c.value;
 		x := node.value;
 		IF (b < a) OR (c < b) THEN
 			logLikelihood := MathFunc.logOfZero
@@ -186,9 +186,9 @@ MODULE GraphTriangle;
 		VAR
 			a, b, c, logPrior, x: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
-		c := node.c.Value();
+		a := node.a.value;
+		b := node.b.value;
+		c := node.c.value;
 		x := node.value;
 		IF x < a THEN
 			logPrior := MathFunc.logOfZero
@@ -206,11 +206,11 @@ MODULE GraphTriangle;
 		VAR
 			a, c, logDensity, rand, x: REAL;
 	BEGIN
-		a := node.a.Value();
-		c := node.c.Value();
+		a := node.a.value;
+		c := node.c.value;
 		REPEAT
 			x := MathRandnum.Uniform(a, c);
-			node.SetValue(x);
+			node.value := x;
 			logDensity := node.LogPrior();
 			rand := MathRandnum.Rand()
 		UNTIL Math.Ln(rand) < logDensity;

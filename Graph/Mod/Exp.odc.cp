@@ -54,7 +54,7 @@ MODULE GraphExp;
 		VAR
 			cumulative, lambda: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		cumulative := MathCumulative.Exp(lambda, x);
 		RETURN cumulative
 	END Cumulative;
@@ -64,7 +64,7 @@ MODULE GraphExp;
 			lambda, logDensity, logLambda, x: REAL;
 	BEGIN
 		x := node.value;
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		logDensity := logLambda - x * lambda;
 		RETURN - 2.0 * logDensity
@@ -75,7 +75,8 @@ MODULE GraphExp;
 			lambda, differential, lambdaDiff, val: REAL;
 	BEGIN
 		val := node.value;
-		node.lambda.ValDiff(x, lambda, lambdaDiff);
+		lambda := node.lambda.value;
+		lambdaDiff := node.lambda.Diff(x);
 		differential := lambdaDiff / lambda - val * lambdaDiff;
 		RETURN differential
 	END DiffLogLikelihood;
@@ -84,7 +85,7 @@ MODULE GraphExp;
 		VAR
 			lambda: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		RETURN - lambda
 	END DiffLogPrior;
 
@@ -98,7 +99,7 @@ MODULE GraphExp;
 			lambda, logLambda, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		logLikelihood := logLambda - x * lambda;
 		RETURN logLikelihood
@@ -118,7 +119,7 @@ MODULE GraphExp;
 			lambda, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logPrior := - x * lambda;
 		RETURN logPrior
 	END LogPrior;
@@ -127,7 +128,7 @@ MODULE GraphExp;
 		VAR
 			lambda: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		RETURN 1 / lambda
 	END Location;
 
@@ -135,7 +136,7 @@ MODULE GraphExp;
 	BEGIN
 		ASSERT(as IN {GraphRules.gamma, GraphRules.gamma1}, 21);
 		p0 := 1.0;
-		p1 := prior.lambda.Value()
+		p1 := prior.lambda.value
 	END PriorForm;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
@@ -149,7 +150,7 @@ MODULE GraphExp;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -167,7 +168,7 @@ MODULE GraphExp;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.lambda := NIL
 	END InitUnivariate;
 
@@ -194,7 +195,7 @@ MODULE GraphExp;
 			lambda, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Exponential(lambda)
@@ -208,7 +209,7 @@ MODULE GraphExp;
 				x := MathRandnum.ExponentialIB(lambda, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

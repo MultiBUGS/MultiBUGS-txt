@@ -122,14 +122,14 @@ MODULE ReliabilitySystem;
 			IF reliability < eps THEN RETURN MathFunc.logOfZero END;
 			oldProps := stochastic.props;
 			(*	add data to nodes props so that Deviance() woks correctly	*)
-			stochastic.SetProps(oldProps + {GraphNodes.data});
+			stochastic.props := oldProps + {GraphNodes.data};
 			temp := stochastic.value;
 			logReliability := logReliability + Math.Ln(reliability);
-			stochastic.SetValue(x);
+			stochastic.value := x;
 			deviance := stochastic.Deviance();
 			density := density + (Math.Exp( - 0.5 * deviance) / reliability);
-			stochastic.SetValue(temp);
-			stochastic.SetProps(oldProps);
+			stochastic.value := temp;
+			stochastic.props := oldProps;
 			INC(i)
 		END;
 		logLikelihood := Math.Ln(density) + logReliability;
@@ -162,7 +162,7 @@ MODULE ReliabilitySystem;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.components := NIL;
 		node.nElem := 0;
 		node.start := - 1;
@@ -213,14 +213,14 @@ MODULE ReliabilitySystem;
 			IF reliability < eps THEN RETURN MathFunc.logOfZero END;
 			oldProps := stochastic.props;
 			(*	add data to nodes props so that Deviance() works correctly	*)
-			stochastic.SetProps(oldProps + {GraphNodes.data});
+			stochastic.props := oldProps + {GraphNodes.data};
 			temp := stochastic.value;
 			logReliability := logReliability + Math.Ln(reliability);
-			stochastic.SetValue(x);
+			stochastic.value := x;
 			deviance := stochastic.Deviance();
 			density := density + (Math.Exp( - 0.5 * deviance) / reliability);
-			stochastic.SetValue(temp);
-			stochastic.SetProps(oldProps);
+			stochastic.value := temp;
+			stochastic.props := oldProps;
 			INC(i)
 		END;
 		logLikelihood := Math.Ln(density) + logReliability;
@@ -251,7 +251,7 @@ MODULE ReliabilitySystem;
 			WHILE list0 # NIL DO
 				p := list0.node;
 				IF ~(GraphStochastic.mark IN p.props) THEN
-					p.SetProps(p.props + {GraphStochastic.mark});
+					INCL(p.props, GraphStochastic.mark);
 					p.AddParent(list);
 				END;
 				list0 := list0.next
@@ -261,7 +261,7 @@ MODULE ReliabilitySystem;
 		list0 := list;
 		WHILE list0 # NIL DO
 			p := list0.node;
-			p.SetProps(p.props - {GraphStochastic.mark});
+			EXCL(p.props, GraphStochastic.mark);
 			list0 := list0.next;
 		END;
 		GraphNodes.ClearList(list);
@@ -288,10 +288,10 @@ MODULE ReliabilitySystem;
 				temp := stochastic.value;
 				stochastic.Sample(res);
 				IF res = {} THEN x := MIN(x, stochastic.value) END;
-				stochastic.SetValue(temp);
+				stochastic.value := temp;
 				INC(i)
 			END;
-			node.SetValue(x);
+			node.value := x;
 			DEC(i)
 		UNTIL ((node.value > left) & (node.value < right)) OR (i = 0) OR (res # {});
 		IF i = 0 THEN

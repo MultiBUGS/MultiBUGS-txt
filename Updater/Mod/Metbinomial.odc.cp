@@ -124,14 +124,15 @@ MODULE UpdaterMetbinomial;
 	BEGIN
 		prior := updater.prior;
 		prior.Bounds(left, right);
-		oldVal := prior.value; oldDen := updater.LogConditional();
+		oldVal := prior.value; prior.Evaluate;
+		oldDen := updater.LogConditional();
 		newVal := oldVal - (updater.order DIV 2) + MathRandnum.Binomial(0.5, updater.order);
 		IF (newVal + eps > left) & (newVal - eps < right) THEN
-			prior.SetValue(newVal);
+			prior.value := newVal;
 			newDen := updater.LogConditional();
 			alpha := newDen - oldDen;
 			IF alpha < Math.Ln(MathRandnum.Rand()) THEN
-				prior.SetValue(oldVal);
+				prior.value := oldVal; prior.Evaluate;
 				INC(updater.rejectCount)
 			END
 		ELSE

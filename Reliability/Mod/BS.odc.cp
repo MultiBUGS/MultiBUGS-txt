@@ -53,10 +53,10 @@ MODULE ReliabilityBS;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -87,8 +87,8 @@ MODULE ReliabilityBS;
 		VAR
 			beta, alpha: REAL;
 	BEGIN
-		beta := node.beta.Value();
-		alpha := node.alpha.Value();
+		beta := node.beta.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.BS(alpha, beta, x)
 	END Cumulative;
 
@@ -97,9 +97,9 @@ MODULE ReliabilityBS;
 			alpha, logAlpha, beta, logBeta, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
 		logLikelihood := - logAlpha - 0.5 * logBeta - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta) - 
 		(1.0 / (2.0 * alpha * alpha)) * ((x / beta) + (beta / x) - 2) - 0.5 * log2Pi;
@@ -111,18 +111,18 @@ MODULE ReliabilityBS;
 			alpha, beta, diff, diffAlpha, diffBeta, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			beta := node.beta.Value();
+			diffAlpha := node.alpha.Diff(x);
 			diff := diffAlpha * ((val / beta + beta / val - 2) / (alpha * alpha * alpha) - 1 / alpha)
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffBeta := node.beta.Diff(x);
 			diff := diffBeta * ( - 1 / (2 * beta) + 1 / (val + beta) - 
 			( - val / (beta * beta) + 1 / val) / (2 * alpha * alpha))
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffAlpha := node.alpha.Diff(x);
+			diffBeta := node.beta.Diff(x);
 			diff := diffAlpha * ((val / beta + beta / val - 2) / (alpha * alpha * alpha) - 1 / alpha) + 
 			diffBeta * ( - 1 / (2 * beta) + 1 / (val + beta) - ( - val / (beta * beta) + 1 / val) / (2 * alpha * alpha))
 		END;
@@ -134,8 +134,8 @@ MODULE ReliabilityBS;
 			alpha, beta, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		RETURN - 1.5 / x + 1 / (x + beta) - (1 / beta - beta / (x * x)) / (2 * alpha * alpha)
 	END DiffLogPrior;
 
@@ -147,7 +147,7 @@ MODULE ReliabilityBS;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.beta := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -167,8 +167,8 @@ MODULE ReliabilityBS;
 		VAR
 			alpha, beta: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		RETURN beta * (1 + 0.5 * alpha * alpha)
 	END Location;
 
@@ -177,9 +177,9 @@ MODULE ReliabilityBS;
 			alpha, logAlpha, beta, logBeta, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
 		logLikelihood := - logAlpha - 0.5 * logBeta - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta) - 
 		(1.0 / (2.0 * alpha * alpha)) * ((x / beta) + (beta / x) - 2);
@@ -191,8 +191,8 @@ MODULE ReliabilityBS;
 			alpha, beta, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		logPrior := - 1.5 * MathFunc.Ln(x) + MathFunc.Ln(x + beta)
 		 - (1.0 / alpha * alpha) * ((x / beta) + (beta / x) - 2);
 		RETURN logPrior
@@ -216,14 +216,14 @@ MODULE ReliabilityBS;
 		res := {};
 		iter := maxIts;
 		node.Bounds(lower, upper);
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		REPEAT
 			x := MathRandnum.BirnbaumSaunders(alpha, beta);
 			DEC(iter)
 		UNTIL ((x >= lower) & (x <= upper)) OR (iter = 0);
 		IF iter # 0 THEN
-			node.SetValue(x)
+			node.value := x
 		ELSE
 			res := {GraphNodes.lhs}
 		END

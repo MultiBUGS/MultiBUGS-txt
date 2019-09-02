@@ -40,7 +40,7 @@ MODULE SpatialMVCAR;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				tau[i, j] := node.tau[i * dim + j].Value();
+				tau[i, j] := node.tau[i * dim + j].value;
 				INC(j)
 			END;
 			INC(i)
@@ -54,7 +54,7 @@ MODULE SpatialMVCAR;
 	BEGIN
 		IF GraphNodes.mark IN node.props THEN RETURN END;
 		dim := node.dim;
-		node.SetProps(node.props + {GraphNodes.mark});
+		INCL(node.props, GraphNodes.mark);
 		numNeigh := LEN(node.neighs);
 		i := 0;
 		WHILE i < numNeigh DO
@@ -92,7 +92,7 @@ MODULE SpatialMVCAR;
 		i := 0;
 		WHILE i < nElem DO
 			car := node.components[i](Node);
-			car.SetProps(car.props - {GraphNodes.mark});
+			EXCL(car.props, GraphNodes.mark);
 			INC(i, dim)
 		END;
 		RETURN numIslands
@@ -292,8 +292,8 @@ MODULE SpatialMVCAR;
 		ELSE
 			node.Init;
 			node.SetComponent(NIL, - 1);
-			node.SetProps({GraphStochastic.hidden});
-			node.SetValue(0.0)
+			node.props := {GraphStochastic.hidden};
+			node.value := 0.0
 		END
 	END InternalizeMVGMRF;
 
@@ -453,8 +453,8 @@ MODULE SpatialMVCAR;
 			ELSE
 				car.Init;
 				car.SetComponent(NIL, - 1);
-				car.SetProps({GraphStochastic.hidden, GraphStochastic.initialized, GraphStochastic.data});
-				car.SetValue(0.0)
+				car.props := {GraphStochastic.hidden, GraphStochastic.initialized, GraphStochastic.data};
+				car.value := 0.0
 			END;
 			INC(i)
 		END;
@@ -499,7 +499,7 @@ MODULE SpatialMVCAR;
 					res := {GraphNodes.arg2, GraphNodes.length}; RETURN
 				END;
 				start2 := args.vectors[2].start;
-				numNeigh := SHORT(ENTIER(args.vectors[2].components[start2 + index].Value() + eps));
+				numNeigh := SHORT(ENTIER(args.vectors[2].components[start2 + index].value + eps));
 				IF numNeigh > 0 THEN
 					NEW(node.neighs, numNeigh);
 					NEW(node.weights, numNeigh);
@@ -524,7 +524,7 @@ MODULE SpatialMVCAR;
 						IF ~(GraphNodes.data IN p.props) THEN
 							res := {GraphNodes.arg1, GraphNodes.notData}; RETURN
 						END;
-						x := p.Value();
+						x := p.value;
 						IF ABS(x - SHORT(ENTIER(x + eps))) > eps THEN
 							res := {GraphNodes.arg1, GraphNodes.integer}; RETURN
 						END;
@@ -540,7 +540,7 @@ MODULE SpatialMVCAR;
 						IF ~(GraphNodes.data IN p.props) THEN
 							res := {GraphNodes.arg2, GraphNodes.notData}; RETURN
 						END;
-						node.weights[i] := p.Value();
+						node.weights[i] := p.value;
 						INC(i)
 					END
 				END

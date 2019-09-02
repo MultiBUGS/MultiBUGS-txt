@@ -13,10 +13,10 @@ MODULE BugsMAP;
 
 	IMPORT
 		Math, Strings,
-		TextMappers, TextModels, BugsFiles,
-		BugsIndex, BugsNames,
-		GraphMAP,
-		GraphStochastic, MathMatrix;
+		TextMappers, TextModels,
+		BugsFiles, BugsIndex, BugsNames,
+		GraphLogical, GraphMAP, GraphStochastic,
+		MathMatrix;
 
 	VAR
 		version-: INTEGER;
@@ -34,9 +34,13 @@ MODULE BugsMAP;
 		VAR
 			deviance: REAL;
 			name: BugsNames.Name;
+			nodes: GraphLogical.Vector;
 	BEGIN
 		name := BugsIndex.Find("deviance");
-		deviance := name.components[0].Value();
+		NEW(nodes, 1);
+		nodes[0] := name.components[0](GraphLogical.Node);
+		GraphLogical.Evaluate(nodes);
+		deviance := nodes[0].value;
 		RETURN deviance
 	END Deviance;
 
@@ -69,7 +73,7 @@ MODULE BugsMAP;
 			WHILE i < dim DO
 				WriteReal(priors[i].value, f); f.WriteTab; WriteReal(deriv[i], f); f.WriteLn; INC(i)
 			END;
-			i := 0; WHILE i < dim DO priors[i].SetValue(oldVals[i]); INC(i) END;
+			i := 0; WHILE i < dim DO priors[i].value := oldVals[i]; INC(i) END;
 			RETURN
 		END;
 		GraphMAP.Hessian(priors, inverse, error);
@@ -130,8 +134,10 @@ MODULE BugsMAP;
 		END;
 		i := 0;
 		WHILE i < dim DO
-			priors[i].SetValue(oldVals[i]); INC(i)
+			priors[i].value := oldVals[i]; INC(i)
 		END;
+		(*GraphLogical.EvaluateAll;*)
+		GraphLogical.EvaluateAllDiffs;
 		BugsFiles.SetPrec(prec)
 	END Estimates;
 

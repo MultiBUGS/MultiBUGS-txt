@@ -45,12 +45,12 @@ MODULE PharmacoPKFO1ss;
 		END ProfileSS;
 
 	BEGIN
-		CL := Math.Exp(params[0].Value());
-		V := Math.Exp(params[1].Value());
-		ka := Math.Exp(params[2].Value()) + CL / V;
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
-		omega := scalars[PharmacoModel.omega].Value();
+		CL := Math.Exp(params[0].value);
+		V := Math.Exp(params[1].value);
+		ka := Math.Exp(params[2].value) + CL / V;
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
+		omega := scalars[PharmacoModel.omega].value;
 		IF time < 0 THEN time := time + omega * Math.Ceiling( - time / omega) END;
 		value := ProfileSS(time);
 		IF value < 0 THEN value := 0 END;
@@ -67,10 +67,10 @@ MODULE PharmacoPKFO1ss;
 		install := "PharmacoPKFO1ss.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

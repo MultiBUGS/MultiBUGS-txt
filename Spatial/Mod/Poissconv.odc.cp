@@ -53,7 +53,7 @@ MODULE SpatialPoissconv;
 		start := node.lambdaStart;
 		step := node.lambdaStep;
 		WHILE i < nElem DO
-			sum := sum + node.lambda[start + step * i].Value();
+			sum := sum + node.lambda[start + step * i].value;
 			INC(i)
 		END;
 		RETURN sum
@@ -120,7 +120,7 @@ MODULE SpatialPoissconv;
 		step := node.lambdaStep;
 		sum := 0.0;
 		WHILE i < nElem DO
-			prop[i] := node.lambda[start + i * step].Value();
+			prop[i] := node.lambda[start + i * step].value;
 			sum := sum + prop[i];
 			INC(i)
 		END;
@@ -132,7 +132,7 @@ MODULE SpatialPoissconv;
 		MathRandnum.Multinomial(prop, n, nElem, values);
 		i := 0;
 		WHILE i < nElem DO
-			node.poissons[i].SetValue(values[i]);
+			node.poissons[i].value := values[i];
 			INC(i)
 		END
 	END Sample;
@@ -361,7 +361,7 @@ MODULE SpatialPoissconv;
 	BEGIN
 		lambda := SumLambda(node);
 		value := MathRandnum.Poisson(lambda);
-		node.SetValue(value);
+		node.value := value;
 		res := {}
 	END Sample;
 
@@ -396,7 +396,7 @@ MODULE SpatialPoissconv;
 					list := GraphStochastic.Parents(lambda, TRUE);
 					WHILE list # NIL DO
 						p := list.node;
-						p.SetProps(p.props + {GraphStochastic.devParent});
+						INCL(p.props, GraphStochastic.devParent);
 						list := list.next
 					END;
 					p := GraphPoisson.fact.New();
@@ -404,9 +404,9 @@ MODULE SpatialPoissconv;
 					p.Init;
 					argsPoiss.scalars[0] := lambda;
 					p.Set(argsPoiss, res);
-					p.SetProps(p.props + {GraphStochastic.hidden});
-					p.SetProps(p.props + {GraphNodes.data});
-					p.SetValue(0.0);
+					INCL(p.props, GraphStochastic.hidden);
+					INCL(p.props, GraphNodes.data);
+					p.value := 0.0;
 					node.poissons[i] := p;
 					INC(i)
 				END;

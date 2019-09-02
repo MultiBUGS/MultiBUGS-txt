@@ -14,17 +14,17 @@ MODULE GraphLogdet;
 
 	IMPORT
 		Math, Stores := Stores64,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
+		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathMatrix;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphMemory.Node)
+		Node = POINTER TO RECORD(GraphScalar.Node)
 			dim, start, step: INTEGER;
 			matrix: GraphNodes.Vector;
 			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
-		Factory = POINTER TO RECORD(GraphMemory.Factory) END;
+		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	CONST
 		eps = 1.0E-10;
@@ -68,7 +68,7 @@ MODULE GraphLogdet;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT value: REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			dim, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -84,7 +84,7 @@ MODULE GraphLogdet;
 					off := start + (i * dim + j) * step;
 					IF node.matrix # NIL THEN
 						p := node.matrix[off];
-						matrix[i, j] := p.Value()
+						matrix[i, j] := p.value;
 					ELSE
 						matrix[i, j] := node.constant[off]
 					END
@@ -95,10 +95,15 @@ MODULE GraphLogdet;
 			END;
 			INC(i)
 		END;
-		value := MathMatrix.LogDet(matrix, dim)
+		node.value := MathMatrix.LogDet(matrix, dim)
 	END Evaluate;
 
-	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			dim: INTEGER;
 			v: GraphNodes.SubVector;
@@ -109,21 +114,10 @@ MODULE GraphLogdet;
 		v.components := node.matrix; v.values := node.constant;
 		v.start := node.start; v.step := node.step; v.nElem := dim * dim;
 		GraphNodes.ExternalizeSubvector(v, wr)
-	END ExternalizeMemory;
-
-	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
-		VAR
-			v: GraphNodes.SubVector;
-	BEGIN
-		rd.ReadInt(node.dim);
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.matrix := v.components; node.constant := v.values;
-		node.start := v.start; node.step := v.step;
-	END InternalizeMemory;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.matrix := NIL;
 		node.constant := NIL;
 		node.start := - 1;
@@ -135,6 +129,16 @@ MODULE GraphLogdet;
 	BEGIN
 		install := "GraphLogdet.Install"
 	END Install;
+
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			v: GraphNodes.SubVector;
+	BEGIN
+		rd.ReadInt(node.dim);
+		GraphNodes.InternalizeSubvector(v, rd);
+		node.matrix := v.components; node.constant := v.values;
+		node.start := v.start; node.step := v.step;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -213,16 +217,11 @@ MODULE GraphLogdet;
 				END;
 				INC(i)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
-	PROCEDURE (f: Factory) New (): GraphMemory.Node;
+	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
 			node: Node;
 	BEGIN

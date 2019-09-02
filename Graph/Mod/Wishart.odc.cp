@@ -113,7 +113,7 @@ MODULE GraphWishart;
 			WHILE i < dim DO
 				j := 0;
 				WHILE j <= i DO
-					components[i * dim + j].SetValue(value[i, j]);
+					components[i * dim + j].value := value[i, j];
 					INC(j)
 				END;
 				INC(i)
@@ -147,7 +147,7 @@ MODULE GraphWishart;
 			WHILE i < dim DO
 				j := 0;
 				WHILE j < dim DO
-					components[i * dim + j].SetValue(oldVals[i, j]);
+					components[i * dim + j].value := oldVals[i, j];
 					INC(j)
 				END;
 				INC(i)
@@ -185,13 +185,13 @@ MODULE GraphWishart;
 		step := node.step;
 		i0 := node.index DIV dim;
 		j0 := node.index MOD dim;
-		k := node.k.Value();
+		k := node.k.value;
 		diff := 0.0;
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				r[i, j] := node.r[start + (i + dim * j) * step].value;
 				INC(j)
 			END;
 			INC(i)
@@ -344,7 +344,7 @@ MODULE GraphWishart;
 						sum := sum + value[i, k] * value[j, k];
 						INC(k)
 					END;
-					node.components[i * dim + j].SetValue(sum);
+					node.components[i * dim + j].value := sum;
 					INC(j)
 				END;
 				INC(i)
@@ -370,12 +370,12 @@ MODULE GraphWishart;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				r[i, j] := node.r[start + (i + dim * j) * step].value;
 				INC(j)
 			END;
 			INC(i)
 		END;
-		k := node.k.Value();
+		k := node.k.value;
 		MathMatrix.Invert(r, dim);
 		index := node.index;
 		i := index DIV dim;
@@ -429,13 +429,13 @@ MODULE GraphWishart;
 		dim := node.dim;
 		start := node.start;
 		step := node.step;
-		k := node.k.Value();
+		k := node.k.value;
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
 				value[i, j] := node.components[i * dim + j].value;
-				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				r[i, j] := node.r[start + (i + dim * j) * step].value;
 				INC(j)
 			END;
 			INC(i)
@@ -518,12 +518,12 @@ MODULE GraphWishart;
 			j := 0;
 			WHILE j < dim DO
 				node := prior.r[start + (i * dim + j) * step];
-				p1[i, j] := node.Value();
+				p1[i, j] := node.value;
 				INC(j)
 			END;
 			INC(i)
 		END;
-		p0[0] := prior.k.Value()
+		p0[0] := prior.k.value
 	END MVPriorForm;
 
 	PROCEDURE (node: Node) MVSample (OUT res: SET);
@@ -552,19 +552,19 @@ MODULE GraphWishart;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				r[i, j] := node.r[start + (i + dim * j) * step].Value();
+				r[i, j] := node.r[start + (i + dim * j) * step].value;
 				INC(j)
 			END;
 			INC(i)
 		END;
-		k := node.k.Value();
+		k := node.k.value;
 		MathMatrix.Invert(r, dim);
 		MathMatrix.Cholesky(r, dim);
 		MathRandnum.Wishart(r, k, dim, value);
 		i := 0;
 		WHILE i < dim DO
 			j := 0;
-			WHILE j < dim DO node.components[i * dim + j].SetValue(value[i, j]);
+			WHILE j < dim DO node.components[i * dim + j].value := value[i, j];
 				INC(j)
 			END;
 			INC(i)
@@ -607,7 +607,7 @@ MODULE GraphWishart;
 				res := {GraphNodes.data, GraphNodes.arg2};
 				RETURN
 			END;
-			IF node.k.Value() < node.dim - eps THEN
+			IF node.k.value < node.dim - eps THEN
 				res := {GraphNodes.invalidPosative, GraphNodes.arg2};
 				RETURN
 			END;

@@ -42,30 +42,37 @@ MODULE GraphCloglog;
 		install := "GraphCloglog.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			value: REAL;
 			predictor: GraphNodes.Node;
 	BEGIN
 		predictor := node.predictor;
-		value := predictor.Value();
+		value := predictor.value;
 		value := 1.0 - Math.Exp( - Math.Exp(value));
-		RETURN value
-	END Value;
+		node.value := value
+	END Evaluate;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs;
 		VAR
 			predictor: GraphNodes.Node;
-			temp: REAL;
+			x: GraphNodes.Vector;
+			temp, temp1, val: REAL;
+			i, N: INTEGER;
 	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
 		predictor := node.predictor;
-		predictor.ValDiff(x, val, diff);
+		val := predictor.value;
 		temp := Math.Exp(val);
-		diff := diff * temp;
-		temp := Math.Exp( - temp);
-		diff := diff * temp;
-		val := 1.0 - temp
-	END ValDiff;
+		temp1 := Math.Exp( - temp);
+		i := 0;
+		WHILE i < N DO
+			node.diffs[i] := predictor.Diff(x[i]) * temp * temp1;
+			INC(i)
+		END;
+		node.value := 1.0 - temp1
+	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphLinkfunc.Node;
 		VAR

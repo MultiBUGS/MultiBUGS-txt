@@ -70,7 +70,7 @@ MODULE ParallelDebug;
 		VAR
 			f: Files.File;
 			restartLoc: Files.Locator;
-			adr, i, j, numRows: INTEGER;
+			adr, i, j, numRows, stringPos: INTEGER;
 			devianceExists, seperable: BOOLEAN;
 			rd: Stores.Reader;
 			pos: POINTER TO ARRAY OF LONGINT;
@@ -81,6 +81,7 @@ MODULE ParallelDebug;
 			text: TextModels.Model;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			newAttr, oldAttr: TextModels.Attributes;
+			install: Dialog.String;
 		CONST
 			space = 35 * Ports.mm;
 			numChains = 1;
@@ -100,7 +101,7 @@ MODULE ParallelDebug;
 		NEW(pos, workersPerChain);
 		i := 0; WHILE i < workersPerChain DO rd.ReadLong(pos[i]); INC(i) END;
 		rd.SetPos(pos[rank]);
-		ParallelActions.Read(chain, rd);
+		ParallelActions.Read(rank, chain, rd);
 		rd.ConnectTo(NIL);
 		f.Close;
 		f := NIL;
@@ -148,9 +149,15 @@ MODULE ParallelDebug;
 						label[0] := " "; label[LEN(label$) - 1] := 0X
 					END;
 					form.WriteTab; form.WriteView(v);
-					IF (j # rank) & ~(GraphStochastic.distributed IN p.props) THEN form.rider.SetAttr(newAttr) END;
+					IF (j # rank) & ~(GraphStochastic.distributed IN p.props) THEN 
+						p.Install(install);
+						Strings.Find(install, "GraphDummy", 0, stringPos);
+						IF stringPos# -1 THEN  form.rider.SetAttr(newAttr) END
+					END;
 					form.WriteString(label);
-					IF (j # rank) & ~(GraphStochastic.distributed IN p.props) THEN form.rider.SetAttr(oldAttr) END;
+					IF (j # rank) & ~(GraphStochastic.distributed IN p.props) THEN 
+						form.rider.SetAttr(oldAttr) 
+					END;
 					INC(j)
 				END;
 				form.WriteLn;

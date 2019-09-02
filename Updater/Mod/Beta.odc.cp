@@ -34,7 +34,7 @@ MODULE UpdaterBeta;
 	PROCEDURE BetaLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
 		VAR
 			as, i, num: INTEGER;
-			m, n, q0, q1, val, weight: REAL;
+			m, n, q0, q1, weight: REAL;
 			node: GraphNodes.Node;
 			children: GraphStochastic.Vector;
 			stoch: GraphConjugateUV.Node;
@@ -56,7 +56,7 @@ MODULE UpdaterBeta;
 					p[0] := p[0] + m;
 					p[1] := p[1] + n
 				ELSE
-					node.ValDiff(prior, val, weight);
+					weight := node.Diff(prior);
 					p[0] := p[0] + m * weight;
 					p[1] := p[1] + n * weight
 				END;
@@ -114,6 +114,7 @@ MODULE UpdaterBeta;
 	BEGIN
 		res := {};
 		prior := updater.prior(GraphConjugateUV.Node);
+		prior.EvaluateDiffs;
 		oldValue := prior.value;
 		as := GraphRules.beta;
 		BetaLikelihood(prior, p);
@@ -167,7 +168,7 @@ MODULE UpdaterBeta;
 				END
 			END
 		END;
-		prior.SetValue(x)
+		prior.value := x; prior.ClearDiffs; prior.Evaluate
 	END Sample;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;

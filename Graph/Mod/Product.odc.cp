@@ -1,11 +1,11 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-		  *)
+*)
 
 MODULE GraphProduct;
 
@@ -13,7 +13,7 @@ MODULE GraphProduct;
 	
 
 	IMPORT
-		Stores := Stores64, 
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -60,24 +60,76 @@ MODULE GraphProduct;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) Evaluate;
+		VAR
+			i, off, nElem, start, step: INTEGER;
+			value: REAL;
+			p: GraphNodes.Node;
+	BEGIN
+		value := 1.0;
+		i := 0;
+		nElem := node.nElem;
+		start := node.start;
+		step := node.step;
+		WHILE i < nElem DO
+			off := start + i * step;
+			IF node.vector # NIL THEN
+				p := node.vector[off];
+				value := value * p.value
+			ELSE
+				value := value * node.constant[off]
+			END;
+			INC(i)
+		END;
+		node.value := value
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+		VAR
+			j, off, nElem, start, step: INTEGER;
+			differ, value, product: REAL;
+			p: GraphNodes.Node;
+			x: GraphNodes.Vector;
+			i, N: INTEGER;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		product := 1.0;
+		nElem := node.nElem;
+		start := node.start;
+		step := node.step;
+		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		IF node.vector = NIL THEN RETURN END;
+		j := 0;
+		WHILE j < nElem DO
+			off := start + j * step;
+			p := node.vector[off];
+			value := p.value;
+			product := product * p.value;
+			i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] + p.Diff(x[i]) / value; INC(i) END;
+			INC(j)
+		END;
+		i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] * product; INC(i) END;
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
 		v.Init;
 		v.components := node.vector; v.values := node.constant;
-		v.start := node.start; v.nElem := node.nElem; v.step := node.step; 
+		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.vector := v.components; node.constant := v.values;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -148,61 +200,10 @@ MODULE GraphProduct;
 					END;
 					INC(i)
 				END;
-				IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+				IF isData THEN INCL(node.props, GraphNodes.data) END
 			END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Value (): REAL;
-		VAR
-			i, off, nElem, start, step: INTEGER;
-			value: REAL;
-			p: GraphNodes.Node;
-	BEGIN
-		value := 1.0;
-		i := 0;
-		nElem := node.nElem;
-		start := node.start;
-		step := node.step;
-		WHILE i < nElem DO
-			off := start + i * step;
-			IF node.vector # NIL THEN
-				p := node.vector[off];
-				value := value * p.Value()
-			ELSE
-				value := value * node.constant[off]
-			END;
-			INC(i)
-		END;
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-		VAR
-			i, off, nElem, start, step: INTEGER;
-			differ, value: REAL;
-			p: GraphNodes.Node;
-	BEGIN
-		val := 1.0;
-		diff := 0.0;
-		i := 0;
-		nElem := node.nElem;
-		start := node.start;
-		step := node.step;
-		WHILE i < nElem DO
-			off := start + i * step;
-			IF node.vector # NIL THEN
-				p := node.vector[off];
-				p.ValDiff(x, value, differ);
-				diff := diff + differ / value;
-				val := val * p.Value()
-			ELSE
-				val := val * node.constant[off]
-			END;
-			INC(i)
-		END;
-		diff := val * diff
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

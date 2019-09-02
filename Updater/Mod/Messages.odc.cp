@@ -57,7 +57,7 @@ MODULE UpdaterMessages;
 
 		RegisterKey("UpdaterElliptical.Install", "ESS for MVN prior");
 		RegisterKey("UpdaterEllipticalMVN.Install", "ESS for MVN prior and MVN partial likelihood");		
-		RegisterKey("UpdaterEllipticalD.Install", "ESS for block of univariate normal priors");
+		RegisterKey("UpdaterEllipticalD.Install", "ESS for normal priors");
 		RegisterKey("UpdaterRandEffect.Install", " ESS univariate normal");
 		RegisterKey("UpdaterGMRFess.Install", "ESS for GMRF prior");
 
@@ -76,8 +76,6 @@ MODULE UpdaterMessages;
 		RegisterKey("UpdaterGamma.Install", "conjugate gamma");
 
 		RegisterKey("UpdaterGriddy.Install", "griddy gibbs");
-
-		RegisterKey("UpdaterHamiltonianglm.Install", "hamiltonian");
 
 		RegisterKey("UpdaterKernelblock.InstallGlobal", "KAMELEON global block");
 

@@ -52,10 +52,10 @@ MODULE ReliabilityLinearFailure;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -85,8 +85,8 @@ MODULE ReliabilityLinearFailure;
 		VAR
 			alpha, beta: REAL;
 	BEGIN
-		beta := node.beta.Value();
-		alpha := node.alpha.Value();
+		beta := node.beta.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.LinearFailure(alpha, beta, x)
 	END Cumulative;
 
@@ -95,8 +95,8 @@ MODULE ReliabilityLinearFailure;
 			alpha, beta, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		logLikelihood := MathFunc.Ln(alpha + beta * x) - alpha * x - (beta / 2) * (x * x);
 		RETURN - 2.0 * logLikelihood
 	END DevianceUnivariate;
@@ -106,17 +106,17 @@ MODULE ReliabilityLinearFailure;
 			alpha, beta, diff, diffAlpha, diffBeta, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			beta := node.beta.Value();
+			diffAlpha := node.alpha.Diff(x);
 			diff := diffAlpha * (1 / (alpha + beta * val) - val)
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffBeta := node.beta.Diff(x);
 			diff := diffBeta * (val / (alpha + beta * val) - 0.5 * val * val)
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffAlpha := node.alpha.Diff(x);
+			diffBeta := node.beta.Diff(x);
 			diff := diffAlpha * (1 / (alpha + beta * val) - val) + 
 			diffBeta * (val / (alpha + beta * val) - 0.5 * val * val)
 		END;
@@ -128,8 +128,8 @@ MODULE ReliabilityLinearFailure;
 			alpha, beta, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		RETURN beta / (alpha + beta * x) - alpha - beta * x
 	END DiffLogPrior;
 
@@ -141,7 +141,7 @@ MODULE ReliabilityLinearFailure;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.beta := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -163,8 +163,8 @@ MODULE ReliabilityLinearFailure;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		median := (1.0 / beta) * 
 		( - alpha + Math.Power(alpha * alpha - 2 * beta * Math.Ln(1.0 - p50), 0.5));
 		RETURN median
@@ -175,8 +175,8 @@ MODULE ReliabilityLinearFailure;
 			alpha, beta, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		logLikelihood := MathFunc.Ln(alpha + beta * x) - alpha * x - (beta / 2) * (x * x);
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
@@ -186,8 +186,8 @@ MODULE ReliabilityLinearFailure;
 			alpha, beta, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		logPrior := MathFunc.Ln(alpha + beta * x) - alpha * x - (beta / 2) * (x * x);
 		RETURN logPrior
 	END LogPrior;
@@ -207,8 +207,8 @@ MODULE ReliabilityLinearFailure;
 			alpha, beta, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.LinearFailure(alpha, beta)
@@ -222,7 +222,7 @@ MODULE ReliabilityLinearFailure;
 				x := MathRandnum.LinearFailureIB(alpha, beta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

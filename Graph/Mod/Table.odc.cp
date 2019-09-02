@@ -14,18 +14,18 @@ MODULE GraphTable;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
+		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
 
-		Node = POINTER TO RECORD(GraphMemory.Node)
+		Node = POINTER TO RECORD(GraphScalar.Node)
 			nElem, xStart, xStep, yStart, yStep: INTEGER;
 			x0: GraphNodes.Node;
 			x, y: GraphNodes.Vector;
 			constantX, constantY: POINTER TO ARRAY OF SHORTREAL
 		END;
 
-		Factory = POINTER TO RECORD(GraphMemory.Factory) END;
+		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	VAR
 		fact-: GraphScalar.Factory;
@@ -73,7 +73,7 @@ MODULE GraphTable;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT value: REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, lower, upper, xStart, xStep, yStart, yStep: INTEGER;
 			delta, slope, x, x0, x1, y, y1: REAL;
@@ -83,13 +83,13 @@ MODULE GraphTable;
 		xStep := node.xStep;
 		yStart := node.yStart;
 		yStep := node.yStep;
-		x0 := node.x0.Value();
+		x0 := node.x0.value;
 		lower := 0;
 		upper := node.nElem;
 		WHILE upper - lower > 1 DO
 			i := (lower + upper) DIV 2;
 			offX := xStart + i * xStep;
-			IF node.x # NIL THEN x := node.x[offX].Value() ELSE x := node.constantX[offX] END;
+			IF node.x # NIL THEN x := node.x[offX].value ELSE x := node.constantX[offX] END;
 			IF x < x0 THEN
 				lower := i
 			ELSE
@@ -99,8 +99,8 @@ MODULE GraphTable;
 		i := lower;
 		offX := xStart + i * xStep;
 		IF node.x # NIL THEN
-			x := node.x[offX].Value();
-			x1 := node.x[offX + xStep].Value()
+			x := node.x[offX].value;
+			x1 := node.x[offX + xStep].value
 		ELSE
 			x := node.constantX[offX];
 			x1 := node.constantX[offX + xStep]
@@ -108,17 +108,17 @@ MODULE GraphTable;
 		delta := x0 - x;
 		offY := yStart + i * yStep;
 		IF node.y # NIL THEN
-			y := node.y[offY].Value();
-			y1 := node.y[offY + yStep].Value()
+			y := node.y[offY].value;
+			y1 := node.y[offY + yStep].value
 		ELSE
 			y := node.constantY[offY];
 			y1 := node.constantY[offY + yStep]
 		END;
 		slope := (y1 - y) / (x1 - x);
-		value := y + delta * slope
+		node.value := y + delta * slope
 	END Evaluate;
 
-	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -130,20 +130,7 @@ MODULE GraphTable;
 		v.start := node.yStart; v.nElem := node.nElem; v.step := node.yStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.x0, wr)
-	END ExternalizeMemory;
-
-	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
-		VAR
-			v: GraphNodes.SubVector;
-	BEGIN
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.x := v.components; node.constantX := v.values;
-		node.xStart := v.start; node.nElem := v.nElem; node.xStep := v.step;
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.y := v.components; node.constantY := v.values;
-		node.yStart := v.start; node.nElem := v.nElem; node.yStep := v.step;
-		node.x0 := GraphNodes.Internalize(rd)
-	END InternalizeMemory;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -163,6 +150,19 @@ MODULE GraphTable;
 	BEGIN
 		install := "GraphTable.Install"
 	END Install;
+
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			v: GraphNodes.SubVector;
+	BEGIN
+		GraphNodes.InternalizeSubvector(v, rd);
+		node.x := v.components; node.constantX := v.values;
+		node.xStart := v.start; node.nElem := v.nElem; node.xStep := v.step;
+		GraphNodes.InternalizeSubvector(v, rd);
+		node.y := v.components; node.constantY := v.values;
+		node.yStart := v.start; node.nElem := v.nElem; node.yStep := v.step;
+		node.x0 := GraphNodes.Internalize(rd)
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -251,27 +251,31 @@ MODULE GraphTable;
 					INC(i)
 				END
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
 
-	PROCEDURE (node: Node) ValDiff (z: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs ;
 		VAR
-			i, lower, upper, xStart, xStep, yStart, yStep: INTEGER;
-			delta, slope, x, x0, x1, y, y1: REAL;
+			i, lower, upper, xStart, xStep, yStart, yStep, N: INTEGER;
+			diff, delta, slope, x, x0, x1, y, y1: REAL;
 			offX, offY: INTEGER;
+			z: GraphNodes.Vector;
 	BEGIN
+		z := node.diffWRT;
+		N := LEN(z);
 		xStart := node.xStart;
 		xStep := node.xStep;
 		yStart := node.yStart;
 		yStep := node.yStep;
-		node.x0.ValDiff(z, x0, diff);
+		x0 := node.x0.value;
+		i := 0; WHILE i < N DO node.diffs[i] := node.x0.Diff(z[i]); INC(i) END;
 		lower := 0;
 		upper := node.nElem;
 		WHILE upper - lower > 1 DO
 			i := (lower + upper) DIV 2;
 			offX := xStart + i * xStep;
-			IF node.x # NIL THEN x := node.x[offX].Value() ELSE x := node.constantX[offX] END;
+			IF node.x # NIL THEN x := node.x[offX].value ELSE x := node.constantX[offX] END;
 			IF x < x0 THEN
 				lower := i
 			ELSE
@@ -281,8 +285,8 @@ MODULE GraphTable;
 		i := lower;
 		offX := xStart + i * xStep;
 		IF node.x # NIL THEN
-			x := node.x[offX].Value();
-			x1 := node.x[offX + xStep].Value()
+			x := node.x[offX].value;
+			x1 := node.x[offX + xStep].value
 		ELSE
 			x := node.constantX[offX];
 			x1 := node.constantX[offX + xStep]
@@ -290,18 +294,17 @@ MODULE GraphTable;
 		delta := x0 - x;
 		offY := yStart + i * yStep;
 		IF node.y # NIL THEN
-			y := node.y[offY].Value();
-			y1 := node.y[offY + yStep].Value()
+			y := node.y[offY].value;
+			y1 := node.y[offY + yStep].value
 		ELSE
 			y := node.constantY[offY];
 			y1 := node.constantY[offY + yStep]
 		END;
 		slope := (y1 - y) / (x1 - x);
-		val := y + delta * slope;
-		diff := diff * slope
-	END ValDiff;
+		i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] * slope; INC(i) END
+	END EvaluateDiffs;
 
-	PROCEDURE (f: Factory) New (): GraphMemory.Node;
+	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
 			node: Node;
 	BEGIN

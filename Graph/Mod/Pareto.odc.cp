@@ -63,8 +63,8 @@ MODULE GraphPareto;
 		VAR
 			cumulative, alpha, c: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		c := node.c.Value();
+		alpha := node.alpha.value;
+		c := node.c.value;
 		cumulative := 1.0 - Math.Power(c / x, alpha);
 		RETURN cumulative
 	END Cumulative;
@@ -74,9 +74,9 @@ MODULE GraphPareto;
 			logC, logDensity, logAlpha, alpha, x, c: REAL;
 	BEGIN
 		x := node.value;
-		c := node.c.Value();
+		c := node.c.value;
 		logC := MathFunc.Ln(c);
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
 		logDensity := logAlpha + alpha * logC - (alpha + 1.0) * Math.Ln(x);
 		RETURN - 2.0 * logDensity
@@ -87,17 +87,17 @@ MODULE GraphPareto;
 			logX0, differential, alpha, val, c, diffC, diffAlpha: REAL;
 	BEGIN
 		val := node.value;
+		c := node.c.value;
+		alpha := node.alpha.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			node.c.ValDiff(x, c, diffC);
-			alpha := node.alpha.Value();
+			diffC := node.c.Diff(x);
 			differential := diffC * alpha / c;
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.c.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			c := node.c.Value();
+			diffAlpha := node.alpha.Diff(x);
 			differential := diffAlpha * (1 / alpha + Math.Ln(c) - Math.Ln(val))
 		ELSE
-			node.c.ValDiff(x, c, diffC);
-			node.alpha.ValDiff(x, alpha, diffAlpha);
+			diffC := node.c.Diff(x);
+			diffAlpha := node.alpha.Diff(x);
 			differential := diffAlpha * (1 / alpha + Math.Ln(c) - Math.Ln(val)) + diffC * alpha / c
 		END;
 		RETURN differential
@@ -108,7 +108,7 @@ MODULE GraphPareto;
 			differential, alpha, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		differential := - (alpha + 1.0) / x;
 		RETURN differential
 	END DiffLogPrior;
@@ -123,9 +123,9 @@ MODULE GraphPareto;
 			x, c, logX0, alpha, logTheta, logLikelihood: REAL;
 	BEGIN
 		x := node.value;
-		c := node.c.Value();
+		c := node.c.value;
 		logX0 := MathFunc.Ln(c);
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logTheta := MathFunc.Ln(alpha);
 		logLikelihood := logTheta + alpha * logX0 - (alpha + 1.0) * Math.Ln(x);
 		RETURN logLikelihood
@@ -142,7 +142,7 @@ MODULE GraphPareto;
 			alpha, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logPrior := - (alpha + 1.0) * Math.Ln(x);
 		RETURN logPrior
 	END LogPrior;
@@ -151,8 +151,8 @@ MODULE GraphPareto;
 		VAR
 			alpha, c: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		c := node.c.Value();
+		alpha := node.alpha.value;
+		c := node.c.value;
 		RETURN c * alpha / (alpha - 1)
 	END Location;
 
@@ -160,17 +160,17 @@ MODULE GraphPareto;
 	BEGIN
 		ASSERT(as IN {GraphRules.gamma, GraphRules.gamma1, GraphRules.pareto}, 21);
 		IF as = GraphRules.pareto THEN
-			p0 := prior.alpha.Value();
-			p1 := prior.c.Value()
+			p0 := prior.alpha.value;
+			p1 := prior.c.value
 		ELSE
-			p0 := - prior.alpha.Value();
+			p0 := - prior.alpha.value;
 			p1 := 0.0
 		END
 	END PriorForm;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left := node.c.Value();
+		left := node.c.value;
 		right := INF
 	END BoundsUnivariate;
 
@@ -178,8 +178,8 @@ MODULE GraphPareto;
 		VAR
 			alpha, c: REAL;
 	BEGIN
-		c := node.c.Value();
-		alpha := node.alpha.Value();
+		c := node.c.value;
+		alpha := node.alpha.value;
 		IF c < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
@@ -206,7 +206,7 @@ MODULE GraphPareto;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.c := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -237,8 +237,8 @@ MODULE GraphPareto;
 			alpha, c, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		c := node.c.Value();
-		alpha := node.alpha.Value();
+		c := node.c.value;
+		alpha := node.alpha.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Pareto(alpha, c)
@@ -252,7 +252,7 @@ MODULE GraphPareto;
 				x := MathRandnum.ParetoIB(alpha, c, lower, upper);
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

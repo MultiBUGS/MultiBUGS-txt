@@ -64,10 +64,10 @@ MODULE UpdaterDirichlet;
 						IF xVector[start + i * step] = components[i] THEN
 							p[i] := p[i] + value[i]
 						ELSE
-							components[i].SetValue(0.0);
-							weight := xVector[start + i * step].Value();
-							components[i].SetValue(1.0);
-							weight := xVector[start + i * step].Value() - weight;
+							components[i].value := 0.0;
+							weight := xVector[start + i * step].value;
+							components[i].value := 1.0;
+							weight := xVector[start + i * step].value - weight;
 							p[i] := p[i] + weight * value[i]
 						END;
 						INC(i)
@@ -78,10 +78,10 @@ MODULE UpdaterDirichlet;
 					IF x = components[i] THEN
 						p[i] := p[i] + 1
 					ELSE
-						components[i].SetValue(0.0);
-						weight := x.Value();
-						components[i].SetValue(1.0);
-						weight := x.Value() - weight;
+						components[i].value := 0.0;
+						weight := x.value;
+						components[i].value := 1.0;
+						weight := x.value - weight;
 						p[i] := p[i] + weight
 					END
 				END;

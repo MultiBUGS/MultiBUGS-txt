@@ -95,7 +95,7 @@ MODULE BugsRobjects;
 		size := LEN(values);
 		ASSERT(node.components # NIL, 21);
 		ASSERT(size = node.Size(), 20);
-		UpdaterActions.LoadSamples(chain);
+		(*UpdaterActions.LoadSamples(chain);*)
 		i := 0;
 		errorNum := 0;
 		WHILE i < size DO
@@ -120,7 +120,7 @@ MODULE BugsRobjects;
 			END;
 			INC(i)
 		END;
-		UpdaterActions.LoadSamples(0)
+		(*UpdaterActions.LoadSamples(0)*)
 	END CheckInits;
 
 	PROCEDURE GetDimensions* (OUT dim: ARRAY OF INTEGER);
@@ -194,18 +194,18 @@ MODULE BugsRobjects;
 		size := LEN(values) DIV numChains;
 		j := 0;
 		WHILE j < numChains DO
-			UpdaterActions.LoadSamples(j);
+			(*UpdaterActions.LoadSamples(j);*)
 			i := 0;
 			WHILE i < size DO
 				p := node.components[i];
 				IF p # NIL THEN
-					values[j * size + i] := p.Value();
+					values[j * size + i] := p.value;
 				END;
 				INC(i)
 			END;
 			INC(j)
 		END;
-		UpdaterActions.LoadSamples(0)
+		(*UpdaterActions.LoadSamples(0)*)
 	END GetValues;
 
 	PROCEDURE GetVariable* (OUT var: ARRAY OF CHAR);
@@ -239,8 +239,8 @@ MODULE BugsRobjects;
 			IF ~IsNA(x) THEN
 				IF p # NIL THEN
 					IF p IS GraphStochastic.Node THEN
-						p(GraphStochastic.Node).SetValue(values[i]);
-						p.SetProps(p.props + {GraphNodes.data})
+						p.value := values[i];
+						INCL(p.props, GraphNodes.data)
 					END
 				ELSE
 					node.components[i] := GraphConstant.New(x)
@@ -264,8 +264,8 @@ MODULE BugsRobjects;
 			x := values[i];
 			IF ~IsNA(x) THEN
 				p := node.components[i];
-				p(GraphStochastic.Node).SetValue(x);
-				p.SetProps(p.props + {GraphStochastic.initialized})
+				p.value := x;
+				INCL(p.props, GraphStochastic.initialized)
 			END;
 			INC(i)
 		END
@@ -295,7 +295,7 @@ MODULE BugsRobjects;
 		size := LEN(values) DIV numChains;
 		j := 0;
 		WHILE j < numChains DO
-			UpdaterActions.LoadSamples(j);
+			(*UpdaterActions.LoadSamples(j);*)
 			i := 0;
 			WHILE i < size DO
 				x := values[j * size + i];
@@ -303,17 +303,17 @@ MODULE BugsRobjects;
 					p := node.components[i];
 					IF p # NIL THEN
 						WITH p: GraphStochastic.Node DO
-							IF GraphStochastic.update IN p.props THEN p.SetValue(x) END
+							IF GraphStochastic.update IN p.props THEN p.value := x END
 						ELSE
 						END
 					END
 				END;
 				INC(i)
 			END;
-			UpdaterActions.StoreSamples(j);
+			(*UpdaterActions.StoreSamples(j);*)
 			INC(j)
 		END;
-		UpdaterActions.LoadSamples(0)
+		(*UpdaterActions.LoadSamples(0)*)
 	END SetValues;
 	
 	PROCEDURE SetVariableByName* (IN var: ARRAY OF CHAR);

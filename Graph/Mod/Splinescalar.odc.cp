@@ -7,6 +7,8 @@ copyright:	"Rsrc/About"
 
 MODULE GraphSplinescalar;
 
+	
+
 	IMPORT
 		Math, Stores := Stores64,
 		GraphNodes, GraphRules, GraphScalar, GraphStochastic;
@@ -67,7 +69,7 @@ MODULE GraphSplinescalar;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) Check (): SET;	
+	PROCEDURE (node: Node) Check (): SET;
 		VAR
 			numBeta, i, knotsStart, knotsStep, knotsSize: INTEGER;
 			res: SET;
@@ -84,7 +86,7 @@ MODULE GraphSplinescalar;
 			IF node.knots # NIL THEN
 				p := node.knots[knotsStart + i * knotsStep];
 				IF ~(GraphNodes.data IN p.props) THEN
-					res :=  {GraphNodes.arg3, GraphNodes.notData}
+					res := {GraphNodes.arg3, GraphNodes.notData}
 				END
 			END;
 			INC(i)
@@ -100,16 +102,16 @@ MODULE GraphSplinescalar;
 		IF node.beta = NIL THEN RETURN class END;
 		len := node.betaSize;
 		i := 0;
-		WHILE i < len DO 
+		WHILE i < len DO
 			off := node.betaStart + i * node.betaStep;
 			class1 := GraphStochastic.ClassFunction(node.beta[off], parent);
 			class := GraphRules.addF[class, class1];
-			INC(i) 
+			INC(i)
 		END;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -123,26 +125,26 @@ MODULE GraphSplinescalar;
 		v.components := node.knots; v.values := node.knotValues;
 		v.start := node.knotsStart; v.nElem := node.knotsSize; v.step := node.knotsStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.order := -1;
-		node.continuity := -1;
+		node.order := - 1;
+		node.continuity := - 1;
 		node.x := NIL;
 		node.beta := NIL;
 		node.betaValues := NIL;
-		node.betaStart := -1;
+		node.betaStart := - 1;
 		node.betaStep := 0;
 		node.betaSize := 0;
 		node.knots := NIL;
 		node.knotValues := NIL;
-		node.knotsStart := -1;
+		node.knotsStart := - 1;
 		node.knotsStep := 0;
 		node.knotsSize := 0
 	END InitLogical;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -155,8 +157,8 @@ MODULE GraphSplinescalar;
 		GraphNodes.InternalizeSubvector(v, rd);
 		node.knots := v.components; node.knotValues := v.values;
 		node.knotsStart := v.start; node.knotsSize := v.nElem; node.knotsStep := v.step;
-	END InternalizeLogical;
-	
+	END InternalizeScalar;
+
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, betaStart, betaStep, betaSize, knotsStart, knotsStep, knotsSize: INTEGER;
@@ -189,17 +191,17 @@ MODULE GraphSplinescalar;
 			INC(i)
 		END;
 		GraphNodes.ClearList(list);
-		RETURN list	
+		RETURN list
 	END Parents;
-	
-	PROCEDURE (node: Node) Value (): REAL;
+
+	PROCEDURE (node: Node) Evaluate;
 		CONST
 			eps = 1.0E-40;
 		VAR
 			continuity, j, k, numKnots, off, order: INTEGER;
 			xVal, value, d, basis: REAL;
 	BEGIN
-		xVal := node.x.Value();
+		xVal := node.x.value;
 		numKnots := node.knotsSize;
 		order := node.order;
 		continuity := node.continuity;
@@ -210,7 +212,7 @@ MODULE GraphSplinescalar;
 		WHILE j < order DO
 			off := node.betaStart + node.betaStep * j;
 			IF node.beta # NIL THEN
-				value := value + node.beta[off].Value() * basis
+				value := value + node.beta[off].value * basis
 			ELSE
 				value := value + node.betaValues[off] * basis
 			END;
@@ -221,18 +223,18 @@ MODULE GraphSplinescalar;
 		WHILE j < numKnots DO
 			off := node.knotsStart + j * node.knotsStep;
 			IF node.knots # NIL THEN
-				d := xVal - node.knots[off].Value()
+				d := xVal - node.knots[off].value
 			ELSE
 				d := xVal - node.knotValues[off]
 			END;
-			IF d >  - eps THEN
+			IF d > - eps THEN
 				k := continuity;
 				basis := Math.IntPower(d, k);
 				WHILE k <= order DO
 					off := order + 1 + (order - continuity + 1) * j + k - continuity;
 					off := node.betaStart + node.betaStep * off;
 					IF node.beta # NIL THEN
-						value := value + node.beta[off].Value() * basis
+						value := value + node.beta[off].value * basis
 					ELSE
 						value := value + node.betaValues[off] * basis
 					END;
@@ -240,71 +242,70 @@ MODULE GraphSplinescalar;
 					INC(k)
 				END
 			ELSE
-				RETURN value
-			END;
-			INC(j)
-		END;
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-		CONST
-			eps = 1.0E-40;
-		VAR
-			continuity, j, k, numKnots, off, order: INTEGER;
-			xVal, d, basis, value, valDiff: REAL;
-	BEGIN
-		xVal := node.x.Value();
-		numKnots := node.knotsSize;
-		order := node.order;
-		continuity := node.continuity;
-		val := 0.0;
-		diff := 0.0;
-		j := 0;
-		d := xVal;
-		basis := 1.0;
-		WHILE j < order DO
-			off := node.betaStart + node.betaStep * j;
-			IF node.beta # NIL THEN
-				node.beta[off].ValDiff(x, value, valDiff);
-				val := val + value * basis;
-				diff := diff + valDiff * basis
-			ELSE
-				val := val + node.betaValues[off] * basis
-			END;
-			basis := basis * d;
-			INC(j)
-		END;
-		j := 0;
-		WHILE j < numKnots DO
-			off := node.knotsStart + j * node.knotsStep;
-			IF node.knots # NIL THEN
-				d := xVal - node.knots[off].Value()
-			ELSE
-				d := xVal - node.knotValues[off]
-			END;
-			IF d >  - eps THEN
-				k := continuity;
-				basis := Math.IntPower(d, k);
-				WHILE k <= order DO
-					off := order + 1 + (order - continuity + 1) * j + k - continuity;
-					off := node.betaStart + node.betaStep * off;
-					IF node.beta # NIL THEN
-						node.beta[off].ValDiff(x, value, valDiff);
-						val := val + value* basis;
-						diff := diff + diff * basis
-					ELSE
-						val := val + node.betaValues[off] * basis
-					END;
-					basis := basis * d;
-					INC(k)
-				END
-			ELSE
+				node.value := value;
 				RETURN
 			END;
 			INC(j)
+		END;
+		node.value := value
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+		CONST
+			eps = 1.0E-40;
+		VAR
+			continuity, i, j, k, numKnots, off, order, N: INTEGER;
+			xVal, d, basis: REAL;
+			x: GraphNodes.Vector;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		xVal := node.x.value;
+		numKnots := node.knotsSize;
+		order := node.order;
+		continuity := node.continuity;
+		i := 0;
+		WHILE i < N DO
+			node.diffs[i] := 0.0;
+			j := 0;
+			d := xVal;
+			basis := 1.0;
+			WHILE j < order DO
+				off := node.betaStart + node.betaStep * j;
+				IF node.beta # NIL THEN
+					node.diffs[i] := node.diffs[i] + node.beta[off].Diff(x[i]) * basis
+				END;
+				basis := basis * d;
+				INC(j)
+			END;
+			j := 0;
+			WHILE j < numKnots DO
+				off := node.knotsStart + j * node.knotsStep;
+				IF node.knots # NIL THEN
+					d := xVal - node.knots[off].value
+				ELSE
+					d := xVal - node.knotValues[off]
+				END;
+				IF d > - eps THEN
+					k := continuity;
+					basis := Math.IntPower(d, k);
+					WHILE k <= order DO
+						off := order + 1 + (order - continuity + 1) * j + k - continuity;
+						off := node.betaStart + node.betaStep * off;
+						IF node.beta # NIL THEN
+							node.diffs[i] := node.diffs[i] + node.beta[off].Diff(x[i]) * basis
+						END;
+						basis := basis * d;
+						INC(k)
+					END
+				ELSE	(*	?????????	*)
+					RETURN
+				END;
+				INC(j)
+			END;
+			INC(i)
 		END
-	END ValDiff;
+	END EvaluateDiffs;
 
 	(*	concrete classes	*)
 
@@ -355,9 +356,9 @@ MODULE GraphSplinescalar;
 	BEGIN
 		WITH args: GraphStochastic.ArgsLogical DO
 			ASSERT(args.scalars[2] # NIL, 21);
-			generic.order := SHORT(ENTIER(args.scalars[1].Value() + eps));
+			generic.order := SHORT(ENTIER(args.scalars[1].value + eps));
 			ASSERT(args.scalars[3] # NIL, 22);
-			generic.continuity := SHORT(ENTIER(args.scalars[2].Value() + eps))
+			generic.continuity := SHORT(ENTIER(args.scalars[2].value + eps))
 		END;
 		Set(generic, args, res);
 	END Set;

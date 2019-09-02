@@ -43,7 +43,7 @@ MODULE UpdaterDEblock;
 			class: SET;
 	BEGIN
 		class := {GraphRules.general, GraphRules.normal};
-		RETURN UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE)
+		RETURN UpdaterMultivariate.FixedEffects(prior, class, TRUE)
 	END FindBlock;
 
 	PROCEDURE (updater: UpdaterHetro) Install (OUT install: ARRAY OF CHAR);
@@ -65,7 +65,7 @@ MODULE UpdaterDEblock;
 			block: GraphStochastic.Vector;
 	BEGIN
 		class := {prior.classConditional};
-		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 		RETURN block
 	END FindBlock;
 
@@ -98,7 +98,7 @@ MODULE UpdaterDEblock;
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF prior.classConditional # GraphRules.general THEN RETURN FALSE END;
 		class := {GraphRules.general, GraphRules.normal};
-		block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE);
+		block := UpdaterMultivariate.FixedEffects(prior, class, TRUE);
 		IF block = NIL THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
@@ -135,7 +135,7 @@ MODULE UpdaterDEblock;
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		class := {prior.classConditional};
 		IF class * {GraphRules.logitReg, GraphRules.logReg} = {} THEN RETURN FALSE END;
-		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
 		RETURN TRUE

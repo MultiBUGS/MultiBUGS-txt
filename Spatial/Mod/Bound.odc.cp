@@ -93,7 +93,12 @@ MODULE SpatialBound;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -109,9 +114,9 @@ MODULE SpatialBound;
 		len := LEN(node.m);
 		wr.WriteInt(len);
 		i := 0; WHILE i < len DO GraphNodes.Externalize(node.m[i], wr); INC(i) END;
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -127,7 +132,7 @@ MODULE SpatialBound;
 		len := LEN(node.m);
 		rd.ReadInt(len);
 		i := 0; WHILE i < len DO node.m[i] := GraphNodes.Internalize(rd); INC(i) END;
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -209,7 +214,7 @@ MODULE SpatialBound;
 			NEW(node.adj, nElem);
 			i := 0;
 			WHILE i < nElem DO
-				node.adj[i] := SHORT(ENTIER(args.vectors[1].components[start + i].Value() + eps)) - 1; 
+				node.adj[i] := SHORT(ENTIER(args.vectors[1].components[start + i].value + eps)) - 1; 
 				INC(i)
 			END;
 			nElem := args.vectors[2].nElem; start := args.vectors[2].start;
@@ -229,7 +234,7 @@ MODULE SpatialBound;
 			NEW(node.cols, nElem);
 			i := 0;
 			WHILE i < nElem DO
-				node.cols[i] := SHORT(ENTIER(args.vectors[2].components[start + i].Value() + eps)); 
+				node.cols[i] := SHORT(ENTIER(args.vectors[2].components[start + i].value + eps)); 
 				INC(i)
 			END;
 			nElem := args.vectors[3].nElem; start := args.vectors[3].start;
@@ -250,51 +255,43 @@ MODULE SpatialBound;
 				res := {GraphNodes.arg4, GraphNodes.length}; RETURN
 			END
 		END;
-		IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+		IF isData THEN INCL(node.props, GraphNodes.data) END
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (node: MaxNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "SpatialBound.MaxInstall"
 	END Install;
 
-	PROCEDURE (node: MaxNode) Value (): REAL;
+	PROCEDURE (node: MaxNode) Evaluate;
 		VAR
 			i, len, nElem: INTEGER;
-			value: REAL;
 			c, m: POINTER TO ARRAY OF REAL;
 	BEGIN
 		i := 0; len := LEN(node.c); NEW(c, len);
-		WHILE i < len DO c[i] := node.c[i].Value(); INC(i) END;
+		WHILE i < len DO c[i] := node.c[i].value; INC(i) END;
 		i := 0; nElem := LEN(node.m); NEW(m, nElem);
-		WHILE i < nElem DO m[i] := node.m[i].Value(); INC(i) END;
-		value := Value(c, m, node.adj, node.cols, nElem - 1);
-		RETURN value
-	END Value;
+		WHILE i < nElem DO m[i] := node.m[i].value; INC(i) END;
+		node.value := Value(c, m, node.adj, node.cols, nElem - 1);
+	END Evaluate;
 
 	PROCEDURE (node: MinNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "SpatialBound.MinInstall"
 	END Install;
 
-	PROCEDURE (node: MinNode) Value (): REAL;
+	PROCEDURE (node: MinNode) Evaluate;
 		VAR
 			i, len, nElem: INTEGER;
 			value: REAL;
 			c, m: POINTER TO ARRAY OF REAL;
 	BEGIN
 		i := 0; len := LEN(node.c); NEW(c, len);
-		WHILE i < len DO c[i] := node.c[i].Value(); INC(i) END;
+		WHILE i < len DO c[i] := node.c[i].value; INC(i) END;
 		i := 0; nElem := LEN(node.m); NEW(m, nElem);
-		WHILE i < nElem DO m[i] := node.m[i].Value(); INC(i) END;
-		value := Value(c, m, node.adj, node.cols, 0);
-		RETURN value
-	END Value;
+		WHILE i < nElem DO m[i] := node.m[i].value; INC(i) END;
+		node.value := Value(c, m, node.adj, node.cols, 0);
+	END Evaluate;
 
 	PROCEDURE (f: MaxFactory) New (): GraphScalar.Node;
 		VAR

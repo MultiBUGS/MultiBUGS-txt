@@ -55,15 +55,15 @@ MODULE PharmacoPKIVbol3ss;
 		END ProfileSS;
 
 	BEGIN
-		logCL := params[0].Value();
-		logQ12 := params[1].Value();
-		logQ13 := params[2].Value();
-		logV1 := params[3].Value();
-		logV2 := params[4].Value();
-		V3 := Math.Exp(logV2) + Math.Exp(params[5].Value());
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
-		omega := scalars[PharmacoModel.omega].Value();
+		logCL := params[0].value;
+		logQ12 := params[1].value;
+		logQ13 := params[2].value;
+		logV1 := params[3].value;
+		logV2 := params[4].value;
+		V3 := Math.Exp(logV2) + Math.Exp(params[5].value);
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
+		omega := scalars[PharmacoModel.omega].value;
 		k10 := Math.Exp(logCL - logV1);
 		k12 := Math.Exp(logQ12 - logV1); k21 := Math.Exp(logQ12 - logV2);
 		k13 := Math.Exp(logQ13 - logV1); k31 := Math.Exp(logQ13) / V3;
@@ -101,10 +101,10 @@ MODULE PharmacoPKIVbol3ss;
 		install := "PharmacoPKIVbol3ss.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

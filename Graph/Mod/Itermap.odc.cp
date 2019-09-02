@@ -52,23 +52,30 @@ MODULE GraphItermap;
 		RETURN form1
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT value: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, size: INTEGER;
 			x0: REAL;
 			stochastic: GraphStochastic.Node;
 	BEGIN
-		size := node.Size();
-		x0 := node.x0.Value();
-		i := 0;
-		stochastic := node.x(GraphStochastic.Node);
-		WHILE i < size DO
-			stochastic.SetValue(x0);
-			value[i] := node.function.Value();
-			x0 := value[i];
-			INC(i)
+		IF node.index = 0 THEN
+			size := node.Size();
+			x0 := node.x0.value;
+			i := 0;
+			stochastic := node.x(GraphStochastic.Node);
+			WHILE i < size DO
+				stochastic.value := x0;
+				node.components[i].value := node.function.value;
+				x0 := node.function.value;
+				INC(i)
+			END
 		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 	BEGIN
@@ -96,7 +103,6 @@ MODULE GraphItermap;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.function := NIL;
 		node.x := NIL;
 		node.x0 := NIL
@@ -128,14 +134,9 @@ MODULE GraphItermap;
 			node.function := args.scalars[0];
 			node.x := args.scalars[1];
 			node.x0 := args.scalars[2];
-			node.x.SetProps(node.x.props + {GraphStochastic.hidden, GraphStochastic.initialized})
+			node.x.props := node.x.props + {GraphStochastic.hidden, GraphStochastic.initialized}
 		END
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR

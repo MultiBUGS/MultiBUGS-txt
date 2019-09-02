@@ -53,10 +53,10 @@ MODULE ReliabilityInvWeibull;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -86,8 +86,8 @@ MODULE ReliabilityInvWeibull;
 		VAR
 			lambda, beta: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
-		beta := node.beta.Value();
+		lambda := node.lambda.value;
+		beta := node.beta.value;
 		RETURN MathCumulative.InvWeibull(beta, lambda, x)
 	END Cumulative;
 
@@ -96,9 +96,9 @@ MODULE ReliabilityInvWeibull;
 			beta, logBeta, lambda, logLambda, factor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := Math.Power((x / lambda), - beta);
 		logLikelihood := logBeta + beta * logLambda - (beta + 1.0) * MathFunc.Ln(x) - factor;
@@ -110,19 +110,19 @@ MODULE ReliabilityInvWeibull;
 			beta, lambda, diff, diffBeta, diffLambda, pow, val: REAL;
 	BEGIN
 		val := node.value;
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.lambda.props) THEN
-			node.beta.ValDiff(x, beta, diffBeta);
-			lambda := node.lambda.Value();
+			diffBeta := node.beta.Diff(x);
 			pow := Math.Power(lambda / val, beta);
 			diff := diffBeta * (1 / beta + Math.Ln(lambda / val) * (1 - pow))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
-			beta := node.beta.Value();
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffLambda := node.lambda.Diff(x);
 			pow := Math.Power(lambda / val, beta);
 			diff := diffLambda * (beta / lambda) * (1 - pow)
 		ELSE
-			node.beta.ValDiff(x, beta, diffBeta);
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffBeta := node.beta.Diff(x);
+			diffLambda := node.lambda.Diff(x);
 			pow := Math.Power(lambda / val, beta);
 			diff := diffBeta * (1 / beta + Math.Ln(lambda / val) * (1 - pow)) + 
 			diffLambda * (beta / lambda) * (1 - pow)
@@ -135,8 +135,8 @@ MODULE ReliabilityInvWeibull;
 			beta, lambda, pow, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		pow := Math.Power(lambda / x, beta);
 		RETURN - (beta + 1) / x + beta * pow / x
 	END DiffLogPrior;
@@ -149,7 +149,7 @@ MODULE ReliabilityInvWeibull;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.lambda := NIL;
 		node.beta := NIL
 	END InitUnivariate;
@@ -171,8 +171,8 @@ MODULE ReliabilityInvWeibull;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		median := lambda * Math.Power( - Math.Ln(p50), - 1.0 / beta);
 		RETURN median
 	END Location;
@@ -182,9 +182,9 @@ MODULE ReliabilityInvWeibull;
 			beta, logBeta, lambda, logLambda, factor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := Math.Power((x / lambda), - beta);
 		logLikelihood := logBeta + beta * logLambda - (beta + 1.0) * MathFunc.Ln(x) - factor;
@@ -196,8 +196,8 @@ MODULE ReliabilityInvWeibull;
 			beta, lambda, factor, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		factor := Math.Power((x / lambda), - beta);
 		logPrior := - (beta + 1.0) * MathFunc.Ln(x) - factor;
 		RETURN logPrior
@@ -218,8 +218,8 @@ MODULE ReliabilityInvWeibull;
 			lambda, beta, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.InvWeibull(beta, lambda)
@@ -233,7 +233,7 @@ MODULE ReliabilityInvWeibull;
 				x := MathRandnum.InvWeibullIB(beta, lambda, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

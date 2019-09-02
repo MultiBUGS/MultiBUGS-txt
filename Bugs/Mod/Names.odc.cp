@@ -277,7 +277,7 @@ MODULE BugsNames;
 	PROCEDURE (name: Name) Value* (offset: INTEGER): REAL, NEW;
 	BEGIN
 		IF name.passByreference THEN
-			RETURN name.components[offset].Value()
+			RETURN name.components[offset].value
 		ELSE
 			RETURN name.values[offset]
 		END

@@ -32,11 +32,11 @@ MODULE PharmacoPKIVinf1;
 		VAR
 			CL, V, time, dose, TI, value: REAL;
 	BEGIN
-		CL := Math.Exp(params[0].Value());
-		V := Math.Exp(params[1].Value());
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
-		TI := scalars[PharmacoModel.TI].Value();
+		CL := Math.Exp(params[0].value);
+		V := Math.Exp(params[1].value);
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
+		TI := scalars[PharmacoModel.TI].value;
 		IF time < 0 THEN value := 0
 		ELSE
 			IF time < TI THEN value := dose * (1 - Math.Exp( - CL * time / V)) / (CL * TI)
@@ -57,10 +57,10 @@ MODULE PharmacoPKIVinf1;
 		install := "PharmacoPKIVinf1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

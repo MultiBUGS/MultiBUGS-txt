@@ -142,18 +142,23 @@ MODULE PharmacoModel;
 		RETURN ClassFunction(node.params, node.scalars, parent)
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) EvaluateDiffs-;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
 	BEGIN
 		ExternalizeScalar(node.params, node.scalars, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) GetNumArgs- (OUT numParams, numScalars: INTEGER),
 	NEW, ABSTRACT;
 
-	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
 	BEGIN
 		InternalizeScalar(node.params, node.scalars, rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
@@ -173,11 +178,6 @@ MODULE PharmacoModel;
 		node.GetNumArgs(numParams, numScalars);
 		Set(args, numParams, numScalars, node.params, node.scalars, res)
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE Maintainer;
 	BEGIN

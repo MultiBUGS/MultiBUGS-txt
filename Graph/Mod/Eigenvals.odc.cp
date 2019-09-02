@@ -64,31 +64,41 @@ MODULE GraphEigenvals;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			dim, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
+			values: POINTER TO ARRAY OF REAL;
 	BEGIN
-		dim := node.Size();
-		start := node.start;
-		step := node.step;
-		i := 0;
-		WHILE i < dim DO
-			j := 0;
-			WHILE j < dim DO
-				off := start + (i * dim + j) * step;
-				IF node.matrix # NIL THEN
-					p := node.matrix[off];
-					tau[i, j] := p.Value()
-				ELSE
-					tau[i, j] := node.constant[off]
+		IF node.index = 0 THEN
+			dim := node.Size();
+			start := node.start;
+			step := node.step;
+			i := 0;
+			NEW(values, dim); 	(*	make global	*)
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					off := start + (i * dim + j) * step;
+					IF node.matrix # NIL THEN
+						p := node.matrix[off];
+						tau[i, j] := p.value
+					ELSE
+						tau[i, j] := node.constant[off]
+					END;
+					INC(j)
 				END;
-				INC(j)
+				INC(i)
 			END;
-			INC(i)
-		END;
-		MathMatrix.Jacobi(tau, values, dim)
+			MathMatrix.Jacobi(tau, values, dim);
+			i := 0; WHILE i < dim DO node.components[i].value := values[i]; INC(i) END
+		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 		VAR
@@ -128,7 +138,6 @@ MODULE GraphEigenvals;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent})
 	END InitLogical;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -209,14 +218,9 @@ MODULE GraphEigenvals;
 				END;
 				INC(i)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR

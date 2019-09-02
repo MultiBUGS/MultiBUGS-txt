@@ -142,7 +142,7 @@ MODULE SpatialCARNormal;
 			sumWeights, tau: REAL;
 			p, q: Node;
 	BEGIN
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		n := node.Size();
 		i := 0;
 		nnz := 0;
@@ -203,7 +203,7 @@ MODULE SpatialCARNormal;
 			INC(i)
 		END;
 		p0 := mu / wPlus;
-		p1 := node.tau.Value() * wPlus
+		p1 := node.tau.value * wPlus
 	END PriorForm;
 
 	PROCEDURE (node: Node) SetUVCAR (IN args: GraphNodes.Args; OUT res: SET);

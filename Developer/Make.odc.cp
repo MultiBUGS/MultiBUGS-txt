@@ -21,7 +21,7 @@ BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
-GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
+GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar  GraphLinkfunc GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
 GraphFunctional GraphMessages GraphResources GraphJacobi
 
 GraphDummy GraphDummyMV GraphSentinel GraphDeviance
@@ -36,7 +36,7 @@ GraphConstant GraphMixture GraphMAP
 DeviancePlugin
 
 BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
-BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo
+BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo 
 
 BugsRectData BugsSplusData
 
@@ -78,7 +78,7 @@ GraphUnivariatetemp1
 
 GraphCoSelection GraphSpline GraphSplinecon GraphSplinescalar
 
-UpdaterAM UpdaterKernel UpdaterDE UpdaterHamiltonian UpdaterSlicebase
+UpdaterAM UpdaterKernel UpdaterDE UpdaterSlicebase
 
 UpdaterForward
 
@@ -124,7 +124,7 @@ UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfig BugsHMC
+BugsCmds BugsBatch BugsConfig 
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 
@@ -161,11 +161,9 @@ MathSeeds
 
 ParallelFiles ParallelRandnum ParallelActions ParallelHMC ParallelWorker ParallelDebug
 
-ParallelDebug 
-
 PlotsWindows
 
 TestScript
 
-BugsTraphandler
+
 

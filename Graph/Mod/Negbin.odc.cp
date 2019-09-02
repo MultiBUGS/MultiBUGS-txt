@@ -54,12 +54,12 @@ MODULE GraphNegbin;
 		IF r < 0 THEN
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
-		p := node.p.Value();
+		p := node.p.value;
 		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
-		n := SHORT(ENTIER(node.n.Value() + eps));
-		IF ABS(n - node.n.Value()) > eps THEN
+		n := SHORT(ENTIER(node.n.value + eps));
+		IF ABS(n - node.n.value) > eps THEN
 			RETURN {GraphNodes.integer, GraphNodes.arg2}
 		END;
 		IF n < 1 THEN
@@ -95,8 +95,8 @@ MODULE GraphNegbin;
 		VAR
 			p, n: REAL;
 	BEGIN
-		p := node.p.Value();
-		n := node.n.Value();
+		p := node.p.value;
+		n := node.n.value;
 		RETURN MathCumulative.Negbin(p, n, x)
 	END Cumulative;
 
@@ -105,10 +105,10 @@ MODULE GraphNegbin;
 			logDensity, logP, logQ, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
-		n := node.n.Value();
+		n := node.n.value;
 		logDensity := n * logP + r * logQ + MathFunc.LogGammaFunc(r + n)
 		 - MathFunc.LogGammaFunc(n) - MathFunc.LogGammaFunc(r + 1);
 		RETURN - 2.0 * logDensity
@@ -119,8 +119,9 @@ MODULE GraphNegbin;
 			diff, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		node.p.ValDiff(x, p, diff);
-		n := node.n.Value();
+		p := node.p.value;
+		diff := node.p.Diff(x);
+		n := node.n.value;
 		RETURN diff * (n / p - r / (1 - p))
 	END DiffLogLikelihood;
 
@@ -138,7 +139,7 @@ MODULE GraphNegbin;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.integer, GraphStochastic.leftNatural});
+		node.props := node.props + {GraphStochastic.integer, GraphStochastic.leftNatural};
 		node.p := NIL;
 		node.n := NIL
 	END InitUnivariate;
@@ -159,7 +160,7 @@ MODULE GraphNegbin;
 	BEGIN
 		ASSERT(as = GraphRules.beta, 20);
 		x := offspring.p;
-		p0 := offspring.n.Value();
+		p0 := offspring.n.value;
 		p1 := offspring.value
 	END LikelihoodForm;
 
@@ -168,10 +169,10 @@ MODULE GraphNegbin;
 			logLikelihood, logP, logQ, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
-		n := node.n.Value();
+		n := node.n.value;
 		logLikelihood := n * logP + r * logQ;
 		IF ~(GraphNodes.data IN node.n.props) THEN
 			logLikelihood := logLikelihood + MathFunc.LogGammaFunc(r + n)
@@ -185,10 +186,10 @@ MODULE GraphNegbin;
 			logP, logQ, logPrior, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
-		n := node.n.Value();
+		n := node.n.value;
 		logPrior := n * logP + r * logQ;
 		RETURN logPrior
 	END LogPrior;
@@ -197,8 +198,8 @@ MODULE GraphNegbin;
 		VAR
 			n, p: REAL;
 	BEGIN
-		n := node.n.Value();
-		p := node.p.Value();
+		n := node.n.value;
+		p := node.p.value;
 		RETURN (1 - p) * n / p
 	END Location;
 
@@ -237,10 +238,10 @@ MODULE GraphNegbin;
 		node.Bounds(lower, upper);
 		l := SHORT(ENTIER(lower + eps));
 		u := SHORT(ENTIER(upper + eps));
-		p := node.p.Value();
-		n := SHORT(ENTIER(node.n.Value() + eps));
+		p := node.p.value;
+		n := SHORT(ENTIER(node.n.value + eps));
 		r := MathRandnum.NegativeBinomialIB(p, n, l, u);
-		node.SetValue(r)
+		node.value := r
 	END Sample;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);

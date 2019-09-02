@@ -77,7 +77,7 @@ MODULE GraphGeometric;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.integer, GraphStochastic.leftNatural});
+		node.props := node.props + {GraphStochastic.integer, GraphStochastic.leftNatural};
 		node.p := NIL
 	END InitUnivariate;
 
@@ -90,7 +90,7 @@ MODULE GraphGeometric;
 		VAR
 			p: REAL;
 	BEGIN
-		p := node.p.Value();
+		p := node.p.value;
 		RETURN p
 	END Location;
 
@@ -141,7 +141,7 @@ MODULE GraphGeometric;
 		IF r < 0 THEN
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
-		p := node.p.Value();
+		p := node.p.value;
 		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, 0}
 		END;
@@ -160,7 +160,7 @@ MODULE GraphGeometric;
 		IF r < 1 THEN
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
-		p := node.p.Value();
+		p := node.p.value;
 		IF (p < - eps) OR (p > 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, 0}
 		END;
@@ -171,7 +171,7 @@ MODULE GraphGeometric;
 		VAR
 			p: REAL;
 	BEGIN
-		p := node.p.Value();
+		p := node.p.value;
 		RETURN MathCumulative.Geometric(p, x)
 	END Cumulative;
 
@@ -179,7 +179,7 @@ MODULE GraphGeometric;
 		VAR
 			p: REAL;
 	BEGIN
-		p := node.p.Value();
+		p := node.p.value;
 		RETURN MathCumulative.Geometric(p, x - 1)
 	END Cumulative;
 
@@ -188,7 +188,7 @@ MODULE GraphGeometric;
 			logDensity, logP, logQ, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logDensity := r * logQ + logP;
@@ -200,7 +200,7 @@ MODULE GraphGeometric;
 			logDensity, logP, logQ, p, r: REAL;
 	BEGIN
 		r := node.value - 1;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logDensity := r * logQ + logP;
@@ -212,7 +212,8 @@ MODULE GraphGeometric;
 			diff, p, r: REAL;
 	BEGIN
 		r := node.value;
-		node.p.ValDiff(x, p, diff);
+		p := node.p.value;
+		diff := node.p.Diff(x);
 		RETURN diff * ( - r / (1 - p) + 1 / p)
 	END DiffLogLikelihood;
 
@@ -221,7 +222,8 @@ MODULE GraphGeometric;
 			diff, p, r: REAL;
 	BEGIN
 		r := node.value - 1;
-		node.p.ValDiff(x, p, diff);
+		p := node.p.value;
+		diff := node.p.Diff(x);
 		RETURN diff * ( - r / (1 - p) + 1 / p)
 	END DiffLogLikelihood;
 
@@ -264,7 +266,7 @@ MODULE GraphGeometric;
 			logLikelihood, logP, logQ, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logLikelihood := r * logQ + logP;
@@ -276,7 +278,7 @@ MODULE GraphGeometric;
 			logLikelihood, logP, logQ, p, r: REAL;
 	BEGIN
 		r := node.value - 1;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logLikelihood := r * logQ + logP;
@@ -288,7 +290,7 @@ MODULE GraphGeometric;
 			logPrior, logQ, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logQ := MathFunc.Ln(1 - p);
 		logPrior := r * logQ;
 		RETURN logPrior
@@ -299,7 +301,7 @@ MODULE GraphGeometric;
 			logPrior, logQ, p, r: REAL;
 	BEGIN
 		r := node.value - 1;
-		p := node.p.Value();
+		p := node.p.value;
 		logQ := MathFunc.Ln(1 - p);
 		logPrior := r * logQ;
 		RETURN logPrior
@@ -315,13 +317,13 @@ MODULE GraphGeometric;
 		node.Bounds(lower, upper);
 		l := SHORT(ENTIER(lower + eps));
 		u := SHORT(ENTIER(upper + eps));
-		p := node.p.Value();
+		p := node.p.value;
 		REPEAT
 			r := MathRandnum.Geometric(p);
 			DEC(iter)
 		UNTIL ((r > l) & (r < u)) OR (iter = 0);
 		IF iter # 0 THEN
-			node.SetValue(r)
+			node.value := r
 		ELSE
 			res := {GraphNodes.lhs}
 		END
@@ -337,13 +339,13 @@ MODULE GraphGeometric;
 		node.Bounds(lower, upper);
 		l := SHORT(ENTIER(lower + eps));
 		u := SHORT(ENTIER(upper + eps));
-		p := node.p.Value();
+		p := node.p.value;
 		REPEAT
 			r := MathRandnum.Geometric(p) + 1;
 			DEC(iter)
 		UNTIL ((r > l) & (r < u)) OR (iter = 0);
 		IF iter # 0 THEN
-			node.SetValue(r)
+			node.value := r
 		ELSE
 			res := {GraphNodes.lhs}
 		END

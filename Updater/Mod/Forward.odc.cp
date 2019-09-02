@@ -15,7 +15,7 @@ MODULE UpdaterForward;
 	IMPORT
 		Stores := Stores64,
 		BugsRegistry,
-		GraphMultivariate, GraphNodes, GraphStochastic, GraphUnivariate,
+		GraphLogical, GraphMultivariate, GraphNodes, GraphStochastic, GraphUnivariate,
 		UpdaterMultivariate, UpdaterUnivariate, UpdaterUpdaters;
 
 	TYPE
@@ -59,7 +59,7 @@ MODULE UpdaterForward;
 		ASSERT(prior.CanSample(univariate), 21);
 		prior.Sample(res);
 		IF res # {} THEN RETURN END;
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE (updater: UpdaterUV) InitializeUnivariate;
@@ -85,7 +85,8 @@ MODULE UpdaterForward;
 			prior: GraphStochastic.Node;
 	BEGIN
 		prior := updater.prior;
-		prior.Sample(res)
+		prior.Sample(res);
+		prior.Evaluate
 	END Sample;
 
 	PROCEDURE (updater: UpdaterMV) Clone (): UpdaterMV;
@@ -137,7 +138,8 @@ MODULE UpdaterForward;
 			prior: GraphMultivariate.Node;
 	BEGIN
 		prior := updater.prior[0](GraphMultivariate.Node);
-		prior.MVSample(res)
+		prior.MVSample(res);
+		GraphLogical.Evaluate(updater.dependents)
 	END Sample;
 
 	PROCEDURE (f: FactoryUV) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;

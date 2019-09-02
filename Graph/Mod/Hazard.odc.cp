@@ -97,7 +97,7 @@ MODULE GraphHazard;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.noCDF});
+		node.props := node.props + {GraphStochastic.noMean, GraphStochastic.noCDF};
 		node.function := NIL;
 		node.t := NIL;
 		node.event := FALSE
@@ -110,7 +110,7 @@ MODULE GraphHazard;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (node: Node) IsLikelihoodTerm (): BOOLEAN;
@@ -131,21 +131,21 @@ MODULE GraphHazard;
 	BEGIN
 		t := node.t;
 		scale := 0.5 * node.value;
-		t.SetValue(scale);
-		y := node.function.Value();
+		t.value:= scale;
+		y := node.function.value;
 		integralK := wk[0] * y;
 		integralG := wg[0] * y;
 		i := 1;
 		len := LEN(x);
 		WHILE i < len DO
 			absisca := scale * (1.0 + x[i]);
-			y := node.function.Value();
-			t.SetValue(absisca);
+			y := node.function.value;
+			t.value := absisca;
 			integralK := integralK + wk[i] * y;
 			IF ~ODD(i) THEN integralG := integralG + wg[i DIV 2] * y END;
 			absisca := scale * (1.0 - x[i]);
-			y := node.function.Value();
-			t.SetValue(absisca);
+			y := node.function.value;
+			t.value := absisca;
 			integralK := integralK + wk[i] * y;
 			IF ~ODD(i) THEN integralG := integralG + wg[i DIV 2] * y END;
 			INC(i)
@@ -153,8 +153,8 @@ MODULE GraphHazard;
 		ASSERT(ABS(integralK - integralG) < 1.0E-3 * (integralK + integralG), 77); 
 		log := -integralK * scale;
 		IF node.event THEN 
-			t.SetValue(node.value);
-			log := Math.Ln(node.function.Value()) + log 
+			t.value := node.value;
+			log := Math.Ln(node.function.value) + log 
 		END;
 		RETURN log
 	END LogLikelihood;
@@ -202,7 +202,7 @@ MODULE GraphHazard;
 			ASSERT(args.scalars[1] # NIL, 21);
 			node.t := args.scalars[1](GraphStochastic.Node);
 			ASSERT(args.scalars[2] # NIL, 21);
-			node.event := args.scalars[2].Value() > 0.5
+			node.event := args.scalars[2].value > 0.5
 		END		
 	END Set;
 

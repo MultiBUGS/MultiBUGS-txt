@@ -338,7 +338,7 @@ MODULE BugsRectData;
 						IF ~nA THEN
 							name.StoreValue(offset, value);
 							node := name.components[offset];
-							node.SetProps(node.props + {GraphStochastic.data})
+							INCL(node.props, GraphStochastic.data)
 						END
 					ELSE
 						name.StoreValue(offset, value)
@@ -454,7 +454,7 @@ MODULE BugsRectData;
 						name := labels[col].name;
 						node := name.components[offset];
 						name.StoreValue(offset, value);
-						node.SetProps(node.props + {GraphStochastic.initialized})
+						INCL(node.props, GraphStochastic.initialized)
 					END
 				END;
 				INC(count);

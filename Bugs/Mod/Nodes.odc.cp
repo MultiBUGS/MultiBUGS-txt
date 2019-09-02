@@ -321,10 +321,10 @@ MODULE BugsNodes;
 						IF stochastic = NIL THEN (*	unable to create stochastic node	*)
 							ok := FALSE; Error(9, variable.name.string + indices); RETURN
 						END;
-						stochastic.SetValue(vector.components[i].Value());
-						stochastic.SetProps(stochastic.props + {GraphNodes.data});
+						stochastic.value := vector.components[i].value;
+						INCL(stochastic.props, GraphNodes.data);
 						IF GraphStochastic.logical IN vector.components[i].props THEN
-							stochastic.SetProps(stochastic.props + {GraphStochastic.logical})
+							INCL(stochastic.props, GraphStochastic.logical)
 						END;
 						vector.components[i] := stochastic
 					ELSE (*	multiple definitions of node	*)
@@ -386,7 +386,7 @@ MODULE BugsNodes;
 			BugsOptimize.FoldConstants(expression);
 			IF expression.evaluated THEN
 				node := GraphConstant.New(expression.value);
-				node.SetProps(node.props + {GraphStochastic.logical});
+				INCL(node.props, GraphStochastic.logical);
 				vector.components[i] := node;
 				visitor.repeat := TRUE
 			END;

@@ -17,9 +17,7 @@ MODULE GraphConstant;
 		GraphNodes;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphNodes.Node)
-			value: REAL
-		END;
+		Node = POINTER TO RECORD(GraphNodes.Node) END;
 
 		Factory = POINTER TO RECORD(GraphNodes.Factory) END;
 
@@ -34,9 +32,14 @@ MODULE GraphConstant;
 		RETURN {}
 	END Check;
 
+	PROCEDURE (node: Node) Diff (x: GraphNodes.Node): REAL;
+	BEGIN
+		RETURN 0.0
+	END Diff;
+
 	PROCEDURE (node: Node) InitNode;
 	BEGIN
-		node.SetProps({GraphNodes.data});
+		node.props := {GraphNodes.data};
 	END InitNode;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -64,17 +67,6 @@ MODULE GraphConstant;
 		RETURN 1
 	END Size;
 
-	PROCEDURE (node: Node) Value (): REAL;
-	BEGIN
-		RETURN node.value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		val := node.value;
-		diff := 0.0
-	END ValDiff;
-
 	PROCEDURE (node: Node) ExternalizeNode (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteReal(node.value);
@@ -82,7 +74,7 @@ MODULE GraphConstant;
 
 	PROCEDURE (node: Node) InternalizeNode (VAR rd: Stores.Reader);
 	BEGIN
-		node.SetProps({GraphNodes.data});
+		node.props := {GraphNodes.data};
 		rd.ReadReal(node.value);
 	END InternalizeNode;
 

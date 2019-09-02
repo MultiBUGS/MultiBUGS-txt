@@ -77,7 +77,7 @@ MODULE CompareCmds;
 		WHILE i < len DO
 			index := offsets[i];
 			IF GraphNodes.data IN name.components[index].props THEN
-				data[i] := name.components[index].Value()
+				data[i] := name.components[index].value
 			ELSIF (monitor # NIL) & monitor.IsMonitored(index) THEN
 				sampleSize := monitor.SampleSize(index, beg, end, thin);
 				IF sampleSize > 0 THEN
@@ -117,7 +117,7 @@ MODULE CompareCmds;
 			index := offsets[i];
 			IF name.components # NIL THEN
 				IF GraphNodes.data IN name.components[index].props THEN
-					axis[i] := name.components[index].Value()
+					axis[i] := name.components[index].value
 				ELSE
 					RETURN NIL
 				END

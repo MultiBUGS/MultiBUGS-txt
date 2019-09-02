@@ -10,16 +10,16 @@ MODULE BugsMaster;
 	
 
 	IMPORT
-		Dialog, Files := Files64, Kernel, Meta, MPImaster, Services, Stores := Stores64, Strings, 
+		SYSTEM,
+		Dialog, Files := Files64, Kernel, MPI, MPImaster, Meta, Services, Stores := Stores64, Strings,
 		HostFiles,
 		StdLog,
 		TextModels,
 		BugsComponents, BugsGraph, BugsIndex, BugsInterface, BugsMsg, BugsNames, BugsParallel,
 		DevCommanders,
 		DevianceInterface,
-		GraphNodes, GraphStochastic,
-		MonitorMonitors,
-		UpdaterActions;
+		GraphLogical, GraphNodes, GraphStochastic,
+		MonitorMonitors;
 
 	TYPE
 		Hook = POINTER TO RECORD(BugsInterface.DistributeHook)
@@ -27,8 +27,10 @@ MODULE BugsMaster;
 		END;
 
 	VAR
-		globalValues, devianceValues: POINTER TO ARRAY OF REAL;
+		globalValues, monitorValues, devianceValues: POINTER TO ARRAY OF REAL;
 		col, row, leader: POINTER TO ARRAY OF INTEGER;
+		logicals: GraphLogical.Vector;
+		platform: Dialog.String;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -78,9 +80,11 @@ MODULE BugsMaster;
 		IF col # NIL THEN
 			chain := 0;
 			WHILE chain < numChains DO
-				MPImaster.RecvReals(globalValues, leader[chain]);
-				BugsParallel.RecvMonitored(globalValues, col, row);
-				UpdaterActions.StoreSamples(chain);
+				MPImaster.RecvReals(monitorValues, leader[chain]);
+				BugsParallel.RecvMonitored(monitorValues, col, row);
+				GraphLogical.Evaluate(logicals);
+				GraphStochastic.StoreValues(chain);
+				GraphLogical.StoreValues(chain);
 				INC(chain)
 			END
 		END;
@@ -101,6 +105,8 @@ MODULE BugsMaster;
 		leader := NIL;
 		col := NIL;
 		row := NIL;
+		monitorValues := NIL;
+		logicals := NIL;
 		command[0] := BugsInterface.terminate;
 		command[1] := - 1;
 		command[2] := - 1;
@@ -155,15 +161,15 @@ MODULE BugsMaster;
 			deviance := NIL
 		END;
 		IF deviance # NIL THEN
-			deviance.SetProps(deviance.props + {GraphStochastic.distributed});
+			INCL(deviance.props, GraphStochastic.distributed);
 		END;
 		endTime := Services.Ticks();
 		h.writeTime := SHORT(endTime - startTime);
 		startTime := endTime;
-		h.modules := BugsComponents.Modules();
+		h.modules := BugsComponents.Modules(platform);
 		len0 := StdLog.text.Length();
 		(*	link the worker program	*)
-		LinkModules(executable, h.modules); 
+		LinkModules(executable, h.modules);
 		len1 := StdLog.text.Length();
 		StdLog.text.Delete(len0, len1);
 		endTime := Services.Ticks();
@@ -173,7 +179,7 @@ MODULE BugsMaster;
 		IF Dialog.platform # Dialog.linux THEN
 			executable := executable + ".exe"
 		END;
-		(*	check that executable does not get deleted by anit virus software	*)
+		(*	check that executable does not get deleted by anti virus software	*)
 		WHILE (fileList # NIL) & (fileList.name # executable) DO
 			fileList := fileList.next
 		END;
@@ -236,7 +242,9 @@ MODULE BugsMaster;
 		WHILE chain < numChains DO
 			MPImaster.RecvReals(globalValues, leader[chain]);
 			BugsParallel.RecvSample(globalValues);
-			UpdaterActions.StoreSamples(chain);
+			GraphLogical.EvaluateAll;
+			GraphStochastic.StoreValues(chain);
+			GraphLogical.StoreValues(chain);
 			IF BugsGraph.devianceExists THEN
 				devianceValues[chain] := MPImaster.RecvReal(leader[chain])
 			END;
@@ -261,7 +269,7 @@ MODULE BugsMaster;
 			mutableSizes[i] := MPImaster.RecvInteger(i);
 			wr.WriteInt(mutableSizes[i]);
 			INC(i)
-		END;	
+		END;
 		i := 0;
 		WHILE i < numWorker DO
 			NEW(buffer, mutableSizes[i]);
@@ -270,7 +278,7 @@ MODULE BugsMaster;
 			INC(i)
 		END
 	END RecvMutable;
-	
+
 	PROCEDURE (h: Hook) SendCommand (IN cmds: BugsInterface.Command);
 		VAR
 			numChains, numWorkers, workersPerChain, worker: INTEGER;
@@ -284,21 +292,21 @@ MODULE BugsMaster;
 			INC(worker)
 		END
 	END SendCommand;
-	
+
 	PROCEDURE (h: Hook) SendMutable (VAR rd: Stores.Reader);
 		VAR
 			i, j, numWorker: INTEGER;
 			mutableSizes: POINTER TO ARRAY OF INTEGER;
-			buffer: POINTER TO ARRAY OF BYTE;	
+			buffer: POINTER TO ARRAY OF BYTE;
 	BEGIN
 		numWorker := h.workersPerChain * h.numChains;
 		NEW(mutableSizes, numWorker);
 		i := 0;
 		WHILE i < numWorker DO
-			rd.ReadInt(mutableSizes[i]); 
-			MPImaster.SendInteger(mutableSizes[i], i); 
+			rd.ReadInt(mutableSizes[i]);
+			MPImaster.SendInteger(mutableSizes[i], i);
 			INC(i)
-		END;	
+		END;
 		i := 0;
 		WHILE i < numWorker DO
 			NEW(buffer, mutableSizes[i]);
@@ -307,7 +315,7 @@ MODULE BugsMaster;
 			INC(i)
 		END
 	END SendMutable;
-	
+
 	PROCEDURE (h: Hook) Update (thin, iteration: INTEGER; overRelax: BOOLEAN;
 	VAR endOfAdapting: INTEGER);
 		VAR
@@ -321,7 +329,8 @@ MODULE BugsMaster;
 			h.monitorChanged := FALSE;
 			(*	recalculate which stochastic nodes are monitored	*)
 			BugsInterface.MarkMonitored;
-			BugsParallel.MonitoredNodes(col, row);
+			BugsParallel.MonitoredNodes(col, row, logicals);
+			IF col # NIL THEN NEW(monitorValues, LEN(col)) END;
 			command[0] := BugsInterface.recvMonitorInfo;
 			IF col # NIL THEN command[1] := LEN(col) ELSE command[1] := 0 END;
 			IF MonitorMonitors.devianceMonitored THEN
@@ -343,11 +352,19 @@ MODULE BugsMaster;
 			END
 		END;
 		(*	now do update	*)
-		command[0] := BugsInterface.update;
-		command[1] := thin;
-		command[2] := iteration;
-		command[3] := endOfAdapting;
-		IF overRelax THEN command[4] := 1 ELSE command[4] := 0 END;
+		IF BugsInterface.useHMC THEN
+			command[0] := BugsInterface.updateHMC;
+			command[1] := BugsInterface.warmUpPeriod;
+			command[2] := iteration;
+			command[3] := BugsInterface.numSteps;
+			command[4] := SYSTEM.VAL(INTEGER, SHORT(BugsInterface.stepSize))
+		ELSE
+			command[0] := BugsInterface.update;
+			command[1] := thin;
+			command[2] := iteration;
+			command[3] := endOfAdapting;
+			IF overRelax THEN command[4] := 1 ELSE command[4] := 0 END
+		END;
 		BugsInterface.SendCommand(command);
 		worker := 0;
 		endOfAdapting := 0;
@@ -381,11 +398,37 @@ MODULE BugsMaster;
 	BEGIN
 		Maintainer;
 		globalValues := NIL;
-		Dialog.MapString("#Bugs:MPIimp", mpiImp);
+		platform := "Windows";
+		Dialog.MapString("#Bugs:" + platform, mpiImp);
 		Meta.Lookup(mpiImp, item);
+		IF MPI.hook = NIL THEN
+			(* ABI Compatibility Initiative, Fedora 29, CentOS 7 *)
+			platform := "Fedora29";
+			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			Meta.Lookup(mpiImp, item)
+		END;
+		IF MPI.hook = NIL THEN
+			(* CentOS 6, Debian 8/9/10, Ubuntu 16.04, Ubuntu 19.04 *)
+			platform := "Debian8/9/10";
+			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			Meta.Lookup(mpiImp, item)
+		END;
+		IF MPI.hook = NIL THEN
+			(* Ubuntu 18.04 *)
+			platform := "Ubuntu18.04";
+			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			Meta.Lookup(mpiImp, item)
+		END;
+		IF MPI.hook = NIL THEN
+			(* Ubuntu 14.04 *)
+			platform := "Ubuntu14.04";
+			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			Meta.Lookup(mpiImp, item)
+		END;
 		(*	handle eror	*)
 		MPImaster.Install
 	END Init;
+
 
 BEGIN
 	Init

@@ -125,7 +125,7 @@ MODULE BugsCodegen;
 			IF args.numConsts = LEN(args.consts) THEN
 				args.valid := FALSE; Error(tooManyConstants); RETURN
 			END;
-			args.consts[args.numConsts] := scalar.Value();
+			args.consts[args.numConsts] := scalar.value;
 			INC(args.numConsts);
 		ELSE
 			IF scalar IS GraphStochastic.Node THEN

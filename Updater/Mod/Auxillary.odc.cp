@@ -16,7 +16,7 @@ MODULE UpdaterAuxillary;
 
 	IMPORT
 		Stores := Stores64,
-		GraphNodes, GraphStochastic,
+		GraphNodes, GraphStochastic, 
 		UpdaterUpdaters;
 
 	TYPE
@@ -96,7 +96,7 @@ MODULE UpdaterAuxillary;
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
-		p := GraphNodes.Internalize(rd);
+		p := GraphNodes.Internalize(rd); 
 		updater.node := p(GraphStochastic.Node)
 	END InternalizePrior;
 
@@ -104,19 +104,6 @@ MODULE UpdaterAuxillary;
 	BEGIN
 		RETURN FALSE
 	END IsAdapting;
-
-	PROCEDURE (updater: UpdaterUV) IsInitialized* (): BOOLEAN;
-	BEGIN
-		RETURN TRUE
-	END IsInitialized;
-
-	PROCEDURE (updater: UpdaterUV) LoadSample*;
-		VAR
-			prior: GraphStochastic.Node;
-	BEGIN
-		prior := updater.Node(0);
-		prior.SetValue(updater.value)
-	END LoadSample;
 
 	PROCEDURE (updater: UpdaterUV) LogConditional* (): REAL;
 	BEGIN
@@ -147,14 +134,6 @@ MODULE UpdaterAuxillary;
 	BEGIN
 		RETURN 1
 	END Size;
-
-	PROCEDURE (updater: UpdaterUV) StoreSample*;
-		VAR
-			prior: GraphStochastic.Node;
-	BEGIN
-		prior := updater.Node(0);
-		updater.value := prior.value
-	END StoreSample;
 
 	PROCEDURE (updater: UpdaterMV) CopyFromAuxillary- (source: UpdaterUpdaters.Updater), NEW, ABSTRACT;
 
@@ -258,26 +237,6 @@ MODULE UpdaterAuxillary;
 		RETURN FALSE
 	END IsAdapting;
 
-	PROCEDURE (updater: UpdaterMV) IsInitialized* (): BOOLEAN;
-	BEGIN
-		RETURN TRUE
-	END IsInitialized;
-
-	PROCEDURE (updater: UpdaterMV) LoadSample*;
-		VAR
-			i, size: INTEGER;
-			prior: GraphStochastic.Node;
-	BEGIN
-		i := 0;
-		size := updater.Size();
-		WHILE i < size DO
-			prior := updater.Node(i);
-			prior.SetValue(updater.values[i]);
-			prior.SetProps(prior.props + {GraphStochastic.initialized});
-			INC(i)
-		END
-	END LoadSample;
-
 	PROCEDURE (updater: UpdaterMV) LogConditional* (): REAL;
 	BEGIN
 		RETURN 0.0
@@ -306,20 +265,6 @@ MODULE UpdaterAuxillary;
 		size := updater.Size(); 
 		NEW(updater.values, size)
 	END SetPrior;
-
-	PROCEDURE (updater: UpdaterMV) StoreSample*;
-		VAR
-			i, size: INTEGER;
-			prior: GraphStochastic.Node;
-	BEGIN
-		i := 0;
-		size := updater.Size();
-		WHILE i < size DO
-			prior := updater.Node(i);
-			updater.values[i] := prior.value;
-			INC(i)
-		END
-	END StoreSample;
 
 	PROCEDURE Maintainer;
 	BEGIN

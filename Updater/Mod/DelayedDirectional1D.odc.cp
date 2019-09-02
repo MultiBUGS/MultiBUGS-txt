@@ -4,7 +4,7 @@ MODULE UpdaterDelayedDirectional1D;
 	
 
 	IMPORT
-		Math, Stores := Stores64, 
+		Math, Stores := Stores64,
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
@@ -49,15 +49,12 @@ MODULE UpdaterDelayedDirectional1D;
 			END
 		ELSE
 			class := {prior.classConditional};
-			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 			IF block = NIL THEN (*	try less restrictive block membership	*)
 				INCL(class, GraphRules.normal);
-				block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+				block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 				IF block = NIL THEN
-					block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, FALSE);
-					IF block = NIL THEN
-						block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE);
-					END
+					block := UpdaterMultivariate.FixedEffects(prior, class, TRUE);
 				END
 			END
 		END;
@@ -721,7 +718,7 @@ MODULE UpdaterDelayedDirectional1D;
 		block := FindNLBlock(prior);
 		IF block = NIL THEN RETURN FALSE END;
 		IF GraphStochastic.IsBounded(block) THEN RETURN FALSE END;
-		RETURN TRUE		
+		RETURN TRUE
 	END CanUpdate;
 
 	PROCEDURE (f: Factory) Create (): UpdaterUpdaters.Updater;
@@ -737,7 +734,7 @@ MODULE UpdaterDelayedDirectional1D;
 			adaptivePhase, res: INTEGER;
 			name: ARRAY 256 OF CHAR;
 	BEGIN
-	(*	f.Install(name);
+		(*	f.Install(name);
 		BugsRegistry.ReadInt(name + ".adaptivePhase", adaptivePhase, res); ASSERT(res = 0, 55);
 		f.SetParameter(adaptivePhase, UpdaterUpdaters.adaptivePhase)*)
 	END GetDefaults;
@@ -774,12 +771,12 @@ MODULE UpdaterDelayedDirectional1D;
 		fact := f;
 		f.Install(name);
 		f.SetProps({UpdaterUpdaters.adaptivePhase, UpdaterUpdaters.enabled});
-	(*	BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
+		(*	BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN
-			ASSERT(isRegistered, 55)
+		ASSERT(isRegistered, 55)
 		ELSE
-			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteInt(name + ".adaptivePhase", 5000)
+		BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
+		BugsRegistry.WriteInt(name + ".adaptivePhase", 5000)
 		END;
 		f.GetDefaults;*)
 		NEW(oldX, size);

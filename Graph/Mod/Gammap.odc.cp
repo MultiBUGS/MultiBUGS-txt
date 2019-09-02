@@ -37,11 +37,11 @@ MODULE GraphGammap;
 		VAR
 			a, x: REAL;
 	BEGIN
-		a := node.a.Value();
+		a := node.a.value;
 		IF a < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		x := node.x.Value();
+		x := node.x.value;
 		IF x < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
@@ -63,13 +63,27 @@ MODULE GraphGammap;
 		RETURN f
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) Evaluate;
+		VAR
+			a, x, value: REAL;
+	BEGIN
+		a := node.a.value;
+		x := node.x.value;
+		node.value := MathFunc.GammaP(a, x);
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.a, wr);
 		GraphNodes.Externalize(node.x, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
@@ -77,7 +91,7 @@ MODULE GraphGammap;
 		node.a := p;
 		p := GraphNodes.Internalize(rd);
 		node.x := p;
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -114,21 +128,6 @@ MODULE GraphGammap;
 			node.x := args.scalars[1]
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Value (): REAL;
-		VAR
-			a, x, value: REAL;
-	BEGIN
-		a := node.a.Value();
-		x := node.x.Value();
-		value := MathFunc.GammaP(a, x);
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (z: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

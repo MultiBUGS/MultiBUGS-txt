@@ -12,20 +12,20 @@ MODULE SpatialDiscKrig;
 
 	IMPORT
 		Math,
-		GraphChain, GraphGPprior, GraphMemory, GraphMultivariate, GraphNodes;
+		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes, GraphScalar;
 
 	TYPE
 
 		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
-		FactoryKernel = POINTER TO RECORD(GraphMemory.Factory) END;
+		FactoryKernel = POINTER TO RECORD(GraphScalar.Factory) END;
 		
 		Factory2 = POINTER TO RECORD(GraphMultivariate.Factory) 
 							kernel: Kernel
 						 END;
 
 	VAR
-		factKernel-: GraphMemory.Factory;
+		factKernel-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		pi: REAL;

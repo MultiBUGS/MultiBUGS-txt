@@ -13,17 +13,19 @@ MODULE UpdaterHMC;
 
 	IMPORT
 		Math,
-		BugsIndex, BugsNames, 
-		GraphDeviance, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
+		BugsIndex, BugsNames,
+		GraphDeviance, GraphLogical, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterActions, UpdaterUpdaters;
 
 	VAR
 		mean, mean2, sigma: POINTER TO ARRAY OF POINTER TO ARRAY OF REAL;
-		oldVals, p: POINTER TO ARRAY OF REAL;
+		logJointOld, logJointNew, oldVals, p: POINTER TO ARRAY OF REAL;
 		data, stochastics: GraphStochastic.Vector;
 		numStochastics: INTEGER;
 		otherUpdaters: POINTER TO ARRAY OF INTEGER;
+		first: POINTER TO ARRAY OF BOOLEAN;
+		startIt-: INTEGER;
 		setUp-: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -55,74 +57,83 @@ MODULE UpdaterHMC;
 
 	PROCEDURE LeapFrog (numSteps, chain: INTEGER; eps: REAL; OUT reject: BOOLEAN);
 		VAR
-			diff, kineticNew, kineticOld, logAlpha, logDataLikeNew, logDataLikeOld,
-			logDetJacobianNew, logDetJacobianOld,
-			logStochasticLikeNew, logStochasticLikeOld, x: REAL;
+			diff, kineticNew, kineticOld, logAlpha, x: REAL;
 			i, steps: INTEGER;
 			stoch: GraphStochastic.Node;
 
-		PROCEDURE LogLikelihood (nodes: GraphStochastic.Vector): REAL;
+		PROCEDURE LogJoint (): REAL;
 			VAR
-				index, numNodes: INTEGER;
-				likelihood: REAL;
+				index, numNodes, num: INTEGER;
+				dataDensity, logDetJac, priorDensity: REAL;
+				stoch: GraphStochastic.Node;
 		BEGIN
-			likelihood := 0.0;
-			IF nodes # NIL THEN
-				numNodes := LEN(nodes);
+			priorDensity := 0.0;
+			logDetJac := 0;
+			index := 0;
+			num := LEN(stochastics);
+			WHILE index < num DO
+				stoch := stochastics[index];
+				WITH stoch: GraphMultivariate.Node DO
+					IF stoch = stoch.Representative() THEN priorDensity := priorDensity + stoch.LogLikelihood() END
+				ELSE
+					priorDensity := priorDensity + stoch.LogLikelihood()
+				END;
+				IF index < numStochastics THEN logDetJac := logDetJac + stoch.LogDetJacobian() END;
+				INC(index)
+			END;
+			dataDensity := 0.0;
+			IF data # NIL THEN
+				numNodes := LEN(data);
 				index := 0;
 				WHILE index < numNodes DO
-					IF GraphStochastic.data IN nodes[index].props THEN
-						likelihood := likelihood + nodes[index].LogLikelihood()
+					IF GraphStochastic.data IN data[index].props THEN
+						dataDensity := dataDensity + data[index].LogLikelihood()
 					END;
 					INC(index)
 				END
 			END;
-			RETURN likelihood
-		END LogLikelihood;
+			RETURN priorDensity + logDetJac + dataDensity
+		END LogJoint;
 
 	BEGIN
-		(*	generate momentum and calculate kinetic energy and jacobeans, store old values	*)
+		(*	generate momentum and calculate kinetic energy, store old values	*)
 		kineticOld := 0.0;
-		logDetJacobianOld := 0.0;
 		i := 0;
 		WHILE i < numStochastics DO
 			stoch := stochastics[i];
 			p[i] := MathRandnum.StandardNormal();
 			oldVals[i] := stoch.value;
 			kineticOld := kineticOld + 0.5 * p[i] * p[i];
-			logDetJacobianOld := logDetJacobianOld + stoch.LogDetJacobian();
 			INC(i)
 		END;
-		(*	calculate potential energy	*)
-		logDataLikeOld := LogLikelihood(data);
-		logStochasticLikeOld := 0.0;
-		i := 0;
-		WHILE i < LEN(stochastics) DO
-			stoch := stochastics[i];
-			WITH stoch: GraphMultivariate.Node DO
-				IF stoch.index = 0 THEN logStochasticLikeOld := logStochasticLikeOld + stoch.LogLikelihood() END
-			ELSE
-				logStochasticLikeOld := logStochasticLikeOld + stoch.LogLikelihood()
-			END;
-			INC(i)
+		(*	calculate initial potential energy if it has changed	*)
+		IF first[chain] OR (otherUpdaters # NIL) THEN
+			first[chain] := FALSE; logJointOld[chain] := LogJoint()
 		END;
+		GraphLogical.EvaluateAllDiffs;
 		(*	leapfrog steps	*)
 		i := 0;
 		WHILE i < numStochastics DO
-			stoch := stochastics[i]; diff := stoch.DiffLogConditional(); p[i] := p[i] + 0.5 * sigma[chain, i] * eps * diff;
+			stoch := stochastics[i]; 
+			diff := stoch.DiffLogConditional(); 
+			p[i] := p[i] + 0.5 * sigma[chain, i] * eps * diff;
 			INC(i)
 		END;
 		steps := 0;
 		WHILE steps < numSteps - 1 DO
 			i := 0;
 			WHILE i < numStochastics DO
-				stoch := stochastics[i]; x := stoch.Map(); x := x + sigma[chain, i] * eps * p[i]; stoch.InvMap(x);
+				stoch := stochastics[i];
+				x := stoch.Map(); x := x + sigma[chain, i] * eps * p[i]; stoch.InvMap(x);
 				(*IF ABS(eps * p[i]) > 10 THEN reject := TRUE; res := {}; RETURN END;*)
 				INC(i)
 			END;
+			GraphLogical.EvaluateAllDiffs;
 			i := 0;
 			WHILE i < numStochastics DO
-				stoch := stochastics[i]; diff := stoch.DiffLogConditional(); p[i] := p[i] + sigma[chain, i] * eps * diff;
+				stoch := stochastics[i]; 
+				diff := stoch.DiffLogConditional(); 
+				p[i] := p[i] + sigma[chain, i] * eps * diff;
 				INC(i)
 			END;
 			INC(steps);
@@ -132,38 +143,26 @@ MODULE UpdaterHMC;
 			stoch := stochastics[i]; x := stoch.Map(); x := x + sigma[chain, i] * eps * p[i]; stoch.InvMap(x);
 			INC(i)
 		END;
+		GraphLogical.EvaluateAllDiffs;
 		(*	calculate final  momentum and kinetic energy	*)
 		kineticNew := 0.0;
-		logDetJacobianNew := 0.0;
 		i := 0;
 		WHILE i < numStochastics DO
-			stoch := stochastics[i]; diff := stoch.DiffLogConditional(); p[i] := p[i] + 0.5 * sigma[chain, i] * eps * diff;
+			stoch := stochastics[i]; 
+			diff := stoch.DiffLogConditional(); 
+			p[i] := p[i] + 0.5 * sigma[chain, i] * eps * diff;
 			kineticNew := kineticNew + 0.5 * p[i] * p[i];
-			logDetJacobianNew := logDetJacobianNew + stoch.LogDetJacobian();
 			INC(i)
 		END;
 		(*	calculate final potentail energy	*)
-		logDataLikeNew := LogLikelihood(data);
-		logStochasticLikeNew := 0.0;
-		i := 0;
-		WHILE i < LEN(stochastics) DO
-			stoch := stochastics[i];
-			WITH stoch: GraphMultivariate.Node DO
-				IF stoch.index = 0 THEN logStochasticLikeNew := logStochasticLikeNew + stoch.LogLikelihood() END
-			ELSE
-				logStochasticLikeNew := logStochasticLikeNew + stoch.LogLikelihood()
-			END;
-			INC(i)
-		END;
-		logAlpha := - (kineticNew - kineticOld) + logDataLikeNew - logDataLikeOld + 
-		logStochasticLikeNew - logStochasticLikeOld + logDetJacobianNew - logDetJacobianOld;
+		logJointNew[chain] := LogJoint();
+		logAlpha := - (kineticNew - kineticOld) + logJointNew[chain] - logJointOld[chain];
 		reject := logAlpha < Math.Ln(MathRandnum.Rand());
-		IF reject THEN
-			i := 0;
-			WHILE i < numStochastics DO
-				stochastics[i].SetValue(oldVals[i]);
-				INC(i)
-			END;
+		IF reject THEN	(*	restore old values	*)
+			GraphStochastic.LoadValues(chain);
+			GraphLogical.LoadValues(chain)
+		ELSE
+			logJointOld[chain] := logJointNew[chain]
 		END;
 	END LeapFrog;
 
@@ -172,10 +171,11 @@ MODULE UpdaterHMC;
 		stochastics := NIL;
 		otherUpdaters := NIL;
 		data := NIL;
-		setUp := FALSE
+		setUp := FALSE;
+		first := NIL
 	END Clear;
 
-	PROCEDURE Setup* (numChains: INTEGER);
+	PROCEDURE Setup* (numChains, start: INTEGER);
 		VAR
 			chain, i, j, k, numOtherUpdater, numOtherStoch, numUpdaters: INTEGER;
 			vector: GraphStochastic.Vector;
@@ -187,18 +187,19 @@ MODULE UpdaterHMC;
 			deviance: GraphNodes.Node;
 	BEGIN
 		IF setUp THEN RETURN ELSE setUp := TRUE END;
+		startIt := start;
 		name := BugsIndex.Find("deviance");
 		deviance := name.components[0];
 		data := GraphDeviance.DevianceTerms(deviance);
 		otherUpdaters := NIL;
-		stochastics := GraphStochastic.stochastics;
-		numStochastics := GraphStochastic.numStochastics;
+		stochastics := GraphStochastic.nodes;
+		IF stochastics # NIL THEN numStochastics := LEN(stochastics) ELSE  numStochastics := 0 END;
 		numOtherUpdater := 0;
 		(*	mark auxillary nodes prior to removal	*)
 		auxillary := GraphStochastic.auxillary;
 		WHILE auxillary # NIL DO
 			stoch := auxillary.node;
-			stoch.SetProps(stoch.props + {GraphNodes.mark});
+			INCL(stoch.props, GraphNodes.mark);
 			auxillary := auxillary.next
 		END;
 		(*	remove conjugate wishart and conjugate dirichlet etc	*)
@@ -250,23 +251,27 @@ MODULE UpdaterHMC;
 		auxillary := GraphStochastic.auxillary;
 		WHILE auxillary # NIL DO
 			stoch := auxillary.node;
-			stoch.SetProps(stoch.props - {GraphNodes.mark});
+			EXCL(stoch.props, GraphNodes.mark);
 			auxillary := auxillary.next
 		END;
 		NEW(mean, numChains);
 		NEW(mean2, numChains);
 		NEW(sigma, numChains);
+		NEW(first, numChains);
 		chain := 0;
 		WHILE chain < numChains DO
 			NEW(mean[chain], numStochastics);
 			NEW(mean2[chain], numStochastics);
 			NEW(sigma[chain], numStochastics);
+			NEW(logJointOld, numChains);
+			NEW(logJointNew, numChains);
 			i := 0;
 			WHILE i < numStochastics DO
 				mean[chain, i] := 0.0;
 				mean2[chain, i] := 0.0;
 				INC(i)
 			END;
+			first[chain] := TRUE;
 			INC(chain)
 		END;
 		NEW(oldVals, numStochastics);
@@ -285,15 +290,15 @@ MODULE UpdaterHMC;
 		reject := FALSE;
 		res := {};
 		ASSERT(iteration # 0, 33);
-		IF iteration = warmUpPeriod THEN
+		IF iteration - startIt = warmUpPeriod THEN
 			j := 0;
 			WHILE j < numStochastics DO
 				sigma[chain, j] := Math.Sqrt(mean2[chain, j] - mean[chain, j] * mean[chain, j]);
 				INC(j)
 			END
 		END;
-		IF iteration < warmUpPeriod THEN
-			EstimateMeans(iteration, warmUpPeriod, chain)
+		IF iteration - startIt < warmUpPeriod THEN
+			EstimateMeans(iteration, warmUpPeriod, chain);
 		ELSE
 			LeapFrog(numSteps, chain, eps, reject);
 			IF otherUpdaters # NIL THEN

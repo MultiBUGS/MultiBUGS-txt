@@ -47,14 +47,14 @@ MODULE PharmacoPKIVinf2ss;
 		END ProfileSS;
 
 	BEGIN
-		logCL := params[0].Value();
-		logQ := params[1].Value();
-		logV1 := params[2].Value();
-		logV2 := params[3].Value();
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
-		TI := scalars[PharmacoModel.TISS].Value();
-		omega := scalars[PharmacoModel.omega].Value();
+		logCL := params[0].value;
+		logQ := params[1].value;
+		logV1 := params[2].value;
+		logV2 := params[3].value;
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
+		TI := scalars[PharmacoModel.TISS].value;
+		omega := scalars[PharmacoModel.omega].value;
 		k10 := Math.Exp(logCL - logV1);
 		k12 := Math.Exp(logQ - logV1); k21 := Math.Exp(logQ - logV2);
 		sum := k10 + k12 + k21;
@@ -77,10 +77,10 @@ MODULE PharmacoPKIVinf2ss;
 		install := "PharmacoPKIVinf2ss.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

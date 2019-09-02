@@ -27,7 +27,7 @@ MODULE UpdaterMVNLinear;
 		MPIworker,
 		Math,
 		BugsRegistry,
-		GraphConjugateMV, GraphConjugateUV, GraphMultivariate, GraphNodes,
+		GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMultivariate, GraphNodes,
 		GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterConjugateMV, UpdaterMultivariate, UpdaterUpdaters;
@@ -49,38 +49,40 @@ MODULE UpdaterMVNLinear;
 		des, desPrec: POINTER TO ARRAY OF ARRAY OF ARRAY OF REAL;
 
 
-	PROCEDURE GetDesign (prior, children: GraphStochastic.Vector);
+	PROCEDURE GetDesign (updater: Updater);
 		VAR
 			as, lenChild, lenPrior, i, j, k, l, start, step, num: INTEGER;
 			child: GraphStochastic.Node;
-			x: GraphNodes.Vector;
+			xVector: GraphNodes.Vector;
 			mu: GraphNodes.Node;
 			q0, q1: REAL;
+			prior, children: GraphStochastic.Vector;
 	BEGIN
+		prior := updater.prior;
+		children := updater.Children();
 		lenPrior := LEN(prior);
 		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0; WHILE i < lenPrior DO prior[i].SetValue(0.0); INC(i) END;
+		i := 0; WHILE i < lenPrior DO prior[i].value := 0.0; INC(i) END;
+		GraphLogical.Evaluate(updater.dependents);
 		i := 0;
 		WHILE i < num DO
 			child := children[i];
 			lenChild := child.Size();
 			WITH child: GraphConjugateMV.Node DO	(* multivariate normal likelihood *)
 				as := GraphRules.mVN;
-				child.MVLikelihoodForm(as, x, start, step, p0, p1);
+				child.MVLikelihoodForm(as, xVector, start, step, p0, p1);
 				j := 0;
 				WHILE j < lenChild DO
-					theta[i, j] := - x[start + j * step].Value();
+					theta[i, j] := - xVector[start + j * step].value;
 					INC(j)
 				END;
 				j := 0;
 				WHILE j < lenPrior DO
-					prior[j].SetValue(1.0);
 					k := 0;
 					WHILE k < lenChild DO
-						des[i, k, j] := x[start + k * step].Value() + theta[i, k];
+						des[i, k, j] := xVector[start + k * step].Diff(prior[j]) + theta[i, k];
 						INC(k)
 					END;
-					prior[j].SetValue(0.0);
 					INC(j)
 				END;
 				j := 0; WHILE j < lenChild DO theta[i, j] := theta[i, j] + p0[j]; INC(j) END;
@@ -101,12 +103,10 @@ MODULE UpdaterMVNLinear;
 			|child: GraphConjugateUV.Node DO (* univariate normal likelihood *)
 				as := GraphRules.normal;
 				child.LikelihoodForm(as, mu, q0, q1);
-				theta[i, 0] := - mu.Value();
+				theta[i, 0] := - mu.value;
 				j := 0;
 				WHILE j < lenPrior DO
-					prior[j].SetValue(1.0);
-					des[i, 0, j] := mu.Value() + theta[i, 0];
-					prior[j].SetValue(0.0);
+					des[i, 0, j] := mu.Diff(prior[j]) + theta[i, 0];
 					INC(j)
 				END;
 				theta[i, 0] := theta[i, 0] + q0;
@@ -116,11 +116,14 @@ MODULE UpdaterMVNLinear;
 		END
 	END GetDesign;
 
-	PROCEDURE MVNLinearLikelihood (prior, children: GraphStochastic.Vector; OUT p: ARRAY OF REAL);
+	PROCEDURE MVNLinearLikelihood (updater: Updater; OUT p: ARRAY OF REAL);
 		VAR
 			i, j, k, l, lenChild, lenP, paramsSize, size, size2, num, d0, d1, d2: INTEGER;
 			child: GraphStochastic.Node;
+			prior, children: GraphStochastic.Vector; 
 	BEGIN
+		prior := updater.prior;
+		children := updater.Children();
 		size := LEN(prior);
 		size2 := size * size;
 		paramsSize := size + size2;
@@ -154,7 +157,7 @@ MODULE UpdaterMVNLinear;
 			p[i] := 0.0;
 			INC(i)
 		END;
-		GetDesign(prior, children);
+		GetDesign(updater);
 		i := 0;
 		WHILE i < num DO
 			child := children[i];
@@ -227,18 +230,16 @@ MODULE UpdaterMVNLinear;
 			i, j, size, size2: INTEGER;
 			alpha: REAL;
 			prior: GraphMultivariate.Node;
-			children: GraphStochastic.Vector;
 			mu: POINTER TO ARRAY OF REAL;
 			tau: POINTER TO ARRAY OF ARRAY OF REAL;
 	BEGIN
 		prior := updater.prior[0](GraphMultivariate.Node);
-		children := updater.Children();
 		size := updater.Size();
 		size2 := size * size;
 		updater.GetValue(z);
 		mu := updater.mu;
 		tau := updater.tau;
-		MVNLinearLikelihood(prior.components, children, updater.params);
+		MVNLinearLikelihood(updater, updater.params);
 		prior.MVPriorForm(p0, p1);
 		IF prior.ClassifyPrior() = GraphRules.mVNSigma THEN
 			(*	have Cholesky of covariance matrix so must calculate precision matrix	*)
@@ -293,7 +294,7 @@ MODULE UpdaterMVNLinear;
 		ELSE
 			MathRandnum.MNormal(tau, mu, size, value)
 		END;
-		updater.SetValue(value);
+		updater.SetValue(value); GraphLogical.Evaluate(updater.dependents);
 		res := {}
 	END Sample;
 

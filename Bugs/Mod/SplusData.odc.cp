@@ -151,8 +151,8 @@ MODULE BugsSplusData;
 		IF signed THEN
 			value := - value
 		END;
-		node(GraphStochastic.Node).SetValue(value);
-		node.SetProps(node.props + {GraphStochastic.initialized})
+		node.value := value;
+		INCL(node.props, GraphStochastic.initialized)
 	END StoreInitValue;
 
 	PROCEDURE (action: DataChecker) Values (VAR s: BugsMappers.Scanner): INTEGER;
@@ -307,7 +307,7 @@ MODULE BugsSplusData;
 				IF ~nA THEN
 					name.StoreValue(i, value);
 					node := name.components[i];
-					node.SetProps(node.props + {GraphStochastic.data})
+					INCL(node.props, GraphStochastic.data)
 				END
 			ELSE
 				name.StoreValue(i, value)

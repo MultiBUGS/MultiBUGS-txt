@@ -39,6 +39,7 @@ MODULE UpdaterSlice;
 		VAR
 			logLike: REAL;
 	BEGIN
+		updater.prior.Evaluate;
 		logLike := updater.LogLikelihood();
 		RETURN logLike
 	END LogLikelihoodOpt;

@@ -304,7 +304,7 @@ MODULE GraphUnivariate;
 		ELSE
 			x := y
 		END;
-		node.SetValue(x)
+		node.value := x
 	END InvMap;
 
 	PROCEDURE (node: Node) IsLikelihoodTerm- (): BOOLEAN;
@@ -410,12 +410,12 @@ MODULE GraphUnivariate;
 			(*	if node is data ignore censoring	*)
 			IF GraphNodes.data IN node.props THEN type := non END;
 			IF type = left THEN
-				node.SetProps(node.props + {GraphStochastic.censored, GraphStochastic.leftImposed})
+				node.props := node.props + {GraphStochastic.censored, GraphStochastic.leftImposed}
 			ELSIF type = right THEN
-				node.SetProps(node.props + {GraphStochastic.censored, GraphStochastic.rightImposed})
+				node.props := node.props + {GraphStochastic.censored, GraphStochastic.rightImposed}
 			ELSIF type = both THEN
-				node.SetProps(node.props + {GraphStochastic.censored, GraphStochastic.leftImposed,
-				GraphStochastic.rightImposed})
+				node.props := node.props + {GraphStochastic.censored, GraphStochastic.leftImposed,
+				GraphStochastic.rightImposed}
 			END;
 			IF (node.censor = NIL) OR (type # non) THEN
 				node.censor := NewLimits(type);
@@ -427,12 +427,12 @@ MODULE GraphUnivariate;
 				IF args.rightTrunc = NIL THEN type := left ELSE type := both END
 			END;
 			IF type = left THEN
-				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed})
+				node.props := node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed}
 			ELSIF type = right THEN
-				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.rightImposed})
+				node.props:= node.props + {GraphStochastic.truncated, GraphStochastic.rightImposed}
 			ELSIF type = both THEN
-				node.SetProps(node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed,
-				GraphStochastic.rightImposed})
+				node.props:= node.props + {GraphStochastic.truncated, GraphStochastic.leftImposed,
+				GraphStochastic.rightImposed}
 			END;
 			IF (node.truncator = NIL) OR (type # non) THEN
 				node.truncator := NewLimits(type);
@@ -492,7 +492,7 @@ MODULE GraphUnivariate;
 
 	PROCEDURE (limits: LeftBound) Bounds (OUT left, right: REAL);
 	BEGIN
-		left := limits.left.Value();
+		left := limits.left.value;
 		right := + INF
 	END Bounds;
 
@@ -515,7 +515,7 @@ MODULE GraphUnivariate;
 		VAR
 			left, norm: REAL;
 	BEGIN
-		left := limits.left.Value();
+		left := limits.left.value;
 		norm := 1.0 - node.Cumulative(left);
 		RETURN norm
 	END NormalizingConstant;
@@ -539,7 +539,7 @@ MODULE GraphUnivariate;
 	PROCEDURE (limits: RightBound) Bounds (OUT left, right: REAL);
 	BEGIN
 		left := - INF;
-		right := limits.right.Value()
+		right := limits.right.value
 	END Bounds;
 
 	PROCEDURE (limits: RightBound) Externalize (VAR wr: Stores.Writer);
@@ -561,7 +561,7 @@ MODULE GraphUnivariate;
 		VAR
 			norm, right: REAL;
 	BEGIN
-		right := limits.right.Value();
+		right := limits.right.value;
 		norm := node.Cumulative(right);
 		RETURN norm
 	END NormalizingConstant;
@@ -584,8 +584,8 @@ MODULE GraphUnivariate;
 
 	PROCEDURE (limits: IntervalBounds) Bounds (OUT left, right: REAL);
 	BEGIN
-		left := limits.left.Value();
-		right := limits.right.Value()
+		left := limits.left.value;
+		right := limits.right.value
 	END Bounds;
 
 	PROCEDURE (limits: IntervalBounds) Externalize (VAR wr: Stores.Writer);
@@ -610,8 +610,8 @@ MODULE GraphUnivariate;
 		VAR
 			left, right, norm: REAL;
 	BEGIN
-		left := limits.left.Value();
-		right := limits.right.Value();
+		left := limits.left.value;
+		right := limits.right.value;
 		norm := node.Cumulative(right) - node.Cumulative(left);
 		RETURN norm
 	END NormalizingConstant;

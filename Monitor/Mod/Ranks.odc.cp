@@ -124,7 +124,7 @@ MODULE MonitorRanks;
 		len := LEN(monitor.values);
 		WHILE i < len DO
 			node := monitor.nodes[i];
-			monitor.values[i] := node.Value();
+			monitor.values[i] := node.value;
 			INC(i)
 		END;
 		i := 0;

@@ -38,7 +38,7 @@ MODULE GraphBinomial;
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
 		left := 0;
-		right := node.n.Value()
+		right := node.n.value
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
@@ -50,7 +50,7 @@ MODULE GraphBinomial;
 		IF (GraphStochastic.update IN node.props) & (ABS(r - node.value) > eps) THEN
 			RETURN {GraphNodes.integer, GraphNodes.lhs}
 		END;
-		nValue := node.n.Value();
+		nValue := node.n.value;
 		n := SHORT(ENTIER(nValue + eps));
 		IF GraphStochastic.update IN node.props THEN
 			IF ABS(n - nValue) > eps THEN
@@ -63,7 +63,7 @@ MODULE GraphBinomial;
 				RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 			END
 		END;
-		p := node.p.Value();
+		p := node.p.value;
 		IF (p <= - eps) OR (p >= 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
@@ -108,8 +108,8 @@ MODULE GraphBinomial;
 		VAR
 			cumulative, n, p: REAL;
 	BEGIN
-		p := node.p.Value();
-		n := node.n.Value();
+		p := node.p.value;
+		n := node.n.value;
 		cumulative := MathCumulative.Binomial(p, n, r);
 		RETURN cumulative
 	END Cumulative;
@@ -119,8 +119,8 @@ MODULE GraphBinomial;
 			logDensity, logP, logQ, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		n := node.n.Value();
-		p := node.p.Value();
+		n := node.n.value;
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logDensity := r * logP + (n - r) * logQ + MathFunc.LogGammaFunc(n + 1)
@@ -133,8 +133,9 @@ MODULE GraphBinomial;
 			diff, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		n := node.n.Value();
-		node.p.ValDiff(x, p, diff);
+		n := node.n.value;
+		p := node.p.value;
+		diff := node.p.Diff(x);
 		IF r > 0.5 THEN
 			RETURN diff * (r / p - (n - r) / (1 - p))
 		ELSE
@@ -156,8 +157,8 @@ MODULE GraphBinomial;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
-		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + 
+		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.p := NIL;
 		node.n := NIL
 	END InitUnivariate;
@@ -182,12 +183,12 @@ MODULE GraphBinomial;
 		r := node.value;
 		IF as = GraphRules.beta THEN
 			x := node.p;
-			n := node.n.Value();
+			n := node.n.value;
 			p0 := r;
 			p1 := n - r
 		ELSE
 			x := node.n;
-			p0 := 1 - node.p.Value();
+			p0 := 1 - node.p.value;
 			p1 := r
 		END
 	END LikelihoodForm;
@@ -197,11 +198,11 @@ MODULE GraphBinomial;
 			logP, logQ, logLikelihood, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		n := node.n.Value();
+		n := node.n.value;
 		IF n < r - eps THEN
 			logLikelihood := MathFunc.logOfZero
 		ELSE
-			p := node.p.Value();
+			p := node.p.value;
 			logP := MathFunc.Ln(p);
 			logQ := MathFunc.Ln(1 - p);
 			logLikelihood := r * logP + (n - r) * logQ;
@@ -218,11 +219,11 @@ MODULE GraphBinomial;
 			logP, logPrior, logQ, n, p, r: REAL;
 	BEGIN
 		r := node.value;
-		n := node.n.Value();
+		n := node.n.value;
 		IF n < r - eps THEN
 			logPrior := MathFunc.logOfZero
 		ELSE
-			p := node.p.Value();
+			p := node.p.value;
 			logP := MathFunc.Ln(p);
 			logQ := MathFunc.Ln(1 - p);
 			logPrior := r * logP + (n - r) * logQ + MathFunc.LogGammaFunc(n + 1)
@@ -235,8 +236,8 @@ MODULE GraphBinomial;
 		VAR
 			p, n: REAL;
 	BEGIN
-		p := node.p.Value();
-		n := node.n.Value();
+		p := node.p.value;
+		n := node.n.value;
 		RETURN p * n
 	END Location;
 
@@ -278,14 +279,14 @@ MODULE GraphBinomial;
 		node.Bounds(lower, upper);
 		l := SHORT(ENTIER(lower + eps));
 		u := SHORT(ENTIER(upper + eps));
-		p := node.p.Value();
-		n := SHORT(ENTIER(node.n.Value() + eps));
+		p := node.p.value;
+		n := SHORT(ENTIER(node.n.value + eps));
 		REPEAT
 			r := MathRandnum.Binomial(p, n);
 			DEC(iter)
 		UNTIL ((r > l) & (r < u)) OR (iter = 0);
 		IF iter # 0 THEN
-			node.SetValue(r)
+			node.value := r
 		ELSE
 			res := {GraphNodes.lhs}
 		END

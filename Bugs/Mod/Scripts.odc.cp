@@ -116,7 +116,7 @@ MODULE BugsScripts;
 
 		(*	distribute model using i cores	*)
 		StoreKey("modelDistribute(i)",
-		"BugsCmds.DistributeGuard; BugsCmds.specificationDialog.numProc  := ^0; BugsMaster.Install; BugsCmds.Distribute");
+		"BugsCmds.DistributeGuard; BugsCmds.specificationDialog.workersPerChain  := ^0; BugsMaster.Install; BugsCmds.Distribute");
 
 		(*	update model i iterations	*)
 		StoreKey("modelUpdate(i)",

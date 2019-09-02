@@ -58,7 +58,7 @@ MODULE UpdaterVDMVN;
 		numLikelihood := LEN(updater.predictor);
 		(*	prior contributions	*)
 		betaMu := 0.0;
-		betaTau := updater.vdNode.p1.Value();
+		betaTau := updater.vdNode.p1.value;
 		i := 0;
 		WHILE i < dim DO
 			tauMu[i] := betaMu;
@@ -72,7 +72,7 @@ MODULE UpdaterVDMVN;
 		END;
 		i := 0;
 		WHILE i < dim DO
-			updater.prior[1 + i].SetValue(0.0);
+			updater.prior[1 + i].value := 0.0;
 			INC(i)
 		END;
 		l := 0;
@@ -80,18 +80,18 @@ MODULE UpdaterVDMVN;
 		WHILE l < numLikelihood DO
 			child := children[l](GraphConjugateUV.Node);
 			child.LikelihoodForm(as, predictor[l], m[l], t[l]);
-			c[l] := predictor[l].Value();
+			c[l] := predictor[l].value;
 			INC(l)
 		END;
 		i := 0;
 		WHILE i < dim DO
-			updater.prior[1 + i].SetValue(1.0);
+			updater.prior[1 + i].value := 1.0;
 			l := 0;
 			WHILE l < numLikelihood DO
-				z[i, l] := predictor[l].Value() - c[l];
+				z[i, l] := predictor[l].value - c[l];
 				INC(l);
 			END;
-			updater.prior[1 + i].SetValue(0.0);
+			updater.prior[1 + i].value := 0.0;
 			INC(i)
 		END;
 		l := 0;
@@ -121,7 +121,7 @@ MODULE UpdaterVDMVN;
 		MathRandnum.MNormal(updater.tau, updater.mu, dim, updater.value);
 		i := 0;
 		WHILE i < dim DO
-			updater.prior[i + 1].SetValue(updater.value[i]);
+			updater.prior[i + 1].value := updater.value[i];
 			INC(i)
 		END;
 	END SampleBeta;
@@ -176,7 +176,7 @@ MODULE UpdaterVDMVN;
 			i: INTEGER;
 			betaTau, integral: REAL;
 	BEGIN
-		betaTau := updater.vdNode.p1.Value();	
+		betaTau := updater.vdNode.p1.value;	
 		integral := 0.5 * dim * Math.Ln(betaTau) (*- 0.5 * dim * Math.Ln(2 * Math.Pi())*);
 		i := 0;
 		WHILE i < dim DO

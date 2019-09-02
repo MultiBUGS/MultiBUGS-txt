@@ -15,7 +15,7 @@ MODULE UpdaterGLM;
 	IMPORT
 		MPIworker, Math, Stores := Stores64,
 		BugsRegistry,
-		GraphConjugateMV, GraphConjugateUV, GraphLinkfunc, GraphNodes, GraphRules,
+		GraphConjugateMV, GraphConjugateUV, GraphLinkfunc, GraphLogical, GraphNodes, GraphRules,
 		GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMetropolisMV, UpdaterMultivariate, UpdaterRejection, UpdaterUnivariate, UpdaterUpdaters;
@@ -46,7 +46,7 @@ MODULE UpdaterGLM;
 		factLogit-, factLoglin-, factNormal-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		newValues, offset, mu, w, n, y, derivLogLik,
+		newValues, oldValues, offset, mu, w, n, y, derivLogLik,
 		priorMu, propMu: POINTER TO ARRAY OF REAL;
 		choleskiDecomp, priorTau, deriv2LogLik, z: POINTER TO ARRAY OF ARRAY OF REAL;
 
@@ -69,7 +69,7 @@ MODULE UpdaterGLM;
 			END
 		ELSE
 			class := {prior.classConditional};
-			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, allowBounds);
+			block := UpdaterMultivariate.FixedEffects(prior, class, allowBounds);
 			IF block # NIL THEN
 				size := LEN(block);
 				likelihood := UpdaterMultivariate.BlockLikelihood(block);
@@ -99,29 +99,32 @@ MODULE UpdaterGLM;
 	PROCEDURE (updater: Updater) DesignMatrix, NEW;
 		VAR
 			i, j, size, num: INTEGER;
-			val: REAL;
 			children: GraphStochastic.Vector;
+			prior: GraphStochastic.Node;
 	BEGIN
 		children := updater.Children();
 		IF children # NIL THEN
+			prior := updater.prior[0];
+			IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN
+				GraphLogical.EvaluateDiffs(updater.dependents)
+			END;
 			size := updater.Size();
 			num := LEN(children);
 			j := 0;
 			WHILE j < size DO
+				(*	evaluate derivatives	*)
 				i := 0;
 				WHILE i < num DO
-					updater.predictors[i].ValDiff(updater.prior[j], val, z[j, i]);
+					z[j, i] := updater.predictors[i].Diff(updater.prior[j]);
 					INC(i)
 				END;
 				INC(j)
-			END
+			END;
+			IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN
+				GraphLogical.ClearDiffs(updater.dependents)
+			END;
 		END
 	END DesignMatrix;
-
-	PROCEDURE (updater: Updater) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
-	BEGIN
-		RETURN FindBlock(prior, TRUE)
-	END FindBlock;
 
 	PROCEDURE (updater: Updater) CalculateDerivatives (distributed: BOOLEAN), NEW;
 		VAR
@@ -251,6 +254,7 @@ MODULE UpdaterGLM;
 			NEW(derivLogLik, size);
 			NEW(priorMu, size);
 			NEW(newValues, size);
+			NEW(oldValues, size);
 			NEW(propMu, size);
 			NEW(priorTau, size, size);
 			NEW(deriv2LogLik, size, size);
@@ -280,6 +284,36 @@ MODULE UpdaterGLM;
 	END IsAdapting;
 
 	PROCEDURE (updater: Updater) LikelihoodParameters, NEW, ABSTRACT;
+
+	PROCEDURE (updater: Updater) Optimize;
+		VAR
+			i, num: INTEGER;
+			prior: GraphStochastic.Node;
+			optimizeDiffs: BOOLEAN;
+			p: GraphLogical.Node;
+	BEGIN
+		optimizeDiffs := TRUE;
+		IF updater.dependents # NIL THEN
+			num := LEN(updater.dependents);
+			i := 0;
+			WHILE (i < num) & optimizeDiffs DO
+				p := updater.dependents[i];
+				IF ~(GraphLogical.prediction IN p.props) THEN
+					IF ~(GraphLogical.linear IN p.props) THEN optimizeDiffs := p IS GraphLinkfunc.Node END
+				END;
+				INC(i)
+			END;
+		END;
+		IF optimizeDiffs THEN
+			num := LEN(updater.prior);
+			i := 0;
+			WHILE i < num DO
+				prior := updater.prior[i];
+				INCL(prior.props, GraphStochastic.optimizeDiffs);
+				INC(i)
+			END
+		END
+	END Optimize;
 
 	PROCEDURE (updater: Updater) PriorParameters, NEW;
 		VAR
@@ -375,7 +409,7 @@ MODULE UpdaterGLM;
 		CONST
 			batch = 10;
 		VAR
-			j, size: INTEGER;
+			i, size: INTEGER;
 			distributed: BOOLEAN;
 			acceptProb, logLik, newLD, newProp, oldLD, oldProp: REAL;
 	BEGIN
@@ -383,32 +417,30 @@ MODULE UpdaterGLM;
 		size := updater.Size();
 		distributed := GraphStochastic.distributed IN updater.prior[0].props;
 		IF (updater.iteration MOD batch # 0) & (updater.iteration > 100) THEN
-			updater.GetValue(updater.oldVals);
+			updater.GetValue(oldValues);
+			updater.Store;
 			logLik := updater.LogLikelihood();
 			updater.PriorParameters;
 			updater.LikelihoodParameters;
 			updater.DesignMatrix;
-			updater.SetValue(updater.oldVals);
 			updater.CalculateGLMParams;
 			updater.CalculateDerivatives(distributed);
 			oldLD := logLik + updater.LogPrior();
 			MathRandnum.MNormal(choleskiDecomp, propMu, size, newValues);
-			updater.SetValue(newValues);
+			updater.SetValue(newValues); GraphLogical.Evaluate(updater.dependents);
 			oldProp := updater.ProposalDensity(newValues);
 			logLik := updater.LogLikelihood();
 			updater.CalculateGLMParams;
 			updater.CalculateDerivatives(distributed);
-			newProp := updater.ProposalDensity(updater.oldVals);
+			newProp := updater.ProposalDensity(oldValues);
 			newLD := logLik + updater.LogPrior();
 			acceptProb := newLD - oldLD + newProp - oldProp;
-			IF acceptProb < Math.Ln(MathRandnum.Rand()) THEN
-				updater.SetValue(updater.oldVals)
-			END
+			IF acceptProb < Math.Ln(MathRandnum.Rand()) THEN updater.Restore END
 		ELSE
-			j := 0;
-			WHILE j < size DO
-				updater.singleSiteUpdaters[j].Sample(overRelax, res);
-				INC(j)
+			i := 0;
+			WHILE i < size DO
+				updater.singleSiteUpdaters[i].Sample(overRelax, res);
+				INC(i)
 			END
 		END;
 		INC(updater.iteration)
@@ -425,7 +457,7 @@ MODULE UpdaterGLM;
 			i := 0;
 			num := LEN(children);
 			WHILE i < num DO
-				predictor := updater.predictors[i].Value();
+				predictor := updater.predictors[i].value;
 				mu[i] := n[i] / (1.0 + Math.Exp( - predictor));
 				w[i] := (1.0 - mu[i] / n[i]) * mu[i];
 				INC(i)
@@ -440,6 +472,11 @@ MODULE UpdaterGLM;
 		NEW(u);
 		RETURN u
 	END Clone;
+
+	PROCEDURE (updater: UpdaterLogit) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	BEGIN
+		RETURN FindBlock(prior, FALSE)
+	END FindBlock;
 
 	PROCEDURE (updater: UpdaterLogit) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -481,7 +518,7 @@ MODULE UpdaterGLM;
 			i := 0;
 			num := LEN(children);
 			WHILE i < num DO
-				predictor := updater.predictors[i].Value();
+				predictor := updater.predictors[i].value;
 				mu[i] := n[i] * Math.Exp(predictor);
 				w[i] := n[i] * Math.Exp(predictor);
 				INC(i)
@@ -496,6 +533,11 @@ MODULE UpdaterGLM;
 		NEW(u);
 		RETURN u
 	END Clone;
+
+	PROCEDURE (updater: UpdaterLoglin) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	BEGIN
+		RETURN FindBlock(prior, FALSE)
+	END FindBlock;
 
 	PROCEDURE (updater: UpdaterLoglin) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -537,7 +579,7 @@ MODULE UpdaterGLM;
 			i := 0;
 			num := LEN(children);
 			WHILE i < num DO
-				predictor := updater.predictors[i].Value();
+				predictor := updater.predictors[i].value;
 				mu[i] := n[i] * predictor;
 				w[i] := n[i];
 				INC(i)
@@ -582,6 +624,11 @@ MODULE UpdaterGLM;
 	BEGIN
 	END ExternalizeMetropolisMV;
 
+	PROCEDURE (updater: UpdaterNormal) FindBlock (prior: GraphStochastic.Node): GraphStochastic.Vector;
+	BEGIN
+		RETURN FindBlock(prior, TRUE)
+	END FindBlock;
+
 	PROCEDURE (updater: UpdaterNormal) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "UpdaterGLM.InstallNormal"
@@ -617,24 +664,23 @@ MODULE UpdaterGLM;
 
 	PROCEDURE (updater: UpdaterNormal) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			size: INTEGER;
+			i, size: INTEGER;
 			alpha: REAL;
 			distributed: BOOLEAN;
 	BEGIN
 		res := {};
 		distributed := GraphStochastic.distributed IN updater.prior[0].props;
-		updater.GetValue(updater.oldVals);
 		size := updater.Size();
+		updater.GetValue(oldValues);
 		updater.PriorParameters;
 		updater.LikelihoodParameters;
 		updater.DesignMatrix;
-		updater.SetValue(updater.oldVals);
 		updater.CalculateGLMParams;
 		updater.CalculateDerivatives(distributed);
 		REPEAT
 			IF overRelax THEN
 				alpha := - (1 - 1 / Math.Sqrt(factNormal.overRelaxation));
-				MathRandnum.RelaxedMNormal(choleskiDecomp, propMu, updater.oldVals, size, alpha, newValues)
+				MathRandnum.RelaxedMNormal(choleskiDecomp, propMu, oldValues, size, alpha, newValues)
 			ELSE
 				MathRandnum.MNormal(choleskiDecomp, propMu, size, newValues)
 			END
@@ -802,8 +848,8 @@ MODULE UpdaterGLM;
 
 	PROCEDURE Init;
 		CONST
-			blockSize = 10;
-			numLike = 100;
+			blockSize = 1;
+			numLike = 1;
 		VAR
 			isRegistered: BOOLEAN;
 			res: INTEGER;
@@ -822,6 +868,7 @@ MODULE UpdaterGLM;
 		NEW(derivLogLik, blockSize);
 		NEW(priorMu, blockSize);
 		NEW(newValues, blockSize);
+		NEW(oldValues, blockSize);
 		NEW(propMu, blockSize);
 		NEW(priorTau, blockSize, blockSize);
 		NEW(deriv2LogLik, blockSize, blockSize);

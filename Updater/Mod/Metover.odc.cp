@@ -103,12 +103,12 @@ MODULE UpdaterMetover;
 		delta := Math.Sqrt(1 / updater.precision);
 		oldDen := updater.LogConditional();
 		newVal := oldVal + delta * oldP;
-		prior.SetValue(newVal);
+		prior.value := newVal; prior.Evaluate;
 		newDen := updater.LogConditional();
 		newP :=  - oldP;
 		alpha := newDen - oldDen;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
-			prior.SetValue(oldVal);
+			prior.value := oldVal; prior.Evaluate;
 			INC(updater.rejectCount)
 		ELSE
 			updater.p := newP

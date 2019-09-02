@@ -13,7 +13,7 @@ MODULE ParallelActions;
 	IMPORT
 		SYSTEM,
 		MPIworker, Math, Stores := Stores64,
-		GraphNodes, GraphStochastic,
+		GraphLogical, GraphNodes, GraphStochastic,
 		MonitorDeviance,
 		ParallelRandnum,
 		UpdaterUpdaters;
@@ -23,8 +23,9 @@ MODULE ParallelActions;
 		updaters-: UpdaterUpdaters.Vector;
 		id-, addresses: POINTER TO ARRAY OF INTEGER;
 		observations-: GraphStochastic.Vector;
-		namePointers: GraphNodes.Vector;
+		pointers: GraphNodes.Vector;
 		globalStochs-: POINTER TO ARRAY OF GraphStochastic.Vector;
+		globalLogicals-: GraphLogical.Vector;
 		waicMonitors: POINTER TO ARRAY OF MonitorDeviance.Monitor;
 		values-, globalValues-: POINTER TO ARRAY OF REAL;
 		sizeUpdaters: INTEGER;
@@ -39,7 +40,7 @@ MODULE ParallelActions;
 		id := NIL;
 		addresses := NIL;
 		observations := NIL;
-		namePointers := NIL;
+		pointers := NIL;
 		globalStochs := NIL;
 		waicMonitors := NIL;
 		values := NIL;
@@ -107,7 +108,8 @@ MODULE ParallelActions;
 		waicMonitors := NIL
 	END ClearWAIC;
 
-	PROCEDURE CollectMonitored* (IN col, row: ARRAY OF INTEGER; OUT monitorValues: ARRAY OF REAL);
+	PROCEDURE CollectMonitored* (IN col, row: ARRAY OF INTEGER;
+	OUT monitorValues: ARRAY OF REAL);
 		VAR
 			i, j, k, numMonitored: INTEGER;
 			p: GraphStochastic.Node;
@@ -142,7 +144,7 @@ MODULE ParallelActions;
 
 	PROCEDURE ExternalizeMutable* (VAR wr: Stores.Writer);
 		VAR
-			i, j, numObs, numUpdaters: INTEGER;
+			i, j, numObs, numStochs, numUpdaters, rank: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 	BEGIN
 		numUpdaters := LEN(updaters);
@@ -153,6 +155,9 @@ MODULE ParallelActions;
 			UpdaterUpdaters.Externalize(updater, wr);
 			INC(j)
 		END;
+		numStochs := LEN(globalStochs[0]);
+		rank := MPIworker.rank;
+		i := 0; WHILE i < numStochs DO wr.WriteReal(globalStochs[rank, i].value); INC(i) END;
 		IF waicMonitors # NIL THEN
 			numObs := LEN(waicMonitors);
 			wr.WriteInt(numObs);
@@ -208,7 +213,7 @@ MODULE ParallelActions;
 
 	PROCEDURE InternalizeMutable* (VAR rd: Stores.Reader);
 		VAR
-			i, j, numObs, numUpdaters: INTEGER;
+			i, j, numObs, numStochs, numUpdaters, rank: INTEGER;
 			updater: UpdaterUpdaters.Updater;
 			monitor: MonitorDeviance.Monitor;
 			observation: GraphStochastic.Node;
@@ -221,6 +226,9 @@ MODULE ParallelActions;
 			UpdaterUpdaters.Internalize(updater, rd);
 			INC(j)
 		END;
+		numStochs := LEN(globalStochs[0]);
+		rank := MPIworker.rank;
+		i := 0; WHILE i < numStochs DO rd.ReadReal(globalStochs[rank, i].value); INC(i) END;
 		rd.ReadInt(numObs);
 		IF numObs # 0 THEN
 			NEW(waicMonitors, numObs);
@@ -286,55 +294,38 @@ MODULE ParallelActions;
 		RETURN jointPDF;
 	END JointPDF;
 
-	PROCEDURE LoadSample*;
+	PROCEDURE LoadSample* (rank: INTEGER);
 		VAR
-			blockSize, i, j, k, len, rank, numUpdaters, end, start, size: INTEGER;
+			j, k, commSize, numStochastics: INTEGER;
+			values, globalValues: POINTER TO ARRAY OF REAL;
+			globalStochs: POINTER TO ARRAY OF GraphStochastic.Vector;
 	BEGIN
-		numUpdaters := LEN(updaters);
-		i := 0;
-		end := 0;
-		IF id # NIL THEN (*	chain is distributed	*)
-			len := LEN(globalStochs, 0);
-			WHILE i < numUpdaters DO
-				size := updaters[i].Size();
-				INC(end, size);
-				IF id[i] < 0 THEN (*	end of parallel block	*)
-					rank := MPIworker.rank;
-					blockSize := ABS(id[i]) * size;
-					start := end - blockSize;
-					k := 0;
-					WHILE k < blockSize DO
-						values[k] := globalStochs[rank, start + k].value;
-						INC(k)
-					END;
-					MPIworker.AllGather(values, blockSize, globalValues);
-					j := 0;
-					WHILE j < len DO
-						IF j # rank THEN
-							k := 0;
-							WHILE k < blockSize DO
-								globalStochs[j, start + k].SetValue(globalValues[j * blockSize + k]);
-								INC(k)
-							END
-						END;
-						INC(j)
-					END
+		IF globalStochs # NIL THEN
+			commSize := LEN(globalStochs); numStochastics := LEN(globalStochs[0]);
+			j := 0; WHILE j < numStochastics DO values[j] := globalStochs[rank, j].value; INC(j) END;
+			MPIworker.AllGather(values, numStochastics, globalValues);
+			k := 0;
+			WHILE k < commSize DO
+				j := 0;
+				WHILE j < numStochastics DO
+					globalStochs[k, j].value := globalValues[k * numStochastics + j];
+					INC(j)
 				END;
-				INC(i);
-			END;
-		END;
+				INC(k)
+			END
+		END
 	END LoadSample;
 
 	PROCEDURE MapNamedPointer* (p: INTEGER): INTEGER;
 		VAR
-			add, i, numNamePointer: INTEGER;
+			add, i, num: INTEGER;
 	BEGIN
 		add := p;
-		IF debug & (namePointers # NIL) THEN
-			numNamePointer := LEN(namePointers);
+		IF debug & (addresses # NIL) THEN
+			num := LEN(addresses);
 			i := 0;
-			WHILE (i < numNamePointer) & (p # SYSTEM.VAL(INTEGER, namePointers[i])) DO INC(i) END;
-			IF i # numNamePointer THEN add := addresses[i] END
+			WHILE (i < num) & (p # SYSTEM.VAL(INTEGER, pointers[i])) DO INC(i) END;
+			IF i # num THEN add := addresses[i] END
 		END;
 		RETURN add
 	END MapNamedPointer;
@@ -344,9 +335,10 @@ MODULE ParallelActions;
 		RETURN LEN(updaters);
 	END NumUpdaters;
 
-	PROCEDURE Read* (chain: INTEGER; VAR rd: Stores.Reader);
+	PROCEDURE Read* (rank, chain: INTEGER; VAR rd: Stores.Reader);
 		VAR
-			commSize, i, num, numChains, numStochasticPointers, numNamePointers: INTEGER;
+			commSize, i, j, num, numChains, numLogicalPointers, numStochasticPointers,
+			numDataPointers: INTEGER;
 			uEndPos: LONGINT;
 			dummy, dummyMV, p: GraphNodes.Node;
 			pos: POINTER TO ARRAY OF LONGINT;
@@ -355,7 +347,8 @@ MODULE ParallelActions;
 		rd.ReadInt(commSize);
 		rd.ReadInt(numChains);
 		rd.ReadInt(numStochasticPointers);
-		rd.ReadInt(numNamePointers);
+		rd.ReadInt(numLogicalPointers);
+		rd.ReadInt(numDataPointers);
 		NEW(values, numStochasticPointers * commSize);
 		NEW(globalValues, numStochasticPointers * commSize);
 		InternalizeId(rd);
@@ -365,20 +358,24 @@ MODULE ParallelActions;
 		(*	read in pointer to dummy MV	*)
 		dummyMV := GraphNodes.InternalizePointer(rd);
 		InternalizeStochastics(commSize, numStochasticPointers, rd);
+		NEW(globalLogicals, numLogicalPointers);
+		i := 0;
+		WHILE i < numLogicalPointers DO
+			p := GraphNodes.InternalizePointer(rd);
+			globalLogicals[i] := p(GraphLogical.Node);
+			INC(i)
+		END;
 		IF debug THEN
-			(*	build index of named pointer address pairs so that names of pointers can be displayed	*)
-			IF numNamePointers > 0 THEN
-				NEW(addresses, numNamePointers); NEW(namePointers, numNamePointers)
-			ELSE
-				addresses := NIL; namePointers := NIL
-			END;
+			num := numDataPointers + numLogicalPointers;
+			IF num > 0 THEN NEW(addresses, num); NEW(pointers, num) END;
 			i := 0;
-			WHILE i < numNamePointers DO namePointers[i] := GraphNodes.InternalizePointer(rd); INC(i) END;
-			i := 0;
-			WHILE i < numNamePointers DO rd.ReadInt(addresses[i]); INC(i) END
+			WHILE i < numLogicalPointers DO pointers[i] := globalLogicals[i]; INC(i) END;
+			j := 0;
+			WHILE j < numDataPointers DO pointers[i + j] := GraphNodes.InternalizePointer(rd); INC(j) END;
+			i := 0; WHILE i < num DO rd.ReadInt(addresses[i]); INC(i) END;
 		ELSE
-			(*	no need to store named pointers	*)
-			i := 0; WHILE i < numNamePointers DO p := GraphNodes.InternalizePointer(rd); INC(i) END
+			i := 0;
+			WHILE i < numDataPointers DO p := GraphNodes.InternalizePointer(rd); INC(i) END
 		END;
 		rd.ReadInt(num);
 		IF num > 0 THEN NEW(observations, num) ELSE observations := NIL END;
@@ -400,9 +397,9 @@ MODULE ParallelActions;
 		i := 0;
 		WHILE i < num DO
 			UpdaterUpdaters.Internalize(updaters[i], rd);
-			updaters[i].LoadSample;
 			INC(i)
 		END;
+		i := 0; WHILE i < numStochasticPointers DO rd.ReadReal(globalStochs[rank, i].value); INC(i) END;
 		sizeUpdaters := SHORT(rd.Pos() + 1 - pos[chain]);
 		rd.SetPos(uEndPos);
 		UpdaterUpdaters.EndInternalize(rd);
@@ -477,15 +474,14 @@ MODULE ParallelActions;
 					MPIworker.AllGather(values, blockSize, globalValues);
 					j := 0;
 					WHILE j < numWorker DO
-						IF j # rank THEN
-							k := 0;
-							WHILE k < blockSize DO
-								globalStochs[j, start + k].SetValue(globalValues[j * blockSize + k]);
-								INC(k)
-							END
+						k := 0;
+						WHILE k < blockSize DO
+							globalStochs[j, start + k].value := globalValues[j * blockSize + k];
+							INC(k)
 						END;
 						INC(j)
-					END
+					END;
+					IF ~seperable THEN GraphLogical.EvaluateAllDiffs END
 				ELSIF id[i] = 0 THEN
 					ParallelRandnum.UsePrivateStream
 				END;

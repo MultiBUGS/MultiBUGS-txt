@@ -21,8 +21,6 @@ MODULE UpdaterUnivariate;
 	TYPE
 		(*	abstract base type from which all single component MCMC samplers are derived	*)
 		Updater* = POINTER TO ABSTRACT RECORD(UpdaterUpdaters.Updater)
-			initialized: BOOLEAN;
-			value: REAL;
 			prior-: GraphStochastic.Node	(*	node updated by updater	*)
 		END;
 
@@ -46,8 +44,6 @@ MODULE UpdaterUnivariate;
 			s: Updater;
 	BEGIN
 		s := source(Updater);
-		updater.initialized := s.initialized;
-		updater.value := s.value;
 		updater.prior := s.prior;
 		updater.CopyFromUnivariate(source)
 	END CopyFrom;
@@ -77,8 +73,6 @@ MODULE UpdaterUnivariate;
 
 	PROCEDURE (updater: Updater) Externalize- (VAR wr: Stores.Writer);
 	BEGIN
-		wr.WriteBool(updater.initialized);
-		IF updater.initialized THEN wr.WriteReal(updater.value) END;
 		updater.ExternalizeUnivariate(wr);
 	END Externalize;
 
@@ -89,9 +83,8 @@ MODULE UpdaterUnivariate;
 		VAR
 			prior: GraphStochastic.Node;
 	BEGIN
-		updater.initialized := FALSE;
 		prior := updater.prior;
-		prior.SetProps(prior.props + {GraphStochastic.update});
+		INCL(prior.props, GraphStochastic.update);
 		updater.InitializeUnivariate
 	END Initialize;
 
@@ -109,30 +102,8 @@ MODULE UpdaterUnivariate;
 
 	PROCEDURE (updater: Updater) Internalize- (VAR rd: Stores.Reader);
 	BEGIN
-		rd.ReadBool(updater.initialized);
-		IF updater.initialized THEN rd.ReadReal(updater.value) END;
 		updater.InternalizeUnivariate(rd);
 	END Internalize;
-
-	(*	is node associated with updater initialized	*)
-	PROCEDURE (updater: Updater) IsInitialized* (): BOOLEAN;
-	BEGIN
-		RETURN updater.initialized
-	END IsInitialized;
-
-	(*	load sampled value stored in updater into graphical model	*)
-	PROCEDURE (updater: Updater) LoadSample*;
-		VAR
-			prior: GraphStochastic.Node;
-	BEGIN
-		prior := updater.prior;
-		IF updater.initialized THEN
-			prior.SetProps(prior.props + {GraphStochastic.initialized});
-			prior.SetValue(updater.value)
-		ELSE
-			prior.SetProps(prior.props - {GraphStochastic.initialized})
-		END
-	END LoadSample;
 
 	(*	calculates log conditional of updater	*)
 	PROCEDURE (updater: Updater) LogConditional* (): REAL;
@@ -215,20 +186,6 @@ MODULE UpdaterUnivariate;
 	BEGIN
 		RETURN 1
 	END Size;
-
-	(*	copy node value from graphical model into updater	*)
-	PROCEDURE (updater: Updater) StoreSample*;
-		VAR
-			prior: GraphStochastic.Node;
-	BEGIN
-		prior := updater.prior;
-		IF GraphStochastic.initialized IN prior.props THEN
-			updater.initialized := TRUE;
-			updater.value := prior.value
-		ELSE
-			updater.initialized := FALSE
-		END
-	END StoreSample;
 
 	PROCEDURE IsHomologous* (prior: GraphStochastic.Node): BOOLEAN;
 		VAR

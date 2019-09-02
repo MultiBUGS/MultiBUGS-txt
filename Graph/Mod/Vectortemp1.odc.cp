@@ -55,13 +55,13 @@ MODULE GraphVectortemp1;
 		*)
 	END ClassSpecial;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, j, k, l, off, dim, power, size, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
 		dim := SHORT(ENTIER(Math.Sqrt(node.Size()) + eps));
-		power := SHORT(ENTIER(node.scalars[0].Value() + eps));
+		power := SHORT(ENTIER(node.scalars[0].value + eps));
 		i := 0;
 		size := node.size[0];
 		step := node.step[0];
@@ -71,7 +71,7 @@ MODULE GraphVectortemp1;
 			WHILE j < dim DO
 				off := start * (i * dim + j) * step;
 				p := node.vectors[0][off];
-				matrix[i, j] := p.Value();
+				matrix[i, j] := p.value;
 				product[i, j] := matrix[i, j];
 				INC(j)
 			END;
@@ -108,7 +108,7 @@ MODULE GraphVectortemp1;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				values[i * dim + j] := product[i, j];
+				node.components[i * dim + j].value := product[i, j];
 				INC(j)
 			END;
 			INC(i)
@@ -120,10 +120,10 @@ MODULE GraphVectortemp1;
 		install := "GraphVectortemp1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs ;
 	BEGIN
 		HALT(126)
-	END ValDiff;
+	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR

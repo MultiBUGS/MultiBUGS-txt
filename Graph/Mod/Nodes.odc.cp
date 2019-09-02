@@ -13,7 +13,7 @@ MODULE GraphNodes;
 
 	
 
-	IMPORT 
+	IMPORT Services,
 		Meta, Stores := Stores64, Strings;
 
 	CONST
@@ -61,8 +61,9 @@ MODULE GraphNodes;
 	TYPE
 		(*	abstract base type from which all nodes in graphical model are derived	*)
 		Node* = POINTER TO ABSTRACT RECORD
-			props-: SET; 	(*	properties of node	*)
-			label: INTEGER
+			label: INTEGER;
+			props*: SET; 	(*	properties of node	*)
+			value*: REAL
 		END;
 
 		(*	list of nodes	*)
@@ -139,23 +140,53 @@ MODULE GraphNodes;
 		RETURN f
 	END InstallFactory;
 
+	PROCEDURE ListToVector* (list: List): Vector;
+		VAR
+			i, len: INTEGER;
+			cursor: List;
+			vector: Vector;
+	BEGIN
+		IF list = NIL THEN
+			vector := NIL
+		ELSE
+			len := 0;
+			cursor := list;
+			WHILE cursor # NIL DO
+				INC(len);
+				cursor := cursor.next
+			END;
+			NEW(vector, len);
+			i := 0;
+			cursor := list;
+			WHILE cursor # NIL DO
+				vector[i] := cursor.node;
+				INC(i);
+				cursor := cursor.next
+			END
+		END;
+		RETURN vector
+	END ListToVector;
+
 	(*	checks that internal state of node is consistant	*)
 	PROCEDURE (node: Node) Check* (): SET, NEW, ABSTRACT;
 
 		(*	externalize interrnal fields of node	*)
 	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
+		(*	value of differential of node wrt x	*)
+	PROCEDURE (node: Node) Diff* (x: Node): REAL, NEW, ABSTRACT;
+
 	PROCEDURE (node: Node) Externalize* (VAR wr: Stores.Writer), NEW;
 	BEGIN
 		(*	remove tempory marks	*)
-		wr.WriteSet(node.props - {1,2,3});
+		wr.WriteSet(node.props - {1, 2, 3});
 		node.ExternalizeNode(wr)
 	END Externalize;
 
 	(*	initializes the internal fields of node to non sensible / possible values	*)
 	PROCEDURE (node: Node) InitNode-, NEW, ABSTRACT;
 
-	(*	gets name of the Install procedure for this type of node	*)
+		(*	gets name of the Install procedure for this type of node	*)
 	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
 		(*	internalize internal fields of node	*)
@@ -179,12 +210,6 @@ MODULE GraphNodes;
 		(*	size of node	*)
 	PROCEDURE (node: Node) Size* (): INTEGER, NEW, ABSTRACT;
 
-		(*	value of node	*)
-	PROCEDURE (node: Node) Value* (): REAL, NEW, ABSTRACT;
-
-		(*	value and value of differential of node wrt x	*)
-	PROCEDURE (node: Node) ValDiff* (x: Node; OUT val, diff: REAL), NEW, ABSTRACT;
-
 		(*	add parent node to list, if node is marked then it is not added to list	*)
 	PROCEDURE (node: Node) AddParent* (VAR list: List), NEW;
 		VAR
@@ -196,7 +221,7 @@ MODULE GraphNodes;
 			cursor.node := node;
 			cursor.next := list;
 			list := cursor;
-			node.props := node.props + {mark}
+			INCL(node.props, mark)
 		END
 	END AddParent;
 
@@ -208,28 +233,22 @@ MODULE GraphNodes;
 		node.InitNode
 	END Init;
 
-	(*	set properties of node	*)
-	PROCEDURE (node: Node) SetProps* (props: SET), NEW;
-	BEGIN
-		node.props := props
-	END SetProps;
-
 	(*	initialize args data type	*)
 	PROCEDURE (VAR args: Args) Init*, NEW, ABSTRACT;
-	
-	(*	clear global variables	*)
+
+		(*	clear global variables	*)
 	PROCEDURE (f: Factory) Clear*, NEW, EMPTY;
 
-	(*	create a new node in graphical model	*)
+		(*	create a new node in graphical model	*)
 	PROCEDURE (f: Factory) New* (): Node, NEW, ABSTRACT;
 
-	(*	number of parameters that node created by factory has	*)
+		(*	number of parameters that node created by factory has	*)
 	PROCEDURE (f: Factory) NumParam* (): INTEGER, NEW, ABSTRACT;
 
-	(*	signature of parameters of node created by factory	*)
+		(*	signature of parameters of node created by factory	*)
 	PROCEDURE (f: Factory) Signature* (OUT signature: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	(*	clears mark from nodes in list	*)
+		(*	clears mark from nodes in list	*)
 	PROCEDURE ClearList* (list: List);
 		VAR
 			cursor: List;
@@ -238,13 +257,13 @@ MODULE GraphNodes;
 		cursor := list;
 		WHILE cursor # NIL DO
 			p := cursor.node;
-			p.props := p.props - {mark};
+			EXCL(p.props, mark);
 			cursor := cursor.next
 		END
 	END ClearList;
 
 	(*	init new sub vector	*)
-	PROCEDURE  (VAR vector: SubVector) Init*, NEW;
+	PROCEDURE (VAR vector: SubVector) Init*, NEW;
 	BEGIN
 		vector.start := - 1;
 		vector.nElem := - 1;
@@ -270,7 +289,7 @@ MODULE GraphNodes;
 		ELSIF node.label > 0 THEN
 			wr.WriteInt(node.label);
 		ELSE
-			(*	first timehave  seen node	*)
+			(*	first time have seen node	*)
 			NEW(element);
 			element.node := node;
 			element.next := nodeList;
@@ -304,7 +323,11 @@ MODULE GraphNodes;
 	PROCEDURE Externalize* (node: Node; VAR wr: Stores.Writer);
 		CONST
 			deep = TRUE;
+		VAR
+			logical: BOOLEAN;
 	BEGIN
+(*		logical := Services.Is(node, "GraphLogical.Node");
+		IF logical & ~(node.label > 0) THEN nodes := ListToVector(nodeList); HALT(0) END;*)
 		Externalize0(node, deep, wr)
 	END Externalize;
 
@@ -384,7 +407,7 @@ MODULE GraphNodes;
 			wr.WriteInt(nElem);
 			i := 0; WHILE i < nElem DO Externalize(v.components[start + i * step], wr); INC(i) END
 		ELSE
-			wr.WriteInt(-nElem);
+			wr.WriteInt( - nElem);
 			i := 0; WHILE i < nElem DO wr.WriteSReal(v.values[start + i * step]); INC(i) END
 		END
 	END ExternalizeSubvector;
@@ -396,16 +419,16 @@ MODULE GraphNodes;
 	BEGIN
 		v.Init;
 		rd.ReadInt(n);
-		nElem := ABS(n); 
+		nElem := ABS(n);
 		v.start := 0; v.nElem := nElem; v.step := 1;
 		IF n > 0 THEN
 			NEW(v.components, nElem);
 			v.values := NIL;
-			i := 0;  WHILE i < nElem DO v.components[i] := Internalize(rd); INC(i) END
+			i := 0; WHILE i < nElem DO v.components[i] := Internalize(rd); INC(i) END
 		ELSE
 			NEW(v.values, nElem);
 			v.components := NIL;
-			i := 0;  WHILE i < nElem DO rd.ReadSReal(v.values[i]); INC(i) END
+			i := 0; WHILE i < nElem DO rd.ReadSReal(v.values[i]); INC(i) END
 		END
 	END InternalizeSubvector;
 
@@ -478,7 +501,7 @@ MODULE GraphNodes;
 		END;
 		RETURN label
 	END Label;
-	
+
 	(*	clear label field	*)
 	PROCEDURE UnlabelNodes*;
 	BEGIN
@@ -488,7 +511,7 @@ MODULE GraphNodes;
 			nodeList := nodeList.next
 		END
 	END UnlabelNodes;
-	
+
 	(*	initializes the externalization of graph	*)
 	PROCEDURE BeginExternalize* (VAR wr: Stores.Writer);
 		VAR
@@ -588,33 +611,6 @@ MODULE GraphNodes;
 			name := ""
 		END
 	END GetInstallProc;
-
-	PROCEDURE ListToVector* (list: List): Vector;
-		VAR
-			i, len: INTEGER;
-			cursor: List;
-			vector: Vector;
-	BEGIN
-		IF list = NIL THEN
-			vector := NIL
-		ELSE
-			len := 0;
-			cursor := list;
-			WHILE cursor # NIL DO
-				INC(len);
-				cursor := cursor.next
-			END;
-			NEW(vector, len);
-			i := 0;
-			cursor := list;
-			WHILE cursor # NIL DO
-				vector[i] := cursor.node;
-				INC(i);
-				cursor := cursor.next
-			END
-		END;
-		RETURN vector
-	END ListToVector;
 
 	(*	sets depth information	*)
 	PROCEDURE SetDepth* (maxD, maxSD: INTEGER);

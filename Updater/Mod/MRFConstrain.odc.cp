@@ -94,7 +94,7 @@ MODULE UpdaterMRFConstrain;
 		i := 0;
 		WHILE i < size DO 
 			p := mRF.components[i];
-			p.SetProps(p.props + {GraphStochastic.initialized});
+			INCL(p.props, GraphStochastic.initialized);
 			INC(i)
 		END
 	END GenerateInit;
@@ -147,15 +147,6 @@ MODULE UpdaterMRFConstrain;
 		RETURN FALSE
 	END IsAdapting;
 
-	PROCEDURE (updater: Updater) IsInitialized (): BOOLEAN;
-	BEGIN
-		RETURN TRUE
-	END IsInitialized;
-
-	PROCEDURE (updater: Updater) LoadSample;
-	BEGIN
-	END LoadSample;
-
 	PROCEDURE (updater: Updater) LogConditional (): REAL;
 	BEGIN
 		RETURN 0.0
@@ -206,7 +197,7 @@ MODULE UpdaterMRFConstrain;
 		WHILE i < size DO
 			val := com[i].value - mean;
 			sum1 := sum1 + val;
-			com[i].SetValue(val);
+			com[i].value := val;
 			INC(i)
 		END
 	END Sample;
@@ -225,10 +216,6 @@ MODULE UpdaterMRFConstrain;
 	BEGIN
 		RETURN 0
 	END Size;
-
-	PROCEDURE (updater: Updater) StoreSample;
-	BEGIN
-	END StoreSample;
 
 	PROCEDURE (f: Factory) Install (OUT install: ARRAY OF CHAR);
 	BEGIN

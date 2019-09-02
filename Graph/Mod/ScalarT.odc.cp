@@ -24,10 +24,6 @@ MODULE GraphScalarT;
 			start-, step-, size-: POINTER TO ARRAY OF INTEGER
 		END;
 
-		MemNode* = POINTER TO ABSTRACT RECORD (Node)
-			value: REAL
-		END;
-
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -85,7 +81,7 @@ MODULE GraphScalarT;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 			i, numScalars, numVectors: INTEGER;
@@ -115,13 +111,9 @@ MODULE GraphScalarT;
 			GraphNodes.ExternalizeSubvector(v, wr);
 			INC(i)
 		END;
-		WITH node: MemNode DO
-			wr.WriteReal(node.value)
-		ELSE
-		END
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 			i, numScalars, numVectors: INTEGER;
@@ -155,11 +147,7 @@ MODULE GraphScalarT;
 			node.size[i] := v.nElem;
 			INC(i)
 		END;
-		WITH node: MemNode DO
-			rd.ReadReal(node.value)
-		ELSE
-		END
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
@@ -168,9 +156,6 @@ MODULE GraphScalarT;
 		node.size := NIL;
 		node.start := NIL;
 		node.step := NIL;
-		IF node IS MemNode THEN
-			node.SetProps(node.props + {GraphLogical.dependent})
-		END
 	END InitLogical;
 
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
@@ -243,23 +228,6 @@ MODULE GraphScalarT;
 			END
 		END
 	END Set;
-
-	PROCEDURE (node: MemNode) Evaluate- (OUT value: REAL), NEW, ABSTRACT;
-
-	PROCEDURE (node: MemNode) Value* (): REAL;
-		CONST
-			evaluate = {GraphLogical.alwaysEvaluate, GraphLogical.dirty};
-		VAR
-			value: REAL;
-			cursor: GraphLogical.List;
-			p: GraphLogical.Node;
-	BEGIN
-		IF evaluate * node.props # {} THEN
-			node.Evaluate(node.value);
-			node.SetProps(node.props - {GraphLogical.dirty})
-		END;
-		RETURN node.value
-	END Value;
 
 	PROCEDURE Maintainer;
 	BEGIN

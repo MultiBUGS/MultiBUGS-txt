@@ -179,7 +179,7 @@ MODULE MonitorSummary;
 		VAR
 			value: REAL;
 	BEGIN
-		value := monitor.node.Value();
+		value := monitor.node.value;
 		monitor.UpdateStatistics(value)
 	END Update;
 

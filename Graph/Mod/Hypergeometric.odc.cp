@@ -136,9 +136,9 @@ MODULE GraphHypergeometric;
 		VAR
 			m1, n, n1: REAL;
 	BEGIN
-		n1 := node.n1.Value();
-		m1 := node.m1.Value();
-		n := node.n.Value();
+		n1 := node.n1.value;
+		m1 := node.m1.value;
+		n := node.n.value;
 		left := MAX(0, m1 - n + n1);
 		right := MIN(n1, m1)
 	END BoundsUnivariate;
@@ -152,18 +152,18 @@ MODULE GraphHypergeometric;
 		IF ABS(r - node.value) > eps THEN
 			RETURN {GraphNodes.integer, GraphNodes.lhs}
 		END;
-		n1 := SHORT(ENTIER(node.n1.Value() + eps));
-		m1 := SHORT(ENTIER(node.m1.Value() + eps));
-		n := SHORT(ENTIER(node.n.Value() + eps));
-		psi := node.psi.Value();
+		n1 := SHORT(ENTIER(node.n1.value + eps));
+		m1 := SHORT(ENTIER(node.m1.value + eps));
+		n := SHORT(ENTIER(node.n.value + eps));
+		psi := node.psi.value;
 		Bounds(node, left, right);
-		IF ABS(node.n1.Value() - n1) > eps THEN
+		IF ABS(node.n1.value - n1) > eps THEN
 			RETURN {GraphNodes.integer, 0}
 		END;
-		IF ABS(node.m1.Value() - m1) > eps THEN
+		IF ABS(node.m1.value - m1) > eps THEN
 			RETURN {GraphNodes.integer, 1}
 		END;
-		IF ABS(node.n.Value() - n) > eps THEN
+		IF ABS(node.n.value - n) > eps THEN
 			RETURN {GraphNodes.integer, 2}
 		END;
 		IF (n1 < 0) OR (n1 > n) THEN
@@ -202,10 +202,10 @@ MODULE GraphHypergeometric;
 			m1, n, n1: INTEGER;
 			psi: REAL;
 	BEGIN
-		n1 := SHORT(ENTIER(node.n1.Value() + eps));
-		m1 := SHORT(ENTIER(node.m1.Value() + eps));
-		n := SHORT(ENTIER(node.n.Value() + eps));
-		psi := node.psi.Value();
+		n1 := SHORT(ENTIER(node.n1.value + eps));
+		m1 := SHORT(ENTIER(node.m1.value + eps));
+		n := SHORT(ENTIER(node.n.value + eps));
+		psi := node.psi.value;
 		RETURN MathCumulative.Hypergeometric(n1, m1, n, psi, x)
 	END Cumulative;
 
@@ -216,10 +216,10 @@ MODULE GraphHypergeometric;
 			logDensity, psi: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value));
-		n1 := SHORT(ENTIER(node.n1.Value()));
-		m1 := SHORT(ENTIER(node.m1.Value()));
-		n := SHORT(ENTIER(node.n.Value()));
-		psi := node.psi.Value();
+		n1 := SHORT(ENTIER(node.n1.value));
+		m1 := SHORT(ENTIER(node.m1.value));
+		n := SHORT(ENTIER(node.n.value));
+		psi := node.psi.value;
 		Bounds(node, left, right);
 		shift := 1 - left;
 		nprobs := right - left + 1;
@@ -251,8 +251,8 @@ MODULE GraphHypergeometric;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
-		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + 
+		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.n1 := NIL;
 		node.m1 := NIL;
 		node.n := NIL;
@@ -274,10 +274,10 @@ MODULE GraphHypergeometric;
 			logLikelihood, psi: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
-		n1 := SHORT(ENTIER(node.n1.Value() + eps));
-		m1 := SHORT(ENTIER(node.m1.Value() + eps));
-		n := SHORT(ENTIER(node.n.Value() + eps));
-		psi := node.psi.Value();
+		n1 := SHORT(ENTIER(node.n1.value + eps));
+		m1 := SHORT(ENTIER(node.m1.value + eps));
+		n := SHORT(ENTIER(node.n.value + eps));
+		psi := node.psi.value;
 		Bounds(node, left, right);
 		(* zero likelihood for out of range values *)
 		IF (r < left) OR(r > right) THEN
@@ -297,10 +297,10 @@ MODULE GraphHypergeometric;
 			logPrior, psi: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value));
-		n1 := SHORT(ENTIER(node.n1.Value()));
-		m1 := SHORT(ENTIER(node.m1.Value()));
-		n := SHORT(ENTIER(node.n.Value()));
-		psi := node.psi.Value();
+		n1 := SHORT(ENTIER(node.n1.value));
+		m1 := SHORT(ENTIER(node.m1.value));
+		n := SHORT(ENTIER(node.n.value));
+		psi := node.psi.value;
 		logPrior := Math.Ln(HGprob(n1, m1, n, psi, r));
 		RETURN logPrior
 	END LogPrior;
@@ -309,7 +309,7 @@ MODULE GraphHypergeometric;
 		VAR
 			m1: REAL;
 	BEGIN
-		m1 := node.m1.Value();
+		m1 := node.m1.value;
 		RETURN m1
 	END Location;
 
@@ -355,10 +355,10 @@ MODULE GraphHypergeometric;
 			i, left, m1, n, n1, r, right: INTEGER;
 			lower, upper, psi: REAL;
 	BEGIN
-		n1 := SHORT(ENTIER(node.n1.Value() + eps));
-		m1 := SHORT(ENTIER(node.m1.Value() + eps));
-		n := SHORT(ENTIER(node.n.Value() + eps));
-		psi := node.psi.Value();
+		n1 := SHORT(ENTIER(node.n1.value + eps));
+		m1 := SHORT(ENTIER(node.m1.value + eps));
+		n := SHORT(ENTIER(node.n.value + eps));
+		psi := node.psi.value;
 		node.Bounds(lower, upper);
 		left := SHORT(ENTIER(lower + eps));
 		right := SHORT(ENTIER(upper + eps));
@@ -370,7 +370,7 @@ MODULE GraphHypergeometric;
 		IF (i = 0) OR (r = - 1) THEN
 			res := {GraphNodes.lhs}
 		ELSE
-			node.SetValue(r);
+			node.value := r;
 			res := {}
 		END
 	END Sample;

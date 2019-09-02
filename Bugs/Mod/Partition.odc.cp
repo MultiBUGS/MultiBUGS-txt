@@ -64,7 +64,7 @@ MODULE BugsPartition;
 			i := 0;
 			WHILE i < num DO
 				node := children[i];
-				node.SetProps(node.props + {GraphStochastic.mark});
+				INCL(node.props, GraphStochastic.mark);
 				INC(i)
 			END
 		END
@@ -82,7 +82,7 @@ MODULE BugsPartition;
 			i := 0;
 			WHILE i < num DO
 				node := children[i];
-				node.SetProps(node.props - {GraphStochastic.mark});
+				EXCL(node.props, GraphStochastic.mark);
 				INC(i)
 			END
 		END
@@ -90,9 +90,9 @@ MODULE BugsPartition;
 
 	PROCEDURE IsMarkedDependents (updater: UpdaterUpdaters.Updater): BOOLEAN;
 		VAR
-			i, size: INTEGER;
+			i, j, num, size: INTEGER;
 			prior: GraphStochastic.Node;
-			list: GraphLogical.List;
+			dependents: GraphLogical.Vector;
 			logical: GraphLogical.Node;
 			isMarked: BOOLEAN;
 	BEGIN
@@ -101,11 +101,15 @@ MODULE BugsPartition;
 		i := 0;
 		WHILE (i < size) & ~isMarked DO
 			prior := updater.Node(i);
-			list := prior.dependents;
-			WHILE (list # NIL) & ~isMarked DO
-				logical := list.node;
-				isMarked := GraphLogical.mark IN logical.props;
-				list := list.next
+			dependents := prior.dependents;
+			IF dependents # NIL THEN
+				num := LEN(dependents);
+				j := 0;
+				WHILE (j < num) & ~isMarked DO
+					logical := dependents[j];
+					isMarked := GraphLogical.mark IN logical.props;
+					INC(j)
+				END
 			END;
 			INC(i)
 		END;
@@ -114,22 +118,26 @@ MODULE BugsPartition;
 
 	PROCEDURE MarkDependents (updater: UpdaterUpdaters.Updater);
 		VAR
-			i, size: INTEGER;
+			i, j, num, size: INTEGER;
 			prior: GraphStochastic.Node;
-			list: GraphLogical.List;
+			dependents: GraphLogical.Vector;
 			logical: GraphLogical.Node;
 	BEGIN
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
 			prior := updater.Node(i);
-			list := prior.dependents;
-			WHILE list # NIL DO
-				logical := list.node;
-				IF GraphLogical.stochParent IN logical.props THEN
-					logical.SetProps(logical.props + {GraphLogical.mark})
-				END;
-				list := list.next
+			dependents := prior.dependents;
+			IF dependents # NIL THEN
+				num := LEN(dependents);
+				j := 0;
+				WHILE j < num DO
+					logical := dependents[j];
+					IF ~(GraphLogical.prediction IN logical.props) THEN
+						INCL(logical.props, GraphLogical.mark)
+					END;
+					INC(j)
+				END
 			END;
 			INC(i)
 		END
@@ -137,20 +145,24 @@ MODULE BugsPartition;
 
 	PROCEDURE UnmarkDependents (updater: UpdaterUpdaters.Updater);
 		VAR
-			i, size: INTEGER;
+			i, j, num, size: INTEGER;
 			prior: GraphStochastic.Node;
-			list: GraphLogical.List;
+			dependents: GraphLogical.Vector;
 			logical: GraphLogical.Node;
 	BEGIN
 		size := updater.Size();
 		i := 0;
 		WHILE i < size DO
 			prior := updater.Node(i);
-			list := prior.dependents;
-			WHILE list # NIL DO
-				logical := list.node;
-				logical.SetProps(logical.props - {GraphLogical.mark});
-				list := list.next
+			dependents := prior.dependents;
+			IF dependents # NIL THEN
+				num := LEN(dependents);
+				j := 0;
+				WHILE j < num DO
+					logical := dependents[j];
+					EXCL(logical.props, GraphLogical.mark);
+					INC(j)
+				END
 			END;
 			INC(i)
 		END
@@ -203,13 +215,13 @@ MODULE BugsPartition;
 	BEGIN
 		prior := updater.Prior(0);
 		WITH prior: GraphMRF.Node DO
-			prior.SetProps(prior.props + {GraphStochastic.mark})
+			INCL(prior.props, GraphStochastic.mark)
 		|prior: GraphConjugateMV.Node DO
 			i := 0;
 			size := prior.Size();
 			WHILE i < size DO
 				p := prior.components[i];
-				p.SetProps(p.props + {GraphStochastic.mark});
+				INCL(p.props, GraphStochastic.mark);
 				INC(i)
 			END
 		ELSE
@@ -223,13 +235,13 @@ MODULE BugsPartition;
 	BEGIN
 		prior := updater.Prior(0);
 		WITH prior: GraphMRF.Node DO
-			prior.SetProps(prior.props - {GraphStochastic.mark})
+			EXCL(prior.props, GraphStochastic.mark)
 		|prior: GraphConjugateMV.Node DO
 			i := 0;
 			size := prior.Size();
 			WHILE i < size DO
 				p := prior.components[i];
-				p.SetProps(p.props - {GraphStochastic.mark});
+				EXCL(p.props, GraphStochastic.mark);
 				INC(i)
 			END
 		ELSE
@@ -321,7 +333,7 @@ MODULE BugsPartition;
 						size := u.Size()
 					END;
 					IF size = u.Size() THEN	(*	check size of potential new updater	*)
-						prior.SetProps(prior.props + {GraphNodes.mark});
+						INCL(prior.props, GraphNodes.mark);
 						new := TRUE;
 						Mark(u);
 						lists[rank].updater := i;
@@ -445,7 +457,7 @@ MODULE BugsPartition;
 					NEW(element); element.id := numRows; element.next := rowId; rowId := element;
 					INC(numRows);
 				END;
-				prior.SetProps(prior.props + {GraphNodes.mark});
+				INCL(prior.props, GraphNodes.mark);
 				Mark(u);
 				lists[rank].updater := cursor.updater;
 				INC(rank);
@@ -542,7 +554,7 @@ MODULE BugsPartition;
 									child := children[k];
 									IF GraphDeviance.IsObserved(child) THEN
 										IF ~(GraphNodes.mark IN child.props) THEN
-											child.SetProps(child.props + {GraphNodes.mark});
+											INCL(child.props, GraphNodes.mark);
 											IF action = add THEN observations[j, numData[j]] := child END;
 											INC(numData[j])
 										END
@@ -591,7 +603,7 @@ MODULE BugsPartition;
 							child := children[k];
 							IF GraphDeviance.IsObserved(child) THEN
 								IF ~(GraphNodes.mark IN child.props) THEN
-									child.SetProps(child.props + {GraphNodes.mark});
+									INCL(child.props, GraphNodes.mark);
 									IF action = add THEN observations[j, numData[j]] := child END;
 									INC(numData[j]);
 									DEC(div)
@@ -701,7 +713,7 @@ MODULE BugsPartition;
 				IF updaters[i, j] # undefined THEN
 					u := UpdaterActions.updaters[0, updaters[i, j]];
 					prior := u.Node(0);
-					prior.SetProps(prior.props - {GraphNodes.mark})
+					EXCL(prior.props, GraphNodes.mark)
 				END;
 				INC(i)
 			END;
@@ -774,7 +786,7 @@ MODULE BugsPartition;
 				IF observations[i] # NIL THEN numObs := LEN(observations[i]) ELSE numObs := 0 END;
 				WHILE j < numObs DO
 					IF GraphStochastic.censored IN observations[i, j].props THEN
-						observations[i, j].SetProps(observations[i, j].props + {GraphStochastic.mark})
+						INCL(observations[i, j].props, GraphStochastic.mark)
 					END;
 					INC(j)
 				END;
@@ -787,7 +799,7 @@ MODULE BugsPartition;
 					IF GraphStochastic.mark IN prior.props THEN
 						newUpdaters[i, k] := j;
 						INC(k);
-						prior.SetProps(prior.props - {GraphStochastic.mark})
+						EXCL(prior.props, GraphStochastic.mark)
 					END;
 					INC(j)
 				END;

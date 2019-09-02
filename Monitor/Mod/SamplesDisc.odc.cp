@@ -177,7 +177,7 @@ MODULE MonitorSamplesDisc;
 				END;
 			END
 		END;
-		value := monitor.node.Value();
+		value := monitor.node.value;
 		monitor.buffer[index] := SHORT(value);
 		INC(monitor.sampleSize)
 	END Update;

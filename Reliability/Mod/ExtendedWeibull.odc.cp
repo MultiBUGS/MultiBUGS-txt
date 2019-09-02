@@ -53,10 +53,10 @@ MODULE ReliabilityExtendedWeibull;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -86,8 +86,8 @@ MODULE ReliabilityExtendedWeibull;
 		VAR
 			alpha, lambda: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		RETURN MathCumulative.ExtendedWeibull(alpha, lambda, x)
 	END Cumulative;
 
@@ -96,9 +96,9 @@ MODULE ReliabilityExtendedWeibull;
 			alpha, logAlpha, lambda, logLambda, factor, logFactor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := Math.Exp( - Math.Power(x, alpha));
 		logFactor := - Math.Power(x, alpha);
@@ -112,22 +112,22 @@ MODULE ReliabilityExtendedWeibull;
 			alpha, lambda, diff, diffAlpha, diffLambda, exp, pow, log, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.lambda.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			lambda := node.lambda.Value();
+			diffAlpha := node.alpha.Diff(x);
 			pow := Math.Power(val, alpha);
 			exp := Math.Exp( - pow);
 			log := Math.Ln(val);
 			diff := diffAlpha * (1 / alpha + log - pow * log * (1 + (1 - lambda) * exp) / (1 - (1 - lambda) * exp))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffLambda := node.lambda.Diff(x);
 			pow := Math.Power(val, alpha);
 			exp := Math.Exp( - pow);
 			diff := diffLambda * (1 / lambda - 2 / (exp - (1 - lambda)))
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffAlpha := node.alpha.Diff(x);
+			diffLambda := node.lambda.Diff(x);
 			pow := Math.Power(val, alpha);
 			exp := Math.Exp( - pow);
 			diff := diffAlpha * (1 / alpha + log - pow * log * (1 + (1 - lambda) * exp) / (1 - (1 - lambda) * exp)) + 
@@ -141,8 +141,8 @@ MODULE ReliabilityExtendedWeibull;
 			alpha, lambda, exp, pow, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		pow := Math.Power(x, alpha);
 		exp := Math.Exp( - pow);
 		RETURN (alpha - 1) / x + alpha * pow * (1 + (1 - lambda) * exp) / ((1 - (1 - lambda) * exp) * x)
@@ -156,7 +156,7 @@ MODULE ReliabilityExtendedWeibull;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.lambda := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -178,8 +178,8 @@ MODULE ReliabilityExtendedWeibull;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		mean := Math.Power(Math.Ln(1.0 + (lambda * p50 / (1.0 - p50))), (1.0 / alpha));
 		RETURN mean
 	END Location;
@@ -189,9 +189,9 @@ MODULE ReliabilityExtendedWeibull;
 			alpha, logAlpha, lambda, logLambda, factor, logFactor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := Math.Exp( - Math.Power(x, alpha));
 		logFactor := - Math.Power(x, alpha);
@@ -205,8 +205,8 @@ MODULE ReliabilityExtendedWeibull;
 			alpha, lambda, factor, logFactor, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		factor := Math.Exp( - Math.Power(x, alpha));
 		logFactor := - Math.Power(x, alpha);
 		logPrior := (alpha - 1.0) * MathFunc.Ln(x) + logFactor - 2 * MathFunc.Ln(1.0 - (1.0 - lambda) * factor);
@@ -228,8 +228,8 @@ MODULE ReliabilityExtendedWeibull;
 			alpha, lambda, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.ExtendedWeibull(alpha, lambda)
@@ -243,7 +243,7 @@ MODULE ReliabilityExtendedWeibull;
 				x := MathRandnum.ExtendedWeibullIB(alpha, lambda, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

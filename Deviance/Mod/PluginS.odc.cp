@@ -72,7 +72,7 @@ MODULE DeviancePluginS;
 		i := 0;
 		WHILE i < numPar DO
 			stoch := plugin.parents[i](GraphStochastic.Node);
-			stoch.SetValue(values[i]);
+			stoch.value := values[i];
 			INC(i)
 		END
 	END SetValues;

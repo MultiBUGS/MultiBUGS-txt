@@ -40,7 +40,7 @@ MODULE GraphUVMRF;
 	PROCEDURE (node: Node) CheckChain- (): SET;
 	BEGIN
 		IF node.index # - 1 THEN
-			IF node.tau.Value() < - eps THEN
+			IF node.tau.value < - eps THEN
 				RETURN {GraphNodes.posative, GraphNodes.arg1}
 			END
 		END;
@@ -92,7 +92,8 @@ MODULE GraphUVMRF;
 	BEGIN
 		as := GraphRules.gamma;
 		node.LikelihoodForm(as, y, r, lambda);
-		node.tau.ValDiff(x, tau, diffTau);
+		diffTau := node.tau.Diff(x);
+		tau := node.tau.value;
 		differential := diffTau * ((r - 1.0) / tau - lambda);
 		RETURN differential
 	END DiffLogLikelihood;
@@ -110,7 +111,7 @@ MODULE GraphUVMRF;
 	PROCEDURE (node: Node) InitStochastic-;
 	BEGIN
 		node.tau := NIL;
-		node.SetProps(node.props + {GraphStochastic.noMean});
+		INCL(node.props, GraphStochastic.noMean);
 		node.InitUVMRF
 	END InitStochastic;
 
@@ -137,7 +138,7 @@ MODULE GraphUVMRF;
 	BEGIN
 		as := GraphRules.gamma;
 		node.LikelihoodForm(as, x, r, lambda);
-		tau := x.Value();
+		tau := x.value;
 		logTau := MathFunc.Ln(tau);
 		logLikelihood := r * logTau - tau * lambda + node.LogDet();
 		RETURN logLikelihood
@@ -151,7 +152,7 @@ MODULE GraphUVMRF;
 	BEGIN
 		as := GraphRules.gamma;
 		node.LikelihoodForm(as, x, r, lambda);
-		tau := x.Value();
+		tau := x.value;
 		logTau := MathFunc.Ln(tau);
 		logPrior := r * logTau - tau * lambda; 
 		RETURN logPrior
@@ -204,7 +205,7 @@ MODULE GraphUVMRF;
 		IF node.NumberConstraints() = 0 THEN
 			i := 0;
 			WHILE i < size DO
-				node.components[i].SetValue(x[i]);
+				node.components[i].value := x[i];
 				INC(i)
 			END;
 		ELSE
@@ -222,7 +223,7 @@ MODULE GraphUVMRF;
 			i := 0;
 			WHILE i < size DO
 				x[i] := x[i] - z[i] * aX / aZ;
-				node.components[i].SetValue(x[i]);
+				node.components[i].value := x[i];
 				INC(i)
 			END;
 			i := 0; constraint := 0.0;
@@ -257,7 +258,7 @@ MODULE GraphUVMRF;
 		END;
 		node.PriorForm(GraphRules.normal, mu, tau);
 		value := MathRandnum.Normal(mu, tau);
-		node.SetValue(value);
+		node.value := value;
 		res := {}
 	END Sample;
 

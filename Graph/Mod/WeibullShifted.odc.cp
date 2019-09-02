@@ -69,7 +69,7 @@ MODULE GraphWeibullShifted;
 		VAR
 			class: INTEGER;
 	BEGIN
-		IF (GraphNodes.data IN node.nu.props) & (node.nu.Value() >= 1.0) THEN
+		IF (GraphNodes.data IN node.nu.props) & (node.nu.value >= 1.0) THEN
 			class := GraphRules.logCon
 		ELSE
 			class := GraphRules.general
@@ -81,9 +81,9 @@ MODULE GraphWeibullShifted;
 		VAR
 			cumulative, lambda, nu, x0: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
-		nu := node.nu.Value();
-		x0 := node.x0.Value();
+		lambda := node.lambda.value;
+		nu := node.nu.value;
+		x0 := node.x0.value;
 		cumulative := MathCumulative.WeibullShifted(nu, lambda, x0, x);
 		RETURN cumulative
 	END Cumulative;
@@ -93,11 +93,11 @@ MODULE GraphWeibullShifted;
 			logLambda, logLikelihood, logNu, lambda, nu, x0, x: REAL;
 	BEGIN
 		x := node.value;
-		x0 := node.x0.Value();
+		x0 := node.x0.value;
 		x := x - x0;
-		nu := node.nu.Value();
+		nu := node.nu.value;
 		logNu := MathFunc.Ln(nu);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		logLikelihood := logLambda + logNu + (nu - 1.0) * Math.Ln(x) - lambda * Math.Power(x, nu);
 		RETURN - 2.0 * logLikelihood
@@ -108,10 +108,12 @@ MODULE GraphWeibullShifted;
 			lambda, diffLambda, differential, diffNu, nu, val, x0, pow: REAL;
 	BEGIN
 		val := node.value;
-		x0 := node.x0.Value();
+		x0 := node.x0.value;
 		val := val - x0;
-		node.nu.ValDiff(x, nu, diffNu);
-		node.lambda.ValDiff(x, lambda, diffLambda);
+		nu := node.nu.value;
+		lambda := node.lambda.value;
+		diffNu := node.nu.Diff(x);
+		diffLambda := node.lambda.Diff(x);
 		pow := Math.Power(val, nu);
 		differential := diffNu * (1 / nu + Math.Ln(val) * (1 - lambda * pow)) + diffLambda * (1 / lambda - pow);
 		RETURN differential
@@ -122,10 +124,10 @@ MODULE GraphWeibullShifted;
 			differential, lambda, nu, x0, x: REAL;
 	BEGIN
 		x := node.value;
-		x0 := node.x0.Value();
+		x0 := node.x0.value;
 		x := x - x0;
-		nu := node.nu.Value();
-		lambda := node.lambda.Value();
+		nu := node.nu.value;
+		lambda := node.lambda.value;
 		differential := (nu - 1.0) / x - lambda * nu * Math.Power(x, nu - 1);
 		RETURN differential
 	END DiffLogPrior;
@@ -142,8 +144,8 @@ MODULE GraphWeibullShifted;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
 		p0 := 1;
-		nu := node.nu.Value();
-		x0 := node.x0.Value();
+		nu := node.nu.value;
+		x0 := node.x0.value;
 		p1 := Math.Power(node.value - x0, nu);
 		x := node.lambda
 	END LikelihoodForm;
@@ -152,9 +154,9 @@ MODULE GraphWeibullShifted;
 		VAR
 			nu, lambda, mean, x0: REAL;
 	BEGIN
-		nu := node.nu.Value();
-		lambda := node.lambda.Value();
-		x0 := node.x0.Value();
+		nu := node.nu.value;
+		lambda := node.lambda.value;
+		x0 := node.x0.value;
 		mean := Math.Power(lambda, - 1 / nu) * Math.Exp(MathFunc.LogGammaFunc(1 + 1 / nu));
 		RETURN mean + x0
 	END Location;
@@ -169,14 +171,14 @@ MODULE GraphWeibullShifted;
 			lambda, logLambda, logLikelihood, logNu, nu, x0, x: REAL;
 	BEGIN
 		x := node.value;
-		x0 := node.x0.Value();
+		x0 := node.x0.value;
 		x := x - x0;
 		IF x < 0 THEN
 			logLikelihood := MathFunc.logOfZero
 		ELSE
-			nu := node.nu.Value();
+			nu := node.nu.value;
 			logNu := MathFunc.Ln(nu);
-			lambda := node.lambda.Value();
+			lambda := node.lambda.value;
 			logLambda := MathFunc.Ln(lambda);
 			logLikelihood := logLambda + logNu + (nu - 1.0) * Math.Ln(x) - lambda * Math.Power(x, nu)
 		END;
@@ -188,13 +190,13 @@ MODULE GraphWeibullShifted;
 			lambda, logPrior, nu, x0, x: REAL;
 	BEGIN
 		x := node.value;
-		x0 := node.x0.Value();
+		x0 := node.x0.value;
 		x := x - x0;
 		IF x < 0 THEN
 			logPrior := MathFunc.logOfZero
 		ELSE
-			nu := node.nu.Value();
-			lambda := node.lambda.Value();
+			nu := node.nu.value;
+			lambda := node.lambda.value;
 			logPrior := (nu - 1.0) * Math.Ln(x) - lambda * Math.Power(x, nu)
 		END;
 		RETURN logPrior
@@ -202,22 +204,22 @@ MODULE GraphWeibullShifted;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left := node.x0.Value();
+		left := node.x0.value;
 		right := INF
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.nu.Value() < - eps THEN
+		IF node.nu.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.x0.Value() < - eps THEN
+		IF node.x0.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
-		IF node.value < node.x0.Value() THEN
+		IF node.value < node.x0.value THEN
 			RETURN {GraphNodes.invalidPosative, GraphNodes.lhs}
 		END;
 		RETURN {}
@@ -239,7 +241,7 @@ MODULE GraphWeibullShifted;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.nu := NIL;
 		node.lambda := NIL;
 		node.x0 := NIL
@@ -274,9 +276,9 @@ MODULE GraphWeibullShifted;
 			lambda, nu, x, x0, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		nu := node.nu.Value();
-		lambda := node.lambda.Value();
-		x0 := node.x0.Value();
+		nu := node.nu.value;
+		lambda := node.lambda.value;
+		x0 := node.x0.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := x0 + MathRandnum.Weibull(nu, lambda)
@@ -294,7 +296,7 @@ MODULE GraphWeibullShifted;
 				x := x0 + MathRandnum.WeibullIB(nu, lambda, lower, upper);
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

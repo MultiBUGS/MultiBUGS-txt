@@ -90,7 +90,7 @@ MODULE GraphMultinom;
 		sum := 0.0;
 		i := 0;
 		WHILE i < nElem DO
-			prob := p[start + i * step].Value();
+			prob := p[start + i * step].value;
 			IF (prob < - eps) OR (prob > 1.0 + eps) THEN
 				RETURN {GraphNodes.proportion, GraphNodes.arg1}
 			END;
@@ -189,7 +189,7 @@ MODULE GraphMultinom;
 		WHILE i < nElem DO
 			r := SHORT(ENTIER(node.components[i].value + eps));
 			IF r > 0 THEN
-				pValue := p[start + i * step].Value();
+				pValue := p[start + i * step].value;
 				logP := MathFunc.Ln(pValue);
 				logLikelihood := logLikelihood + logP * r - MathFunc.LogFactorial(r)
 			END;
@@ -220,7 +220,8 @@ MODULE GraphMultinom;
 			r := SHORT(ENTIER(node.components[i].value + eps));
 			IF r > 0 THEN
 				q := p[start + i * step];
-				q.ValDiff(x, valP, diffP);
+				valP := q.value;
+				diffP := q.Diff(x);
 				derivative := derivative + diffP * r / valP
 			END;
 			INC(i)
@@ -251,8 +252,8 @@ MODULE GraphMultinom;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.integer, GraphStochastic.leftNatural,
-		GraphStochastic.rightNatural, GraphStochastic.noMean});
+		node.props := node.props + {GraphStochastic.integer, GraphStochastic.leftNatural,
+		GraphStochastic.rightNatural, GraphStochastic.noMean};
 		node.p := NIL;
 		node.start := - 1;
 		node.step := 0;
@@ -285,7 +286,7 @@ MODULE GraphMultinom;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -311,11 +312,11 @@ MODULE GraphMultinom;
 			index := 1;
 			size := LEN(node.p);
 			WHILE index < size DO
-				location := location - SHORT(ENTIER(node.p[index].Value() * node.order + eps));
+				location := location - SHORT(ENTIER(node.p[index].value * node.order + eps));
 				INC(index)
 			END
 		ELSE
-			location := SHORT(ENTIER(node.p[index].Value() * node.order + eps))
+			location := SHORT(ENTIER(node.p[index].value * node.order + eps))
 		END;
 		ASSERT(location >= 0, 77);
 		RETURN location
@@ -345,7 +346,7 @@ MODULE GraphMultinom;
 		WHILE i < nElem DO
 			r := SHORT(ENTIER(components[i].value + eps));
 			IF r > 0 THEN
-				pValue := p[start + i * step].Value();
+				pValue := p[start + i * step].value;
 				logP := MathFunc.Ln(pValue);
 				logLikelihood := logLikelihood + logP * r - MathFunc.LogFactorial(r)
 			END;
@@ -401,14 +402,14 @@ MODULE GraphMultinom;
 		nElem := node.Size();
 		i := 0;
 		WHILE i < nElem DO
-			prob[i] := p[start + i * step].Value();
+			prob[i] := p[start + i * step].value;
 			INC(i)
 		END;
 		order := node.order;
 		MathRandnum.Multinomial(prob, order, nElem, rand);
 		i := 0;
 		WHILE i < nElem DO
-			node.components[i].SetValue(rand[i]);
+			node.components[i].value := rand[i];
 			INC(i)
 		END;
 		res := {}
@@ -442,13 +443,13 @@ MODULE GraphMultinom;
 			INC(i)
 		END;
 		IF sumX > order THEN RETURN - INF END;
-		components[last].SetValue(order - sumX);
+		components[last].value := order - sumX;
 		i := 0;
 		logPrior := MathFunc.LogFactorial(order);
 		WHILE i < nElem DO
 			r := SHORT(ENTIER(components[i].value + eps));
 			IF r > 0 THEN
-				pValue := p[start + i * step].Value();
+				pValue := p[start + i * step].value;
 				logP := MathFunc.Ln(pValue);
 				logPrior := logPrior + logP * r - MathFunc.LogFactorial(r)
 			END;
@@ -498,13 +499,13 @@ MODULE GraphMultinom;
 		NEW(x, size);
 		i := 0;
 		WHILE i < size DO
-			p[i] := node.p[start + i * step].Value();
+			p[i] := node.p[start + i * step].value;
 			INC(i)
 		END;
 		MathRandnum.Multinomial(p, order, size, x);
 		i := 0;
 		WHILE i < size DO
-			node.components[i].SetValue(x[i]);
+			node.components[i].value := x[i];
 			INC(i)
 		END;
 	END Sample;
@@ -534,7 +535,7 @@ MODULE GraphMultinom;
 				res := {GraphNodes.data, 1};
 				RETURN
 			END;
-			node.order := SHORT(ENTIER(args.scalars[0].Value() + eps))
+			node.order := SHORT(ENTIER(args.scalars[0].value + eps))
 		END
 	END Set;
 

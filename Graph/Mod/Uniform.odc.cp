@@ -37,8 +37,8 @@ MODULE GraphUniform;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
-		left := node.a.Value();
-		right := node.b.Value()
+		left := node.a.value;
+		right := node.b.value
 	END BoundsUnivariate;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
@@ -46,8 +46,8 @@ MODULE GraphUniform;
 			a, b, x: REAL;
 	BEGIN
 		x := node.value;
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		IF x < a - eps THEN
 			RETURN {GraphNodes.leftBound, GraphNodes.lhs}
 		END;
@@ -69,7 +69,7 @@ MODULE GraphUniform;
 			IF f1 = GraphRules.const THEN
 				density := GraphRules.unif
 			ELSIF (f1 = GraphRules.ident) & (GraphNodes.data IN node.a.props)
-				 & (ABS(node.a.Value()) < eps) THEN
+				 & (ABS(node.a.value) < eps) THEN
 				density := GraphRules.pareto
 			ELSE
 				density := GraphRules.general
@@ -88,8 +88,8 @@ MODULE GraphUniform;
 		VAR
 			a, b: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		RETURN (b - x) / (b - a)
 	END Cumulative;
 
@@ -97,8 +97,8 @@ MODULE GraphUniform;
 		VAR
 			a, b, logDensity: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		logDensity := - Math.Ln(b - a);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
@@ -107,17 +107,17 @@ MODULE GraphUniform;
 		VAR
 			a, b, diffA, diffB, differential: REAL;
 	BEGIN
+		a := node.a.value;
+		b := node.b.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.b.props) THEN
-			node.a.ValDiff(x, a, diffA);
-			b := node.b.Value();
+			diffA := node.a.Diff(x);
 			differential := diffA / ((b - a) * (b - a))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.a.props) THEN
-			a := node.a.Value();
-			node.b.ValDiff(x, b, diffB);
+			diffB := node.b.Diff(x);
 			differential := - diffB / ((b - a) * (b - a))
 		ELSE
-			node.a.ValDiff(x, a, diffA);
-			node.b.ValDiff(x, b, diffB);
+			diffA := node.a.Diff(x);
+			diffB := node.b.Diff(x);
 			differential := (diffA - diffB) / ((b - a) * (b - a))
 		END;
 		RETURN differential
@@ -142,7 +142,7 @@ MODULE GraphUniform;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + {GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.a := NIL;
 		node.b := NIL
 	END InitUnivariate;
@@ -165,8 +165,8 @@ MODULE GraphUniform;
 		VAR
 			a, b, logLikelihood: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		IF (node.value >= a) & (node.value <= b) THEN
 			logLikelihood := - Math.Ln(b - a)
 		ELSE
@@ -179,8 +179,8 @@ MODULE GraphUniform;
 		VAR
 			a, b: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		RETURN 0.5 * (a + b)
 	END Location;
 
@@ -219,10 +219,10 @@ MODULE GraphUniform;
 		VAR
 			a, b, value: REAL;
 	BEGIN
-		a := node.a.Value();
-		b := node.b.Value();
+		a := node.a.value;
+		b := node.b.value;
 		value := MathRandnum.Uniform(a, b);
-		node.SetValue(value);
+		node.value := value;
 		res := {}
 	END Sample;
 

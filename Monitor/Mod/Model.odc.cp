@@ -333,7 +333,7 @@ MODULE MonitorModel;
 		len := LEN(monitor.key);
 		h := FALSE;
 		WHILE i < len DO
-			monitor.key[i] := monitor.nodes[i].Value() > 0.5;
+			monitor.key[i] := monitor.nodes[i].value> 0.5;
 			INC(i)
 		END;
 		count := 1;

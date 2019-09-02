@@ -92,15 +92,6 @@ MODULE UpdaterEmpty;
 		RETURN FALSE
 	END IsAdapting;
 
-	PROCEDURE (updater: Updater) IsInitialized (): BOOLEAN;
-	BEGIN
-		RETURN TRUE
-	END IsInitialized;
-
-	PROCEDURE (updater: Updater) LoadSample;
-	BEGIN
-	END LoadSample;
-
 	PROCEDURE (updater: Updater) LogConditional (): REAL;
 	BEGIN
 		RETURN 0.0
@@ -139,10 +130,6 @@ MODULE UpdaterEmpty;
 	BEGIN
 		RETURN updater.size
 	END Size;
-
-	PROCEDURE (updater: Updater) StoreSample;
-	BEGIN
-	END StoreSample;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN

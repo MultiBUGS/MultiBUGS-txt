@@ -103,7 +103,7 @@ MODULE GraphStochtrend;
 			tau: REAL;
 			i, nnz, size, nElements: INTEGER;
 	BEGIN
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		size := node.Size();
 		nElements := 3 * size - 3;
 		nnz := 0;
@@ -194,7 +194,7 @@ MODULE GraphStochtrend;
 		size := node.Size();
 		index := node.index;
 		b := node.components;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		IF index = 0 THEN
 			p0 := 2 * b[1].value - b[2].value;
 			p1 := tau

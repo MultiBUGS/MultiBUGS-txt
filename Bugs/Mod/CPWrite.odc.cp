@@ -98,6 +98,31 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteTypes;
 
+	PROCEDURE WriteAllocateDiffsMethod (IN args: GraphStochastic.ArgsLogical;
+	VAR f: TextMappers.Formatter);
+		VAR
+			i, op, stackSize, top: INTEGER;
+
+		PROCEDURE Out (string: ARRAY OF CHAR); BEGIN f.WriteString(string) END Out;
+
+		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
+
+		PROCEDURE Int (int: INTEGER); BEGIN f.WriteInt(int) END Int;
+
+	BEGIN
+		stackSize := StackSize(args);
+		Out("PROCEDURE (node: Node) AllocateDiffs (numDiffs: INTEGER);"); Ln;
+		Out("BEGIN"); Ln;
+		Out("IF numDiffs > LEN(diffs0) THEN"); Ln;
+		i := 0;
+		WHILE i < stackSize DO
+			Out("NEW(diffs"); Int(i); Out(", numDiffs);"); Ln; INC(i)
+		END;
+		Out("END"); Ln;
+		Out("END AllocateDiffs;"); Ln;
+		Ln;
+	END WriteAllocateDiffsMethod;
+
 	PROCEDURE WriteCheckMethod (VAR f: TextMappers.Formatter);
 	BEGIN
 		f.WriteString("PROCEDURE (node: Node) Check (): SET;"); f.WriteLn;
@@ -133,19 +158,19 @@ MODULE BugsCPWrite;
 		PROCEDURE WriteRefLogical (j: INTEGER);
 		BEGIN
 			Out("p := node.l"); Int(j); Out(";"); Ln;
-			Out("l"); Int(j);
+			Out("classL"); Int(j);
 			Out(" := GraphStochastic.ClassFunction(p, parent);"); Ln;
-			Out("CASE l"); Int(j); Out(" OF"); Ln;
+			Out("CASE classL"); Int(j); Out(" OF"); Ln;
 			Out("GraphRules.logLink, GraphRules.logitLink,");
-			Out("GraphRules.probitLink, GraphRules.cloglogLink:");
-			Out("l"); Int(j); Out(" := GraphRules.linkFun"); Ln;
+			Out("GraphRules.probitLink, GraphRules.cloglogLink:"); Ln;
+			Out("classL"); Int(j); Out(" := GraphRules.linkFun"); Ln;
 			Out("ELSE"); Ln;
 			Out("END;")
 		END WriteRefLogical;
 
 		PROCEDURE WriteRef (j: INTEGER);
 		BEGIN
-			INC(top); Class; Out(" := l"); Int(j); Out(";")
+			INC(top); Class; Out(" := classL"); Int(j); Out(";")
 		END WriteRef;
 
 		PROCEDURE WriteConst;
@@ -220,10 +245,10 @@ MODULE BugsCPWrite;
 		END;
 		Out(": INTEGER;"); Ln;
 		IF args.numLogicals > 0 THEN
-			Out("l0");
+			Out("classL0");
 			i := 1;
 			WHILE i < args.numLogicals DO
-				Out(", l"); Int(i); INC(i)
+				Out(", classL"); Int(i); INC(i)
 			END;
 			Out(": INTEGER;"); Ln;
 		END;
@@ -265,11 +290,11 @@ MODULE BugsCPWrite;
 		Ln
 	END WriteClassFunctionMethod;
 
-	PROCEDURE WriteExternalizeLogicalMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
+	PROCEDURE WriteExternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
-		f.WriteString("PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);"); f.WriteLn;
+		f.WriteString("PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
 		i := 0;
 		WHILE i < args.numConsts DO
@@ -286,9 +311,9 @@ MODULE BugsCPWrite;
 			f.WriteString("GraphNodes.Externalize(node.s"); f.WriteInt(i); f.WriteString(", wr);"); f.WriteLn;
 			INC(i)
 		END;
-		f.WriteString("END ExternalizeLogical;"); f.WriteLn;
+		f.WriteString("END ExternalizeScalar;"); f.WriteLn;
 		f.WriteLn;
-	END WriteExternalizeLogicalMethod;
+	END WriteExternalizeScalarMethod;
 
 	PROCEDURE WriteInitLogicalMethod (VAR f: TextMappers.Formatter);
 	BEGIN
@@ -307,12 +332,12 @@ MODULE BugsCPWrite;
 		f.WriteLn;
 	END WriteInstallMethod;
 
-	PROCEDURE WriteInternalizeLogicalMethod (IN args: GraphStochastic.ArgsLogical;
+	PROCEDURE WriteInternalizeScalarMethod (IN args: GraphStochastic.ArgsLogical;
 	VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
-		f.WriteString("PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);"); f.WriteLn;
+		f.WriteString("PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);"); f.WriteLn;
 		f.WriteString("VAR"); f.WriteLn;
 		f.WriteString("p: GraphNodes.Node;"); f.WriteLn;
 		f.WriteString("BEGIN"); f.WriteLn;
@@ -333,9 +358,9 @@ MODULE BugsCPWrite;
 			f.WriteString("node.s"); f.WriteInt(i); f.WriteString(" := p(GraphStochastic.Node);"); f.WriteLn;
 			INC(i)
 		END;
-		f.WriteString("END InternalizeLogical;"); f.WriteLn;
+		f.WriteString("END InternalizeScalar;"); f.WriteLn;
 		f.WriteLn;
-	END WriteInternalizeLogicalMethod;
+	END WriteInternalizeScalarMethod;
 
 	PROCEDURE WriteParentsMethod (IN args: GraphStochastic.ArgsLogical;
 	VAR f: TextMappers.Formatter);
@@ -436,7 +461,7 @@ MODULE BugsCPWrite;
 			t: Tree;
 
 		PROCEDURE Out (IN s: ARRAY OF CHAR); BEGIN f.WriteString(s) END Out;
-		
+
 		PROCEDURE Int (int: INTEGER); BEGIN f.WriteInt(int) END Int;
 
 		(*	write CP code from tree	*)
@@ -446,8 +471,8 @@ MODULE BugsCPWrite;
 		BEGIN
 			op := t.op MOD GraphGrammar.modifier;
 			CASE op OF
-			|GraphGrammar.refStoch: Out("s"); Int(t.label)
-			|GraphGrammar.ref: Out("l"); Int(t.label)
+			|GraphGrammar.refStoch: Out("node.s"); Int(t.label); Out(".value");
+			|GraphGrammar.ref: Out("node.l"); Int(t.label); Out(".value");
 			|GraphGrammar.const: Out("node.c"); Int(t.label)
 			|GraphGrammar.abs: Out("ABS("); Write(t.left); Out(")")
 			|GraphGrammar.add: Out("("); Write(t.left); Out(" + "); Write(t.right); Out(")")
@@ -517,57 +542,20 @@ MODULE BugsCPWrite;
 		Write(trees[0])
 	END WriteFormula;
 
-	PROCEDURE WriteValueMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
+	PROCEDURE WriteEvaluateMethod (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
 		VAR
 			i: INTEGER;
 	BEGIN
-		f.WriteString("PROCEDURE (node: Node) Value (): REAL;"); f.WriteLn;
-		f.WriteString("VAR "); f.WriteLn;
-		f.WriteString("value: REAL; "); f.WriteLn;
-		IF args.numLogicals > 0 THEN
-			f.WriteString("l0");
-			i := 1;
-			WHILE i < args.numLogicals DO
-				f.WriteString(", l"); f.WriteInt(i); INC(i)
-			END;
-			f.WriteString(": REAL;"); f.WriteLn;
-		END;
-		IF args.numStochs > 0 THEN
-			f.WriteString("s0");
-			i := 1;
-			WHILE i < args.numStochs DO
-				f.WriteString(", s"); f.WriteInt(i); INC(i)
-			END;
-			f.WriteString(": REAL;"); f.WriteLn;
-		END;
+		f.WriteString("PROCEDURE (node: Node) Evaluate;"); f.WriteLn;
 		f.WriteString(" BEGIN "); f.WriteLn;
-		IF args.numLogicals > 0 THEN
-			f.WriteString("l0 := node.l0.Value();"); f.WriteLn;
-			i := 1;
-			WHILE i < args.numLogicals DO
-				f.WriteString("l"); f.WriteInt(i); f.WriteString(" := node.l"); f.WriteInt(i);
-				f.WriteString(".Value();"); f.WriteLn;
-				INC(i)
-			END;
-		END;
-		IF args.numStochs > 0 THEN
-			f.WriteString("s0 := node.s0.value;"); f.WriteLn;
-			i := 1;
-			WHILE i < args.numStochs DO
-				f.WriteString("s"); f.WriteInt(i); f.WriteString(" := node.s"); f.WriteInt(i);
-				f.WriteString(".value;"); f.WriteLn;
-				INC(i)
-			END;
-		END;
-		f.WriteString("value := ");
+		f.WriteString("node.value := ");
 		WriteFormula(args, f);
-		f.WriteChar(";"); f.WriteLn;
-		f.WriteString("   RETURN value"); f.WriteLn;
-		f.WriteString(" END Value;"); f. WriteLn;
 		f. WriteLn;
-	END WriteValueMethod;
+		f.WriteString(" END Evaluate;"); f. WriteLn;
+		f. WriteLn;
+	END WriteEvaluateMethod;
 
-	PROCEDURE WriteValDiffMethod (IN args: GraphStochastic.ArgsLogical;
+	PROCEDURE WriteEvaluateDiffMethod (IN args: GraphStochastic.ArgsLogical;
 	VAR f: TextMappers.Formatter);
 
 		VAR
@@ -575,74 +563,67 @@ MODULE BugsCPWrite;
 
 		PROCEDURE Out (IN x: ARRAY OF CHAR); BEGIN f.WriteString(x) END Out;
 
+		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
+
 		PROCEDURE Comment (IN x: ARRAY OF CHAR); BEGIN
 			Out(" (* " + x + " *)"); f.WriteLn
 		END Comment;
 
 		PROCEDURE Int (i: INTEGER); BEGIN f.WriteInt(i) END Int;
 
-		PROCEDURE Else; BEGIN Out(" ELSE ") END Else;
-
-		PROCEDURE End; BEGIN Out(" END; ") END End;
-
 		PROCEDURE Val; BEGIN Out("val"); f.WriteInt(top) END Val;
 
 		PROCEDURE Val1; BEGIN Out("val"); f.WriteInt(top + 1) END Val1;
 
-		PROCEDURE Diff; BEGIN Out("diff"); f.WriteInt(top) END Diff;
+		PROCEDURE Diff; BEGIN Out("diffs"); f.WriteInt(top); Out("[i]") END Diff;
 
-		PROCEDURE Diff1; BEGIN Out("diff"); f.WriteInt(top + 1) END Diff1;
+		PROCEDURE Diff1; BEGIN Out("diffs"); f.WriteInt(top + 1); Out("[i]") END Diff1;
 
-		PROCEDURE Active; BEGIN Out("active"); f.WriteInt(top); END Active;
+		PROCEDURE For; BEGIN Out("i := 0; WHILE i < N DO ") END For;
 
-		PROCEDURE Active1; BEGIN Out("active"); f.WriteInt(top + 1); END Active1;
-
-		PROCEDURE IfActive; BEGIN Out("IF active"); f.WriteInt(top); Out(" THEN ") END IfActive;
-
-		PROCEDURE IfActive1; BEGIN Out("IF active"); f.WriteInt(top + 1); Out(" THEN ") END IfActive1;
-
-		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
-
-		PROCEDURE Assert;
-		BEGIN
-			Out("ASSERT(~"); Active; Out(", 0);"); Ln;
-		END Assert;
-
-		PROCEDURE Assert1; BEGIN
-			Out("ASSERT(~"); Active1; Out(", 0);"); Ln;
-		END Assert1;
+		PROCEDURE End; BEGIN Out(" INC(i) END;"); END End;
 
 		PROCEDURE WriteRefStoch (j: INTEGER);
 		BEGIN
 			Comment("stochastic");
 			INC(top);
-			Active; Out(" := node.s"); Int(j); Out(" = x;"); Ln;
 			Val; Out(" := node.s"); Int(j); Out(".value;"); Ln;
-			IfActive; Diff; Out(" := 1.0 "); Else; Diff; Out(" := 0.0 "); End; Ln
+			For; Out("IF node.s"); Int(j); Out(" = x[i] THEN ");
+			Diff; Out(" := 1.0 "); Out(" ELSE "); Diff; Out(" := 0.0 "); Out(" END; "); End; Ln
 		END WriteRefStoch;
-
-		PROCEDURE WriteRefLogical (j: INTEGER);
-		BEGIN
-			Comment("logical intermediate");
-			Out("node.l"); Int(j); Out(".ValDiff(x, l"); Int(j); Out(", d"); Int(j); Out(");"); Ln
-		END WriteRefLogical;
 
 		PROCEDURE WriteRef (j: INTEGER);
 		BEGIN
 			Comment("logical");
 			INC(top);
-			Active; Out(" := TRUE;"); Ln;
-			Val; Out(" := l"); Int(j); Out(";"); Ln;
-			Diff; Out(" := d"); Int(j); Out(";"); Ln;
+			Val; Out(" := node.l"); Int(j); Out(".value; "); Ln;
+			Out("N1 := LEN(node.l"); Int(j); Out(".diffWRT);"); Ln;
+			Out("IF GraphNodes.mark IN node.l"); Int(j); Out(".props THEN "); Ln;
+			Out("IF N = N1 THEN"); Ln;
+			For; Diff; Out(" := node.l"); Int(j); Out(".diffs[i];"); End; Ln;
+			Out("ELSE"); Ln;
+			Out("i := 0; j := 0;"); Ln;
+			Out("WHILE j < N1 DO"); Ln;
+			Out("WHILE node.diffWRT[i] # node.l"); Int(j); Out(".diffWRT[j] DO "); 
+			Diff; Out(" := 0.0; "); 
+			Out("INC(i) "); 
+			Out("END;"); Ln;
+			Diff; Out(" := node.l"); Int(j); Out(".diffs[j]; INC(i);"); Ln;
+			Out("INC(j)"); Ln;
+			Out("END;"); Ln;
+			Out("WHILE i < N DO "); Diff; Out(" := 0.0; INC(i) END"); Ln;
+			Out("END"); Ln;
+			Out(" ELSE "); Ln;
+			For; Diff; Out(" := 0.0;"); End; Ln;
+			Out("END;"); Ln;
 		END WriteRef;
 
 		PROCEDURE WriteConst;
 		BEGIN
 			Comment("constant");
 			INC(top);
-			Active; Out(" := FALSE;"); Ln;
 			Val; Out(" := node.c"); Int(numC); Out(";"); Ln;
-			Diff; Out(" := 0.0;"); Ln;
+			For; Diff; Out(" := 0.0;"); End; Ln;
 			INC(numC)
 		END WriteConst;
 
@@ -653,14 +634,10 @@ MODULE BugsCPWrite;
 				Comment("addR");
 			ELSIF op = GraphGrammar.add + GraphGrammar.leftConst THEN
 				Comment("addL");
-				Diff; Out(" := "); Diff1; Out(";"); Active; Out(" := TRUE;"); Ln;
+				For; Diff; Out(" := "); Diff1; Out(";"); End; Ln;
 			ELSE
 				Comment("add");
-				IfActive; Ln;
-				IfActive1; Diff; Out(" := "); Diff; Out(" + "); Diff1; End; Ln;
-				Else; Ln;
-				IfActive1; Diff; Out(" := "); Diff1; Out(" ; "); Active; Out(" := TRUE;"); End; Ln;
-				End; Ln
+				For; Diff; Out(" := "); Diff; Out(" + "); Diff1; Out(";"); End; Ln;
 			END;
 			Val; Out(" :="); Val; Out(" + "); Val1; Out(";"); Ln;
 		END WriteAdd;
@@ -671,15 +648,11 @@ MODULE BugsCPWrite;
 			IF op = GraphGrammar.sub + GraphGrammar.rightConst THEN
 				Comment("subtractR");
 			ELSIF op = GraphGrammar.sub + GraphGrammar.leftConst THEN
-				Comment("subtractL"); 
-				Diff; Out(" := -"); Diff1; Out(";"); Active; Out(" := TRUE;"); Ln;
+				Comment("subtractL");
+				For; Diff; Out(" := -"); Diff1; Out(";"); End; Ln;
 			ELSE
 				Comment("subtract");
-				IfActive; Ln;
-				IfActive1; Diff; Out(" := "); Diff; Out(" - "); Diff1; Else; Diff; Out(" := "); Diff; End; Ln;
-				Else; Ln;
-				IfActive1; Diff; Out(" := "); Out(" - "); Diff1; Out(" ; "); Active; Out(" := TRUE;"); End; Ln;
-				End; Ln
+				For; Diff; Out(" := "); Diff; Out(" - "); Diff1; Out(";"); End; Ln;
 			END;
 			Val; Out(" := "); Val; Out(" - "); Val1; Out(";"); Ln
 		END WriteSub;
@@ -689,20 +662,13 @@ MODULE BugsCPWrite;
 			DEC(top);
 			IF op = GraphGrammar.mult + GraphGrammar.rightConst THEN
 				Comment("multiplyR");
-				IfActive; Diff; Out(" := "); Diff; Out(" * "); Val1; End; Ln
+				For; Diff; Out(" := "); Diff; Out(" * "); Val1; Out(";"); End; Ln
 			ELSIF op = GraphGrammar.mult + GraphGrammar.leftConst THEN
 				Comment("multiplyL");
-				IfActive1; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" ; "); Active; Out(" := TRUE;"); End; Ln
+				For; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(";"); End; Ln
 			ELSE
 				Comment("multiply");
-				IfActive; Ln;
-				IfActive1; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" + "); Diff; Out(" * "); Val1;
-				Else;
-				Diff; Out(" := "); Diff; Out(" * "); Val1;
-				End; Ln;
-				Else; Ln;
-				IfActive1; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" ; "); Active; Out(" := TRUE;"); End; Ln;
-				End; Ln;
+				For; Diff; Out(" := "); Diff1; Out(" * "); Val; Out(" + "); Diff; Out(" * "); Val1; Out(";"); End; Ln;
 			END;
 			Val; Out(" := "); Val; Out(" * "); Val1; Out(";"); Ln;
 		END WriteMult;
@@ -712,25 +678,15 @@ MODULE BugsCPWrite;
 			DEC(top);
 			IF op = GraphGrammar.div + GraphGrammar.rightConst THEN
 				Comment("divideR");
-				IfActive; Diff; Out(" := "); Diff; Out(" / "); Val1; Ln; End; Ln
+				For; Diff; Out(" := "); Diff; Out(" / "); Val1; Out(";"); End; Ln
 			ELSIF op = GraphGrammar.div + GraphGrammar.leftConst THEN
 				Comment("divideL");
-				IfActive1; Diff; Out(" := "); Out(" - "); Diff1; Out(" * "); Val; Out("/ ("); Val1; Out(" * "); Val1; Out(");");
-				Active; Out(" := TRUE;");
-				End; Ln
+				For; Diff; Out(" := "); Out(" - "); Diff1; Out(" * "); Val;
+				Out("/ ("); Val1; Out(" * "); Val1; Out(");"); End; Ln
 			ELSE
 				Comment("divide");
-				IfActive; Ln;
-				IfActive1; Diff; Out(" := "); Diff; Out(" / "); Val1; Out(" - "); Diff1; Out(" * "); Val;
-				Out("/ ("); Val1; Out(" * "); Val1; Out(");"); Ln;
-				Else;
-				Diff; Out(" := "); Diff; Out(" / "); Val1; End; Ln;
-				Else; Ln;
-				IfActive1;
-				Diff; Out(" := "); Out(" - "); Diff1; Out(" * "); Val; Out("/ ("); Val1; Out(" * "); Val1; Out("); ");
-				Active; Out(" := TRUE;");
-				End; Ln;
-				End; Ln
+				For; Diff; Out(" := "); Diff; Out(" / "); Val1; Out(" - "); Diff1; Out(" * "); Val;
+				Out("/ ("); Val1; Out(" * "); Val1; Out(");"); End; Ln;
 			END;
 			Val; Out(" := "); Val; Out(" / "); Val1; Out(";"); Ln;
 		END WriteDiv;
@@ -739,7 +695,6 @@ MODULE BugsCPWrite;
 		BEGIN
 			(*	no differential	*)
 			DEC(top);
-			Assert; Assert1;
 			Val; Out(" := MathFunc.Equals("); Val; Out(", "); Val1; Out(");"); Ln
 		END WriteEquals;
 
@@ -747,7 +702,6 @@ MODULE BugsCPWrite;
 		BEGIN
 			(*	no differential	*)
 			DEC(top);
-			Assert; Assert1;
 			Val; Out(" := MAX("); Val; Out(" , "); Val1; Out(");"); Ln
 		END WriteMax;
 
@@ -755,7 +709,6 @@ MODULE BugsCPWrite;
 		BEGIN
 			(*	no differential	*)
 			DEC(top);
-			Assert; Assert1;
 			Val; Out(" := MIN("); Val; Out(" , "); Val1; Out(");"); Ln
 		END WriteMin;
 
@@ -764,70 +717,42 @@ MODULE BugsCPWrite;
 			DEC(top);
 			IF op = GraphGrammar.pow + GraphGrammar.rightConst THEN
 				Comment("powerR");
-				IfActive; Ln;
-				Diff; Out(" := ("); Diff;
-				Out(" * "); Val1; Out(" / "); Val; Out(");"); Ln;
+				For; Diff; Out(" := ("); Diff;
+				Out(" * "); Val1; Out(" / "); Val; Out(");"); End; Ln;
 				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
-				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Ln;
-				Else;
-				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;	
-				End; Ln;
+				For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
 			ELSIF op = GraphGrammar.pow + GraphGrammar.leftConst THEN
 				Comment("powerL");
-				IfActive1; Ln;
-				Diff; Out(" :=  "); Diff1; Out(" * Math.Ln("); Val; Out(");"); Ln;
+				For; Diff; Out(" :=  "); Diff1; Out(" * Math.Ln("); Val; Out(");"); End; Ln;
 				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
-				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Active; Out(" := TRUE;");
-				Else;
-				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;	
-				End; Ln;
+				For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
 			ELSE
 				Comment("power");
-				IfActive; Ln;
-				IfActive1; Ln;
-				Diff; Out(" := ("); Diff;
+				For; Diff; Out(" := ("); Diff;
 				Out(" * "); Val1; Out(" / "); Val; Out(") + ");
-				Diff1; Out(" * Math.Ln("); Val; Out(");"); Ln;
+				Diff1; Out(" * Math.Ln("); Val; Out(");"); End; Ln;
 				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
-				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Ln;
-				Else; Ln;
-				Diff; Out(" := ("); Diff;
-				Out(" * "); Val1; Out(" / "); Val; Out(");"); Ln;
-				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
-				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Ln;
-				End; Ln;
-				Else; Ln;
-				IfActive1;
-				Diff; Out(" :=  ");
-				Diff1; Out(" * Math.Ln("); Val; Out(");"); Ln;
-				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
-				Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); Active; Out(" := TRUE;"); Ln;
-				Else; Ln;
-				Val; Out(" := MathFunc.Power("); Val; Out(", "); Val1; Out(");"); Ln;
-				End; Ln;
-				End; Ln;
+				For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
 			END
 		END WritePow;
 
 		PROCEDURE WriteUminus;
 		BEGIN
 			Comment("unary minus");
-			Val; Out(" := -"); Val; Out(";");
-			IfActive; Diff; Out(" := -"); Diff; Out(";"); End; Ln
+			Val; Out(" := -"); Val; Out("; ");
+			For; Diff; Out(" := -"); Diff; Out(";"); End; Ln
 		END WriteUminus;
 
 		PROCEDURE WriteAbs;
 		BEGIN
 			(*	no differential	*)
-			Assert;
 			Val; Out(" := ABS("); Val; Out(");"); Ln
 		END WriteAbs;
 
 		PROCEDURE WriteCloglog;
 		BEGIN
 			Comment("cloglog");
-			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Ln(1.0 - "); Val; Out(") / (1.0 - "); Val; Out(");");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * Math.Ln(1.0 - "); Val; Out(") / (1.0 - "); Val; Out(");"); End; Ln;
 			Val; Out(" := MathFunc.Cloglog("); Val; Out(");"); Ln
 		END WriteCloglog;
 
@@ -835,16 +760,16 @@ MODULE BugsCPWrite;
 		BEGIN
 			Comment("inverse cloglog");
 			Val; Out(" := Math.Exp("); Val; Out(");");
-			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
 			Val; Out(" := Math.Exp(-"); Val; Out(");"); Ln;
-			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln;
 			Val; Out(" := "); Out("1.0 - "); Val; Out(";"); Ln
 		END WriteICloglog;
 
 		PROCEDURE WriteCos;
 		BEGIN
 			Comment("cosine");
-			IfActive; Diff; Out(" := -"); Diff; Out(" * Math.Sin("); Val; Out(");"); End; Ln;
+			For; Diff; Out(" := -"); Diff; Out(" * Math.Sin("); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.Cos("); Val; Out(");"); Ln
 		END WriteCos;
 
@@ -852,36 +777,33 @@ MODULE BugsCPWrite;
 		BEGIN
 			Comment("exp");
 			Val; Out(" := Math.Exp("); Val; Out(");");
-			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln
+			For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(";"); End; Ln
 		END WriteExp;
 
 		PROCEDURE WriteLog;
 		BEGIN
 			Comment("log");
-			IfActive; Diff; Out(" := "); Diff; Out(" / "); Val; Out(";"); End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" / "); Val; Out(";"); End; Ln;
 			Val; Out(" := Math.Ln("); Val; Out(");"); Ln
 		END WriteLog;
 
 		PROCEDURE WriteLogFact;
 		BEGIN
 			(*	no differential	*)
-			Assert;
 			Val; Out(" := MathFunc.LogFactorial(SHORT(ENTIER("); Val; Out(" + eps)));"); Ln
 		END WriteLogFact;
 
 		PROCEDURE WriteLogGamma;
 		BEGIN
 			Comment("log gamma");
-			IfActive; Diff; Out(" := "); Diff; Out(" * MathFunc.Digamma("); Val; Out(");"); End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * MathFunc.Digamma("); Val; Out(");"); End; Ln;
 			Val; Out(" := MathFunc.LogGammaFunc("); Val; Out(");"); Ln
 		END WriteLogGamma;
 
 		PROCEDURE WriteLogit;
 		BEGIN
 			Comment("logit");
-			IfActive;
-			Diff; Out(" := "); Diff; Out(" * ((1.0 / "); Val; Out(") + 1.0 / (1.0 - "); Val; Out("));");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * ((1.0 / "); Val; Out(") + 1.0 / (1.0 - "); Val; Out("));"); End; Ln;
 			Val; Out(" := MathFunc.Logit("); Val; Out(");"); Ln
 		END WriteLogit;
 
@@ -889,30 +811,27 @@ MODULE BugsCPWrite;
 		BEGIN
 			Comment("inverse logit");
 			Val; Out(" := MathFunc.Ilogit("); Val; Out(");");
-			IfActive; Diff; Out(" := "); Diff; Out(" * "); Val; Out(" * (1.0 -  "); Val; Out(");");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * "); Val; Out(" * (1.0 -  "); Val; Out(");"); End; Ln;
 		END WriteILogit;
 
 		PROCEDURE WritePhi;
 		BEGIN
 			Comment("phi");
-			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Exp(-0.5 * "); Val; Out(" * "); Val;
-			Out(") / Math.Sqrt(2 * Math.Pi());"); Ln;
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * Math.Exp(-0.5 * "); Val; Out(" * "); Val;
+			Out(") / Math.Sqrt(2 * Math.Pi());"); End; Ln;
 			Val; Out(" := MathFunc.Phi("); Val; Out(");"); Ln
 		END WritePhi;
 
 		PROCEDURE WriteRound;
 		BEGIN
 			(*	no differential	*)
-			Assert;
 			Val; Out(" := Math.Round("); Val; Out(");"); Ln
 		END WriteRound;
 
 		PROCEDURE WriteSin;
 		BEGIN
 			Comment("sin");
-			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Cos("); Val; Out(");"); Ln; End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * Math.Cos("); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.Sin("); Val; Out(");"); Ln
 		END WriteSin;
 
@@ -920,20 +839,18 @@ MODULE BugsCPWrite;
 		BEGIN
 			Comment("sqrt");
 			Val; Out(" := Math.Sqrt("); Val; Out(");"); Ln;
-			IfActive; Diff; Out(" := 0.5 * "); Diff; Out("/ "); Val; Out(";"); End; Ln;
+			For; Diff; Out(" := 0.5 * "); Diff; Out("/ "); Val; Out(";"); End; Ln;
 		END WriteSqrt;
 
 		PROCEDURE WriteStep;
 		BEGIN
 			(* no differential	*)
-			Assert;
 			Val; Out(" := MathFunc.Step("); Val; Out(");"); Ln;
 		END WriteStep;
 
 		PROCEDURE WriteTrunc;
 		BEGIN
 			(* no differential	*)
-			Assert;
 			Val; Out(" := Math.Trunc("); Val; Out(");"); Ln
 		END WriteTrunc;
 
@@ -941,123 +858,81 @@ MODULE BugsCPWrite;
 		BEGIN
 			Comment("tan");
 			Val; Out(" := Math.Tan("); Val; Out(");"); Ln;
-			IfActive; Diff; Out(" := "); Diff; Out(" * (1.0 + "); Val; Out(" * "); Val; Out(");");
-			End; Ln
+			For; Diff; Out(" := "); Diff; Out(" * (1.0 + "); Val; Out(" * "); Val; Out(");"); End; Ln
 		END WriteTan;
 
 		PROCEDURE WriteArcSin;
 		BEGIN
 			Comment("arc sin");
-			IfActive; Diff; Out(" := "); Diff; Out(" / Math.Sqrt(1.0 - "); Val; Out(" * "); Val; Out(");");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" / Math.Sqrt(1.0 - "); Val; Out(" * "); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.ArcSin("); Val; Out(");"); Ln
 		END WriteArcSin;
 
 		PROCEDURE WriteArcCos;
 		BEGIN
 			Comment("arc cos");
-			IfActive; Diff; Out(" := -"); Diff; Out(" / Math.Sqrt(1.0 - "); Val; Out(" * "); Val; Out(");");
-			End; Ln;
+			For; Diff; Out(" := -"); Diff; Out(" / Math.Sqrt(1.0 - "); Val; Out(" * "); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.ArcCos("); Val; Out(");"); Ln
 		END WriteArcCos;
 
 		PROCEDURE WriteArcTan;
 		BEGIN
 			Comment("arc tan");
-			IfActive; Diff; Out(" := "); Diff; Out(" / (1.0 + "); Val; Out(" * "); Val; Out(");");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" / (1.0 + "); Val; Out(" * "); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.ArcTan("); Val; Out(");"); Ln
 		END WriteArcTan;
 
 		PROCEDURE WriteSinh;
 		BEGIN
 			Comment("sinh");
-			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Cosh("); Val; Out(");"); End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * Math.Cosh("); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.Sinh("); Val; Out(");"); Ln
 		END WriteSinh;
 
 		PROCEDURE WriteCosh;
 		BEGIN
 			Comment("cosh");
-			IfActive; Diff; Out(" := "); Diff; Out(" * Math.Sinh("); Val; Out(");"); End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" * Math.Sinh("); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.Cosh("); Val; Out(");"); Ln
 		END WriteCosh;
 
 		PROCEDURE WriteTanh;
 		BEGIN
-			Comment("tanh"); Ln;
-			IfActive; Diff; Out(" := "); Diff; Out(" * Math.IntPower(Math.Cosh("); Val; Out(") , 2);");
-			End; Ln;
-			Val; Out(" := Math.Tanh("); Val; Out(");"); Ln
+			Comment("tanh");
+			Val; Out(" := Math.Tanh("); Val; Out(");"); Ln;
+			For; Diff; Out(" := "); Diff; Out(" * (1.0 - "); Val; Out(" * "); Val; End; Ln;
 		END WriteTanh;
 
 		PROCEDURE WriteArcSinh;
 		BEGIN
 			Comment("arc sinh");
-			IfActive; Diff; Out(" := "); Diff; Out(" / Math.Sqrt("); Val; Out(" * "); Val; Out(" + 1.0);");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" / Math.Sqrt("); Val; Out(" * "); Val; Out(" + 1.0);"); End; Ln;
 			Val; Out(" := Math.ArcSinh("); Val; Out(");"); Ln
 		END WriteArcSinh;
 
 		PROCEDURE WriteArcCosh;
 		BEGIN
 			Comment("arc cosh");
-			IfActive; Diff; Out(" := "); Diff; Out(" / Math.Sqrt("); Val; Out(" * "); Val; Out(" - 1.0);");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" / Math.Sqrt("); Val; Out(" * "); Val; Out(" - 1.0);"); End; Ln;
 			Val; Out(" := Math.ArcCosh("); Val; Out(");"); Ln
 		END WriteArcCosh;
 
 		PROCEDURE WriteArcTanh;
 		BEGIN
 			Comment("arc tanh");
-			IfActive; Diff; Out(" := "); Diff; Out(" / ( 1.0 - "); Val; Out(" * "); Val; Out(");");
-			End; Ln;
+			For; Diff; Out(" := "); Diff; Out(" / ( 1.0 - "); Val; Out(" * "); Val; Out(");"); End; Ln;
 			Val; Out(" := Math.ArcTanh("); Val; Out(");"); Ln
 		END WriteArcTanh;
 
 	BEGIN
 		stackSize := StackSize(args);
-		Out("PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val0, diff0: REAL);"); Ln;
-		IF (stackSize > 0) OR (args.numLogicals > 0)THEN
-			Out("VAR"); Ln
-		END;
-		IF stackSize > 1 THEN
-			Out("val1, diff1");
-			i := 2;
-			WHILE i < stackSize DO
-				Out(", val"); f.WriteInt(i);
-				Out(", diff"); f.WriteInt(i);
-				INC(i)
-			END;
-			Out(": REAL;"); Ln;
-		END;
-		IF stackSize > 0 THEN
-			Out("active0");
-			i := 1;
-			WHILE i < stackSize DO
-				Out(", active"); f.WriteInt(i); INC(i)
-			END;
-			Out(": BOOLEAN;"); Ln
-		END;
-		IF args.numLogicals > 0 THEN
-			Out("l0, d0");
-			i := 1;
-			WHILE i < args.numLogicals DO
-				Out(", l"); f.WriteInt(i);
-				Out(", d"); f.WriteInt(i);
-				INC(i)
-			END;
-			Out(": REAL;"); Ln;
-		END;
+		Out("PROCEDURE (node: Node) EvaluateDiffs;"); Ln;
+		Out("VAR"); Ln;
+		Out("x: GraphNodes.Vector;"); Ln;
+		Out("i, N, j, N1: INTEGER;"); Ln;
 		Out("BEGIN"); Ln;
-		IF args.numLogicals > 0 THEN
-			WriteRefLogical(0);
-			i := 1;
-			WHILE i < args.numLogicals DO
-				WriteRefLogical(i);
-				INC(i)
-			END;
-		END;
+		Out("x := node.diffWRT;"); Ln;
+		Out("N := LEN(x);"); Ln;
 		i := 0;
 		top := - 1;
 		numC := 0;
@@ -1105,9 +980,11 @@ MODULE BugsCPWrite;
 			END;
 			INC(i);
 		END;
-		Out(" END ValDiff;"); Ln;
+		Out("node.value := val0;"); Ln;
+		For; Out("node.diffs[i] := diffs0[i];"); End; Ln;
+		Out(" END EvaluateDiffs;"); Ln;
 		Ln;
-	END WriteValDiffMethod;
+	END WriteEvaluateDiffMethod;
 
 	PROCEDURE WriteFactoryMethods (VAR f: TextMappers.Formatter);
 	BEGIN
@@ -1140,24 +1017,48 @@ MODULE BugsCPWrite;
 		f.WriteString(" END Install;"); f.WriteLn; f.WriteLn
 	END WriteInstallProcedure;
 
-	PROCEDURE WriteInitProcedure (VAR f: TextMappers.Formatter);
+	PROCEDURE WriteInitProcedure (IN args: GraphStochastic.ArgsLogical; VAR f: TextMappers.Formatter);
+
+		VAR
+			i, stackSize: INTEGER;
+
+		PROCEDURE Out (string: ARRAY OF CHAR); BEGIN f.WriteString(string) END Out;
+
+		PROCEDURE Int (int: INTEGER); BEGIN f.WriteInt(int) END Int;
+
+		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
+
 	BEGIN
-		f.WriteString(" PROCEDURE Init;"); f.WriteLn;
-		f.WriteString(" VAR factory: Factory;"); f.WriteLn;
-		f.WriteString(" BEGIN "); f.WriteLn;
-		f.WriteString("version := 500;"); f.WriteLn;
-		f.WriteString("maintainer := 'OpenBUGS';"); f.WriteLn;
-		f.WriteString(" NEW(factory);"); f.WriteLn;
-		f.WriteString("fact := factory;"); f.WriteLn;
-		f.WriteString(" END Init;"); f.WriteLn; f.WriteLn;
+		stackSize := StackSize(args);
+		Out(" PROCEDURE Init;"); Ln;
+		Out(" VAR factory: Factory;"); Ln;
+		Out(" BEGIN "); Ln;
+		Out("version := 500;"); Ln;
+		Out("maintainer := 'OpenBUGS';"); Ln;
+		Out(" NEW(factory);"); Ln;
+		i := 0;
+		WHILE i < stackSize DO
+			Out("NEW(diffs"); Int(i); Out(", 1);"); Ln; INC(i)
+		END;
+		Out("fact := factory;"); Ln;
+		Out(" END Init;"); Ln; Ln;
 	END WriteInitProcedure;
 
 	PROCEDURE WriteModule* (IN args: GraphStochastic.ArgsLogical; index: INTEGER;
 	VAR f: TextMappers.Formatter);
 		VAR
 			fileName: ARRAY 128 OF CHAR;
+			i, stackSize: INTEGER;
+
+		PROCEDURE Out (string: ARRAY OF CHAR); BEGIN f.WriteString(string) END Out;
+
+		PROCEDURE Int (int: INTEGER); BEGIN f.WriteInt(int) END Int;
+
+		PROCEDURE Ln; BEGIN f.WriteLn END Ln;
+
 	BEGIN
-		Strings.IntToString(index, fileName); 
+		stackSize := StackSize(args);
+		Strings.IntToString(index, fileName);
 		fileName := "Node" + fileName;
 		f.SetPos(0);
 		(*	write MODULE stuff	*)
@@ -1169,36 +1070,51 @@ MODULE BugsCPWrite;
 		f.WriteString("version-: INTEGER;"); f.WriteLn;
 		f.WriteString("maintainer-: ARRAY 40 OF CHAR;"); f.WriteLn;
 		f.WriteString("fact-: GraphNodes.Factory;"); f.WriteLn;
+		Out("val0");
+		i := 1;
+		WHILE i < stackSize DO
+			Out(", val"); Int(i); INC(i)
+		END;
+		Out(": REAL;"); Ln;
+		Out("diffs0");
+		i := 1;
+		WHILE i < stackSize DO
+			Out(", diffs"); Int(i); INC(i)
+		END;
+		Out(": POINTER TO ARRAY OF REAL;"); Ln;
 		f.WriteLn;
 		(*	write global constants	*)
 		f.WriteString("CONST"); f.WriteLn;
-		f.WriteString("eps = 1.0E-10;"); f.WriteLn; f.WriteLn;
+		f.WriteString("eps = 1.0E-10;"); f.WriteLn;
+		f.WriteLn;
+		(*	write Allocate method	*)
+		WriteAllocateDiffsMethod(args, f);
 		(*	write Check method	*)
 		WriteCheckMethod(f);
 		(*	write ClassFunction method	*)
 		WriteClassFunctionMethod(args, f);
+		(*	write Evaluate method	*)
+		WriteEvaluateMethod(args, f);
+		(*	write EvaluateDiff method	*)
+		WriteEvaluateDiffMethod(args, f);
 		(*	write ExternalizeLogical method	*)
-		WriteExternalizeLogicalMethod(args, f);
+		WriteExternalizeScalarMethod(args, f);
 		(*	write InitLogical method	*)
 		WriteInitLogicalMethod(f);
 		(*	write InternalizeLogical method	*)
-		WriteInternalizeLogicalMethod(args, f);
+		WriteInternalizeScalarMethod(args, f);
 		(*	write Install method	*)
 		WriteInstallMethod("Dynamic" + fileName, f);
 		(*	write Parent method	*)
 		WriteParentsMethod(args, f);
 		(*	write Set method	*)
 		WriteSetMethod(args, f);
-		(*	write Value method	*)
-		WriteValueMethod(args, f);
-		(*	write ValDiff method	*)
-		WriteValDiffMethod(args, f);
 		(*	write factory stuff	*)
 		WriteFactoryMethods(f);
 		(*	write Install procedure	*)
 		WriteInstallProcedure(f);
 		(*	write Init procedure	*)
-		WriteInitProcedure(f);
+		WriteInitProcedure(args, f);
 		(*	write body of module	*)
 		f.WriteString(" BEGIN "); f.WriteLn;
 		f.WriteString("Init"); f.WriteLn;

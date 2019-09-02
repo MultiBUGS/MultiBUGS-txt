@@ -91,8 +91,8 @@ MODULE GraphDensity;
 		VAR
 			x: REAL;
 	BEGIN
-		x := node.x.Value();
-		node.prior.SetValue(x);
+		x := node.x.value;
+		node.prior.value := x;
 		RETURN Check(node.prior)
 	END Check;
 
@@ -101,20 +101,25 @@ MODULE GraphDensity;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Univariate) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Univariate) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Univariate) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.prior, wr);
 		GraphNodes.Externalize(node.x, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Univariate) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Univariate) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		node.prior := p(GraphUnivariate.Node);
 		node.x := GraphNodes.Internalize(rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Univariate) InitLogical;
 	BEGIN
@@ -132,7 +137,7 @@ MODULE GraphDensity;
 		cursor := list;
 		WHILE cursor # NIL DO
 			p := cursor.node;
-			p.SetProps(p.props + {GraphNodes.mark});
+			INCL(p.props, GraphNodes.mark);
 			cursor := cursor.next
 		END;
 		p := node.x;
@@ -164,11 +169,6 @@ MODULE GraphDensity;
 		END
 	END Set;
 
-	PROCEDURE (node: Univariate) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
 	PROCEDURE (node: Multivariate) Check (): SET;
 		VAR
 			x: REAL;
@@ -181,8 +181,8 @@ MODULE GraphDensity;
 		components := node.prior.components;
 		i := 0;
 		WHILE i < size DO
-			x := node.x[start + i * step].Value();
-			components[i].SetValue(x);
+			x := node.x[start + i * step].value;
+			components[i].value := x;
 			INC(i)
 		END;
 		RETURN Check(node.prior)
@@ -193,7 +193,12 @@ MODULE GraphDensity;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Multivariate) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Multivariate) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Multivariate) ExternalizeScalar(VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -202,9 +207,9 @@ MODULE GraphDensity;
 		v.components := node.x;
 		v.start := node.start; v.nElem := node.size; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Multivariate) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Multivariate) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 			v: GraphNodes.SubVector;
@@ -216,7 +221,7 @@ MODULE GraphDensity;
 		node.start := v.start;
 		node.step := v.step;
 		node.size := v.nElem
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Multivariate) InitLogical;
 	BEGIN
@@ -235,7 +240,7 @@ MODULE GraphDensity;
 		cursor := list;
 		WHILE cursor # NIL DO
 			p := cursor.node;
-			p.SetProps(p.props + {GraphNodes.mark});
+			INCL(p.props, GraphNodes.mark);
 			cursor := cursor.next
 		END;
 		size := node.size;
@@ -301,11 +306,6 @@ MODULE GraphDensity;
 		END
 	END Set;
 
-	PROCEDURE (node: Multivariate) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
 	PROCEDURE (node: CumulativeNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
 			descriptor: GraphGrammar.External;
@@ -315,16 +315,15 @@ MODULE GraphDensity;
 		install := "GraphDensity.CumulativeInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: CumulativeNode) Value (): REAL;
+	PROCEDURE (node: CumulativeNode) Evaluate;
 		VAR
-			x, value: REAL;
+			x: REAL;
 			prior: GraphUnivariate.Node;
 	BEGIN
-		x := node.x.Value();
+		x := node.x.value;
 		prior := node.prior;
-		value := prior.Cumulative(x) / prior.NormalizingConstant(); ;
-		RETURN value
-	END Value;
+		node.value := prior.Cumulative(x) / prior.NormalizingConstant(); ;
+	END Evaluate;
 
 	PROCEDURE (node: DevianceUVNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -335,15 +334,14 @@ MODULE GraphDensity;
 		install := "GraphDensity.DevianceUVInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: DevianceUVNode) Value (): REAL;
+	PROCEDURE (node: DevianceUVNode) Evaluate;
 		VAR
-			x, value: REAL;
+			x: REAL;
 	BEGIN
-		x := node.x.Value();
-		node.prior.SetValue(x);
-		value := node.prior.Deviance();
-		RETURN value
-	END Value;
+		x := node.x.value;
+		node.prior.value := x;
+		node.value := node.prior.Deviance();
+	END Evaluate;
 
 	PROCEDURE (node: DevianceMVNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -354,9 +352,9 @@ MODULE GraphDensity;
 		install := "GraphDensity.DevianceMVInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: DevianceMVNode) Value (): REAL;
+	PROCEDURE (node: DevianceMVNode) Evaluate;
 		VAR
-			x, value: REAL;
+			x: REAL;
 			i, start, step, size: INTEGER;
 			components: GraphStochastic.Vector;
 	BEGIN
@@ -366,13 +364,12 @@ MODULE GraphDensity;
 		components := node.prior.components;
 		i := 0;
 		WHILE i < size DO
-			x := node.x[start + i * step].Value();
-			components[i].SetValue(x);
+			x := node.x[start + i * step].value;
+			components[i].value := x;
 			INC(i)
 		END;
-		value := node.prior.Deviance();
-		RETURN value
-	END Value;
+		node.value := node.prior.Deviance();
+	END Evaluate;
 
 	PROCEDURE (node: DensityUVNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -383,16 +380,15 @@ MODULE GraphDensity;
 		install := "GraphDensity.DensityUInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: DensityUVNode) Value (): REAL;
+	PROCEDURE (node: DensityUVNode) Evaluate;
 		VAR
 			x, value: REAL;
 	BEGIN
-		x := node.x.Value();
-		node.prior.SetValue(x);
+		x := node.x.value;
+		node.prior.value := x;
 		value := node.prior.Deviance();
-		value := Math.Exp( - 0.5 * value);
-		RETURN value
-	END Value;
+		node.value := Math.Exp( - 0.5 * value);
+	END Evaluate;
 
 	PROCEDURE (node: DensityMVNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -403,7 +399,7 @@ MODULE GraphDensity;
 		install := "GraphDensity.DensityMVInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: DensityMVNode) Value (): REAL;
+	PROCEDURE (node: DensityMVNode) Evaluate;
 		VAR
 			x, value: REAL;
 			i, start, step, size: INTEGER;
@@ -415,14 +411,13 @@ MODULE GraphDensity;
 		components := node.prior.components;
 		i := 0;
 		WHILE i < size DO
-			x := node.x[start + i * step].Value();
-			components[i].SetValue(x);
+			x := node.x[start + i * step].value;
+			components[i].value := x;
 			INC(i)
 		END;
 		value := node.prior.Deviance();
-		value := Math.Exp( - 0.5 * value);
-		RETURN value
-	END Value;
+		node.value := Math.Exp( - 0.5 * value);
+	END Evaluate;
 
 	PROCEDURE (node: HazardNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -433,16 +428,16 @@ MODULE GraphDensity;
 		install := "GraphDensity.HazardInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: HazardNode) Value (): REAL;
+	PROCEDURE (node: HazardNode) Evaluate;
 		VAR
 			x, value: REAL;
 			prior: GraphUnivariate.Node;
 	BEGIN
-		x := node.x.Value();
+		x := node.x.value;
 		prior := node.prior(GraphUnivariate.Node);
 		value := 1.0 - prior.Cumulative(x) / prior.NormalizingConstant();
-		RETURN Math.Exp( - 0.5 * prior.Deviance()) / value
-	END Value;
+		node.value :=  Math.Exp( - 0.5 * prior.Deviance()) / value
+	END Evaluate;
 
 	PROCEDURE (node: ReliabilityNode) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -453,16 +448,15 @@ MODULE GraphDensity;
 		install := "GraphDensity.ReliabilityInstall(" + descriptor.name + ")"
 	END Install;
 
-	PROCEDURE (node: ReliabilityNode) Value (): REAL;
+	PROCEDURE (node: ReliabilityNode) Evaluate;
 		VAR
 			x, value: REAL;
 			prior: GraphUnivariate.Node;
 	BEGIN
-		x := node.x.Value();
+		x := node.x.value;
 		prior := node.prior(GraphUnivariate.Node);
-		value := 1.0 - prior.Cumulative(x) / prior.NormalizingConstant();
-		RETURN value
-	END Value;
+		node.value := 1.0 - prior.Cumulative(x) / prior.NormalizingConstant();
+	END Evaluate;
 
 	PROCEDURE (f: NodeFactory) NewUnivariate (): GraphUnivariate.Node, NEW;
 		VAR
@@ -471,7 +465,7 @@ MODULE GraphDensity;
 	BEGIN
 		prior := f.priorFactory.New();
 		prior.Init;
-		prior.SetProps(prior.props + {GraphStochastic.hidden});
+		INCL(prior.props, GraphStochastic.hidden);
 		univariate := prior(GraphUnivariate.Node);
 		RETURN univariate
 	END NewUnivariate;
@@ -484,7 +478,7 @@ MODULE GraphDensity;
 	BEGIN
 		prior := f.priorFactory.New();
 		prior.Init;
-		prior.SetProps(prior.props + {GraphStochastic.hidden});
+		INCL(prior.props, GraphStochastic.hidden);
 		multivariate := prior(GraphMultivariate.Node);
 		RETURN multivariate
 	END NewMultivariate;

@@ -59,7 +59,7 @@ MODULE UpdaterDescreteSlice;
 			IF res # {} THEN RETURN END;
 			sample := SHORT(ENTIER(prior.value + eps));
 		UNTIL (sample >= left) & (sample <= right);
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE (updater: StdUpdater) BracketSlice (h: REAL; x, step: INTEGER; OUT left, right: INTEGER;
@@ -78,26 +78,26 @@ MODULE UpdaterDescreteSlice;
 		right := x + MathRandnum.DiscreteUniform(0, step);
 		left := right - step;
 		IF left > l THEN
-			prior.SetValue(left); y := updater.LogConditional() - h;
+			prior.value := left; prior.Evaluate; y := updater.LogConditional() - h;
 			iter := factStd.iterations;
 			LOOP
 				DEC(iter); IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 				IF y < 0.0 THEN EXIT END;
 				DEC(left, step);
 				IF left <= l THEN left := l; EXIT
-				ELSE prior.SetValue(left); y := updater.LogConditional() - h
+				ELSE prior.value := left; prior.Evaluate; y := updater.LogConditional() - h
 				END
 			END
 		ELSE
 			left := l
 		END;
-		prior.SetValue(right); y := updater.LogConditional() - h;
+		prior.value := right; prior.Evaluate; y := updater.LogConditional() - h;
 		iter := factStd.iterations;
 		LOOP
 			DEC(iter); IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 			IF y < 0.0 THEN EXIT END;
 			INC(right, step);
-			prior.SetValue(right); y := updater.LogConditional() - h
+			prior.value := right; prior.Evaluate; y := updater.LogConditional() - h
 		END
 	END BracketSlice;
 
@@ -169,7 +169,7 @@ MODULE UpdaterDescreteSlice;
 			DEC(iter);
 			IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 			rand := MathRandnum.DiscreteUniform(left, right);
-			prior.SetValue(rand);
+			prior.value := rand; prior.Evaluate;
 			cond := updater.LogConditional();
 			IF (h < cond) OR (left = right) THEN EXIT
 			ELSIF rand <= oldX THEN left := rand
@@ -243,7 +243,7 @@ MODULE UpdaterDescreteSlice;
 			DEC(iter);
 			IF iter < 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; RETURN END;
 			rand := MathRandnum.DiscreteUniform(left, right);
-			prior.SetValue(rand);
+			prior.value := rand;
 			cond := updater.LogConditional();
 			IF (h < cond) OR (left = right) THEN EXIT
 			ELSIF rand < oldX THEN left := rand

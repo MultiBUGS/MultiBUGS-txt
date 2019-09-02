@@ -59,23 +59,23 @@ MODULE GraphGeneric;
 		VAR
 			logDensity: REAL;
 	BEGIN
-		logDensity := node.logDensity.Value();
+		logDensity := node.logDensity.value;
 		RETURN - 2 * logDensity
 	END DevianceUnivariate;
 
 	PROCEDURE (node: Node) DiffLogLikelihood (x: GraphStochastic.Node): REAL;
 		VAR
-			val, diff: REAL;
+			diff: REAL;
 	BEGIN
-		node.logDensity.ValDiff(x, val, diff);
+		diff := node.logDensity.Diff(x);
 		RETURN diff
 	END DiffLogLikelihood;
 
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
-			val, diff: REAL;
+			diff: REAL;
 	BEGIN
-		node.logDensity.ValDiff(node, val, diff);
+		diff := node.logDensity.Diff(node);
 		RETURN diff
 	END DiffLogPrior;
 
@@ -92,7 +92,7 @@ MODULE GraphGeneric;
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
 		node.logDensity := NIL;
-		node.SetProps(node.props + {GraphStochastic.noMean})
+		INCL(node.props, GraphStochastic.noMean)
 	END InitUnivariate;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -104,7 +104,7 @@ MODULE GraphGeneric;
 		VAR
 			logDensity: REAL;
 	BEGIN
-		logDensity := node.logDensity.Value();
+		logDensity := node.logDensity.value;
 		RETURN logDensity
 	END LogLikelihoodUnivariate;
 
@@ -129,7 +129,7 @@ MODULE GraphGeneric;
 		VAR
 			logDensity: REAL;
 	BEGIN
-		logDensity := node.logDensity.Value();
+		logDensity := node.logDensity.value;
 		RETURN logDensity
 	END LogPrior;
 
@@ -146,15 +146,6 @@ MODULE GraphGeneric;
 			node.logDensity := args.scalars[0]
 		END
 	END SetUnivariate;
-
-(*	PROCEDURE (node: Node) ModifyUnivariate (): GraphUnivariate.Node;
-		VAR
-			p: Node;
-	BEGIN
-		NEW(p);
-		p^ := node^;
-		RETURN p
-	END ModifyUnivariate;*)
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;
 		VAR

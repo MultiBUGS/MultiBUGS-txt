@@ -13,12 +13,12 @@ MODULE GraphSumation;
 	
 
 	IMPORT
-		Math, Stores := Stores64,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
+		Math, Stores := Stores64, 
+		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
 
-		Node = POINTER TO ABSTRACT RECORD(GraphMemory.Node)
+		Node = POINTER TO ABSTRACT RECORD(GraphScalar.Node)
 			start, step, nElem: INTEGER;
 			vector: GraphNodes.Vector;
 			values: POINTER TO ARRAY OF SHORTREAL;
@@ -30,11 +30,11 @@ MODULE GraphSumation;
 
 		SdNode = POINTER TO RECORD(Node) END;
 
-		SumFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		SumFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
-		MeanFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		MeanFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
-		SdFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		SdFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	VAR
 		sumFact-, meanFact-, sdFact-: GraphScalar.Factory;
@@ -70,7 +70,7 @@ MODULE GraphSumation;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -79,9 +79,18 @@ MODULE GraphSumation;
 		v.values := node.values;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr)
-	END ExternalizeMemory;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InitLogical;
+	BEGIN
+		node.vector := NIL;
+		node.values := NIL;
+		node.start := - 1;
+		node.nElem := - 1;
+		node.step := - 1
+	END InitLogical;
+
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -89,17 +98,7 @@ MODULE GraphSumation;
 		node.vector := v.components;
 		node.values := v.values;
 		node.start := v.start; node.nElem := v.nElem; node.step := v.step
-	END InternalizeMemory;
-
-	PROCEDURE (node: Node) InitLogical;
-	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
-		node.vector := NIL;
-		node.values := NIL;
-		node.start := - 1;
-		node.nElem := - 1;
-		node.step := - 1
-	END InitLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -157,7 +156,7 @@ MODULE GraphSumation;
 					INC(i)
 				END
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
 
@@ -169,10 +168,11 @@ MODULE GraphSumation;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: SumNode) Evaluate (OUT value: REAL);
+	PROCEDURE (node: SumNode) Evaluate;
 		VAR
 			i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			value: REAL;
 	BEGIN
 		value := 0.0;
 		i := 0;
@@ -183,51 +183,50 @@ MODULE GraphSumation;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				value := value + p.Value()
+				value := value + p.value
 			ELSE
 				value := value + node.values[off]
 			END;
 			INC(i)
-		END
+		END;
+		node.value := value
 	END Evaluate;
+
+	PROCEDURE (node: SumNode) EvaluateDiffs;
+		VAR
+			i, j, off, nElem, start, step, N: INTEGER;
+			p: GraphNodes.Node;
+			d: REAL;
+			x: GraphNodes.Vector;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		IF node.vector = NIL THEN RETURN END;
+		nElem := node.nElem;
+		start := node.start;
+		step := node.step;
+		j := 0;
+		WHILE j < nElem DO
+			off := start + j * step;
+			p := node.vector[off];
+			i := 0;
+			WHILE i < N DO
+				IF p = x[i] THEN
+					node.diffs[i] := node.diffs[i] + 1.0;
+				ELSIF ~(GraphNodes.data IN p.props) THEN
+					node.diffs[i] := node.diffs[i] + p.Diff(x[i])
+				END;
+				INC(i)
+			END;
+			INC(j)
+		END
+	END EvaluateDiffs;
 
 	PROCEDURE (node: SumNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphSumation.SumInstall"
 	END Install;
-
-	PROCEDURE (node: SumNode) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
-		VAR
-			i, off, nElem, start, step: INTEGER;
-			p: GraphNodes.Node;
-			d, l: REAL;
-	BEGIN
-		value := 0.0;
-		differ := 0.0;
-		i := 0;
-		nElem := node.nElem;
-		start := node.start;
-		step := node.step;
-		WHILE i < nElem DO
-			off := start + i * step;
-			IF node.vector # NIL THEN
-				p := node.vector[off];
-				IF p = x THEN
-					differ := differ + 1.0;
-					value := value + p.Value()
-				ELSIF ~(GraphNodes.data IN p.props) THEN
-					p.ValDiff(x, l, d);
-					differ := differ + d;
-					value := value + l
-				ELSE
-					value := value + p.Value()
-				END
-			ELSE
-				value := value + node.values[off]
-			END;
-			INC(i)
-		END
-	END ValDiff;
 
 	PROCEDURE (node: MeanNode) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
@@ -237,10 +236,11 @@ MODULE GraphSumation;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: MeanNode) Evaluate (OUT value: REAL);
+	PROCEDURE (node: MeanNode) Evaluate;
 		VAR
 			i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			value: REAL;
 	BEGIN
 		value := 0.0;
 		i := 0;
@@ -251,54 +251,50 @@ MODULE GraphSumation;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				value := value + p.Value()
+				value := value + p.value
 			ELSE
 				value := value + node.values[off]
 			END;
 			INC(i)
 		END;
-		value := value / node.nElem
+		node.value := value / node.nElem
 	END Evaluate;
+
+	PROCEDURE (node: MeanNode) EvaluateDiffs;
+		VAR
+			i, j, off, nElem, start, step, N: INTEGER;
+			p: GraphNodes.Node;
+			x: GraphNodes.Vector;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0;
+		WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		j := 0;
+		nElem := node.nElem;
+		start := node.start;
+		step := node.step;
+		WHILE i < nElem DO
+			off := start + j * step;
+			p := node.vector[off];
+			i := 0;
+			WHILE i < N DO
+				IF p = x[i] THEN
+					node.diffs[i] := node.diffs[i] + 1.0;
+				ELSIF ~(GraphNodes.data IN p.props) THEN
+					node.diffs[i] := node.diffs[i] + p.Diff(x[i])
+				END;
+				INC(i)
+			END;
+			INC(j)
+		END;
+		i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] / node.nElem; INC(i) END
+	END EvaluateDiffs;
 
 	PROCEDURE (node: MeanNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "GraphSumation.MeanInstall"
 	END Install;
-
-	PROCEDURE (node: MeanNode) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
-		VAR
-			i, off, nElem, start, step: INTEGER;
-			p: GraphNodes.Node;
-			d, l: REAL;
-	BEGIN
-		value := 0.0;
-		differ := 0.0;
-		i := 0;
-		nElem := node.nElem;
-		start := node.start;
-		step := node.step;
-		WHILE i < nElem DO
-			off := start + i * step;
-			IF node.vector # NIL THEN
-				p := node.vector[off];
-				IF p = x THEN
-					differ := differ + 1.0;
-					value := value + p.Value()
-				ELSIF ~(GraphNodes.data IN p.props) THEN
-					p.ValDiff(x, l, d);
-					differ := differ + d;
-					value := value + l
-				ELSE
-					value := value + p.Value()
-				END
-			ELSE
-				value := value + node.values[off]
-			END;
-			INC(i)
-		END;
-		value := value / node.nElem;
-		differ := differ / node.nElem
-	END ValDiff;
 
 	PROCEDURE (node: SdNode) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
@@ -323,14 +319,15 @@ MODULE GraphSumation;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: SdNode) Evaluate (OUT value: REAL);
+
+	PROCEDURE (node: SdNode) Evaluate;
 		VAR
 			i, off, nElem, start, step: INTEGER;
-			node1, node2: REAL;
+			sum, sum2, value: REAL;
 			p: GraphNodes.Node;
 	BEGIN
-		node1 := 0.0;
-		node2 := 0.0;
+		sum := 0.0;
+		sum2 := 0.0;
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -339,17 +336,17 @@ MODULE GraphSumation;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				value := p.Value()
+				value := p.value
 			ELSE
 				value := node.values[off]
 			END;
-			node1 := node1 + value;
-			node2 := node2 + value * value;
+			sum := sum + value;
+			sum2 := sum2 + value * value;
 			INC(i)
 		END;
-		node1 := node1 / nElem;
-		node2 := node2 / nElem;
-		value := Math.Sqrt(nElem * (node2 - node1 * node1) / (nElem - 1))
+		sum := sum / nElem;
+		sum2 := sum2 / nElem;
+		node.value := Math.Sqrt(nElem * (sum2 - sum * sum) / (nElem - 1))
 	END Evaluate;
 
 	PROCEDURE (node: SdNode) Install (OUT install: ARRAY OF CHAR);
@@ -357,49 +354,58 @@ MODULE GraphSumation;
 		install := "GraphSumation.SdInstall"
 	END Install;
 
-	PROCEDURE (node: SdNode) ValDiff (x: GraphNodes.Node; OUT value, differ: REAL);
+	PROCEDURE (node: SdNode) EvaluateDiffs;
 		VAR
-			i, off, nElem, start, step: INTEGER;
-			node1, node2, differ1, differ2, d, l: REAL;
+			i, j, off, nElem, start, step, N: INTEGER;
+			sum, sum2, differ1, differ2, d, differ, value: REAL;
 			p: GraphNodes.Node;
+			x: GraphNodes.Vector;
 	BEGIN
-		node1 := 0.0;
-		node2 := 0.0;
-		differ1 := 0.0;
-		differ2 := 0.0;
-		i := 0;
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		IF node.vector = NIL THEN RETURN END;
+		sum := 0.0;
+		sum2 := 0.0;
+		j := 0;
 		nElem := node.nElem;
 		start := node.start;
 		step := node.step;
-		WHILE i < nElem DO
-			off := start + i * step;
-			IF node.vector # NIL THEN
+		WHILE j < nElem DO
+			off := start + j * step;
+			p := node.vector[off];
+			value := p.value;
+			sum := sum + value;
+			sum2 := sum2 + value * value;
+			INC(j)
+		END;
+		sum := sum / nElem;
+		sum2 := sum2 / nElem;
+		sum2 := Math.Sqrt(nElem * (sum2 - sum * sum) / (nElem - 1));
+		i := 0;
+		WHILE i < N DO
+			differ1 := 0.0;
+			differ2 := 0.0;
+			j := 0;
+			WHILE j < nElem DO
+				off := start + j * step;
 				p := node.vector[off];
-				value := p.Value();
-				IF p = x THEN
+				value := p.value;
+				IF p = x[i] THEN
 					differ1 := differ1 + 1.0;
 					differ2 := differ2 + 2.0 * value
-				ELSIF ~(GraphNodes.data IN p.props) THEN
-					p.ValDiff(x, l, d);
+				ELSE
+					d := p.Diff(x[i]);
 					differ1 := differ1 + d;
 					differ2 := differ2 + 2.0 * value * d
-				END
-			ELSE
-				value := node.values[off]
+				END;
 			END;
-			node1 := node1 + value;
-			node2 := node2 + value * value;
+			node.diffs[i] := (differ2 - 2.0 * sum * differ1) * nElem / ((nElem - 1) * 2.0 * sum2);
 			INC(i)
-		END;
-		node1 := node1 / nElem;
-		node2 := node2 / nElem;
-		differ1 := differ1 / nElem;
-		differ2 := differ2 / nElem;
-		value := Math.Sqrt(nElem * (node2 - node1 * node1) / (nElem - 1));
-		differ := (differ2 - 2.0 * node1 * differ1) * nElem / ((nElem - 1) * 2.0 * value)
-	END ValDiff;
+		END
+	END EvaluateDiffs;
 
-	PROCEDURE (f: SumFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: SumFactory) New (): GraphScalar.Node;
 		VAR
 			node: SumNode;
 	BEGIN
@@ -418,7 +424,7 @@ MODULE GraphSumation;
 		GraphNodes.SetFactory(sumFact)
 	END SumInstall;
 
-	PROCEDURE (f: MeanFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: MeanFactory) New (): GraphScalar.Node;
 		VAR
 			node: MeanNode;
 	BEGIN
@@ -437,7 +443,7 @@ MODULE GraphSumation;
 		GraphNodes.SetFactory(meanFact)
 	END MeanInstall;
 
-	PROCEDURE (f: SdFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: SdFactory) New (): GraphScalar.Node;
 		VAR
 			node: SdNode;
 	BEGIN

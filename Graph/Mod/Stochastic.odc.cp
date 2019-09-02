@@ -13,6 +13,7 @@ MODULE GraphStochastic;
 	
 
 	IMPORT
+		SYSTEM,
 		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules;
 
@@ -33,22 +34,20 @@ MODULE GraphStochastic;
 		likelihood* = 13; 	(*	nodes has been added to likelihood list of its parents	*)
 		hasLikelihood* = 14; (*	node has likelihood	*)
 		devParent* = 15; 	(*	node is stochastic parent of deviance	*)
-		coParent* = 16; 	(*	node is co-parent	*)
-		noCDF* = 17; 	(*	cdf can not be expressed in closed form	*)
-		noPDF* = 18; 	(*	pdf can not be expressed in closed form	*)
-		noMean* = 19; (*	node does not have mean	*)
-		logical* = 20; 	(*	marks node as originaly being a logical node	*)
+		noCDF* = 16; 	(*	cdf can not be expressed in closed form	*)
+		noPDF* = 17; 	(*	pdf can not be expressed in closed form	*)
+		noMean* = 18; (*	node does not have mean	*)
+		logical* = 19; 	(*	marks node as originaly being a logical node	*)
+		optimizeDiffs* = 20; 	(*	skip calculating diffs	*)
+		hidden* = 21; 	(*	node is not relevant and should not be used in normal way	*)
+		hint1* = 22; 	(*	hints to optimize differentiation	*)
+		hint2* = 23;
 
-		distributed* = 21; (*	distribute sampling over multiple processors	*)
+		distributed* = 31; (*	distribute sampling over multiple processors	*)
 
-		hidden* = 25; 	(*	node is not relevant and should not be used in normal way	*)
-		temp* = 26; 	(*	node is tempory	*)
 
-		continuous* = 29;
-		hint1* = 30;
-		hint2* = 31;
 
-		undefined* = 0; (*	topological depth of node in graph is undefined/not yet calculated	*)
+		undefined* = 0; (*	topological depth of node in graph is undefined / not yet calculated	*)
 
 		bounds* = {leftNatural, leftImposed, rightNatural, rightImposed};
 
@@ -62,9 +61,8 @@ MODULE GraphStochastic;
 		Node* = POINTER TO ABSTRACT RECORD(GraphNodes.Node)
 			depth-: INTEGER;
 			classConditional-: INTEGER;
-			value-: REAL;
 			children-: Vector;
-			dependents-: GraphLogical.List;
+			dependents-: GraphLogical.Vector;
 		END;
 
 		Vector* = POINTER TO ARRAY OF Node;
@@ -89,10 +87,11 @@ MODULE GraphStochastic;
 		END;
 
 	VAR
-		cache: POINTER TO ARRAY OF List;
+		cacheLikelihood: POINTER TO ARRAY OF List;
+		cacheDependents: POINTER TO ARRAY OF GraphLogical.List;
+		values-: POINTER TO ARRAY OF POINTER TO ARRAY OF REAL;
 		dependentsFilter-: SET;
-		numStochastics-: INTEGER;
-		stochastics-: Vector;
+		nodes-: Vector;
 		auxillary-: List;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -146,11 +145,16 @@ MODULE GraphStochastic;
 		(*	concrete node methods	*)
 
 	PROCEDURE (node: Node) AddDependent* (dependent: GraphLogical.Node), NEW;
+		VAR
+			list: GraphLogical.List;
+			label: INTEGER;
 	BEGIN
 		ASSERT(dependent # NIL, 21);
-		IF GraphLogical.dependent IN dependent.props THEN
-			dependent.AddToList(node.dependents)
-		END
+		label := GraphNodes.Label(node);
+		label := ABS(label);
+		list := cacheDependents[label - 1];
+		dependent.AddToList(list);
+		cacheDependents[label - 1] := list
 	END AddDependent;
 
 	PROCEDURE (node: Node) BuildLikelihood*, NEW;
@@ -169,8 +173,8 @@ MODULE GraphStochastic;
 				label := ABS(label);
 				NEW(element);
 				element.node := likelihoodTerm;
-				element.next := cache[label - 1];
-				cache[label - 1] := element
+				element.next := cacheLikelihood[label - 1];
+				cacheLikelihood[label - 1] := element
 			END
 		END AddLikelihood;
 
@@ -178,13 +182,13 @@ MODULE GraphStochastic;
 		ASSERT(~(likelihood IN node.props), 21);
 		IF node.IsLikelihoodTerm() THEN
 			all := FALSE;
-			node.SetProps(node.props + {likelihood});
+			INCL(node.props, likelihood);
 			list := Parents(node, all);
 			WHILE list # NIL DO
 				p := list.node;
 				IF data IN node.props THEN
 					AddLikelihood(node, p);
-					p.SetProps(p.props + {hasLikelihood})
+					INCL(p.props, hasLikelihood)
 				ELSE
 					pList := Parents(p, all);
 					WHILE (pList # NIL) & (pList.node # node) DO
@@ -192,7 +196,7 @@ MODULE GraphStochastic;
 					END;
 					IF pList = NIL THEN
 						AddLikelihood(node, p);
-						p.SetProps(p.props + {hasLikelihood})
+						INCL(p.props, hasLikelihood)
 					END
 				END;
 				list := list.next
@@ -252,54 +256,43 @@ MODULE GraphStochastic;
 		node.classConditional := classConditional
 	END ClassifyConditional;
 
-	PROCEDURE (node: Node) CoParents* (): List, NEW;
+	PROCEDURE (node: Node) ClearDiffs*, NEW;
 		VAR
-			children: Vector;
-			list, coParents: List;
-			p, q: Node;
 			i, num: INTEGER;
-			all: BOOLEAN;
+			dependents: GraphLogical.Vector;
 	BEGIN
-		coParents := NIL;
-		all := FALSE;
-		node.SetProps(node.props + {coParent});
-		children := node.children;
-		IF children # NIL THEN
-			num := LEN(children);
-			i := 0;
-			WHILE i < num DO
-				p := children[i];
-				list := Parents(p, all);
-				WHILE list # NIL DO
-					q := list.node;
-					IF ~(coParent IN q.props) THEN
-						q.SetProps(q.props + {coParent});
-						AddToList(q, coParents)
-					END;
-					list := list.next
-				END;
-				INC(i)
-			END
-		END;
-		list := coParents;
-		WHILE list # NIL DO
-			q := list.node;
-			q.SetProps(q.props - {coParent});
-			list := list.next
-		END;
-		node.SetProps(node.props - {coParent});
-		RETURN coParents
-	END CoParents;
+		dependents := node.dependents;
+		IF dependents # NIL THEN
+			num := LEN(dependents);
+			i := 0; WHILE i < num DO EXCL(dependents[i].props, GraphNodes.mark); INC(i) END
+		END
+	END ClearDiffs;
+
+	PROCEDURE (node: Node) Diff* (x: GraphNodes.Node): REAL;
+	BEGIN
+		IF node = x THEN RETURN 1.0 ELSE RETURN 0.0 END
+	END Diff;
+
+	PROCEDURE (node: Node) Evaluate*, NEW;
+	BEGIN
+		GraphLogical.Evaluate(node.dependents)
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs*, NEW;
+		VAR
+			dependents: GraphLogical.Vector;
+	BEGIN
+		dependents := node.dependents;
+		GraphLogical.EvaluateDiffs(dependents)
+	END EvaluateDiffs;
 
 	(*	writes internal base fields of stochastic node to store	*)
 	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer);
-		VAR
-			mark: SET;
 	BEGIN
 		wr.WriteInt(node.depth);
 		wr.WriteInt(node.classConditional);
 		IF data IN node.props THEN wr.WriteReal(node.value) END;
-		GraphLogical.ExternalizeList(node.dependents, dependentsFilter, wr);
+		GraphLogical.ExternalizeVector(node.dependents, dependentsFilter, wr);
 		node.ExternalizeStochastic(wr);
 	END ExternalizeNode;
 
@@ -320,84 +313,77 @@ MODULE GraphStochastic;
 		rd.ReadInt(node.depth);
 		rd.ReadInt(node.classConditional);
 		IF data IN node.props THEN rd.ReadReal(node.value) END;
-		node.dependents := GraphLogical.InternalizeList(rd);
+		node.dependents := GraphLogical.InternalizeVector(rd);
 		node.InternalizeStochastic(rd)
 	END InternalizeNode;
 
 	PROCEDURE (node: Node) ParentsInitialized* (): BOOLEAN, NEW;
 		VAR
-			all, initP: BOOLEAN;
+			all, parentsInitialized: BOOLEAN;
 			list: List;
+			logicalList: GraphLogical.List;
+			dependents: GraphLogical.Vector;
 			p: Node;
 	BEGIN
-		initP := TRUE;
+		parentsInitialized := TRUE;
 		all := TRUE;
 		list := Parents(node, all);
-		WHILE initP & (list # NIL) DO
+		WHILE parentsInitialized & (list # NIL) DO
 			p := list.node;
-			initP := initialized IN p.props;
+			parentsInitialized := initialized IN p.props;
 			list := list.next
 		END;
-		RETURN initP
+		IF parentsInitialized THEN
+			logicalList := GraphLogical.Parents(node, all);
+			dependents := GraphLogical.ListToVector(logicalList);
+			GraphLogical.Evaluate(dependents)
+		END;
+		RETURN parentsInitialized
 	END ParentsInitialized;
 
 	PROCEDURE (node: Node) Representative* (): Node, ABSTRACT;
-
-	PROCEDURE (node: Node) SetDependents* (dependents: GraphLogical.List), NEW;
-	BEGIN
-		node.dependents := dependents
-	END SetDependents;
 
 	PROCEDURE (node: Node) SetChildren* (children: Vector), NEW;
 	BEGIN
 		node.children := children
 	END SetChildren;
 
+	PROCEDURE (node: Node) SetDependents* (dependents: GraphLogical.Vector), NEW;
+		VAR
+			p: GraphNodes.Node;
+			label: INTEGER;
+	BEGIN
+		node.dependents := dependents
+	END SetDependents;
+
 	PROCEDURE (node: Node) SetLikelihood*, NEW;
 		VAR
 			p: GraphNodes.Node;
 			label: INTEGER;
 			children: Vector;
+			dependents: GraphLogical.Vector;
 	BEGIN
 		p := node.Representative();
 		IF p = node THEN
 			label := GraphNodes.Label(node);
-			label := ABS(label);
-			children := ListToVector(cache[label - 1]);
+			label := ABS(label); 
+			children := ListToVector(cacheLikelihood[label - 1]);
+			dependents := GraphLogical.ListToVector(cacheDependents[label - 1]);
+			IF dependents # NIL THEN
+				ASSERT(node.dependents = NIL, 33);
+				node.dependents := dependents
+			END;
 			IF children # NIL THEN
 				ASSERT(node.children = NIL, 33);
-				node.SetChildren(children)
+				node.children := children
 			END
 		ELSE
+			dependents := p(Node).dependents;
+			node.dependents := dependents;
 			children := p(Node).children;
-			node.SetChildren(children)
+			node.children := children
 		END
 	END SetLikelihood;
-
-	PROCEDURE (node: Node) SetValue* (value: REAL), NEW;
-		VAR
-			cursor: GraphLogical.List;
-			p: GraphLogical.Node;
-	BEGIN
-		node.value := value;
-		cursor := node.dependents;
-		WHILE cursor # NIL DO
-			p := cursor.node;
-			p.SetProps(p.props + {GraphLogical.dirty});
-			cursor := cursor.next
-		END
-	END SetValue;
-
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		val := node.value;
-		IF node = x THEN diff := 1.0 ELSE diff := 0.0 END
-	END ValDiff;
-
-	PROCEDURE (node: Node) Value* (): REAL;
-	BEGIN
-		RETURN node.value
-	END Value;
 
 	(*	Factory methods	*)
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
@@ -457,6 +443,64 @@ MODULE GraphStochastic;
 		i := 0; WHILE i < LEN(args.vectors) DO args.vectors[i].Init; INC(i) END
 	END Init;
 
+	PROCEDURE HeapSort (VAR nodes: GraphLogical.Vector);
+		VAR
+			i, j, k, len: INTEGER;
+
+		PROCEDURE Less (l, m: INTEGER): BOOLEAN;
+			VAR
+				level0, level1: INTEGER;
+		BEGIN
+			level0 := nodes[l - 1].level;
+			level1 := nodes[m - 1].level;
+			IF level0 = level1 THEN
+				RETURN nodes[l - 1].value > nodes[m - 1].value
+			ELSE
+				RETURN level0 < level1
+			END
+		END Less;
+
+		PROCEDURE Swap (l, m: INTEGER);
+			VAR
+				temp: GraphLogical.Node;
+		BEGIN
+			temp := nodes[l - 1];
+			nodes[l - 1] := nodes[m - 1];
+			nodes[m - 1] := temp
+		END Swap;
+
+	BEGIN
+		len := LEN(nodes);
+		IF len > 1 THEN
+			i := len DIV 2;
+			REPEAT
+				j := i;
+				LOOP
+					k := j * 2;
+					IF k > len THEN EXIT END;
+					IF (k < len) & Less(k, k + 1) THEN INC(k) END;
+					IF Less(j, k) THEN Swap(j, k) ELSE EXIT END;
+					j := k
+				END;
+				DEC(i)
+			UNTIL i = 0;
+			i := len;
+			REPEAT
+				j := 1; Swap(j, i); DEC(i);
+				LOOP
+					k := j * 2; IF k > i THEN EXIT END;
+					IF (k < i) & Less(k, k + 1) THEN INC(k) END;
+					Swap(j, k);
+					j := k
+				END;
+				LOOP
+					k := j DIV 2;
+					IF (k > 0) & Less(k, j) THEN Swap(j, k); j := k ELSE EXIT END
+				END
+			UNTIL i = 0
+		END
+	END HeapSort;
+
 	PROCEDURE AddMarks* (vector: Vector; mark: SET);
 		VAR
 			i, size: INTEGER;
@@ -464,7 +508,7 @@ MODULE GraphStochastic;
 		IF vector # NIL THEN size := LEN(vector) ELSE size := 0 END;
 		i := 0;
 		WHILE i < size DO
-			vector[i].SetProps(vector[i].props + mark);
+			vector[i].props := vector[i].props + mark;
 			INC(i)
 		END
 	END AddMarks;
@@ -523,12 +567,21 @@ MODULE GraphStochastic;
 
 	PROCEDURE Clear*;
 	BEGIN
-		numStochastics := 0;
-		stochastics := NIL;
+		nodes := NIL;
+		values := NIL;
 		auxillary := NIL;
-		cache := NIL;
-		dependentsFilter := {GraphLogical.dependent, GraphLogical.stochParent}
+		cacheLikelihood := NIL;
+		cacheDependents := NIL;
+		dependentsFilter := {MIN(SET)..MAX(SET)};
 	END Clear;
+
+	(*	clear likelihood dependent cache	*)
+	PROCEDURE ClearCache*;
+	BEGIN
+		cacheLikelihood := NIL;
+		cacheDependents := NIL;
+		GraphNodes.UnlabelNodes
+	END ClearCache;
 
 	PROCEDURE ClearMarks* (vector: Vector; mark: SET);
 		VAR
@@ -537,10 +590,63 @@ MODULE GraphStochastic;
 		IF vector # NIL THEN size := LEN(vector) ELSE size := 0 END;
 		i := 0;
 		WHILE i < size DO
-			vector[i].SetProps(vector[i].props - mark);
+			vector[i].props := vector[i].props - mark;
 			INC(i)
 		END
 	END ClearMarks;
+
+	PROCEDURE Dependents* (stochastics: Vector): GraphLogical.Vector;
+		VAR
+			i, j, numDep, numLogical, numStoch: INTEGER;
+			dependents, logicals: GraphLogical.Vector;
+			logical: GraphLogical.Node;
+	BEGIN
+		logicals := NIL;
+		IF stochastics # NIL THEN
+			numStoch := LEN(stochastics);
+			numLogical := 0;
+			i := 0;
+			WHILE i < numStoch DO
+				dependents := stochastics[i].dependents;
+				IF dependents # NIL THEN
+					numDep := LEN(dependents);
+					j := 0;
+					WHILE j < numDep DO
+						logical := dependents[j];
+						IF ~(GraphNodes.mark IN logical.props) THEN
+							logical.value := numLogical;
+							INC(numLogical);
+							INCL(logical.props, GraphNodes.mark);
+						END;
+						INC(j)
+					END
+				END;
+				INC(i)
+			END;
+			IF numLogical > 0 THEN NEW(logicals, numLogical) END;
+			numLogical := 0;
+			i := 0;
+			WHILE i < numStoch DO
+				dependents := stochastics[i].dependents;
+				IF dependents # NIL THEN
+					numDep := LEN(dependents);
+					j := 0;
+					WHILE j < numDep DO
+						logical := dependents[j];
+						IF GraphNodes.mark IN logical.props THEN
+							logicals[numLogical] := logical;
+							INC(numLogical);
+							EXCL(logical.props, GraphNodes.mark);
+						END;
+						INC(j)
+					END
+				END;
+				INC(i)
+			END;
+		END;
+		IF logicals # NIL THEN HeapSort(logicals) END;
+		RETURN logicals
+	END Dependents;
 
 	(*	writes an array of pointers to stochastic nodes to store	*)
 	PROCEDURE ExternalizeVector* (vector: Vector; VAR wr: Stores.Writer);
@@ -555,6 +661,58 @@ MODULE GraphStochastic;
 			INC(i)
 		END;
 	END ExternalizeVector;
+
+	PROCEDURE ExternalizeValues* (VAR wr: Stores.Writer);
+		VAR
+			chain, i, numChains, numStoch: INTEGER;
+	BEGIN
+		IF values # NIL THEN
+			numChains := LEN(values);
+			numStoch := LEN(values[0]);
+			chain := 0;
+			WHILE chain < numChains DO
+				i := 0; WHILE i < numStoch DO wr.WriteReal(values[chain, i]); INC(i) END;
+				INC(chain)
+			END
+		END
+	END ExternalizeValues;
+
+	PROCEDURE FilterDependents* (filter: SET);
+	BEGIN
+		dependentsFilter := filter
+	END FilterDependents;
+
+	(*	initialize likelihood dependent cache	*)
+	PROCEDURE InitCache* (numStoch: INTEGER);
+		VAR
+			i: INTEGER;
+	BEGIN
+		IF numStoch > 0 THEN
+			NEW(cacheLikelihood, numStoch);
+			NEW(cacheDependents, numStoch);
+		END;
+		i := 0;
+		WHILE i < numStoch DO
+			cacheLikelihood[i] := NIL;
+			cacheDependents[i] := NIL;
+			INC(i)
+		END
+	END InitCache;
+
+	PROCEDURE InternalizeValues* (VAR rd: Stores.Reader);
+		VAR
+			chain, i, numChains, numStoch: INTEGER;
+	BEGIN
+		IF values # NIL THEN
+			numChains := LEN(values);
+			numStoch := LEN(values[0]);
+			chain := 0;
+			WHILE chain < numChains DO
+				i := 0; WHILE i < numStoch DO rd.ReadReal(values[chain, i]); INC(i) END;
+				INC(chain)
+			END
+		END
+	END InternalizeValues;
 
 	(*	reads an array of pointers to stochastic nodes from store	*)
 	PROCEDURE InternalizeVector* (VAR rd: Stores.Reader): Vector;
@@ -576,22 +734,6 @@ MODULE GraphStochastic;
 		END;
 		RETURN vector
 	END InternalizeVector;
-
-	(*	clear likelihood cache	*)
-	PROCEDURE ClearCache*;
-	BEGIN
-		cache := NIL;
-		GraphNodes.UnlabelNodes
-	END ClearCache;
-
-	(*	initialize likelihood cache	*)
-	PROCEDURE InitCache* (numStoch: INTEGER);
-		VAR
-			i: INTEGER;
-	BEGIN
-		IF numStoch > 0 THEN NEW(cache, numStoch) END;
-		i := 0; WHILE i < numStoch DO cache[i] := NIL; INC(i) END
-	END InitCache;
 
 	PROCEDURE IsBounded* (vector: Vector): BOOLEAN;
 		VAR
@@ -636,6 +778,16 @@ MODULE GraphStochastic;
 		RETURN vector
 	END ListToVector;
 
+	PROCEDURE LoadValues* (chain: INTEGER);
+		VAR
+			i, numStoch: INTEGER;
+	BEGIN
+		IF nodes # NIL THEN
+			numStoch := LEN(nodes);
+			i := 0; WHILE i < numStoch DO nodes[i].value := values[chain, i]; INC(i) END
+		END
+	END LoadValues;
+
 	PROCEDURE Parents* (node: GraphNodes.Node; all: BOOLEAN): List;
 		VAR
 			cursor, list: List;
@@ -651,7 +803,7 @@ MODULE GraphStochastic;
 			p := p.Representative();
 			WITH p: Node DO
 				AddToList(p, list);
-				p.SetProps(p.props + {GraphNodes.mark})
+				INCL(p.props, GraphNodes.mark)
 			ELSE
 			END;
 			nList := nList.next
@@ -660,7 +812,7 @@ MODULE GraphStochastic;
 		WHILE lList # NIL DO
 			p := lList.node;
 			IF node IS Node THEN
-				p.SetProps(p.props + {GraphLogical.stochParent})
+				EXCL(p.props, GraphLogical.prediction)
 			END;
 			nList := p.Parents(all);
 			WHILE nList # NIL DO
@@ -668,7 +820,7 @@ MODULE GraphStochastic;
 				q := q.Representative();
 				WITH q: Node DO
 					AddToList(q, list);
-					q.SetProps(q.props + {GraphNodes.mark})
+					INCL(q.props, GraphNodes.mark)
 				ELSE
 				END;
 				nList := nList.next
@@ -678,7 +830,7 @@ MODULE GraphStochastic;
 		cursor := list;
 		WHILE cursor # NIL DO
 			stochastic := cursor.node;
-			stochastic.SetProps(stochastic.props - {GraphNodes.mark});
+			EXCL(stochastic.props, GraphNodes.mark);
 			cursor := cursor.next
 		END;
 		RETURN list
@@ -694,20 +846,29 @@ MODULE GraphStochastic;
 		auxillary := list
 	END RegisterAuxillary;
 
-	PROCEDURE SetStochastics* (nodes: Vector);
+	PROCEDURE SetStochastics* (stochastics: Vector; numChains: INTEGER);
+		VAR
+			j, num: INTEGER;
 	BEGIN
-		stochastics := nodes;
+		nodes := stochastics;
 		IF nodes # NIL THEN
-			numStochastics := LEN(nodes)
-		ELSE
-			numStochastics := 0
+			num := LEN(nodes);
+			IF numChains > 0 THEN
+				NEW(values, numChains);
+				j := 0; WHILE j < numChains DO NEW(values[j], num); INC(j) END
+			END
 		END;
 	END SetStochastics;
 
-	PROCEDURE FilterDependents* (filter: SET);
+	PROCEDURE StoreValues* (chain: INTEGER);
+		VAR
+			i, numStoch: INTEGER;
 	BEGIN
-		dependentsFilter := filter
-	END FilterDependents;
+		IF nodes # NIL THEN
+			numStoch := LEN(nodes);
+			i := 0; WHILE i < numStoch DO values[chain, i] := nodes[i].value; INC(i) END
+		END
+	END StoreValues;
 
 	PROCEDURE Maintainer;
 	BEGIN

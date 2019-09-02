@@ -109,7 +109,7 @@ MODULE UpdaterCatagorical;
 		numForbiddenStates := 0;
 		i := first;
 		WHILE i <= last DO
-			prior.SetValue(i);
+			prior.value := i; prior.Evaluate;
 			logDensity := prior.LogPrior() + LogLikelihood(list);
 			IF logDensity < minExp THEN
 				INC(numForbiddenStates);
@@ -130,8 +130,8 @@ MODULE UpdaterCatagorical;
 			rand := culm[last] * MathRandnum.Rand();
 			i := first;
 			WHILE rand > culm[i] DO INC(i) END;
-			prior.SetValue(i);
-			prior.SetProps(prior.props + {GraphStochastic.initialized})
+			prior.value := i; prior.Evaluate;
+			INCL(prior.props, GraphStochastic.initialized)
 		END
 	END GenerateInit;
 
@@ -169,17 +169,11 @@ MODULE UpdaterCatagorical;
 		last := SHORT(ENTIER(right + eps));
 		IF updater.params = NIL THEN NEW(updater.params, last + 1) END;
 		p := updater.params;
-		i := first;
-		WHILE i <= last DO
-			prior.SetValue(i);
-			p[i] := updater.LogLikelihood();
-			INC(i)
-		END;
 		max := - INF;
 		i := first;
 		WHILE i <= last DO
-			prior.SetValue(i);
-			p[i] := p[i] + prior.LogPrior();
+			prior.value := i; prior.Evaluate;
+			p[i] := updater.LogLikelihood() + prior.LogPrior();
 			max := MAX(max, p[i]);
 			INC(i)
 		END;
@@ -193,7 +187,7 @@ MODULE UpdaterCatagorical;
 		rand := p[last] * MathRandnum.Rand();
 		i := first;
 		WHILE (rand > p[i]) & (i < last) DO INC(i) END;
-		prior.SetValue(i);
+		prior.value := i; 
 		res := {}
 	END Sample;
 

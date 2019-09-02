@@ -29,7 +29,7 @@ MODULE GraphODElangRK45;
 			solver: MathODE.Solver;
 	BEGIN
 		solver := MathRungeKutta45.New();
-		node :=GraphODElang.New(solver);
+		node := GraphODElang.New(solver);
 		RETURN node
 	END New;
 

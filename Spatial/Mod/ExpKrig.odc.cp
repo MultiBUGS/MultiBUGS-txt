@@ -12,13 +12,13 @@ MODULE SpatialExpKrig;
 
 	IMPORT
 		Math,
-		GraphChain, GraphGPprior, GraphMemory, GraphMultivariate, GraphNodes, GraphStochastic;
+		GraphChain, GraphGPprior, GraphMultivariate, GraphNodes, GraphScalar, GraphStochastic;
 
 	TYPE
 
 		Kernel = POINTER TO RECORD(GraphGPprior.Kernel) END;
 
-		FactoryKernel = POINTER TO RECORD(GraphMemory.Factory) END;
+		FactoryKernel = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		Factory = POINTER TO ABSTRACT RECORD(GraphMultivariate.Factory) 
 							kernel: Kernel
@@ -29,7 +29,7 @@ MODULE SpatialExpKrig;
 		Factory2 = POINTER TO RECORD(Factory) END;
 
 	VAR
-		factKernel-: GraphMemory.Factory;
+		factKernel-: GraphScalar.Factory;
 		maintainer-: ARRAY 40 OF CHAR;
 		version-: INTEGER;
 

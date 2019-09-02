@@ -62,9 +62,9 @@ MODULE GraphGEV;
 		VAR
 			eta, mu, sigma: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		RETURN MathCumulative.GEV(mu, sigma, eta, x)
 	END Cumulative;
 
@@ -74,9 +74,9 @@ MODULE GraphGEV;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		x := node.value;
 		factor := 1.0 + eta * (x - mu) / sigma;
 		IF factor < 0 THEN
@@ -103,9 +103,9 @@ MODULE GraphGEV;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		x := node.value;
 		factor := 1.0 + eta * (x - mu) / sigma;
 		diffFactor := eta / sigma;
@@ -132,9 +132,9 @@ MODULE GraphGEV;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		x := node.value;
 		factor := 1.0 + eta * (x - mu) / sigma;
 		IF factor < 0 THEN
@@ -166,9 +166,9 @@ MODULE GraphGEV;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		IF eta > eps THEN
 			right := INF;
 			left := mu - (sigma / eta)
@@ -185,9 +185,9 @@ MODULE GraphGEV;
 		VAR
 			eta, factor, mu, sigma, x: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		x := node.value;
 		IF sigma < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
@@ -249,9 +249,9 @@ MODULE GraphGEV;
 			eta, mu, sigma, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.GEV(mu, sigma, eta)
@@ -265,7 +265,7 @@ MODULE GraphGEV;
 				x := MathRandnum.GEVIB(mu, sigma, eta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

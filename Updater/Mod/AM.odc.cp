@@ -14,7 +14,7 @@ MODULE UpdaterAM;
 
 	IMPORT
 		Math, Stores := Stores64, 
-		GraphStochastic,
+		GraphLogical, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMetropolisMV, UpdaterUpdaters;
 
@@ -214,7 +214,7 @@ MODULE UpdaterAM;
 		res := {};
 		prior := updater.prior;
 		size := updater.IndSize();
-		updater.GetValue(updater.oldVals);
+		updater.Store;
 		oldLogCond := updater.LogConditional() + updater.LogDetJacobian();
 		CalculateCov(updater);
 		MathRandnum.MNormalCovar(updater.cov, size, delta);
@@ -226,6 +226,7 @@ MODULE UpdaterAM;
 			INC(i)
 		END;
 		i := 0; WHILE i < size DO prior[i].InvMap(y[i]); INC(i) END;
+		GraphLogical.Evaluate(updater.dependents);
 		newLogCond := updater.LogConditional() + updater.LogDetJacobian();
 		logAlpha := newLogCond - oldLogCond;
 		reject := logAlpha < Math.Ln(MathRandnum.Rand());
@@ -233,9 +234,11 @@ MODULE UpdaterAM;
 			IF updater.delayedRejection THEN
 				i := 0; WHILE i < size DO y[i] := updater.mapVals[i] - 2 * delta[i]; INC(i) END;
 				i := 0; WHILE i < size DO prior[i].InvMap(y[i]); INC(i) END;
+				GraphLogical.Evaluate(updater.dependents);
 				psiBarLogCond := updater.LogConditional() + updater.LogDetJacobian();
 				i := 0; WHILE i < size DO y[i] := updater.mapVals[i] - delta[i]; INC(i) END;
 				i := 0; WHILE i < size DO prior[i].InvMap(y[i]); INC(i) END;
+				GraphLogical.Evaluate(updater.dependents);
 				new1LogCond:= updater.LogConditional() + updater.LogDetJacobian();
 				delta0 := new1LogCond - oldLogCond;
 				delta1 := psiBarLogCond - new1LogCond;
@@ -246,7 +249,7 @@ MODULE UpdaterAM;
 				END
 			END;
 			IF reject THEN
-				updater.SetValue(updater.oldVals);
+				updater.Restore;
 				INC(updater.rejectCount);
 			END
 		END;

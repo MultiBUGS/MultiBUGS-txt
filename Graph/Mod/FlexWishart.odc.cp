@@ -106,7 +106,7 @@ MODULE GraphFlexWishart;
 				r := 1 / 2
 			END;
 			value := MathRandnum.Gamma(r, lambda);
-			gamma.SetValue(value);
+			gamma.value := value;
 			INC(i)
 		END
 	END Sample;
@@ -405,7 +405,7 @@ MODULE GraphFlexWishart;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				node.components[i * dim + j].SetValue(value[i, j]);
+				node.components[i * dim + j].value := value[i, j];
 				INC(j)
 			END;
 			INC(i)
@@ -459,11 +459,11 @@ MODULE GraphFlexWishart;
 				RETURN
 			END;
 			(* Check nu >= 1 *)
-			IF q.Value() < 1 - eps THEN
+			IF q.value < 1 - eps THEN
 				res := {GraphNodes.invalidPosative, GraphNodes.arg2};
 				RETURN
 			END;
-			node.nu := q.Value();
+			node.nu := q.value;
 			IF node.index = 0 THEN
 				NEW(node.scale, dim);
 				NEW(node.a, dim);
@@ -476,19 +476,19 @@ MODULE GraphFlexWishart;
 					ELSIF ~(GraphNodes.data IN q.props) THEN
 						res := {GraphNodes.data, GraphNodes.arg1};
 						RETURN
-					ELSIF q.Value() < eps THEN
+					ELSIF q.value < eps THEN
 						res := {GraphNodes.posative, GraphNodes.arg1};
 						RETURN
 					END;
-					node.scale[i] := q.Value();
+					node.scale[i] := q.value;
 					(* setup hidden stochastic node for diag elements of Wishart R matrix *)
 					argsNew.Init;
 					gamma := GraphDummy.fact.New();
 					GraphStochastic.RegisterAuxillary(gamma);
 					gamma.Set(argsNew, res);
 					ASSERT(res = {}, 67);
-					gamma.SetValue(1.0);
-					gamma.SetProps(gamma.props + {GraphStochastic.hidden, GraphStochastic.initialized});
+					gamma.value := 1.0;
+					gamma.props := gamma.props + {GraphStochastic.hidden, GraphStochastic.initialized};
 					node.a[i] := gamma;
 					INC(i)
 				END;

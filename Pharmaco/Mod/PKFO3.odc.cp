@@ -38,14 +38,14 @@ MODULE PharmacoPKFO3;
 			Ca, Ce, ka: REAL;
 			lambda, temp, exp: ARRAY 3 OF REAL; i: INTEGER;
 	BEGIN
-		logCL := params[0].Value();
-		logQ12 := params[1].Value();
-		logQ13 := params[2].Value();
-		logV1 := params[3].Value();
-		logV2 := params[4].Value();
-		V3 := Math.Exp(logV2) + Math.Exp(params[5].Value());
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
+		logCL := params[0].value;
+		logQ12 := params[1].value;
+		logQ13 := params[2].value;
+		logV1 := params[3].value;
+		logV2 := params[4].value;
+		V3 := Math.Exp(logV2) + Math.Exp(params[5].value);
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
 		k10 := Math.Exp(logCL - logV1);
 		k12 := Math.Exp(logQ12 - logV1); k21 := Math.Exp(logQ12 - logV2);
 		k13 := Math.Exp(logQ13 - logV1); k31 := Math.Exp(logQ13) / V3;
@@ -67,7 +67,7 @@ MODULE PharmacoPKFO3;
 		A := (k31 - lambda[0]) * (k21 - lambda[0]) / ((lambda[1] - lambda[0]) * (lambda[2] - lambda[0]));
 		B := (k31 - lambda[1]) * (k21 - lambda[1]) / ((lambda[0] - lambda[1]) * (lambda[2] - lambda[1]));
 		C := 1 - A - B;
-		ka := lambda[0] + Math.Exp(params[6].Value());
+		ka := lambda[0] + Math.Exp(params[6].value);
 		IF time < 0 THEN
 			Ca := 0; Ce := 0
 		ELSE
@@ -90,10 +90,10 @@ MODULE PharmacoPKFO3;
 		install := "PharmacoPKFO3.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

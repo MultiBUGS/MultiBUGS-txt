@@ -16,7 +16,7 @@ MODULE GraphT;
 
 	IMPORT
 		Math, Stores := Stores64,
-		GraphConjugateUV, GraphConstant, GraphGamma, GraphHalf, GraphNodes, 
+		GraphConjugateUV, GraphConstant, GraphGamma, GraphHalf, GraphLogical, GraphNodes, 
 		GraphRules, GraphStochastic, GraphUnivariate,
 		MathFunc, MathRandnum,
 		UpdaterActions, UpdaterAuxillary, UpdaterUpdaters;
@@ -27,7 +27,7 @@ MODULE GraphT;
 	TYPE
 		Node = POINTER TO RECORD(GraphConjugateUV.Node)
 			mu, tau, k: GraphNodes.Node;
-			lambda: GraphUnivariate.Node
+			lambda: GraphStochastic.Node
 		END;
 
 		Auxillary = POINTER TO RECORD(UpdaterAuxillary.UpdaterUV) END;
@@ -79,22 +79,22 @@ MODULE GraphT;
 		VAR
 			lam, mu, r, tau, x, value: REAL;
 			t: Node;
-			lambda: GraphUnivariate.Node;
+			lambda: GraphStochastic.Node;
 	BEGIN
 		res := {};
 		t := auxillary.node(Node);
 		lambda := t.lambda;
-		r := 0.5 * t.k.Value();
+		r := 0.5 * t.k.value;
 		lam := r;
 		IF (GraphNodes.data IN t.props) OR (t.children # NIL) THEN
 			x := t.value;
-			mu := t.mu.Value();
-			tau := t.tau.Value();
+			mu := t.mu.value;
+			tau := t.tau.value;
 			r := r + 0.5;
 			lam := lam + 0.5 * (x - mu) * (x - mu) * tau
 		END;
 		value := MathRandnum.Gamma(r, lam);
-		lambda.SetValue(value)
+		lambda.value := value
 	END Sample;
 
 	PROCEDURE (f: AuxillaryFactory) Install (OUT install: ARRAY OF CHAR);
@@ -127,10 +127,10 @@ MODULE GraphT;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() < - eps THEN
+		IF node.tau.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.k.Value() < 1.0 - eps THEN
+		IF node.k.value < 1.0 - eps THEN
 			RETURN {GraphNodes.invalidPosative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -178,9 +178,9 @@ MODULE GraphT;
 		VAR
 			cumulative, mu, k, tau: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		k := node.k.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		k := node.k.value;
+		tau := node.tau.value;
 		x := x - mu;
 		IF x >= 0 THEN
 			cumulative := 1 - 0.5 * MathFunc.BetaI(0.5 * k, 0.5, k / (k + tau * x * x))
@@ -195,10 +195,10 @@ MODULE GraphT;
 			logDensity, logK, logTau, mu, k, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
-		k := node.k.Value();
+		k := node.k.value;
 		logK := MathFunc.Ln(k);
 		logDensity := MathFunc.LogGammaFunc(0.5 * (k + 1.0))
 		 - MathFunc.LogGammaFunc(0.5 * k)
@@ -213,21 +213,21 @@ MODULE GraphT;
 	BEGIN
 		val := node.value;
 		lambda := node.lambda.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		IF (GraphStochastic.hint2 IN x.props)
 			OR (x.classConditional IN {GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin})
 			OR (GraphNodes.data IN node.tau.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
-			tau := node.tau.Value();
+			diffMu := node.mu.Diff(x);
 			differential := - diffMu * tau * lambda * (val - mu)
 		ELSIF (GraphStochastic.hint1 IN x.props)
 			OR (x.classConditional IN {GraphRules.gamma, GraphRules.gamma1})
 			OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.tau.ValDiff(x, tau, diffTau);
+			diffTau := node.tau.Diff(x);
 			differential := 0.5 * diffTau * lambda * (1 / tau - (val - mu) * (val - mu))
 		ELSE
-			node.mu.ValDiff(x, mu, diffMu);
-			node.tau.ValDiff(x, tau, diffTau);
+			diffMu := node.mu.Diff(x);
+			diffTau := node.tau.Diff(x);
 			differential := - diffMu * tau * lambda * (val - mu)
 			 + 0.5 * diffTau * lambda * (1 / tau - (val - mu) * (val - mu))
 		END;
@@ -239,8 +239,8 @@ MODULE GraphT;
 			lambda, differential, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		lambda := node.lambda.value;
 		differential := - tau * lambda * (x - mu);
 		RETURN differential
@@ -270,7 +270,7 @@ MODULE GraphT;
 		node.tau := GraphNodes.Internalize(rd);
 		node.k := GraphNodes.Internalize(rd);
 		p := GraphNodes.Internalize(rd);
-		node.lambda := p(GraphConjugateUV.Node)
+		node.lambda := p(GraphStochastic.Node)
 	END InternalizeUnivariate;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -287,11 +287,11 @@ MODULE GraphT;
 		lambda := node.lambda.value;
 		IF as = GraphRules.normal THEN
 			p0 := node.value;
-			p1 := node.tau.Value() * lambda;
+			p1 := node.tau.value * lambda;
 			x := node.mu
 		ELSE
 			p0 := 0.50;
-			mu := node.mu.Value();
+			mu := node.mu.value;
 			value := node.value;
 			p1 := 0.5 * (value - mu) * (value - mu) * lambda;
 			x := node.tau
@@ -302,7 +302,7 @@ MODULE GraphT;
 		VAR
 			mu: REAL;
 	BEGIN
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		RETURN mu
 	END Location;
 
@@ -311,8 +311,8 @@ MODULE GraphT;
 			lambda, logLambda, logLikelihood, logTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
@@ -325,8 +325,8 @@ MODULE GraphT;
 			lambda, logPrior, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		lambda := node.lambda.value;
 		logPrior := - 0.50 * tau * lambda * (x - mu) * (x - mu);
 		RETURN logPrior
@@ -349,8 +349,8 @@ MODULE GraphT;
 			lambda, mu, tau: REAL;
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		lambda := node.lambda.value;
 		p0 := mu;
 		p1 := tau * lambda
@@ -361,8 +361,8 @@ MODULE GraphT;
 			mu, tau, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		tau := tau * node.lambda.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
@@ -377,7 +377,7 @@ MODULE GraphT;
 				x := MathRandnum.NormalIB(mu, tau, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 
@@ -397,21 +397,22 @@ MODULE GraphT;
 			ASSERT(args.scalars[2] # NIL, 21);
 			node.k := args.scalars[2]
 		END;
+		lambda := GraphGamma.fact.New();
+		GraphStochastic.RegisterAuxillary(lambda);
 		IF GraphNodes.data IN node.k.props THEN
-			halfK := GraphConstant.New(0.5 * node.k.Value());
+			halfK := GraphConstant.New(0.5 * node.k.value);
 		ELSE
-			halfK := GraphHalf.New(node.k)
+			halfK := GraphHalf.New(node.k);
+			halfK(GraphLogical.Node).CalculateLevel
 		END;
 		argsS.Init;
 		argsS.scalars[0] := halfK;
 		argsS.scalars[1] := halfK;
-		lambda := GraphGamma.fact.New();
-		GraphStochastic.RegisterAuxillary(lambda);
 		lambda.Set(argsS, res); ASSERT(res = {}, 67);
-		lambda.SetValue(1.0);
+		lambda.value := 1.0;
 		(*	lambda is likelihood for k	*)
-		lambda.SetProps(lambda.props + {GraphStochastic.initialized,
-		GraphStochastic.hidden, GraphStochastic.update});
+		lambda.props := lambda.props + {GraphStochastic.initialized,
+		GraphStochastic.hidden, GraphStochastic.update};
 		node.lambda := lambda;
 		auxillary := auxillaryFact.New(node);
 		UpdaterActions.RegisterUpdater(auxillary)
@@ -429,7 +430,7 @@ MODULE GraphT;
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
 		(*	truncation not allowed because of mixture representation	*)
-		signature := "sssCT"
+		signature := "sssC"
 	END Signature;
 
 	PROCEDURE Install*;

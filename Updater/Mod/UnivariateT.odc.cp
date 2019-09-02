@@ -49,11 +49,13 @@ MODULE UpdaterUnivariateT;
 		CONST
 			univariate = FALSE;
 	BEGIN
+		res := {};
 		prior := updater.prior;
+		IF GraphStochastic.initialized IN prior.props THEN RETURN END;
 		IF ~prior.CanSample(univariate) THEN res := {GraphNodes.lhs}; RETURN END;
 		prior.Sample(res);
 		IF res # {} THEN RETURN END;
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE (updater: Updater) ExternalizeUnivariate (VAR wr: Stores.Writer);
@@ -87,7 +89,7 @@ MODULE UpdaterUnivariateT;
 		res := {};
 		prior := updater.prior;
 		(*	generate new random number here and call it rand	*)
-		prior.SetValue(rand)
+		prior.value := rand
 	END Sample;
 
 	PROCEDURE (f: Factory) GetDefaults;

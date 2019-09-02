@@ -77,11 +77,11 @@ MODULE UpdaterNaivemet;
 		oldVal := prior.value;
 		oldDen := updater.LogConditional();
 		newVal := MathRandnum.Normal(oldVal, precision);
-		prior.SetValue(newVal);
+		prior.value := newVal; prior.Evaluate;
 		newDen := updater.LogConditional();
 		alpha := newDen - oldDen;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
-			prior.SetValue(oldVal);
+			prior.value := oldVal; prior.Evaluate;
 			INC(updater.rejectCount);
 		END;
 		INC(updater.iteration);

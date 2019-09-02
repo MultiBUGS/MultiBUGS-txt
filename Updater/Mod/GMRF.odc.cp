@@ -49,7 +49,7 @@ MODULE UpdaterGMRF;
 		factGeneral-, factNormal-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		a, b, c, mean, Amu: POINTER TO ARRAY OF REAL;
+		a, b, c, mean, oldValues, Amu: POINTER TO ARRAY OF REAL;
 		A, AAT, U, V, Winverse: POINTER TO ARRAY OF ARRAY OF REAL;
 		bandedFactory, diagFactory, fullFactory, sparseFactory: MathSparsematrix.Factory;
 
@@ -131,11 +131,11 @@ MODULE UpdaterGMRF;
 				children := node.children;
 				eta0 := node.value;
 				f := LogLikelihood(children);
-				node.SetValue(eta0 + delta);
+				node.value := eta0 + delta;
 				fPlus := LogLikelihood(children);
-				node.SetValue(eta0 - delta);
+				node.value:= eta0 - delta;
 				fMinus := LogLikelihood(children);
-				node.SetValue(eta0);
+				node.value := eta0;
 				derivFirst := (fPlus - fMinus) / (2 * delta);
 				derivSecond := (fPlus - 2.0 * f + fMinus) / (delta * delta);
 				derivSecond := MIN(derivSecond, 0);
@@ -345,7 +345,7 @@ MODULE UpdaterGMRF;
 		NEW(updater.mu, size);
 		NEW(updater.elements, nElements);
 		IF size > LEN(a) THEN
-			NEW(a, size); NEW(b, size); NEW(mean, size)
+			NEW(a, size); NEW(b, size); NEW(mean, size); NEW(oldValues, size)
 		END;
 		NEW(colPtr, size);
 		NEW(rowInd, nElements);
@@ -442,12 +442,12 @@ MODULE UpdaterGMRF;
 		mrf := updater.prior[0](GraphMRF.Node);
 		prior := updater.prior;
 		IF (updater.iteration MOD batch # 0) & (updater.iteration > 100) THEN
-			updater.GetValue(updater.oldVals);
+			updater.GetValue(oldValues);
 			modeIts := factGeneral.iterations;
 			modeIts := MAX(1, modeIts);
 			mrf.MatrixElements(updater.elements);
 			oldDensity := updater.LogConditional();
-			ConstructProposal(updater, updater.oldVals, modeIts);
+			ConstructProposal(updater, oldValues, modeIts);
 			SampleProposal(updater, updater.new);
 			updater.SetValue(updater.new);
 			newDensity := updater.LogConditional();
@@ -455,10 +455,10 @@ MODULE UpdaterGMRF;
 			updater.choleskyDecomp.Free;
 			updater.choleskyDecomp := NIL;
 			ConstructProposal(updater, updater.new, modeIts);
-			newProp := ProposalDensity(updater, updater.oldVals);
+			newProp := ProposalDensity(updater, oldValues);
 			acceptProb := newDensity - oldDensity + newProp - oldProp;
 			IF acceptProb < Math.Ln(MathRandnum.Rand()) THEN
-				updater.SetValue(updater.oldVals);
+				updater.SetValue(oldValues);
 			END;
 			updater.choleskyDecomp.Free;
 			updater.choleskyDecomp := NIL;
@@ -489,7 +489,7 @@ MODULE UpdaterGMRF;
 					WHILE i < size DO
 						IF updater.constraints[j, i] > 0.5 THEN
 							value := prior[i].value - sum;
-							prior[i].SetValue(value)
+							prior[i].value := value
 						END;
 						INC(i)
 					END;
@@ -529,7 +529,8 @@ MODULE UpdaterGMRF;
 		res := {};
 		mrf := updater.prior[0](GraphMRF.Node);
 		mrf.MatrixElements(updater.elements);
-		ConstructProposal(updater, updater.oldVals, one);
+		updater.GetValue(oldValues);
+		ConstructProposal(updater, oldValues, one);
 		SampleProposal(updater, updater.new);
 		updater.SetValue(updater.new);
 		IF updater.choleskyDecomp # NIL THEN
@@ -664,6 +665,7 @@ MODULE UpdaterGMRF;
 		NEW(a, size);
 		NEW(b, size);
 		NEW(mean, size);
+		NEW(oldValues, size);
 		NEW(A, 1, size);
 		NEW(U, 1, size);
 		NEW(V, 1, size);

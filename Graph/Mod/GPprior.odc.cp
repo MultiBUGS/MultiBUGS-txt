@@ -14,15 +14,15 @@ MODULE GraphGPprior;
 
 	IMPORT
 		Math, Stores := Stores64, Strings, 
-		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMemory, 
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, GraphUnivariate,
+		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMultivariate, 
+		GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate,
 		MathFunc, MathMatrix, MathRandnum;
 
 	TYPE
 
 		Point* = POINTER TO ARRAY OF REAL;
 
-		Kernel* = POINTER TO ABSTRACT RECORD (GraphMemory.Node)
+		Kernel* = POINTER TO ABSTRACT RECORD (GraphScalar.Node)
 							node-: Node
 						END;
 
@@ -88,13 +88,6 @@ MODULE GraphGPprior;
 		END
 	END AllocateStorage;
 	
-	PROCEDURE EvaluateKernel (node: Node);
-		VAR
-			value: REAL; 
-	BEGIN
-		value := node.kernel.Value()
-	END EvaluateKernel;
-	
 	PROCEDURE (kernel: Kernel) Check* (): SET;
 	BEGIN
 		RETURN {}
@@ -109,7 +102,7 @@ MODULE GraphGPprior;
 	NEW, ABSTRACT;
 
 	(*	cholesky of covariance matrx	*)
-	PROCEDURE (kernel: Kernel) Evaluate- (OUT value: REAL);
+	PROCEDURE (kernel: Kernel) Evaluate-;
 		VAR
 			node: Node;
 			i, j, nElem, numParams: INTEGER;
@@ -121,7 +114,7 @@ MODULE GraphGPprior;
 		i := 0;
 		numParams := LEN(node.paramValues);
 		WHILE i < numParams DO
-			node.paramValues[i] := node.params[i].Value();
+			node.paramValues[i] := node.params[i].value;
 			INC(i)
 		END;
 		i := 0;
@@ -140,25 +133,28 @@ MODULE GraphGPprior;
 		END;
 		MathMatrix.Cholesky(node.cov, nElem)
 	END Evaluate;
+	
+	PROCEDURE (kernel: Kernel) EvaluateDiffs-;
+	BEGIN
+	END EvaluateDiffs;
 
-	PROCEDURE (kernel: Kernel) ExternalizeMemory- (VAR wr: Stores.Writer);
+	PROCEDURE (kernel: Kernel) ExternalizeScalar- (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(kernel.node, wr)
-	END ExternalizeMemory;
+	END ExternalizeScalar;
 	
 	PROCEDURE (kernel: Kernel) InitLogical-;
 	BEGIN
-		kernel.SetProps(kernel.props + {GraphLogical.dependent});
 		kernel.node := NIL
 	END InitLogical;
 
-	PROCEDURE (kernel: Kernel) InternalizeMemory- (VAR rd: Stores.Reader);
+	PROCEDURE (kernel: Kernel) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		kernel.node := p(Node)
-	END InternalizeMemory;
+	END InternalizeScalar;
 	
 	PROCEDURE (kernel: Kernel) NumParams* (): INTEGER, NEW, ABSTRACT;
 	
@@ -189,10 +185,6 @@ MODULE GraphGPprior;
 			kernel.node := args.scalars[0](Node)
 		END
 	END Set;
-	
-	PROCEDURE (kernel: Kernel) ValDiff* (x: GraphNodes.Node; OUT value, diff: REAL);
-	BEGIN
-	END ValDiff;
 
 	(*	log determinant of covariance matrix, is minus log determinant of precision matrix	*)
 	PROCEDURE LogDet (node: Node): REAL;
@@ -220,7 +212,7 @@ MODULE GraphGPprior;
 		start := node.muStart;
 		step := node.muStep;
 		WHILE i < nElem DO
-			vector[i] := node.components[i].value - node.mu[start + i * step].Value();
+			vector[i] := node.components[i].value - node.mu[start + i * step].value;
 			INC(i)
 		END; 
 		MathMatrix.ForwardSub(node.cov, vector, nElem);
@@ -229,7 +221,7 @@ MODULE GraphGPprior;
 		i := 0;
 		WHILE i < nElem DO
 			quadraticForm := quadraticForm + 
-			(node.components[i].value - node.mu[start + i * step].Value()) * vector[i];
+			(node.components[i].value - node.mu[start + i * step].value) * vector[i];
 			INC(i)
 		END;
 		RETURN quadraticForm
@@ -298,7 +290,7 @@ MODULE GraphGPprior;
 					IF ~(GraphNodes.data IN p.props) THEN
 						res := {j + 1, GraphNodes.notData}; RETURN
 					END;
-					node.points[i][j] := p.Value();
+					node.points[i][j] := p.value;
 					INC(i)
 				END;
 				INC(j)
@@ -335,7 +327,7 @@ MODULE GraphGPprior;
 		VAR
 			tau: REAL;
 	BEGIN
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		IF tau < eps THEN RETURN {1} END;
 		RETURN {}
 	END CheckChain;
@@ -396,9 +388,8 @@ MODULE GraphGPprior;
 			nElem: INTEGER;
 	BEGIN
 		ASSERT(node.index = 0, 21);
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
-		EvaluateKernel(node);
 		nElem := LEN(node.components) ;
 		logDensity := 0.50 * (nElem* (logTau - log2Pi) - LogDet(node))
 		 - 0.5 * tau * QuadraticForm(node);
@@ -411,7 +402,8 @@ MODULE GraphGPprior;
 			y: GraphNodes.Node;
 	BEGIN
 		node.LikelihoodForm(GraphRules.gamma, y, p0, p1);
-		node.tau.ValDiff(x, tau, diffTau);
+		tau := node.tau.value;
+		diffTau := node.tau.Diff(x);
 		differential := diffTau * (p0 / tau - p1);
 		RETURN differential
 	END DiffLogLikelihood;
@@ -506,7 +498,7 @@ MODULE GraphGPprior;
 			WHILE i < nElem DO
 				IF GraphNodes.data IN node.props THEN
 					rd.ReadReal(value);
-					node.components[i].SetValue(value)
+					node.components[i].value := value
 				END;
 				NEW(node.points[i], dim);
 				j := 0; WHILE j < dim DO rd.ReadReal(node.points[i][j]); INC(j) END;
@@ -545,7 +537,6 @@ MODULE GraphGPprior;
 		ASSERT(as = GraphRules.gamma, 21);
 		ASSERT(node.index = 0, 20);
 		nElem := LEN(node.components);
-		EvaluateKernel(node);
 		p0 := 0.50 * nElem;
 		p1 := 0.5 * QuadraticForm(node);
 		x := node.tau
@@ -559,7 +550,7 @@ MODULE GraphGPprior;
 		index := node.index;
 		start := node.muStart;
 		step := node.muStep;
-		mean := node.mu[start + index * step].Value();
+		mean := node.mu[start + index * step].value;
 		RETURN mean
 	END Location;
 
@@ -568,10 +559,9 @@ MODULE GraphGPprior;
 			nElem: INTEGER;
 			logLikelihood, logTau, tau: REAL;
 	BEGIN
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		nElem := LEN(node.components);
-		EvaluateKernel(node);
 		logLikelihood := 0.50 * (nElem * logTau - LogDet(node)) - 0.5 * tau * QuadraticForm(node);
 		RETURN logLikelihood
 	END LogLikelihood;
@@ -589,8 +579,7 @@ MODULE GraphGPprior;
 		VAR
 			tau, logPrior: REAL;
 	BEGIN
-		tau := node.tau.Value();
-		EvaluateKernel(node);
+		tau := node.tau.value;
 		logPrior := - 0.5 * tau * QuadraticForm(node);
 		RETURN logPrior
 	END LogMVPrior;
@@ -603,7 +592,6 @@ MODULE GraphGPprior;
 			value: REAL;
 	BEGIN
 		size := node.Size();
-		EvaluateKernel(node);
 		i := 0;
 		WHILE i < size DO
 			j := 0;
@@ -611,7 +599,7 @@ MODULE GraphGPprior;
 				p1[i, j] := node.cov[i, j];
 				INC(j)
 			END;
-			p0[i] := node.mu[i].Value();
+			p0[i] := node.mu[i].value;
 			INC(i)
 		END;
 	END MVPriorForm;
@@ -622,16 +610,15 @@ MODULE GraphGPprior;
 			i, start, step, nElem: INTEGER;
 	BEGIN
 		nElem := node.Size();
-		EvaluateKernel(node);
 		MathRandnum.MNormalCovar(node.cov, nElem, vector);
 		start := node.muStart;
 		step := node.muStep;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		sigma := 1 / Math.Sqrt(tau);
 		i := 0;
 		WHILE i < nElem DO
-			x := node.mu[start + i * step].Value() + vector[i] * sigma;
-			node.components[i].SetValue(x);
+			x := node.mu[start + i * step].value + vector[i] * sigma;
+			node.components[i].value := x;
 			INC(i)
 		END;
 		res := {}
@@ -680,7 +667,6 @@ MODULE GraphGPprior;
 			tau: REAL;
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
-		EvaluateKernel(node);
 		nElem := LEN(node.components);
 		index := node.index;
 		i := 0; WHILE i < nElem DO vector[i] := 0.0; INC(i) END; vector[index] := 1.0;
@@ -688,13 +674,13 @@ MODULE GraphGPprior;
 		MathMatrix.BackSub(node.cov, vector, nElem);
 		start := node.muStart;
 		step := node.muStep;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		index := node.index;
 		p0 := 0.0;
 		i := 0;
 		WHILE i < nElem DO
 			IF i # index THEN
-				p0 := p0 + vector[i] * (node.components[i].value - node.mu[start + i * step].Value())
+				p0 := p0 + vector[i] * (node.components[i].value - node.mu[start + i * step].value)
 			END;
 			INC(i)
 		END;
@@ -709,7 +695,7 @@ MODULE GraphGPprior;
 	BEGIN
 		node.PriorForm(GraphRules.normal, mu, tau);
 		x := MathRandnum.Normal(mu, tau);
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 
@@ -873,7 +859,7 @@ MODULE GraphGPprior;
 
 	PROCEDURE (pred: PredMultiNode) InvMap (y: REAL);
 	BEGIN
-		pred.SetValue(y)
+		pred.value := y
 	END InvMap;
 
 	PROCEDURE (pred: PredMultiNode) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
@@ -890,7 +876,7 @@ MODULE GraphGPprior;
 		index := pred.index;
 		start := pred.muStart;
 		step := pred.muStep;
-		mean := pred.mu[start + index * step].Value();
+		mean := pred.mu[start + index * step].value;
 		RETURN mean
 	END Location;
 
@@ -939,8 +925,7 @@ MODULE GraphGPprior;
 			s: Node;
 	BEGIN
 		s := pred.s;
-		EvaluateKernel(s);
-		tau := s.tau.Value();
+		tau := s.tau.value;
 		nElem := pred.Size();
 		nElemGP := s.Size();
 		start := s.muStart;
@@ -959,14 +944,14 @@ MODULE GraphGPprior;
 		END;
 		j := 0;
 		WHILE j < nElemGP DO
-			vector[j] := (s.components[j].value - s.mu[start + j * step].Value());
+			vector[j] := (s.components[j].value - s.mu[start + j * step].value);
 			INC(j)
 		END;
 		MathMatrix.ForwardSub(s.cov, vector, nElemGP);
 		MathMatrix.BackSub(s.cov, vector, nElemGP);
 		i := 0;
 		WHILE i < nElem DO
-			p0[i] := pred.mu[start1 + i * step1].Value();
+			p0[i] := pred.mu[start1 + i * step1].value;
 			j := 0;
 			WHILE j < nElemGP DO
 				p0[i] := p0[i] + sigma12[j, i] * vector[j];
@@ -1031,7 +1016,7 @@ MODULE GraphGPprior;
 		i := 0;
 		WHILE i < nElem DO
 			vector[i] := vector[i] + mu[i];
-			pred.components[i].SetValue(vector[i]);
+			pred.components[i].value := vector[i];
 			INC(i)
 		END
 	END Sample;
@@ -1084,7 +1069,7 @@ MODULE GraphGPprior;
 						IF ~(GraphNodes.data IN p.props) THEN
 							res := {j + 1, GraphNodes.notData}; RETURN
 						END;
-						pred.points[i, j] := p.Value();
+						pred.points[i, j] := p.value;
 						INC(i)
 					END;
 					INC(j)
@@ -1209,7 +1194,7 @@ MODULE GraphGPprior;
 		VAR
 			mu: REAL;
 	BEGIN
-		mu := pred.mu.Value();
+		mu := pred.mu.value;
 		RETURN mu
 	END Location;
 
@@ -1237,19 +1222,18 @@ MODULE GraphGPprior;
 			s: Node;
 	BEGIN
 		s := pred.s;
-		EvaluateKernel(s);
 		nElemGP := s.Size();
 		start := s.muStart;
 		step := s.muStep;
 		i := 0;
 		WHILE i < nElemGP DO
 			sigma12[i, 0] := s.kernel.Element(pred.point, s.points[i], s.paramValues);
-			vector[i] := (s.components[i].value - s.mu[start + i * step].Value());
+			vector[i] := (s.components[i].value - s.mu[start + i * step].value);
 			INC(i)
 		END;
 		MathMatrix.ForwardSub(s.cov, vector, nElemGP);
 		MathMatrix.BackSub(s.cov, vector, nElemGP);
-		p0 := pred.mu.Value();
+		p0 := pred.mu.value;
 		i := 0;
 		WHILE i < nElemGP DO
 			p0 := p0 + sigma12[i, 0] * vector[i];
@@ -1268,7 +1252,7 @@ MODULE GraphGPprior;
 			var := var - sigma12[i, 0] * vector[i];
 			INC(i)
 		END;
-		tau := s.tau.Value();
+		tau := s.tau.value;
 		p1 := tau / var
 	END PriorForm;
 
@@ -1280,7 +1264,7 @@ MODULE GraphGPprior;
 		as := GraphRules.normal;
 		pred.PriorForm(as, mu, tau);
 		value := MathRandnum.Normal(mu, tau);
-		pred.SetValue(value);
+		pred.value := value;
 		res := {}
 	END Sample;
 
@@ -1304,7 +1288,7 @@ MODULE GraphGPprior;
 				p := args.scalars[i + 1];
 				IF p = NIL THEN res := {i + 1, GraphNodes.nil}; RETURN END;
 				IF ~(GraphNodes.data IN p.props) THEN res := {i + 1, GraphNodes.notData}; RETURN END;
-				pred.point[i] := p.Value();
+				pred.point[i] := p.value;
 				INC(i)
 			END;
 			ASSERT(args.vectors[0].components # NIL, 21); ASSERT(args.vectors[0].start >= 0, 21);

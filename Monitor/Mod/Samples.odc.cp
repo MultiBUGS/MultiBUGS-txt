@@ -172,7 +172,7 @@ MODULE MonitorSamples;
 		IF index = 0 THEN
 			NEW(monitor.blocks[numBlocks])
 		END;
-		value := monitor.node.Value();
+		value := monitor.node.value;
 		monitor.blocks[numBlocks, index] := SHORT(value);
 		INC(monitor.sampleSize)
 	END Update;

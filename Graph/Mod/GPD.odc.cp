@@ -60,9 +60,9 @@ MODULE GraphGPD;
 		VAR
 			eta, mu, sigma: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		RETURN MathCumulative.GPD(mu, sigma, eta, x)
 	END Cumulative;
 
@@ -72,9 +72,9 @@ MODULE GraphGPD;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		etaInv := 1 / eta;
 		x := node.value;
 		z := (x - mu) / sigma;
@@ -101,9 +101,9 @@ MODULE GraphGPD;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		etaInv := 1 / eta;
 		x := node.value;
 		z := (x - mu) / sigma;
@@ -130,9 +130,9 @@ MODULE GraphGPD;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		etaInv := 1 / eta;
 		x := node.value;
 		z := (x - mu) / sigma;
@@ -164,9 +164,9 @@ MODULE GraphGPD;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		IF eta > eps THEN
 			right := INF;
 			left := mu - (sigma / eta)
@@ -186,9 +186,9 @@ MODULE GraphGPD;
 		IF ~(GraphNodes.data IN node.mu.props) THEN
 			RETURN {GraphNodes.notData, GraphNodes.arg1}
 		END;
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		x := node.value;
 		IF sigma < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
@@ -250,9 +250,9 @@ MODULE GraphGPD;
 			eta, mu, sigma, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
-		eta := node.eta.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
+		eta := node.eta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.GPD(mu, sigma, eta);
@@ -266,7 +266,7 @@ MODULE GraphGPD;
 				x := MathRandnum.GPDIB(mu, sigma, eta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

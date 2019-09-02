@@ -52,10 +52,10 @@ MODULE ReliabilityGompertz;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.theta.Value() < - eps THEN
+		IF node.theta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -97,8 +97,8 @@ MODULE ReliabilityGompertz;
 		VAR
 			alpha, theta: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		RETURN MathCumulative.Gompertz(alpha, theta, x)
 	END Cumulative;
 
@@ -107,8 +107,8 @@ MODULE ReliabilityGompertz;
 			alpha, theta, logTheta, logDensity, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		logTheta := MathFunc.Ln(theta);
 		factor := 1.0 - Math.Exp(x * alpha);
 		logDensity := logTheta + alpha * x + (theta / alpha) * factor;
@@ -120,19 +120,19 @@ MODULE ReliabilityGompertz;
 			alpha, theta, diff, diffAlpha, diffTheta, exp, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.theta.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			theta := node.theta.Value();
+			diffAlpha := node.alpha.Diff(x);
 			exp := Math.Exp(alpha * val);
 			diff := diffAlpha * (val - theta * val * exp / alpha - theta * (1 - exp) / (alpha * alpha))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.theta.ValDiff(x, theta, diffTheta);
+			diffTheta := node.theta.Diff(x);
 			exp := Math.Exp(alpha * val);
 			diff := diffTheta * (1 / theta + (1 - exp) / alpha)
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.theta.ValDiff(x, theta, diffTheta);
+			diffAlpha := node.alpha.Diff(x);
+			diffTheta := node.theta.Diff(x);
 			exp := Math.Exp(alpha * val);
 			diff := diffAlpha * (val - theta * val * exp / alpha - theta * (1 - exp) / (alpha * alpha))
 			 + diffTheta * (1 / theta + (1 - exp) / alpha)
@@ -145,8 +145,8 @@ MODULE ReliabilityGompertz;
 			alpha, theta, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		RETURN alpha - theta * Math.Exp(alpha * x)
 	END DiffLogPrior;
 
@@ -158,7 +158,7 @@ MODULE ReliabilityGompertz;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.theta := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -181,7 +181,7 @@ MODULE ReliabilityGompertz;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
 		p0 := 1.0;
-		alpha := likelihood.alpha.Value();
+		alpha := likelihood.alpha.value;
 		value := likelihood.value;
 		p1 := -(1.0 - Math.Exp(alpha * value)) / alpha;
 		x := likelihood.theta
@@ -193,8 +193,8 @@ MODULE ReliabilityGompertz;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		median := (1.0 / alpha) * Math.Ln(1.0 - (alpha / theta) * Math.Ln(1.0 - p50));
 		RETURN median
 	END Location;
@@ -204,8 +204,8 @@ MODULE ReliabilityGompertz;
 			alpha, theta, logTheta, logLikelihood, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		logTheta := MathFunc.Ln(theta);
 		factor := 1.0 - Math.Exp(x * alpha);
 		logLikelihood := logTheta + alpha * x + (theta / alpha) * factor;
@@ -217,8 +217,8 @@ MODULE ReliabilityGompertz;
 			alpha, theta, logPrior, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		factor := 1.0 - Math.Exp(x * alpha);
 		logPrior := alpha * x + (theta / alpha) * factor;
 		RETURN logPrior
@@ -244,8 +244,8 @@ MODULE ReliabilityGompertz;
 			theta, alpha, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		theta := node.theta.Value();
+		alpha := node.alpha.value;
+		theta := node.theta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Gompertz(alpha, theta)
@@ -259,7 +259,7 @@ MODULE ReliabilityGompertz;
 				x := MathRandnum.GompertzIB(alpha, theta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

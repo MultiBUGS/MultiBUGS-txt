@@ -53,10 +53,10 @@ MODULE ReliabilityBurrXII;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -86,8 +86,8 @@ MODULE ReliabilityBurrXII;
 		VAR
 			cumulative, beta, alpha, factor: REAL;
 	BEGIN
-		beta := node.beta.Value();
-		alpha := node.alpha.Value();
+		beta := node.beta.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.BurrXII(alpha, beta, x)
 	END Cumulative;
 
@@ -96,9 +96,9 @@ MODULE ReliabilityBurrXII;
 			alpha, logAlpha, beta, logBeta, factor, logFactor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
 		factor := 1.0 + Math.Power(x, beta);
 		logFactor := MathFunc.Ln(factor);
@@ -111,20 +111,20 @@ MODULE ReliabilityBurrXII;
 			alpha, beta, diff, diffAlpha, diffBeta, log, power, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			beta := node.beta.Value();
+			diffAlpha := node.alpha.Diff(x);
 			power := Math.Power(val, beta);
 			diff := diffAlpha * (1 / alpha - Math.Ln(1 + power))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffBeta := node.beta.Diff(x);
 			power := Math.Power(val, beta);
 			log := Math.Ln(val);
 			diff := diffBeta * (1 / beta + log - (alpha + 1) * (power * log) / (1 + power))
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffAlpha := node.alpha.Diff(x);
+			diffBeta := node.beta.Diff(x);
 			power := Math.Power(val, beta);
 			log := Math.Ln(val);
 			diff := diffAlpha * (1 / alpha - Math.Ln(1 + power)) + 
@@ -138,8 +138,8 @@ MODULE ReliabilityBurrXII;
 			alpha, beta, power, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		power := Math.Power(x, beta);
 		RETURN (beta - 1) / x - (alpha + 1) * beta * power / ((1 + power) * x)
 	END DiffLogPrior;
@@ -152,7 +152,7 @@ MODULE ReliabilityBurrXII;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.beta := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -172,8 +172,8 @@ MODULE ReliabilityBurrXII;
 		VAR
 			alpha, beta: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		RETURN alpha * Math.Exp(MathFunc.LogBetaFunc(alpha - 1 / beta, 1 + 1 / beta))
 	END Location;
 
@@ -182,9 +182,9 @@ MODULE ReliabilityBurrXII;
 			alpha, logAlpha, beta, logBeta, factor, logFactor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		logBeta := MathFunc.Ln(beta);
 		factor := 1.0 + Math.Power(x, beta);
 		logFactor := MathFunc.Ln(factor);
@@ -197,8 +197,8 @@ MODULE ReliabilityBurrXII;
 			alpha, beta, factor, logFactor, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		factor := 1.0 + Math.Power(x, beta);
 		logFactor := MathFunc.Ln(factor);
 		logPrior := (beta - 1.0) * MathFunc.Ln(x) - (alpha + 1.0) * logFactor;
@@ -220,8 +220,8 @@ MODULE ReliabilityBurrXII;
 			beta, alpha, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.BurrXII(alpha, beta)
@@ -235,7 +235,7 @@ MODULE ReliabilityBurrXII;
 				x := MathRandnum.BurrXIIIB(alpha, beta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

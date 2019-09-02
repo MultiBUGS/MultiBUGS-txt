@@ -59,8 +59,8 @@ MODULE GraphUnivariatetemp1;
 		RETURN 0.0
 
 		*)
-		mu := node.scalars[0].Value();
-		tau := node.scalars[1].Value();
+		mu := node.scalars[0].value;
+		tau := node.scalars[1].value;
 		cumulative := MathFunc.Phi(Math.Sqrt(tau) * (x - mu));
 		RETURN cumulative
 	END Cumulative;
@@ -75,8 +75,8 @@ MODULE GraphUnivariatetemp1;
 		This is compulsory
 		*)
 		x := node.value;
-		mu := node.scalars[0].Value();
-		tau := node.scalars[1].Value();
+		mu := node.scalars[0].value;
+		tau := node.scalars[1].value;
 		logTau := MathFunc.Ln(tau);
 		logDensity := 0.5 * logTau - 0.5 * tau * (x - mu) * (x - mu) - 0.5 * log2Pi;
 		RETURN - 2.0 * logDensity
@@ -92,8 +92,10 @@ MODULE GraphUnivariatetemp1;
 		This is compulsory
 		*)
 		val := node.value;
-		node.scalars[0].ValDiff(x, mu, diffMu);
-		node.scalars[1].ValDiff(x, tau, diffTau);
+		mu := node.scalars[0].value;
+		diffMu := node.scalars[0].Diff(x);
+		tau := node.scalars[1].value;
+		diffTau := node.scalars[1].Diff(x);
 		differential := - diffMu * tau * (val - mu) + 0.5 * diffTau * (1 / tau - (val - mu) * (val - mu));
 		RETURN differential
 	END DiffLogLikelihood;
@@ -108,8 +110,8 @@ MODULE GraphUnivariatetemp1;
 		This is compulsory
 		*)
 		x := node.value;
-		mu := node.scalars[0].Value();
-		tau := node.scalars[1].Value();
+		mu := node.scalars[0].value;
+		tau := node.scalars[1].value;
 		differential := tau * (x - mu);
 		RETURN differential
 	END DiffLogPrior;
@@ -129,8 +131,8 @@ MODULE GraphUnivariatetemp1;
 		This is compulsory
 		*)
 		x := node.value;
-		mu := node.scalars[0].Value();
-		tau := node.scalars[1].Value();
+		mu := node.scalars[0].value;
+		tau := node.scalars[1].value;
 		logTau := MathFunc.Ln(tau);
 		RETURN 0.50 * (logTau - tau * (x - mu) * (x - mu))
 	END LogLikelihoodUnivariate;
@@ -145,8 +147,8 @@ MODULE GraphUnivariatetemp1;
 		This is compulsory
 		*)
 		x := node.value;
-		mu := node.scalars[0].Value();
-		tau := node.scalars[1].Value();
+		mu := node.scalars[0].value;
+		tau := node.scalars[1].value;
 		RETURN - 0.50 * tau * (x - mu) * (x - mu)
 	END LogPrior;
 
@@ -177,13 +179,13 @@ MODULE GraphUnivariatetemp1;
 		This is compulsory
 		*)
 		res := {};
-		mu := node.scalars[0].Value();
-		tau := node.scalars[1].Value();
+		mu := node.scalars[0].value;
+		tau := node.scalars[1].value;
 		node.Bounds(lower, upper);
 		REPEAT
 			x := MathRandnum.Normal(mu, tau)
 		UNTIL (x >= lower) & (x <= upper);
-		node.SetValue(x)
+		node.value := x
 	END Sample;
 
 	PROCEDURE (f: Factory) New (): GraphUnivariate.Node;

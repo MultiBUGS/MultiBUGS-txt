@@ -55,14 +55,14 @@ MODULE GraphCoSelection;
 		RETURN k + 1
 	END ActiveNumBeta;
 
-	PROCEDURE (node: Node) Check (): SET;	(*	check for normality?	*)
+	PROCEDURE (node: Node) Check (): SET; 	(*	check for normality?	*)
 		VAR
 			i, len: INTEGER;
 	BEGIN
 		i := 0;
 		len := LEN(node.beta);
 		WHILE i < len DO
-			node.beta[i].SetValue(0.0);
+			node.beta[i].value := 0.0;
 			INC(i)
 		END;
 		RETURN {}
@@ -84,7 +84,7 @@ MODULE GraphCoSelection;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, j, k, numCovariates, size, start, step: INTEGER; K: INTEGER;
 			sum: REAL;
@@ -102,7 +102,7 @@ MODULE GraphCoSelection;
 			WHILE j < numCovariates DO
 				IF node.theta[j] THEN
 					IF node.z # NIL THEN
-						sum := sum + node.beta[k].value * node.z[start + (i * numCovariates + j) * step].Value()
+						sum := sum + node.beta[k].value * node.z[start + (i * numCovariates + j) * step].value
 					ELSE
 						sum := sum + node.beta[k].value * node.zVals[start + (i * numCovariates + j) * step]
 					END;
@@ -110,10 +110,47 @@ MODULE GraphCoSelection;
 				END;
 				INC(j)
 			END;
-			values[i] := sum;
+			node.components[i].value := sum;
 			INC(i)
-		END ;ASSERT(K = k - 1, 99)
+		END; ASSERT(K = k - 1, 99)
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+		VAR
+			i, j, k, index, numCovariates, start, step, N: INTEGER;
+			x: GraphNodes.Vector;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		index := node.index;
+		start := node.zStart;
+		step := node.zStep;
+		i := 0;
+		WHILE i < N DO
+			IF x[i] = node.beta[0] THEN
+				node.diffs[i] := node.diffs[i] + 1.0
+			ELSE
+				j := 0;
+				k := 1;
+				numCovariates := LEN(node.theta);
+				WHILE j < numCovariates DO
+					IF node.theta[j] THEN
+						IF node.beta[k] = x[i] THEN
+							IF node.z # NIL THEN
+								node.diffs[i] := node.diffs[i] + node.z[start + (index * numCovariates + j) * step].value
+							ELSE
+								node.diffs[i] := node.diffs[i] + node.zVals[start + (index * numCovariates + j) * step]
+							END
+						END;
+						INC(k)
+					END;
+					INC(j)
+				END
+			END;
+			INC(i)
+		END
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeDescrete (VAR wr: Stores.Writer);
 		VAR
@@ -132,7 +169,7 @@ MODULE GraphCoSelection;
 	BEGIN
 	END InitVD;
 
-	PROCEDURE (node: Node) InternalizeDescrete(VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeDescrete (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 			p: Node;
@@ -163,12 +200,12 @@ MODULE GraphCoSelection;
 	BEGIN
 		RETURN 1
 	END MinNumBeta;
-	
+
 	PROCEDURE (node: Node) ParentsVD (all: BOOLEAN): GraphNodes.List;
 	BEGIN
 		RETURN NIL
 	END ParentsVD;
-	
+
 	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 		VAR
 			numBeta, numTheta, size: INTEGER;
@@ -196,7 +233,7 @@ MODULE GraphCoSelection;
 				node.zStart := args.vectors[0].start;
 				node.zStep := args.vectors[0].step;
 				ASSERT(args.vectors[0].components # NIL, 21);
-				node.z := args.vectors[0].components; 
+				node.z := args.vectors[0].components;
 				node.zVals := args.vectors[0].values;
 				ASSERT(args.scalars[0] # NIL, 21);
 				IF ~(args.scalars[0] IS GraphUnivariate.Node) THEN
@@ -213,36 +250,6 @@ MODULE GraphCoSelection;
 			END
 		END;
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-		VAR
-			i, j, k, numCovariates, start, step: INTEGER;
-	BEGIN
-		val := node.Value();
-		i := node.index;
-		start := node.zStart;
-		step := node.zStep;
-		IF x = node.beta[0] THEN
-			diff := 1.0
-		ELSE
-			j := 0;
-			k := 1;
-			numCovariates := LEN(node.theta);
-			WHILE j < numCovariates DO
-				IF node.theta[j] THEN
-					IF node.beta[k] = x THEN
-						IF node.z # NIL THEN
-							diff := node.z[start + (i * numCovariates + j) * step].Value()
-						ELSE
-							diff := node.zVals[start + (i * numCovariates + j) * step]
-						END
-					END;
-					INC(k)
-				END;
-				INC(j)
-			END
-		END
-	END ValDiff;
 
 	(*	methods for Model class	*)
 
@@ -269,7 +276,7 @@ MODULE GraphCoSelection;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (model: ModelNode) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (model: ModelNode) Evaluate;
 		VAR
 			i, size: INTEGER;
 			node: Node;
@@ -278,10 +285,15 @@ MODULE GraphCoSelection;
 		size := model.Size();
 		i := 0;
 		WHILE i < size DO
-			IF node.theta[i] THEN  values[i] := 1 ELSE values[i] := 0 END;
+			IF node.theta[i] THEN node.components[i].value := 1 ELSE node.components[i].value := 0 END;
 			INC(i)
 		END
 	END Evaluate;
+
+	PROCEDURE (model: ModelNode) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (model: ModelNode) ExternalizeVector (VAR wr: Stores.Writer);
 	BEGIN
@@ -294,7 +306,6 @@ MODULE GraphCoSelection;
 	PROCEDURE (model: ModelNode) InitLogical;
 	BEGIN
 		model.node := NIL;
-		model.SetProps(model.props + {GraphLogical.dependent})
 	END InitLogical;
 
 	PROCEDURE (model: ModelNode) InternalizeVector (VAR rd: Stores.Reader);
@@ -339,11 +350,6 @@ MODULE GraphCoSelection;
 		END
 	END Set;
 
-	PROCEDURE (model: ModelNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
 	(*	methods for Predictor class	*)
 	PROCEDURE (predictor: PredictorNode) Check (): SET;
 		VAR
@@ -368,7 +374,39 @@ MODULE GraphCoSelection;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (predictor: PredictorNode) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (predictor: PredictorNode) Evaluate;
+		VAR
+			i, k, size, start, step: INTEGER;
+			node: Node;
+			value: REAL;
+	BEGIN
+		node := predictor.node(Node);
+		size := predictor.zSize;
+		start := predictor.zStart;
+		step := predictor.zStep;
+		value := node.beta[0].value; (*	intercept	*)
+		i := 0;
+		k := 1;
+		WHILE i < size DO
+			IF node.theta[i] THEN
+				IF predictor.z # NIL THEN
+					value := value + node.beta[k].value * predictor.z[start + i * step].value
+				ELSE
+					value := value + node.beta[k].value * predictor.zVals[start + i * step]
+				END;
+				INC(k)
+			END;
+			INC(i)
+		END;
+		node.value := value
+	END Evaluate;
+
+	PROCEDURE (predictor: PredictorNode) EvaluateDiffs;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (predictor: PredictorNode) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -377,7 +415,7 @@ MODULE GraphCoSelection;
 		v.components := predictor.z; v.values := predictor.zVals;
 		v.start := predictor.zStart; v.nElem := predictor.zSize; v.step := predictor.zStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
 	PROCEDURE (predictor: PredictorNode) InitLogical;
 	BEGIN
@@ -385,7 +423,7 @@ MODULE GraphCoSelection;
 		predictor.z := NIL
 	END InitLogical;
 
-	PROCEDURE (predictor: PredictorNode) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (predictor: PredictorNode) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -396,7 +434,7 @@ MODULE GraphCoSelection;
 		predictor.zSize := v.nElem;
 		predictor.zStart := v.start;
 		predictor.zStep := v.step;
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: PredictorNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -432,38 +470,6 @@ MODULE GraphCoSelection;
 			predictor.zSize := args.vectors[1].nElem;
 		END
 	END Set;
-
-	PROCEDURE (predictor: PredictorNode) Value (): REAL;
-		VAR
-			i, k, size, start, step: INTEGER;
-			node: Node;
-			value: REAL;
-	BEGIN
-		node := predictor.node(Node);
-		size := predictor.zSize;
-		start := predictor.zStart;
-		step := predictor.zStep;
-		value := node.beta[0].value; (*	intercept	*)
-		i := 0;
-		k := 1;
-		WHILE i < size DO
-			IF node.theta[i] THEN
-				IF predictor.z # NIL THEN
-					value := value + node.beta[k].value * predictor.z[start + i * step].Value()
-				ELSE
-					value := value + node.beta[k].value * predictor.zVals[start + i * step]
-				END;
-				INC(k)
-			END;
-			INC(i)
-		END;
-		RETURN value
-	END Value;
-
-	PROCEDURE (predictor: PredictorNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	(*	Factory methods	*)
 	PROCEDURE (f: Factory) New (): GraphVector.Node;

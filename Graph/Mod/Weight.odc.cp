@@ -42,17 +42,32 @@ MODULE GraphWeight;
 	BEGIN
 		p := node.weight;
 		class := GraphStochastic.ClassFunction(p, parent);
-		IF class # GraphRules.const THEN  RETURN GraphRules.other END;
+		IF class # GraphRules.const THEN RETURN GraphRules.other END;
 		p := node.cutParent;
 		class := GraphStochastic.ClassFunction(p, parent);
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.cutParent, wr);
 		GraphNodes.Externalize(node.weight, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
+
+	PROCEDURE (node: Node) Evaluate;
+	BEGIN
+		node.value := node.cutParent.value
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+		VAR
+			x: GraphNodes.Vector;
+			i, N: INTEGER;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0; WHILE i < N DO node.diffs[i]:= node.cutParent.Diff(x[i]); INC(i) END
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -66,11 +81,11 @@ MODULE GraphWeight;
 		install := "GraphWeight.Install"
 	END Install;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
 		node.cutParent := GraphNodes.Internalize(rd);
 		node.weight := GraphNodes.Internalize(rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -95,24 +110,6 @@ MODULE GraphWeight;
 			node.weight := args.scalars[1]
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Value (): REAL;
-		VAR
-			value: REAL;
-			p: GraphNodes.Node;
-	BEGIN
-		p := node.cutParent;
-		value := p.Value();
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-		VAR
-			p: GraphNodes.Node;
-	BEGIN
-		p := node.cutParent;
-		p.ValDiff(x, val, diff)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

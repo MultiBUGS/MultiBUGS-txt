@@ -76,7 +76,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallWishart");
 
 		(*	updates global block of nodes at depth 1	*)
-		UpdaterMethods.LoadUpdater("UpdaterKernelblock.InstallGlobal");
+(*		UpdaterMethods.LoadUpdater("UpdaterKernelblock.InstallGlobal");*)
 
 		(*	updates global block of nodes at depth 1	*)
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallGlobal");
@@ -97,7 +97,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterElliptical.Install");
 
 		(*	eliptical slice updater for block of normal priors	*)
-		UpdaterMethods.LoadUpdater("UpdaterEllipticalD.Install");
+(*		UpdaterMethods.LoadUpdater("UpdaterEllipticalD.Install");*)
 		
 		(*	updater for chain graph prior and normal likelihood	*)
 		UpdaterMethods.LoadUpdater("UpdaterGMRF.InstallNormal");
@@ -121,7 +121,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterGLM.InstallNormal");
 
 		(*	updates fixed effect block of nodes at least one of which has a generic conditional	*)
-		UpdaterMethods.LoadUpdater("UpdaterKernelblock.InstallNL");
+(*		UpdaterMethods.LoadUpdater("UpdaterKernelblock.InstallNL");*)
 
 		(*	updates fixed effect block of nodes at least one of which has a generic conditional	*)
 		UpdaterMethods.LoadUpdater("UpdaterAMblock.InstallNL");

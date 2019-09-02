@@ -15,14 +15,15 @@ MODULE GraphFunctional;
 	IMPORT
 		Stores := Stores64, 
 		BugsMsg,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
+		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathFunctional;
 
 	TYPE
-		Node = POINTER TO RECORD(GraphMemory.Node)
+		Node = POINTER TO RECORD(GraphScalar.Node)
 			tol: REAL;
 			function, x, x0, x1: GraphNodes.Node;
 			functional: MathFunctional.Functional;
+			ancestors: GraphLogical.Vector;
 		END;
 
 		Function = POINTER TO RECORD(MathFunctional.Function)
@@ -33,8 +34,45 @@ MODULE GraphFunctional;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) Check (): SET;
+	PROCEDURE Ancestors (node: Node): GraphLogical.Vector;
+		VAR
+			block, dep: GraphLogical.Vector;
+			cursor, list: GraphLogical.List;
+			p: GraphLogical.Node;
+			x: GraphStochastic.Node;
+			i, len: INTEGER;
+		CONST
+			all = TRUE;
+			mark = GraphLogical.mark;
 	BEGIN
+		list := GraphLogical.Parents(node.function, all);
+		IF node.function IS GraphLogical.Node THEN
+			p := node.function(GraphLogical.Node); p.AddToList(list); EXCL(p.props, mark)
+		END;
+		x := node.x(GraphStochastic.Node);
+		dep := x.dependents;
+		IF dep # NIL THEN len := LEN(dep); i := 0; WHILE i < len DO INCL(dep[i].props, mark); INC(i) END END;
+		cursor := list; list := NIL;
+		WHILE cursor # NIL DO
+			p := cursor.node;
+			IF mark IN p.props THEN EXCL(p.props, mark); p.AddToList(list); END;
+			cursor := cursor.next
+		END;
+		IF dep # NIL THEN len := LEN(dep); i := 0; WHILE i < len DO EXCL(dep[i].props, mark); INC(i) END END;
+		block := GraphLogical.ListToVector(list); ASSERT(block # NIL, 99);
+		RETURN block
+	END Ancestors;
+
+	PROCEDURE (node: Node) Check (): SET;
+		VAR 
+			parents: GraphStochastic.List;
+		CONST
+			all = TRUE;
+	BEGIN
+		parents := GraphStochastic.Parents(node, all);
+		IF (parents # NIL) & (parents.next = NIL) THEN
+			parents.node.Evaluate
+		END;
 		RETURN {}
 	END Check;
 
@@ -62,26 +100,35 @@ MODULE GraphFunctional;
 		RETURN form1
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT value: REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			tol, x0, x1: REAL;
 			theta: ARRAY 1 OF REAL;
 	BEGIN
 		theta[0] := 0; (*	dummy value not used	*)
 		tol := node.tol;
-		x0 := node.x0.Value();
-		x1 := node.x1.Value();
-		value := node.functional.Value(x0, x1, tol, theta)
+		x0 := node.x0.value;
+		x1 := node.x1.value;
+		node.value := node.functional.Value(x0, x1, tol, theta)
 	END Evaluate;
 
-	PROCEDURE (node: Node) ExternalizeMemory (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) EvaluateDiffs;
+	BEGIN
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+		VAR
+			i, len: INTEGER;
 	BEGIN
 		wr.WriteReal(node.tol);
 		GraphNodes.Externalize(node.function, wr);
 		GraphNodes.Externalize(node.x, wr);
 		GraphNodes.Externalize(node.x0, wr);
-		GraphNodes.Externalize(node.x1, wr)
-	END ExternalizeMemory;
+		GraphNodes.Externalize(node.x1, wr);
+		IF node.ancestors # NIL THEN len := LEN(node.ancestors) ELSE len := 0 END;
+		wr.WriteInt(len);
+		i := 0; WHILE i < len DO GraphNodes.Externalize(node.ancestors[i], wr); INC(i) END
+	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
 		VAR
@@ -91,18 +138,26 @@ MODULE GraphFunctional;
 		BugsMsg.Lookup(install1, install)
 	END Install;
 
-	PROCEDURE (node: Node) InternalizeMemory (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			i, len: INTEGER;
+			p: GraphNodes.Node;
 	BEGIN
 		rd.ReadReal(node.tol);
 		node.function := GraphNodes.Internalize(rd);
 		node.x := GraphNodes.Internalize(rd);
 		node.x0 := GraphNodes.Internalize(rd);
-		node.x1 := GraphNodes.Internalize(rd)
-	END InternalizeMemory;
+		node.x1 := GraphNodes.Internalize(rd);
+		rd.ReadInt(len);
+		IF len > 0 THEN NEW(node.ancestors, len) ELSE node.ancestors := NIL END;
+		i := 0;
+		WHILE i < len DO
+			p := GraphNodes.Internalize(rd); node.ancestors[i] := p(GraphLogical.Node); INC(i)
+		END
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.x := NIL;
 		node.x0 := NIL;
 		node.x1 := NIL
@@ -122,7 +177,7 @@ MODULE GraphFunctional;
 		p.AddParent(list);
 		p := node.x;
 		p.AddParent(list);
-		GraphNodes.ClearList(list); 
+		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
 
@@ -134,7 +189,7 @@ MODULE GraphFunctional;
 			node.x := args.scalars[1];
 			node.x0 := args.scalars[2];
 			node.x1 := args.scalars[3];
-			node.tol := args.scalars[4].Value();
+			node.tol := args.scalars[4].value;
 		END
 	END Set;
 
@@ -148,11 +203,6 @@ MODULE GraphFunctional;
 		node.functional.Init(function);
 	END SetFunctional;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
 	PROCEDURE (function: Function) Value (x: REAL; IN theta: ARRAY OF REAL): REAL;
 		VAR
 			value: REAL;
@@ -161,8 +211,10 @@ MODULE GraphFunctional;
 	BEGIN
 		node := function.node;
 		stochastic := node.x(GraphStochastic.Node);
-		stochastic.SetValue(x);
-		value := node.function.Value();
+		stochastic.value := x;
+		IF node.ancestors = NIL THEN node.ancestors := Ancestors(node) END;
+		GraphLogical.Evaluate(node.ancestors);
+		value := node.function.value;
 		RETURN value
 	END Value;
 
@@ -183,5 +235,5 @@ MODULE GraphFunctional;
 	END Maintainer;
 
 BEGIN
-	Maintainer
+	Maintainer;
 END GraphFunctional.

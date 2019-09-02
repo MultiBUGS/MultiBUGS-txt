@@ -35,7 +35,7 @@ MODULE UpdaterGamma;
 			eps = 1.0E-5;
 		VAR
 			as, i, num: INTEGER;
-			p0, p1, val, weight: REAL;
+			p0, p1, weight: REAL;
 			x: GraphNodes.Node;
 			children: GraphStochastic.Vector;
 			node: GraphStochastic.Node;
@@ -47,7 +47,7 @@ MODULE UpdaterGamma;
 		IF children # NIL THEN
 			num := LEN(children);
 			i := 0;
-			prior.SetValue(1.0);
+			prior.value := 1.0;
 			WHILE i < num DO
 				node := children[i];
 				WITH node: GraphConjugateUV.Node DO
@@ -58,12 +58,8 @@ MODULE UpdaterGamma;
 				IF x = prior THEN
 					p[0] := p[0] + p0;
 					p[1] := p[1] + p1
-				ELSIF GraphStochastic.continuous IN prior.props THEN
-					weight := x.Value();
-					p[0] := p[0] + p0;
-					p[1] := p[1] + weight * p1
-				ELSE (*	might have mixture model	*)
-					x.ValDiff(prior, val, weight);
+				ELSE
+					weight := x.Diff(prior);
 					IF weight > eps THEN
 						p[0] := p[0] + p0;
 						p[1] := p[1] + weight * p1
@@ -94,18 +90,7 @@ MODULE UpdaterGamma;
 	END ExternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
-		VAR
-			prior: GraphStochastic.Node;
-			coParents: GraphStochastic.List;
 	BEGIN
-		prior := updater.prior;
-		coParents := prior.CoParents();
-		WHILE (coParents # NIL) & ~(GraphStochastic.integer IN coParents.node.props) DO
-			coParents := coParents.next
-		END;
-		IF coParents = NIL THEN
-			prior.SetProps(prior.props + {GraphStochastic.continuous})
-		END
 	END InitializeUnivariate;
 
 	PROCEDURE (updater: Updater) InternalizeUnivariate- (VAR rd: Stores.Reader);
@@ -135,6 +120,7 @@ MODULE UpdaterGamma;
 	BEGIN
 		res := {};
 		prior := updater.prior(GraphConjugateUV.Node);
+		prior.EvaluateDiffs;
 		oldValue := prior.value;
 		as := GraphRules.gamma;
 		GammaLikelihood(updater.prior, p);
@@ -159,9 +145,7 @@ MODULE UpdaterGamma;
 		IF overRelax THEN
 			prior.Bounds(lower, upper);
 			k := fact.overRelaxation;
-			IF k > LEN(values) THEN
-				NEW(values, k)
-			END;
+			IF k > LEN(values) THEN NEW(values, k) END;
 			i := 0;
 			WHILE i < k - 1 DO
 				IF bounds = {} THEN
@@ -193,7 +177,7 @@ MODULE UpdaterGamma;
 				END
 			END
 		END;
-		prior.SetValue(rand)
+		prior.value := rand; prior.ClearDiffs; prior.Evaluate
 	END Sample;
 
 	PROCEDURE (f: Factory) GetDefaults;

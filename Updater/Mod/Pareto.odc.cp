@@ -111,7 +111,7 @@ MODULE UpdaterPareto;
 		ELSE
 			REPEAT x := MathRandnum.Pareto(theta, x0) UNTIL x > left
 		END;
-		prior.SetValue(x);
+		prior.value := x; prior.Evaluate;
 		res := {}
 	END Sample;
 

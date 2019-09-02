@@ -66,7 +66,7 @@ MODULE UpdaterStage1P;
 	BEGIN
 		prior := updater.prior;
 		prior.Sample(res);
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
@@ -83,7 +83,7 @@ MODULE UpdaterStage1P;
 		newDen := updater.LogLikelihood();
 		alpha := newDen - oldDen;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
-			prior.SetValue(oldVal)
+			prior.value := oldVal
 		END
 	END Sample;
 

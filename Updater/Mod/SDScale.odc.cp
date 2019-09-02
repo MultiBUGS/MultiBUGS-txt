@@ -130,13 +130,13 @@ MODULE UpdaterSDScale;
 		piHat := updater.piHat;
 		precX := Math.Exp( - a) * Math.Power((1.0 + ABS(oldVal)) / Math.Exp(piHat),  - b);
 		newVal := MathRandnum.Normal(oldVal, precX);
-		prior.SetValue(newVal);
+		prior.value := newVal; prior.Evaluate;
 		newDen := updater.LogConditional();
 		precY := Math.Exp( - a) * Math.Power((1.0 + ABS(newVal)) / Math.Exp(piHat),  - b);
 		alpha := newDen - oldDen + 0.5 * Math.Ln(precY / precX)
 		 - 0.5 * (newVal - oldVal) * (newVal - oldVal) * (precY - precX);
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
-			prior.SetValue(oldVal);
+			prior.value := oldVal; prior.Evaluate;
 		ELSE
 			IF Math.Ln(1.0 + ABS(prior.value)) > piHat THEN
 				INC(updater.acceptCount1)

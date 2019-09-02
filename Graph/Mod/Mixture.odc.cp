@@ -1,7 +1,7 @@
 (*		
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
@@ -13,7 +13,7 @@ MODULE GraphMixture;
 	
 
 	IMPORT
-		Stores := Stores64, 
+		Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	CONST
@@ -30,7 +30,7 @@ MODULE GraphMixture;
 		Factory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 	VAR
-		fact-: GraphScalar.Factory;	
+		fact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -90,7 +90,51 @@ MODULE GraphMixture;
 		RETURN class
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) Evaluate;
+		CONST
+			eps = 1.0E-20;
+		VAR
+			i, index, off, slots: INTEGER;
+			value: REAL;
+			p, q: GraphNodes.Node;
+	BEGIN
+		i := 0;
+		slots := node.slots;
+		off := node.start;
+		WHILE i < slots DO
+			p := node.index[i];
+			index := SHORT(ENTIER(p.value - 1 + eps));
+			off := off + index * node.step[i];
+			INC(i)
+		END;
+		q := node.vector[off];
+		node.value := q.value;
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs ;
+		CONST
+			eps = 1.0E-20;
+		VAR
+			i,  index, off, slots, N: INTEGER;
+			p, q: GraphNodes.Node;
+			x: GraphNodes.Vector;
+	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0;
+		slots := node.slots;
+		off := node.start;
+		WHILE i < slots DO
+			p := node.index[i];
+			index := SHORT(ENTIER(p.value - 1 + eps));
+			off := off + index * node.step[i];
+			INC(i)
+		END;
+		q := node.vector[off];
+		i := 0; WHILE i < N DO node.diffs[i] := q.Diff(x[i]); INC(i) END
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 			i: INTEGER;
@@ -108,9 +152,9 @@ MODULE GraphMixture;
 			GraphNodes.Externalize(node.index[i], wr);
 			INC(i)
 		END
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
 			i, slots: INTEGER;
@@ -135,7 +179,7 @@ MODULE GraphMixture;
 			node.index[i] := GraphNodes.Internalize(rd);
 			INC(i)
 		END
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -216,48 +260,6 @@ MODULE GraphMixture;
 			END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Value (): REAL;
-		CONST
-			eps = 1.0E-20;
-		VAR
-			i, index, off, slots: INTEGER;
-			value: REAL;
-			p, q: GraphNodes.Node;
-	BEGIN
-		i := 0;
-		slots := node.slots;
-		off := node.start;
-		WHILE i < slots DO
-			p := node.index[i];
-			index := SHORT(ENTIER(p.Value() - 1 + eps));
-			off := off + index * node.step[i];
-			INC(i)
-		END;
-		q := node.vector[off];
-		value := q.Value();
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-		CONST
-			eps = 1.0E-20;
-		VAR
-			i, index, off, slots: INTEGER;
-			p, q: GraphNodes.Node;
-	BEGIN
-		i := 0;
-		slots := node.slots;
-		off := node.start;
-		WHILE i < slots DO
-			p := node.index[i];
-			index := SHORT(ENTIER(p.Value() - 1 + eps));
-			off := off + index * node.step[i];
-			INC(i)
-		END;
-		q := node.vector[off];
-		q.ValDiff(x, val, diff)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New* (): GraphScalar.Node;
 		VAR

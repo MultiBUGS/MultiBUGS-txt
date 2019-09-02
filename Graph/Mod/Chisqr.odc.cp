@@ -46,7 +46,7 @@ MODULE GraphChisqr;
 		VAR
 			class: INTEGER;
 	BEGIN
-		IF (GraphNodes.data IN node.k.props) & (node.k.Value() >= 2.0) THEN
+		IF (GraphNodes.data IN node.k.props) & (node.k.value >= 2.0) THEN
 			class := GraphRules.gamma1
 		ELSE
 			class := GraphRules.gamma
@@ -58,7 +58,7 @@ MODULE GraphChisqr;
 		VAR
 			cumulative, k: REAL;
 	BEGIN
-		k := 0.5 * node.k.Value();
+		k := 0.5 * node.k.value;
 		cumulative := MathCumulative.Chisqr(k, x);
 		RETURN cumulative
 	END Cumulative;
@@ -68,7 +68,7 @@ MODULE GraphChisqr;
 			x, logDensity, k: REAL;
 	BEGIN
 		x := node.value;
-		k := 0.5 * node.k.Value();
+		k := 0.5 * node.k.value;
 		logDensity := - k * Math.Ln(2) + (k - 1.0) * Math.Ln(x) - 0.5 * x - MathFunc.LogGammaFunc(k);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
@@ -78,7 +78,8 @@ MODULE GraphChisqr;
 			differential, k, diffK, val: REAL;
 	BEGIN
 		val := node.value;
-		node.k.ValDiff(x, k, diffK);
+		k := node.k.value;
+		diffK := node.k.Diff(x);
 		k := 0.5 * k;
 		diffK := 0.5 * diffK;
 		differential := - diffK * Math.Ln(2) + diffK * Math.Ln(val) - diffK * MathFunc.Digamma(k);
@@ -89,7 +90,7 @@ MODULE GraphChisqr;
 		VAR
 			k, x: REAL;
 	BEGIN
-		k := node.k.Value();
+		k := node.k.value;
 		x := node.value;
 		RETURN (0.5 * k - 1) / x - 0.5
 	END DiffLogPrior;
@@ -104,7 +105,7 @@ MODULE GraphChisqr;
 			logLikelihood, k, x: REAL;
 	BEGIN
 		x := node.value;
-		k := 0.5 * node.k.Value();
+		k := 0.5 * node.k.value;
 		logLikelihood := - k * Math.Ln(2) + (k - 1.0) * Math.Ln(x) - 0.5 * x - MathFunc.LogGammaFunc(k);
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
@@ -119,7 +120,7 @@ MODULE GraphChisqr;
 			logPrior, k, x: REAL;
 	BEGIN
 		x := node.value;
-		k := 0.5 * node.k.Value();
+		k := 0.5 * node.k.value;
 		logPrior := (k - 1.0) * Math.Ln(x) - 0.5 * x;
 		RETURN logPrior
 	END LogPrior;
@@ -128,14 +129,14 @@ MODULE GraphChisqr;
 		VAR
 			k: REAL;
 	BEGIN
-		k := node.k.Value();
+		k := node.k.value;
 		RETURN k
 	END Location;
 
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		p0 := 0.50 * node.k.Value();
+		p0 := 0.50 * node.k.value;
 		p1 := 0.50
 	END PriorForm;
 
@@ -150,7 +151,7 @@ MODULE GraphChisqr;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.k.Value() < - eps THEN
+		IF node.k.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
 		RETURN {}
@@ -168,7 +169,7 @@ MODULE GraphChisqr;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props,GraphStochastic.leftNatural);
 		node.k := NIL
 	END InitUnivariate;
 
@@ -195,7 +196,7 @@ MODULE GraphChisqr;
 			k, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		k := 0.50 * node.k.Value();
+		k := 0.50 * node.k.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Gamma(k, 0.5)
@@ -209,7 +210,7 @@ MODULE GraphChisqr;
 				x := MathRandnum.GammaIB(k, 0.5, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

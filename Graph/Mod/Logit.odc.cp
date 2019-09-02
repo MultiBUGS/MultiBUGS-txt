@@ -38,35 +38,41 @@ MODULE GraphLogit;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphLogit.Install"
-	END Install;
-
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			x, value: REAL;
 			predictor: GraphNodes.Node;
 	BEGIN
 		predictor := node.predictor;
-		x := predictor.Value();
+		x := predictor.value;
 		IF x < 0.0 THEN
 			value := 1.0 - 1.0 / (1.0 + Math.Exp(x))
 		ELSE
 			value := 1.0 / (1.0 + Math.Exp( - x))
 		END;
-		RETURN value
-	END Value;
+		node.value := value
+	END Evaluate;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs;
 		VAR
 			predictor: GraphNodes.Node;
+			x: GraphNodes.Vector;
+			val: REAL;
+			i, N: INTEGER;
 	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
 		predictor := node.predictor;
-		predictor.ValDiff(x, val, diff);
+		val := predictor.value;
 		val := 1.0 / (1.0 + Math.Exp(-val));
-		diff := diff * val * (1.0 - val)
-	END ValDiff;
+		i := 0; WHILE i < N DO node.diffs[i] := predictor.Diff(x[i]) * val * (1.0 - val); INC(i) END;
+		node.value := val
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphLogit.Install"
+	END Install;
 
 	PROCEDURE (f: Factory) New (): GraphLinkfunc.Node;
 		VAR

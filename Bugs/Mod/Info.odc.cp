@@ -14,7 +14,7 @@ MODULE BugsInfo;
 	IMPORT
 		Strings,
 		TextMappers, TextModels,
-		BugsComponents, BugsEvaluate, BugsFiles, BugsIndex, BugsInterface, BugsMsg,
+		BugsComponents, BugsEvaluate, BugsFiles, BugsGraph, BugsIndex, BugsInterface, BugsMsg,
 		BugsNames, BugsParser, BugsPartition,
 		GraphLogical, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterAuxillary, UpdaterMultivariate, UpdaterUpdaters;
@@ -132,53 +132,12 @@ MODULE BugsInfo;
 		END
 	END MapValue;
 
-	PROCEDURE WriteUpdaterNames* (updater: UpdaterUpdaters.Updater; VAR f: TextMappers.Formatter);
-		VAR
-			k, size: INTEGER;
-			p: GraphStochastic.Node;
-			multiUpdater: UpdaterMultivariate.Updater;
-			string: ARRAY 128 OF CHAR;
-	BEGIN
-		IF (updater IS UpdaterMultivariate.Updater) & ~(updater IS UpdaterAuxillary.UpdaterMV) THEN
-			multiUpdater := updater(UpdaterMultivariate.Updater);
-			size := multiUpdater.Size();
-			k := 1;
-			WHILE k < size DO
-				p := multiUpdater.Prior(k);
-				FindGraphNode(p, string);
-				f.WriteTab; f.WriteChar("("); f.WriteString(string); f.WriteChar(")"); f.WriteLn;
-				INC(k)
-			END
-		END
-	END WriteUpdaterNames;
-
-	PROCEDURE IsConstant* (name: BugsNames.Name;offsets: POINTER TO ARRAY OF INTEGER): BOOLEAN;
-		VAR
-			i, index, size: INTEGER;
-			components: GraphNodes.Vector;
-			node: GraphNodes.Node;
-			isConstant: BOOLEAN;
-	BEGIN
-		IF ~name.passByreference THEN RETURN TRUE END;
-		components := name.components;
-		size := LEN(offsets);
-		i := 0;
-		isConstant := TRUE;
-		WHILE isConstant & (i < size) DO
-			index := offsets[i];
-			node := components[index];
-			isConstant := (node # NIL) & (GraphNodes.data IN node.props);
-			INC(i)
-		END;
-		RETURN isConstant
-	END IsConstant;
-
 	PROCEDURE VariableValues (name: BugsNames.Name; offsets: POINTER TO ARRAY OF INTEGER; numChains: INTEGER;
 	VAR f: TextMappers.Formatter);
 		CONST
 			all = TRUE;
 		VAR
-			i, index, j, max, size: INTEGER;
+			i, index, chain, max, size: INTEGER;
 			string: ARRAY 80 OF CHAR;
 			values: POINTER TO ARRAY OF ARRAY OF REAL;
 			initialized: POINTER TO ARRAY OF ARRAY OF BOOLEAN;
@@ -192,17 +151,19 @@ MODULE BugsInfo;
 		size := LEN(offsets);
 		NEW(values, size, numChains);
 		NEW(initialized, size, numChains);
-		j := 0;
-		WHILE j < numChains DO
-			UpdaterActions.LoadSamples(j);
-			BugsInterface.LoadDeviance(j);
+		isConstant := FALSE;
+		chain := 0;
+		WHILE chain < numChains DO
+			GraphStochastic.LoadValues(chain);
+			GraphLogical.LoadValues(chain);
+			BugsInterface.LoadDeviance(chain);
 			i := 0;
 			WHILE i < size DO
 				index := offsets[i];
 				node := components[index];
 				IF node # NIL THEN
 					IF node IS GraphStochastic.Node THEN
-						initialized[i, j] := {GraphStochastic.initialized, GraphNodes.data} * node.props # {};
+						initialized[i, chain] := {GraphStochastic.initialized, GraphNodes.data} * node.props # {};
 					ELSIF node IS GraphLogical.Node THEN
 						parents := GraphStochastic.Parents(node, all);
 						init := TRUE;
@@ -210,19 +171,20 @@ MODULE BugsInfo;
 							init := GraphStochastic.initialized IN parents.node.props;
 							parents := parents.next
 						END;
-						initialized[i, j] := init
+						initialized[i, chain] := init
 					ELSE
-						initialized[i, j] := TRUE
+						initialized[i, chain] := TRUE
 					END;
-					IF initialized[i, j] THEN values[i, j] := node.Value() END
+					IF initialized[i, chain] THEN values[i, chain] := node.value END
 				END;
 				INC(i)
 			END;
-			INC(j)
+			INC(chain)
 		END;
-		UpdaterActions.LoadSamples(0);
+		GraphStochastic.LoadValues(0);
+		GraphLogical.LoadValues(0);
 		BugsInterface.LoadDeviance(0);
-		IF~ isConstant & (numChains > 1)THEN
+		IF ~isConstant & (numChains > 1)THEN
 			max := 2 + MIN(numChains, 10);
 			f.WriteTab;
 			i := 0;
@@ -243,13 +205,13 @@ MODULE BugsInfo;
 				name.Indices(index, string);
 				f.WriteString(string);
 				f.WriteTab;
-				j := 0;
-				WHILE j < numChains DO
+				chain := 0;
+				WHILE chain < numChains DO
 					f.WriteTab;
 					IF components[index] # NIL THEN
-						IF initialized[i, j] THEN
-							IF ~(GraphNodes.data IN components[index].props) OR (j = 0) THEN
-								WriteReal(values[i, j], f)
+						IF initialized[i, chain] THEN
+							IF ~(GraphNodes.data IN components[index].props) OR (chain = 0) THEN
+								WriteReal(values[i, chain], f)
 							END
 						ELSE
 							f.WriteString("NA")
@@ -257,13 +219,34 @@ MODULE BugsInfo;
 					ELSE
 						f.WriteString("NA")
 					END;
-					INC(j)
+					INC(chain)
 				END;
 				f.WriteLn
 			END;
 			INC(i)
 		END
 	END VariableValues;
+
+	PROCEDURE IsConstant* (name: BugsNames.Name; offsets: POINTER TO ARRAY OF INTEGER): BOOLEAN;
+		VAR
+			i, index, size: INTEGER;
+			components: GraphNodes.Vector;
+			node: GraphNodes.Node;
+			isConstant: BOOLEAN;
+	BEGIN
+		IF ~name.passByreference THEN RETURN TRUE END;
+		components := name.components;
+		size := LEN(offsets);
+		i := 0;
+		isConstant := TRUE;
+		WHILE isConstant & (i < size) DO
+			index := offsets[i];
+			node := components[index];
+			isConstant := (node # NIL) & (GraphNodes.data IN node.props);
+			INC(i)
+		END;
+		RETURN isConstant
+	END IsConstant;
 
 	PROCEDURE Values* (IN variable: ARRAY OF CHAR; VAR numChains: INTEGER;
 	VAR f: TextMappers.Formatter);
@@ -306,6 +289,183 @@ MODULE BugsInfo;
 			END
 		END
 	END Values;
+
+	PROCEDURE WriteUpdaterNames* (updater: UpdaterUpdaters.Updater; VAR f: TextMappers.Formatter);
+		VAR
+			k, size: INTEGER;
+			p: GraphStochastic.Node;
+			multiUpdater: UpdaterMultivariate.Updater;
+			string: ARRAY 128 OF CHAR;
+	BEGIN
+		IF (updater IS UpdaterMultivariate.Updater) & ~(updater IS UpdaterAuxillary.UpdaterMV) THEN
+			multiUpdater := updater(UpdaterMultivariate.Updater);
+			size := multiUpdater.Size();
+			k := 1;
+			WHILE k < size DO
+				p := multiUpdater.Prior(k);
+				FindGraphNode(p, string);
+				f.WriteTab; f.WriteChar("("); f.WriteString(string); f.WriteChar(")"); f.WriteLn;
+				INC(k)
+			END
+		END
+	END WriteUpdaterNames;
+
+	PROCEDURE WriteChain* (chain: INTEGER; VAR f: TextMappers.Formatter);
+		VAR
+			visitor: WriterStochastic;
+	BEGIN
+		GraphStochastic.LoadValues(chain);
+		NEW(visitor);
+		visitor.f := f;
+		visitor.first := TRUE;
+		visitor.f.WriteString("list(");
+		BugsIndex.Accept(visitor);
+		visitor.f.WriteChar(")");
+		visitor.f.WriteLn;
+		f := visitor.f;
+		GraphStochastic.LoadValues(0)
+	END WriteChain;
+
+	PROCEDURE IsData (name: BugsNames.Name): BOOLEAN;
+		VAR
+			isData: BOOLEAN;
+			i, size: INTEGER;
+			node: GraphNodes.Node;
+	BEGIN
+		IF ~name.passByreference THEN RETURN TRUE END;
+		size := name.Size();
+		i := 0;
+		isData := FALSE;
+		WHILE (i < size) & ~isData DO
+			node := name.components[i];
+			IF node # NIL THEN
+				isData := (GraphNodes.data IN node.props) & ~(GraphStochastic.logical IN node.props)
+			END;
+			INC(i)
+		END;
+		RETURN isData
+	END IsData;
+
+	PROCEDURE WriteNode (VAR f: TextMappers.Formatter; name: BugsNames.Name; data: BOOLEAN);
+		CONST
+			maximumCols = 6;
+		VAR
+			counter, i, maxCols, numSlots, size, slot: INTEGER;
+			value: REAL;
+			node: GraphNodes.Node;
+			newAttr, oldAttr: TextModels.Attributes;
+	BEGIN
+		size := name.Size();
+		numSlots := name.numSlots;
+		IF (numSlots > 1) & (name.slotSizes[numSlots - 1] <= 2 * maximumCols) THEN
+			maxCols := name.slotSizes[numSlots - 1]
+		ELSE
+			maxCols := maximumCols
+		END;
+		oldAttr := f.rider.attr;
+		newAttr := TextModels.NewWeight(oldAttr, bold);
+		f.rider.SetAttr(newAttr);
+		f.WriteString(name.string);
+		f.rider.SetAttr(oldAttr);
+		CASE numSlots OF
+		|0:
+			f.WriteString(" = ")
+		|1:
+			f.WriteString(" = c("); f.WriteLn
+		ELSE
+			f.WriteString(" = structure(.Data = c(");
+			f.WriteLn
+		END;
+		counter := 0;
+		i := 0;
+		IF name.passByreference THEN
+			WHILE i < size DO
+				IF counter = 0 THEN f.WriteTab END;
+				node := name.components[i];
+				IF node = NIL THEN
+					f.WriteString("NA")
+				ELSIF data THEN
+					IF (GraphNodes.data IN node.props) & ~(GraphStochastic.logical IN node.props) THEN
+						value := node.value;
+						IF (node IS GraphStochastic.Node) & ~(GraphStochastic.integer IN node.props) THEN
+							WriteReal(value, f)
+						ELSE
+							WriteRealInt(value, f)
+						END
+					ELSE
+						f.WriteString("NA")
+					END
+				ELSIF node IS GraphStochastic.Node THEN
+					IF ~(GraphNodes.data IN node.props) & (GraphStochastic.initialized IN node.props) THEN
+						value := node.value;
+						WriteReal(value, f)
+					ELSE
+						f.WriteString("NA")
+					END
+				ELSE
+					f.WriteString("NA")
+				END;
+				INC(counter);
+				IF i # size - 1 THEN
+					f.WriteChar(",");
+					IF counter # maxCols THEN f.WriteTab END
+				END;
+				IF (counter = maxCols) & (i # size - 1) THEN
+					f.WriteLn;
+					counter := 0
+				END;
+				INC(i)
+			END
+		ELSE
+			WHILE i < size DO
+				IF name.IsDefined(i) THEN
+					value := name.Value(i);
+					WriteReal(value, f)
+				ELSE
+					f.WriteString("NA")
+				END;
+				INC(counter);
+				IF i # size - 1 THEN
+					f.WriteChar(",");
+					IF counter # maxCols THEN f.WriteTab END
+				END;
+				IF (counter = maxCols) & (i # size - 1) THEN
+					f.WriteLn;
+					counter := 0
+				END;
+				INC(i)
+			END
+		END;
+		IF numSlots = 1 THEN
+			f.WriteChar(")")
+		ELSIF numSlots > 1 THEN
+			f.WriteString("),");
+			f.WriteLn;
+			f.WriteString(".Dim = c(");
+			slot := 0;
+			WHILE slot < numSlots DO
+				f.WriteInt(name.slotSizes[slot]);
+				IF slot # numSlots - 1 THEN
+					f.WriteChar(",")
+				END;
+				INC(slot)
+			END;
+			f.WriteString("))")
+		END
+	END WriteNode;
+
+	PROCEDURE (v: WriterData) Do (name: BugsNames.Name);
+		VAR
+			data: BOOLEAN;
+	BEGIN
+		IF IsData(name) THEN
+			IF ~v.first THEN v.f.WriteChar(",") END;
+			v.first := FALSE;
+			v.f.WriteLn;
+			data := TRUE;
+			WriteNode(v.f, name, data)
+		END
+	END Do;
 
 	PROCEDURE CountDataNode (name: BugsNames.Name): INTEGER;
 		VAR
@@ -375,114 +535,6 @@ MODULE BugsInfo;
 		RETURN count
 	END CountObservedNode;
 
-	PROCEDURE WriteNode (VAR f: TextMappers.Formatter; name: BugsNames.Name; data: BOOLEAN);
-		CONST
-			maximumCols = 6;
-		VAR
-			counter, i, maxCols, numSlots, size, slot: INTEGER;
-			value: REAL;
-			node: GraphNodes.Node;
-			newAttr, oldAttr: TextModels.Attributes;
-	BEGIN
-		size := name.Size();
-		numSlots := name.numSlots;
-		IF (numSlots > 1) & (name.slotSizes[numSlots - 1] <= 2 * maximumCols) THEN
-			maxCols := name.slotSizes[numSlots - 1]
-		ELSE
-			maxCols := maximumCols
-		END;
-		oldAttr := f.rider.attr;
-		newAttr := TextModels.NewWeight(oldAttr, bold);
-		f.rider.SetAttr(newAttr);
-		f.WriteString(name.string);
-		f.rider.SetAttr(oldAttr);
-		CASE numSlots OF
-		|0:
-			f.WriteString(" = ")
-		|1:
-			f.WriteString(" = c("); f.WriteLn
-		ELSE
-			f.WriteString(" = structure(.Data = c(");
-			f.WriteLn
-		END;
-		counter := 0;
-		i := 0;
-		IF name.passByreference THEN
-			WHILE i < size DO
-				IF counter = 0 THEN f.WriteTab END;
-				node := name.components[i];
-				IF node = NIL THEN
-					f.WriteString("NA")
-				ELSIF data THEN
-					IF (GraphNodes.data IN node.props) & ~(GraphStochastic.logical IN node.props) THEN
-						value := node.Value();
-						IF (node IS GraphStochastic.Node) & ~(GraphStochastic.integer IN node.props) THEN
-							WriteReal(value, f)
-						ELSE
-							WriteRealInt(value, f)
-						END
-					ELSE
-						f.WriteString("NA")
-					END
-				ELSIF node IS GraphStochastic.Node THEN
-					IF ~(GraphNodes.data IN node.props) & (GraphStochastic.initialized IN node.props) THEN
-						value := node.Value();
-						WriteReal(value, f)
-					ELSE
-						f.WriteString("NA")
-					END
-				ELSE
-					f.WriteString("NA")
-				END;
-				INC(counter);
-				IF i # size - 1 THEN
-					f.WriteChar(",");
-					IF counter # maxCols THEN f.WriteTab END
-				END;
-				IF (counter = maxCols) & (i # size - 1) THEN
-					f.WriteLn;
-					counter := 0
-				END;
-				INC(i)
-			END
-		ELSE
-			WHILE i < size DO
-				IF name.IsDefined(i) THEN
-					value := name.Value(i);
-					WriteReal(value, f)
-				ELSE
-					f.WriteString("NA")
-				END;
-				INC(counter);
-				IF i # size - 1 THEN
-					f.WriteChar(",");
-					IF counter # maxCols THEN f.WriteTab END
-				END;
-				IF (counter = maxCols) & (i # size - 1) THEN
-					f.WriteLn;
-					counter := 0
-				END;
-				INC(i)
-			END
-		END;
-		IF numSlots = 1 THEN
-			f.WriteChar(")")
-		ELSIF numSlots > 1 THEN
-			f.WriteString("),");
-			f.WriteLn;
-			f.WriteString(".Dim = c(");
-			slot := 0;
-			WHILE slot < numSlots DO
-				f.WriteInt(name.slotSizes[slot]);
-				IF slot # numSlots - 1 THEN
-					f.WriteChar(",")
-				END;
-				INC(slot)
-			END;
-			f.WriteString("))")
-		END
-	END WriteNode;
-
 	PROCEDURE IsStochastic (name: BugsNames.Name): BOOLEAN;
 		VAR
 			isStochastic: BOOLEAN;
@@ -525,6 +577,26 @@ MODULE BugsInfo;
 		INC(v.count, count)
 	END Do;
 
+	PROCEDURE CountDiffs (): REAL;
+		VAR
+			i, num, numDiffs: INTEGER;
+			nodes: GraphLogical.Vector;
+	BEGIN
+		nodes := GraphLogical.nodes;
+		numDiffs := 0;
+		IF nodes # NIL THEN
+			num := LEN(nodes);
+			i := 0;
+			WHILE i < num DO
+				IF nodes[i].diffWRT # NIL THEN
+					INC(numDiffs, LEN(nodes[i].diffWRT))
+				END;
+				INC(i)
+			END
+		END;
+		RETURN numDiffs / num
+	END CountDiffs;
+
 	PROCEDURE (v: CountLogical) Do (name: BugsNames.Name);
 		VAR
 			count: INTEGER;
@@ -541,54 +613,42 @@ MODULE BugsInfo;
 		INC(v.count, count)
 	END Do;
 
-	PROCEDURE WriteChain* (chain: INTEGER; VAR f: TextMappers.Formatter);
+	PROCEDURE (v: WriterUninit) Do (name: BugsNames.Name);
 		VAR
-			visitor: WriterStochastic;
-	BEGIN
-		UpdaterActions.LoadSamples(chain);
-		NEW(visitor);
-		visitor.f := f;
-		visitor.first := TRUE;
-		visitor.f.WriteString("list(");
-		BugsIndex.Accept(visitor);
-		visitor.f.WriteChar(")");
-		visitor.f.WriteLn;
-		f := visitor.f;
-		UpdaterActions.LoadSamples(0)
-	END WriteChain;
-
-	PROCEDURE IsData (name: BugsNames.Name): BOOLEAN;
-		VAR
-			isData: BOOLEAN;
 			i, size: INTEGER;
-			node: GraphNodes.Node;
+			p: GraphNodes.Node;
+			string: ARRAY 128 OF CHAR;
 	BEGIN
-		IF ~name.passByreference THEN RETURN TRUE END;
-		size := name.Size();
-		i := 0;
-		isData := FALSE;
-		WHILE (i < size) & ~isData DO
-			node := name.components[i];
-			IF node # NIL THEN
-				isData := (GraphNodes.data IN node.props) & ~(GraphStochastic.logical IN node.props)
-			END;
-			INC(i)
-		END;
-		RETURN isData
-	END IsData;
-
-	PROCEDURE (v: WriterData) Do (name: BugsNames.Name);
-		VAR
-			data: BOOLEAN;
-	BEGIN
-		IF IsData(name) THEN
-			IF ~v.first THEN v.f.WriteChar(",") END;
-			v.first := FALSE;
-			v.f.WriteLn;
-			data := TRUE;
-			WriteNode(v.f, name, data)
+		IF name.passByreference THEN
+			i := 0;
+			size := name.Size();
+			WHILE i < size DO
+				p := name.components[i];
+				IF (p # NIL) & (p IS GraphStochastic.Node) & 
+					(GraphStochastic.update IN p.props) & ~(GraphStochastic.initialized IN p.props) THEN
+					name.Indices(i, string);
+					string := name.string + string;
+					v.f.WriteString(string); v.f.WriteLn;
+				END;
+				INC(i)
+			END
 		END
 	END Do;
+
+	PROCEDURE UpdaterType (updater: UpdaterUpdaters.Updater; OUT type: ARRAY OF CHAR);
+		VAR
+			pos, len: INTEGER;
+			string: ARRAY 10 OF CHAR;
+	BEGIN
+		updater.Install(type);
+		BugsMsg.Lookup(type, type);
+		Strings.Find(type, "Install", 0, pos);
+		IF pos # - 1 THEN
+			string := "Install";
+			len := LEN(string$);
+			Strings.Replace(type, pos, len, "Updater")
+		END
+	END UpdaterType;
 
 	PROCEDURE CountDatum* (): INTEGER;
 		VAR
@@ -620,290 +680,6 @@ MODULE BugsInfo;
 		RETURN visitor.count
 	END CountObservations;
 
-	PROCEDURE WriteData* (VAR f: TextMappers.Formatter);
-		VAR
-			visitor: WriterData;
-	BEGIN
-		NEW(visitor);
-		visitor.f := f;
-		visitor.first := TRUE;
-		visitor.f.WriteString("list(");
-		BugsIndex.Accept(visitor);
-		visitor.f.WriteChar(")");
-		visitor.f.WriteLn;
-		f := visitor.f;
-	END WriteData;
-
-	PROCEDURE (v: WriterUninit) Do (name: BugsNames.Name);
-		VAR
-			i, size: INTEGER;
-			p: GraphNodes.Node;
-			string: ARRAY 128 OF CHAR;
-	BEGIN
-		IF name.passByreference THEN
-			i := 0;
-			size := name.Size();
-			WHILE i < size DO
-				p := name.components[i];
-				IF (p # NIL) & (p IS GraphStochastic.Node) & 
-					(GraphStochastic.update IN p.props) & ~(GraphStochastic.initialized IN p.props) THEN
-					name.Indices(i, string);
-					string := name.string + string;
-					v.f.WriteString(string); v.f.WriteLn;
-				END;
-				INC(i)
-			END
-		END
-	END Do;
-
-	PROCEDURE WriteUninitNodes* (chain: INTEGER; VAR f: TextMappers.Formatter);
-		VAR
-			visitor: WriterUninit;
-	BEGIN
-		UpdaterActions.LoadSamples(chain);
-		NEW(visitor);
-		visitor.f := f;
-		BugsIndex.Accept(visitor);
-		f := visitor.f;
-		UpdaterActions.LoadSamples(0)
-	END WriteUninitNodes;
-
-	PROCEDURE ModelMetrics* (VAR f: TextMappers.Formatter);
-		VAR
-			numUpdater, numData, numObs, meanNumChild,
-			medianNumChild, numLogical, numParam, minDepth, maxDepth,
-			numDet, numStoch, numNames: INTEGER;
-	BEGIN
-		numObs := CountObservations();
-		numData := CountDatum();
-		numLogical := CountLogicals();
-		numParam := UpdaterActions.NumParameters();
-		numUpdater := UpdaterActions.NumberUpdaters();
-		meanNumChild := UpdaterActions.MeanNumChildren();
-		medianNumChild := UpdaterActions.MedianNumChildren();
-		UpdaterActions.MinMaxDepth(minDepth, maxDepth);
-		maxDepth := MAX(ABS(minDepth), ABS(maxDepth));
-		BugsParser.CountStatements(numDet, numStoch);
-		numNames := BugsIndex.NumberNames();
-		f.WriteTab;
-		f.WriteString("Number of names: ");
-		f.WriteInt(numNames);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of logical relations: ");
-		f.WriteInt(numDet);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of stochastic relations: ");
-		f.WriteInt(numStoch);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of constants: ");
-		f.WriteInt(numData);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of observations: ");
-		f.WriteInt(numObs);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of expressions: ");
-		f.WriteInt(numLogical);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of parameters: ");
-		f.WriteInt(numParam);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Number of updaters: ");
-		f.WriteInt(numUpdater);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Depth of model graph: ");
-		f.WriteInt(maxDepth);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Mean number of children per updater: ");
-		f.WriteInt(meanNumChild);
-		f.WriteLn;
-		f.WriteTab;
-		f.WriteString("Median number of children per updater: ");
-		f.WriteInt(medianNumChild);
-		f.WriteLn;
-	END ModelMetrics;
-
-	PROCEDURE UpdaterType (updater: UpdaterUpdaters.Updater; OUT type: ARRAY OF CHAR);
-		VAR
-			pos, len: INTEGER;
-			string: ARRAY 10 OF CHAR;
-	BEGIN
-		updater.Install(type);
-		BugsMsg.Lookup(type, type);
-		Strings.Find(type, "Install", 0, pos);
-		IF pos # - 1 THEN
-			string := "Install";
-			len := LEN(string$);
-			Strings.Replace(type, pos, len, "Updater")
-		END
-	END UpdaterType;
-
-	PROCEDURE UpdatersByName* (VAR f: TextMappers.Formatter);
-		VAR
-			depth, factors, i, j, len, size: INTEGER;
-			name: BugsNames.Name;
-			p: GraphNodes.Node;
-			stoch: GraphStochastic.Node;
-			children: GraphStochastic.Vector;
-			updater: UpdaterUpdaters.Updater;
-			string: ARRAY 128 OF CHAR;
-		CONST
-			chain = 0;
-	BEGIN
-		f.WriteTab;
-		f.WriteTab;
-		f.WriteString("Updater type");
-		f.WriteTab;
-		f.WriteString("Size");
-		f.WriteTab;
-		f.WriteString("Depth");
-		f.WriteTab;
-		f.WriteString("Childs");
-		f.WriteLn;
-		i := 0;
-		LOOP
-			name := BugsIndex.FindByNumber(i);
-			IF name = NIL THEN EXIT END;
-			IF name.passByreference THEN
-				j := 0;
-				len := name.Size();
-				WHILE j < len DO
-					p := name.components[j];
-					IF (p # NIL) & (p IS GraphStochastic.Node) & (GraphStochastic.update IN p.props) THEN
-						stoch := p(GraphStochastic.Node);
-						updater := UpdaterActions.FindSampler(chain, stoch);
-						IF updater # NIL THEN
-							size := updater.Size();
-							depth := updater.Depth();
-							children := updater.Children();
-							IF children # NIL THEN factors := LEN(children) ELSE factors := 0 END;
-							name.Indices(j, string);
-							string := name.string + string;
-							f.WriteTab; f.WriteString(string);
-							UpdaterType(updater, string);
-							f.WriteTab;
-							BugsMsg.Lookup(string, string);
-							f.WriteString(string);
-							f.WriteTab;
-							f.WriteInt(size);
-							f.WriteTab;
-							f.WriteInt(ABS(depth));
-							f.WriteTab;
-							f.WriteInt(factors);
-							f.WriteLn;
-							WriteUpdaterNames(updater, f)
-						END
-					END;
-					INC(j)
-				END
-			END;
-			INC(i);
-		END
-	END UpdatersByName;
-
-	PROCEDURE UpdatersByDepth* (VAR f: TextMappers.Formatter);
-		VAR
-			depth, i, factors, size, numUpdaters, pos: INTEGER;
-			p: GraphStochastic.Node;
-			children: GraphStochastic.Vector;
-			updater: UpdaterUpdaters.Updater;
-			string, sizeString: ARRAY 128 OF CHAR;
-		CONST
-			chain = 0;
-	BEGIN
-		f.WriteTab;
-		f.WriteTab;
-		f.WriteString("Updater type");
-		f.WriteTab;
-		f.WriteString("Size");
-		f.WriteTab;
-		f.WriteString("Depth");
-		f.WriteTab;
-		f.WriteString("Childs");
-		f.WriteLn;
-		numUpdaters := UpdaterActions.NumberUpdaters();
-		i := 0;
-		WHILE i < numUpdaters DO
-			updater := UpdaterActions.updaters[chain, i];
-			IF updater # NIL THEN
-				size := updater.Size();
-				depth := updater.Depth();
-				children := updater.Children();
-				IF children # NIL THEN factors := LEN(children) ELSE factors := 0 END;
-				p := updater.Prior(0);
-				FindGraphNode(p, string);
-				WITH updater: UpdaterAuxillary.UpdaterUV DO
-					string := "aux_" + string
-				|updater: UpdaterAuxillary.UpdaterMV DO
-					Strings.IntToString(size, sizeString);
-					string := "aux[1:" + sizeString + "]_" + string
-				ELSE
-				END;
-				IF size = 0 THEN (*	is a constraint	*)
-					Strings.Find(string, ",", 0, pos); 
-					IF pos # -1 THEN
-						string[pos] := "]"; string[pos + 1] := 0X
-					ELSE
-						Strings.Find(string, "[", 0, pos); 
-						IF pos # - 1 THEN string[pos] := 0X END;
-						string := string + "[]"
-					END
-				END;
-				f.WriteTab;
-				f.WriteString(string);
-				f.WriteTab;
-				UpdaterType(updater, string);
-				f.WriteString(string);
-				f.WriteTab;
-				f.WriteInt(size);
-				f.WriteTab;
-				f.WriteInt(ABS(depth));
-				f.WriteTab;
-				f.WriteInt(factors);
-				f.WriteLn;
-				WriteUpdaterNames(updater, f)
-			ELSE
-				f.WriteString(" dummy updater");
-				f.WriteLn
-			END;
-			INC(i)
-		END
-	END UpdatersByDepth;
-
-	PROCEDURE MapValues* (VAR f: TextMappers.Formatter);
-		VAR
-			i, numUpdaters: INTEGER;
-			updater: UpdaterUpdaters.Updater;
-		CONST
-			chain = 0;
-	BEGIN
-		f.WriteTab;
-		f.WriteTab;
-		f.WriteString("Value");
-		f.WriteTab;
-		f.WriteString("Mapped value");
-		f.WriteTab;
-		f.WriteString("Value");
-		f.WriteLn;
-		numUpdaters := UpdaterActions.NumberUpdaters();
-		i := 0;
-		WHILE i < numUpdaters DO
-			updater := UpdaterActions.updaters[chain, i];
-			IF updater # NIL THEN
-				MapValue(updater, f)
-			END;
-			INC(i)
-		END
-	END MapValues;
-
 	PROCEDURE Distribute* (workersPerChain: INTEGER; VAR f: TextMappers.Formatter);
 		VAR
 			i, j, index, label, numUpdaters, pos, size: INTEGER;
@@ -923,7 +699,7 @@ MODULE BugsInfo;
 			id := NIL
 		ELSE
 			BugsPartition.DistributeUpdaters(workersPerChain, updaters, id);
-			observations := BugsPartition.DistributeObservations(updaters); 
+			observations := BugsPartition.DistributeObservations(updaters);
 			BugsPartition.DistributeCensored(observations, updaters, id)
 		END;
 		f.WriteLn;
@@ -964,7 +740,7 @@ MODULE BugsInfo;
 					p := u.Prior(0);
 					FindGraphNode(p, string);
 					Strings.Find(string, ",", 0, pos);
-					IF pos # -1 THEN
+					IF pos # - 1 THEN
 						string[pos] := "}"; string[pos + 1] := 0X
 					ELSE
 						Strings.Find(string, "[", 0, pos);
@@ -1203,6 +979,240 @@ MODULE BugsInfo;
 			END
 		END
 	END DistributeInfo;
+
+	PROCEDURE MapValues* (VAR f: TextMappers.Formatter);
+		VAR
+			i, numUpdaters: INTEGER;
+			updater: UpdaterUpdaters.Updater;
+		CONST
+			chain = 0;
+	BEGIN
+		f.WriteTab;
+		f.WriteTab;
+		f.WriteString("Value");
+		f.WriteTab;
+		f.WriteString("Mapped value");
+		f.WriteTab;
+		f.WriteString("Value");
+		f.WriteLn;
+		numUpdaters := UpdaterActions.NumberUpdaters();
+		i := 0;
+		WHILE i < numUpdaters DO
+			updater := UpdaterActions.updaters[chain, i];
+			IF updater # NIL THEN
+				MapValue(updater, f)
+			END;
+			INC(i)
+		END
+	END MapValues;
+
+	PROCEDURE ModelMetrics* (VAR f: TextMappers.Formatter);
+		VAR
+			numUpdater, numData, numObs, meanNumChild,
+			medianNumChild, numLogical, numParam, minDepth, maxDepth,
+			maxLevel, numDet, numNames, numStoch, numTotLog: INTEGER;
+			avDiffs: LONGINT;
+	BEGIN
+		numObs := CountObservations();
+		numData := CountDatum();
+		numLogical := CountLogicals();
+		numTotLog := LEN(GraphLogical.nodes);
+		numParam := UpdaterActions.NumParameters();
+		numUpdater := UpdaterActions.NumberUpdaters();
+		meanNumChild := UpdaterActions.MeanNumChildren();
+		medianNumChild := UpdaterActions.MedianNumChildren();
+		UpdaterActions.MinMaxDepth(minDepth, maxDepth);
+		maxDepth := MAX(ABS(minDepth), ABS(maxDepth));
+		BugsParser.CountStatements(numDet, numStoch);
+		numNames := BugsIndex.NumberNames();
+		f.WriteTab; f.WriteString("Number of names: ");
+		f.WriteInt(numNames); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of logical relations: ");
+		f.WriteInt(numDet); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of stochastic relations: ");
+		f.WriteInt(numStoch); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of constants: ");
+		f.WriteInt(numData); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of observations: ");
+		f.WriteInt(numObs); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of named logical: ");
+		f.WriteInt(numLogical); f.WriteLn;
+		f.WriteTab; f.WriteString("Total number of logical: ");
+		f.WriteInt(numTotLog); f.WriteLn;
+		f.WriteTab; f.WriteString("Max nesting of logical: ");
+		f.WriteInt(GraphLogical.nodes[numTotLog - 1].level); f.WriteLn;
+		avDiffs := ENTIER(100 * CountDiffs());
+		f.WriteTab; f.WriteString("Average num diffs: ");
+		f.WriteInt(avDiffs DIV 100); f.WriteChar("."); f.WriteInt(avDiffs MOD 100); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of parameters: ");
+		f.WriteInt(numParam); f.WriteLn;
+		f.WriteTab; f.WriteString("Number of updaters: ");
+		f.WriteInt(numUpdater); f.WriteLn;
+		f.WriteTab; f.WriteString("Depth of model graph: ");
+		f.WriteInt(maxDepth); f.WriteLn;
+		f.WriteTab; f.WriteString("Mean number of children per updater: ");
+		f.WriteInt(meanNumChild); f.WriteLn;
+		f.WriteTab; f.WriteString("Median number of children per updater: ");
+		f.WriteInt(medianNumChild); f.WriteLn;
+	END ModelMetrics;
+
+	PROCEDURE UpdatersByName* (VAR f: TextMappers.Formatter);
+		VAR
+			depth, factors, i, j, len, size: INTEGER;
+			name: BugsNames.Name;
+			p: GraphNodes.Node;
+			stoch: GraphStochastic.Node;
+			children: GraphStochastic.Vector;
+			updater: UpdaterUpdaters.Updater;
+			string: ARRAY 128 OF CHAR;
+		CONST
+			chain = 0;
+	BEGIN
+		f.WriteTab;
+		f.WriteTab;
+		f.WriteString("Updater type");
+		f.WriteTab;
+		f.WriteString("Size");
+		f.WriteTab;
+		f.WriteString("Depth");
+		f.WriteTab;
+		f.WriteString("Childs");
+		f.WriteLn;
+		i := 0;
+		LOOP
+			name := BugsIndex.FindByNumber(i);
+			IF name = NIL THEN EXIT END;
+			IF name.passByreference THEN
+				j := 0;
+				len := name.Size();
+				WHILE j < len DO
+					p := name.components[j];
+					IF (p # NIL) & (p IS GraphStochastic.Node) & (GraphStochastic.update IN p.props) THEN
+						stoch := p(GraphStochastic.Node);
+						updater := UpdaterActions.FindSampler(chain, stoch);
+						IF updater # NIL THEN
+							size := updater.Size();
+							depth := updater.Depth();
+							children := updater.Children();
+							IF children # NIL THEN factors := LEN(children) ELSE factors := 0 END;
+							name.Indices(j, string);
+							string := name.string + string;
+							f.WriteTab; f.WriteString(string);
+							UpdaterType(updater, string);
+							f.WriteTab;
+							BugsMsg.Lookup(string, string);
+							f.WriteString(string);
+							f.WriteTab;
+							f.WriteInt(size);
+							f.WriteTab;
+							f.WriteInt(ABS(depth));
+							f.WriteTab;
+							f.WriteInt(factors);
+							f.WriteLn;
+							WriteUpdaterNames(updater, f)
+						END
+					END;
+					INC(j)
+				END
+			END;
+			INC(i);
+		END
+	END UpdatersByName;
+
+	PROCEDURE UpdatersByDepth* (VAR f: TextMappers.Formatter);
+		VAR
+			depth, i, factors, size, numUpdaters, pos: INTEGER;
+			p: GraphStochastic.Node;
+			children: GraphStochastic.Vector;
+			updater: UpdaterUpdaters.Updater;
+			string, sizeString: ARRAY 128 OF CHAR;
+		CONST
+			chain = 0;
+	BEGIN
+		f.WriteTab;
+		f.WriteTab;
+		f.WriteString("Updater type");
+		f.WriteTab;
+		f.WriteString("Size");
+		f.WriteTab;
+		f.WriteString("Depth");
+		f.WriteTab;
+		f.WriteString("Childs");
+		f.WriteLn;
+		numUpdaters := UpdaterActions.NumberUpdaters();
+		i := 0;
+		WHILE i < numUpdaters DO
+			updater := UpdaterActions.updaters[chain, i];
+			IF updater # NIL THEN
+				size := updater.Size();
+				depth := updater.Depth();
+				children := updater.Children();
+				IF children # NIL THEN factors := LEN(children) ELSE factors := 0 END;
+				p := updater.Prior(0);
+				FindGraphNode(p, string);
+				WITH updater: UpdaterAuxillary.UpdaterUV DO
+					string := "aux_" + string
+				|updater: UpdaterAuxillary.UpdaterMV DO
+					Strings.IntToString(size, sizeString);
+					string := "aux[1:" + sizeString + "]_" + string
+				ELSE
+				END;
+				IF size = 0 THEN (*	is a constraint	*)
+					Strings.Find(string, ",", 0, pos);
+					IF pos # - 1 THEN
+						string[pos] := "]"; string[pos + 1] := 0X
+					ELSE
+						Strings.Find(string, "[", 0, pos);
+						IF pos # - 1 THEN string[pos] := 0X END;
+						string := string + "[]"
+					END
+				END;
+				f.WriteTab;
+				f.WriteString(string);
+				f.WriteTab;
+				UpdaterType(updater, string);
+				f.WriteString(string);
+				f.WriteTab;
+				f.WriteInt(size);
+				f.WriteTab;
+				f.WriteInt(ABS(depth));
+				f.WriteTab;
+				f.WriteInt(factors);
+				f.WriteLn;
+				WriteUpdaterNames(updater, f)
+			ELSE
+				f.WriteString(" dummy updater");
+				f.WriteLn
+			END;
+			INC(i)
+		END
+	END UpdatersByDepth;
+
+	PROCEDURE WriteData* (VAR f: TextMappers.Formatter);
+		VAR
+			visitor: WriterData;
+	BEGIN
+		NEW(visitor);
+		visitor.f := f;
+		visitor.first := TRUE;
+		visitor.f.WriteString("list(");
+		BugsIndex.Accept(visitor);
+		visitor.f.WriteChar(")");
+		visitor.f.WriteLn;
+		f := visitor.f;
+	END WriteData;
+
+	PROCEDURE WriteUninitNodes* (chain: INTEGER; VAR f: TextMappers.Formatter);
+		VAR
+			visitor: WriterUninit;
+	BEGIN
+		BugsGraph.LoadInits(chain);
+		NEW(visitor);
+		visitor.f := f;
+		BugsIndex.Accept(visitor);
+		f := visitor.f;
+		BugsGraph.LoadInits(0)
+	END WriteUninitNodes;
 
 	PROCEDURE Maintainer;
 	BEGIN

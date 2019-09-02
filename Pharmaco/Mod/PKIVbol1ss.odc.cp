@@ -44,11 +44,11 @@ MODULE PharmacoPKIVbol1ss;
 		END ProfileSS;
 
 	BEGIN
-		CL := Math.Exp(params[0].Value());
-		V := Math.Exp(params[1].Value());
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
-		omega := scalars[PharmacoModel.omega].Value();
+		CL := Math.Exp(params[0].value);
+		V := Math.Exp(params[1].value);
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
+		omega := scalars[PharmacoModel.omega].value;
 		IF time < - eps THEN time := time + omega * Math.Ceiling(( - time - eps) / omega) END;
 		value := ProfileSS(time);
 		IF value < 0 THEN value := 0 END;
@@ -65,10 +65,10 @@ MODULE PharmacoPKIVbol1ss;
 		install := "PharmacoPKIVbol1ss.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

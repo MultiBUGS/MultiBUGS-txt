@@ -15,10 +15,11 @@ MODULE BugsOptimize;
 	IMPORT
 		Math,
 		BugsCodegen, BugsEvaluate, BugsParser,
-		GraphConstant, GraphGrammar, GraphNodes, GraphStochastic, GraphVector,
+		GraphConstant, GraphGrammar, GraphLogical, GraphNodes, GraphStochastic, GraphVector,
 		MathFunc;
 
 	VAR
+		scalar: GraphLogical.Vector;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -97,9 +98,9 @@ MODULE BugsOptimize;
 	PROCEDURE UMinus (tree: BugsParser.Binary);
 	BEGIN
 		FoldConstants(tree.left);
-		IF tree.left.evaluated THEN 
+		IF tree.left.evaluated THEN
 			tree.evaluated := TRUE;
-			tree.value :=  - tree.left.value
+			tree.value := - tree.left.value
 		END
 	END UMinus;
 
@@ -433,10 +434,10 @@ MODULE BugsOptimize;
 						args.scalars[0] := GraphConstant.New(t.parents[0].value);
 						ref := fact.New();
 						ref.Set(args, res);
-						t.value := ref.Value()
+						t.value := ref.value
 					ELSE
 						args.Init;
-						BugsCodegen.WriteFunctionArgs(t, args); 
+						BugsCodegen.WriteFunctionArgs(t, args);
 						t.evaluated := args.valid;
 						IF t.evaluated THEN
 							ref := fact.New();
@@ -445,7 +446,10 @@ MODULE BugsOptimize;
 								ref.Set(args, res);
 								t.evaluated := (res = {}) & (GraphNodes.data IN ref.props);
 								IF t.evaluated THEN
-									t.value := ref.Value()
+									scalar[0] := ref(GraphLogical.Node);;
+									GraphLogical.Evaluate(scalar);
+									t.value := ref.value;
+									scalar[0] := NIL
 								END
 							END
 						END
@@ -453,11 +457,9 @@ MODULE BugsOptimize;
 				END
 			|t: BugsParser.Variable DO
 				ref := BugsEvaluate.RHScalar(t);
-				IF ref = NIL THEN
-					RETURN
-				END;
+				IF ref = NIL THEN RETURN END;
 				t.evaluated := GraphNodes.data IN ref.props;
-				IF t.evaluated THEN t.value := ref.Value() END
+				IF t.evaluated THEN t.value := ref.value END
 			|t: BugsParser.Integer DO
 				t.evaluated := TRUE;
 				t.value := t.integer
@@ -556,6 +558,12 @@ MODULE BugsOptimize;
 		maintainer := "A.Thomas"
 	END Maintainer;
 
+	PROCEDURE Init;
+	BEGIN
+		Maintainer;
+		NEW(scalar, 1)
+	END Init;
+
 BEGIN
-	Maintainer
+	Init
 END BugsOptimize.

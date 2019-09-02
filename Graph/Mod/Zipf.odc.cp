@@ -44,7 +44,7 @@ MODULE GraphZipf;
 			alpha: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		IF (GraphStochastic.update IN node.props) & (ABS(r - node.value) > eps) THEN
 			RETURN {GraphNodes.integer, GraphNodes.lhs}
 		END;
@@ -81,7 +81,7 @@ MODULE GraphZipf;
 		VAR
 			alpha, logDensity, x: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		x := node.value;
 		logDensity := - Math.Ln(MathFunc.Zeta(alpha)) - alpha * Math.Ln(x);
 		RETURN - 2.0 * logDensity
@@ -106,8 +106,8 @@ MODULE GraphZipf;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
-		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.noCDF});
+		node.props := node.props + 
+		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.noCDF};
 		node.alpha := NIL
 	END InitUnivariate;
 
@@ -125,7 +125,7 @@ MODULE GraphZipf;
 		VAR
 			alpha, logDensity, x: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		x := node.value;
 		; logDensity := - Math.Ln(MathFunc.Zeta(alpha)) - alpha * Math.Ln(x);
 		RETURN logDensity
@@ -135,7 +135,7 @@ MODULE GraphZipf;
 		VAR
 			alpha, logPrior, x: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		x := node.value;
 		logPrior := - alpha * Math.Ln(x);
 		RETURN logPrior
@@ -145,7 +145,7 @@ MODULE GraphZipf;
 		VAR
 			alpha: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		RETURN MathFunc.Zeta(alpha - 1) / MathFunc.Zeta(alpha)
 	END Location;
 
@@ -173,7 +173,7 @@ MODULE GraphZipf;
 			bounds: SET;
 			lower, upper: INTEGER;
 	BEGIN
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			r := MathRandnum.Zipf(alpha)
@@ -191,7 +191,7 @@ MODULE GraphZipf;
 				r := MathRandnum.ZipfIB(alpha, lower, upper);
 			END
 		END;
-		node.SetValue(r);
+		node.value := r;
 		res := {}
 	END Sample;
 

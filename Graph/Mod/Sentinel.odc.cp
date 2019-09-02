@@ -36,9 +36,17 @@ MODULE GraphSentinel;
 		RETURN class
 	END ClassFunction;
 	
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-	END ExternalizeLogical;
+	END Evaluate;
+	
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+	END EvaluateDiffs;
+	
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
+	BEGIN
+	END ExternalizeScalar;
 	
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -49,9 +57,9 @@ MODULE GraphSentinel;
 		install := "GraphSentinel.Install"
 	END Install;
 	
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
-	END InternalizeLogical;
+	END InternalizeScalar;
 	
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 	BEGIN
@@ -61,15 +69,6 @@ MODULE GraphSentinel;
 	PROCEDURE (node: Node) Set (IN args: GraphNodes.Args; OUT res: SET);
 	BEGIN
 	END Set;
-	
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-	END ValDiff;
-	
-	PROCEDURE (node: Node) Value (): REAL;
-	BEGIN
-		RETURN 0.0
-	END Value;
 
 	PROCEDURE Maintainer;
 	BEGIN

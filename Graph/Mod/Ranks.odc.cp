@@ -14,19 +14,19 @@ MODULE GraphRanks;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic, GraphScalar, GraphVector,
+		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphVector,
 		MathSort;
 
 	TYPE
 
-		RankedNode = POINTER TO RECORD(GraphMemory.Node)
+		RankedNode = POINTER TO RECORD(GraphScalar.Node)
 			start, step, nElem: INTEGER;
 			rank: GraphNodes.Node;
 			vector: GraphNodes.Vector;
 			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
-		RankNode = POINTER TO RECORD(GraphMemory.Node)
+		RankNode = POINTER TO RECORD(GraphScalar.Node)
 			start, step, nElem: INTEGER;
 			index: GraphNodes.Node;
 			vector: GraphNodes.Vector;
@@ -39,9 +39,9 @@ MODULE GraphRanks;
 			constant: POINTER TO ARRAY OF SHORTREAL
 		END;
 
-		RankedFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		RankedFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
-		RankFactory = POINTER TO RECORD(GraphMemory.Factory) END;
+		RankFactory = POINTER TO RECORD(GraphScalar.Factory) END;
 
 		SortFactory = POINTER TO RECORD(GraphVector.Factory) END;
 
@@ -87,7 +87,7 @@ MODULE GraphRanks;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: RankedNode) Evaluate (OUT value: REAL);
+	PROCEDURE (node: RankedNode) Evaluate;
 		VAR
 			i, off, rank, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
@@ -100,17 +100,22 @@ MODULE GraphRanks;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				workValues[i] := p.Value()
+				workValues[i] := p.value
 			ELSE
 				workValues[i] := node.constant[off]
 			END;
 			INC(i)
 		END;
-		rank := SHORT(ENTIER(node.rank.Value() + eps));
-		value := MathSort.Ranked(workValues, rank, nElem)
+		rank := SHORT(ENTIER(node.rank.value + eps));
+		node.value := MathSort.Ranked(workValues, rank, nElem)
 	END Evaluate;
 
-	PROCEDURE (node: RankedNode) ExternalizeMemory (VAR wr: Stores.Writer);
+	PROCEDURE (node: RankedNode) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: RankedNode) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -119,25 +124,14 @@ MODULE GraphRanks;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.rank, wr)
-	END ExternalizeMemory;
-
-	PROCEDURE (node: RankedNode) InternalizeMemory (VAR rd: Stores.Reader);
-		VAR
-			v: GraphNodes.SubVector;
-	BEGIN
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
-		node.vector := v.components; node.constant := v.values;
-		node.rank := GraphNodes.Internalize(rd)
-	END InternalizeMemory;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: RankedNode) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
 		node.constant := NIL;
-		node.start :=  - 1;
-		node.nElem :=  - 1;
+		node.start := - 1;
+		node.nElem := - 1;
 		node.step := 0;
 		node.rank := NIL
 	END InitLogical;
@@ -146,6 +140,16 @@ MODULE GraphRanks;
 	BEGIN
 		install := "GraphRanks.RankedInstall"
 	END Install;
+
+	PROCEDURE (node: RankedNode) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			v: GraphNodes.SubVector;
+	BEGIN
+		GraphNodes.InternalizeSubvector(v, rd);
+		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
+		node.vector := v.components; node.constant := v.values;
+		node.rank := GraphNodes.Internalize(rd)
+	END InternalizeScalar;
 
 	PROCEDURE (node: RankedNode) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -197,7 +201,7 @@ MODULE GraphRanks;
 			isData := GraphNodes.data IN node.rank.props;
 			i := 0;
 			WHILE i < nElem DO
-				off := start + i * step; 
+				off := start + i * step;
 				IF node.vector # NIL THEN
 					p := node.vector[off];
 					IF p = NIL THEN
@@ -215,14 +219,9 @@ MODULE GraphRanks;
 			IF nElem >= LEN(workValues) THEN
 				NEW(workValues, nElem + 1)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
-
-	PROCEDURE (node: RankedNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (node: RankNode) Check (): SET;
 	BEGIN
@@ -248,7 +247,7 @@ MODULE GraphRanks;
 			END
 		END;
 		IF form = GraphRules.const THEN
-			form:= GraphStochastic.ClassFunction(node.index, parent)
+			form := GraphStochastic.ClassFunction(node.index, parent)
 		END;
 		IF form # GraphRules.const THEN
 			form := GraphRules.other
@@ -256,20 +255,20 @@ MODULE GraphRanks;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: RankNode) Evaluate (OUT value: REAL);
+	PROCEDURE (node: RankNode) Evaluate;
 		VAR
 			i, iValue, off, index, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
-			val: REAL;
+			val, value: REAL;
 	BEGIN
 		nElem := node.nElem;
 		start := node.start;
 		step := node.step;
-		index := SHORT(ENTIER(node.index.Value() - 1 + eps));
+		index := SHORT(ENTIER(node.index.value - 1 + eps));
 		off := start + index * step;
 		IF node.vector # NIL THEN
 			p := node.vector[off];
-			value := p.Value()
+			value := p.value
 		ELSE
 			value := node.constant[off]
 		END;
@@ -279,7 +278,7 @@ MODULE GraphRanks;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				val := p.Value() 
+				val := p.value
 			ELSE
 				val := node.constant[off]
 			END;
@@ -293,7 +292,7 @@ MODULE GraphRanks;
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				val := p.Value() 
+				val := p.value
 			ELSE
 				val := node.constant[off]
 			END;
@@ -302,10 +301,15 @@ MODULE GraphRanks;
 			END;
 			INC(i)
 		END;
-		value := iValue
+		node.value := iValue
 	END Evaluate;
 
-	PROCEDURE (node: RankNode) ExternalizeMemory (VAR wr: Stores.Writer);
+	PROCEDURE (node: RankNode) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: RankNode) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			v: GraphNodes.SubVector;
 	BEGIN
@@ -314,25 +318,14 @@ MODULE GraphRanks;
 		v.start := node.start; v.nElem := node.nElem; v.step := node.step;
 		GraphNodes.ExternalizeSubvector(v, wr);
 		GraphNodes.Externalize(node.index, wr)
-	END ExternalizeMemory;
-
-	PROCEDURE (node: RankNode) InternalizeMemory (VAR rd: Stores.Reader);
-		VAR
-			v: GraphNodes.SubVector;
-	BEGIN
-		GraphNodes.InternalizeSubvector(v, rd);
-		node.vector := v.components; node.constant := v.values;
-		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
-		node.index := GraphNodes.Internalize(rd)
-	END InternalizeMemory;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: RankNode) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
 		node.constant := NIL;
-		node.start :=  - 1;
-		node.nElem :=  - 1;
+		node.start := - 1;
+		node.nElem := - 1;
 		node.step := 0;
 		node.index := NIL
 	END InitLogical;
@@ -341,6 +334,16 @@ MODULE GraphRanks;
 	BEGIN
 		install := "GraphRanks.RankInstall"
 	END Install;
+
+	PROCEDURE (node: RankNode) InternalizeScalar (VAR rd: Stores.Reader);
+		VAR
+			v: GraphNodes.SubVector;
+	BEGIN
+		GraphNodes.InternalizeSubvector(v, rd);
+		node.vector := v.components; node.constant := v.values;
+		node.start := v.start; node.nElem := v.nElem; node.step := v.step;
+		node.index := GraphNodes.Internalize(rd)
+	END InternalizeScalar;
 
 	PROCEDURE (node: RankNode) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -407,14 +410,9 @@ MODULE GraphRanks;
 				END;
 				INC(i)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
-
-	PROCEDURE (node: RankNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (node: SortNode) Check (): SET;
 	BEGIN
@@ -444,27 +442,38 @@ MODULE GraphRanks;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: SortNode) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: SortNode) Evaluate;
 		VAR
 			i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			values: POINTER TO ARRAY OF REAL;
 	BEGIN
 		i := 0;
 		nElem := node.Size();
 		start := node.start;
 		step := node.step;
+		NEW(values, nElem); (*	make global	*)
 		WHILE i < nElem DO
 			off := start + i * step;
 			IF node.vector # NIL THEN
 				p := node.vector[off];
-				values[i] := p.Value()
+				values[i] := p.value
 			ELSE
 				values[i] := node.constant[off]
 			END;
 			INC(i)
 		END;
 		MathSort.HeapSort(values, nElem);
+		i := 0;
+		WHILE i < nElem DO
+			node.components[i].value := values[i]; INC(i)
+		END
 	END Evaluate;
+
+	PROCEDURE (node: SortNode) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
 
 	PROCEDURE (node: SortNode) ExternalizeVector (VAR wr: Stores.Writer);
 		VAR
@@ -503,10 +512,9 @@ MODULE GraphRanks;
 
 	PROCEDURE (node: SortNode) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.vector := NIL;
 		node.constant := NIL;
-		node.start :=  - 1;
+		node.start := - 1;
 		node.step := 0
 	END InitLogical;
 
@@ -580,16 +588,11 @@ MODULE GraphRanks;
 				END;
 				INC(i)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
 
-	PROCEDURE (node: SortNode) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
-	PROCEDURE (f: RankedFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: RankedFactory) New (): GraphScalar.Node;
 		VAR
 			node: RankedNode;
 	BEGIN
@@ -603,7 +606,7 @@ MODULE GraphRanks;
 		signature := "vs"
 	END Signature;
 
-	PROCEDURE (f: RankFactory) New (): GraphMemory.Node;
+	PROCEDURE (f: RankFactory) New (): GraphScalar.Node;
 		VAR
 			node: RankNode;
 	BEGIN

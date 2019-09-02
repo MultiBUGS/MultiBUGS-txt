@@ -78,8 +78,8 @@ MODULE GraphHalfT;
 		res := {};
 		node := auxillary.node(Node);
 		x := node.value;
-		k := node.k.Value();
-		tau := node.tau.Value();
+		k := node.k.value;
+		tau := node.tau.value;
 		r1 := 0.5 * k;
 		lambda1 := k * x;
 		r2 := 0.5;
@@ -89,7 +89,7 @@ MODULE GraphHalfT;
 		ELSE
 			y := MathRandnum.Gamma(r2, lambda2)
 		END;
-		node.y.SetValue(y)
+		node.y.value := y
 	END Sample;
 
 	PROCEDURE (f: AuxillaryFactory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
@@ -126,14 +126,14 @@ MODULE GraphHalfT;
 		VAR
 			k, tau: REAL;
 	BEGIN
-		k := node.k.Value();
+		k := node.k.value;
 		IF k < 2 THEN
 			RETURN {GraphNodes.invalidValue, GraphNodes.arg1}
 		END;
 		IF ~(GraphNodes.data IN node.k.props) THEN
 			RETURN {GraphNodes.notData, GraphNodes.arg1}
 		END;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		IF tau < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
@@ -187,7 +187,7 @@ MODULE GraphHalfT;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noCDF, GraphStochastic.noMean});
+		node.props := node.props + {GraphStochastic.noCDF, GraphStochastic.noMean};
 		node.k := NIL;
 		node.tau := NIL;
 		node.y := NIL;
@@ -231,7 +231,7 @@ MODULE GraphHalfT;
 	BEGIN
 		x := node.value;
 		y := node.y.value;
-		k := node.k.Value();
+		k := node.k.value;
 		r1 := 0.5 * k;
 		lambda1 := k * y;
 		logL := (r1 - 1.0) * Math.Ln(x) - lambda1 * x;
@@ -251,7 +251,7 @@ MODULE GraphHalfT;
 		VAR
 			r1, lambda1, k, y: REAL;
 	BEGIN
-		k := node.k.Value();
+		k := node.k.value;
 		r1 := 0.5 * k;
 		y := node.y.value;
 		lambda1 := k * y;
@@ -264,12 +264,12 @@ MODULE GraphHalfT;
 			k, lambda, r, x, y: REAL;
 	BEGIN
 		res := {};
-		k := node.k.Value();
+		k := node.k.value;
 		r := 0.5 * k;
 		y := node.y.value;
 		lambda := y * k * k;
 		x := MathRandnum.Gamma(r, lambda);
-		node.SetValue(x)
+		node.value := x
 	END Sample;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
@@ -288,8 +288,8 @@ MODULE GraphHalfT;
 			(*	need to set y	*)
 			y.Set(args, res);
 			node.y := y;
-			y.SetValue(1.0);
-			y.SetProps(y.props + {GraphStochastic.hidden, GraphStochastic.initialized});
+			y.value := 1.0;
+			y.props := y.props + {GraphStochastic.hidden, GraphStochastic.initialized};
 			auxillary := auxillaryFact.New(node);
 			UpdaterActions.RegisterUpdater(auxillary)
 		END

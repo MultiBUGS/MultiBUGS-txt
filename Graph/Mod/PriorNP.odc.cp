@@ -103,7 +103,7 @@ MODULE GraphPriorNP;
 		node.size := - 1;
 		node.start := - 1;
 		node.step := - 1;
-		node.SetProps(node.props + {GraphStochastic.noMean})
+		INCL(node.props, GraphStochastic.noMean)
 	END InitUnivariate;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -138,8 +138,8 @@ MODULE GraphPriorNP;
 			value: REAL;
 	BEGIN
 		i := MathRandnum.DiscreteUniform(1, node.size) - 1;
-		value := node.sample[i].Value();
-		node.SetValue(value);
+		value := node.sample[i].value;
+		node.value := value;
 		res := {}
 	END Sample;
 

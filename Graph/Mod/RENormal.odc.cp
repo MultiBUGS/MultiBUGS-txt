@@ -93,7 +93,7 @@ MODULE GraphRENormal;
 			tau: REAL;
 			i, size: INTEGER;
 	BEGIN
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		i := 0;
 		size := node.Size();
 		WHILE i < size DO
@@ -135,7 +135,7 @@ MODULE GraphRENormal;
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
 		p0 := 0.0;
-		p1 := prior.tau.Value()
+		p1 := prior.tau.value
 	END PriorForm;
 
 	PROCEDURE (node: StdNode) Install (OUT install: ARRAY OF CHAR);

@@ -50,13 +50,13 @@ MODULE ReliabilityModifiedWeibull;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -87,9 +87,9 @@ MODULE ReliabilityModifiedWeibull;
 		VAR
 			alpha, beta, lambda: REAL;
 	BEGIN
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
-		alpha := node.alpha.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.ModifiedWeibull(alpha, beta, lambda, x)
 	END Cumulative;
 
@@ -100,10 +100,10 @@ MODULE ReliabilityModifiedWeibull;
 			eps = 1.0E-20;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := Math.Ln(alpha);
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		z := lambda * x;
 		logLikelihood := logAlpha + Math.Ln(beta + z) + (beta - 1) * Math.Ln(x) + z - alpha * Math.Power(x, beta) * Math.Exp(z);
 		RETURN - 2 * logLikelihood
@@ -114,11 +114,14 @@ MODULE ReliabilityModifiedWeibull;
 			alpha, beta, lambda, diff, diffAlpha, diffBeta, diffLambda, exp, pow, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		exp := Math.Exp(lambda * val);
 		pow := Math.Power(val, beta);
-		node.alpha.ValDiff(x, alpha, diffAlpha);
-		node.beta.ValDiff(x, beta, diffBeta);
-		node.lambda.ValDiff(x, lambda, diffLambda);
+		diffAlpha := node.alpha.Diff(x);
+		diffBeta := node.beta.Diff(x);
+		diffLambda := node.lambda.Diff(x);
 		pow := Math.Power(val, beta);
 		diff := diffAlpha * (1 / alpha - pow * exp) + 
 		diffBeta * (1 / (beta + lambda * val) + Math.Ln(val) * (1 - alpha * pow * exp)) + 
@@ -131,8 +134,8 @@ MODULE ReliabilityModifiedWeibull;
 			alpha, beta, lambda, exp, pow, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		exp := Math.Exp(lambda * x);
 		pow := Math.Power(x, beta);
 		RETURN lambda / (beta + lambda * x) + lambda + (beta - 1 - alpha * pow * exp * (beta + lambda * x)) / x;
@@ -147,7 +150,7 @@ MODULE ReliabilityModifiedWeibull;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.alpha := NIL;
 		node.beta := NIL;
 		node.lambda := NIL
@@ -171,9 +174,9 @@ MODULE ReliabilityModifiedWeibull;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		HALT(0);
 		RETURN 0.0
 	END Location;
@@ -185,10 +188,10 @@ MODULE ReliabilityModifiedWeibull;
 			eps = 1.0E-20;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := Math.Ln(alpha);
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
 		z := lambda * x;
 		logLikelihood := logAlpha + Math.Ln(beta + z) + (beta - 1) * Math.Ln(x) + z - alpha * Math.Power(x, beta) * Math.Exp(z);
 		RETURN logLikelihood
@@ -215,9 +218,9 @@ MODULE ReliabilityModifiedWeibull;
 			alpha, beta, lambda, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		beta := node.beta.Value();
-		lambda := node.lambda.Value();
-		alpha := node.alpha.Value();
+		beta := node.beta.value;
+		lambda := node.lambda.value;
+		alpha := node.alpha.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.ModifiedWeibull(alpha, beta, lambda)
@@ -231,7 +234,7 @@ MODULE ReliabilityModifiedWeibull;
 				x := MathRandnum.ModifiedWeibullIB(alpha, beta, lambda, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

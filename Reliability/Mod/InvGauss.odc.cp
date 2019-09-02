@@ -53,10 +53,10 @@ MODULE ReliabilityInvGauss;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.mu.Value() < - eps THEN
+		IF node.mu.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -98,8 +98,8 @@ MODULE ReliabilityInvGauss;
 		VAR
 			lambda, mu: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
-		mu := node.mu.Value();
+		lambda := node.lambda.value;
+		mu := node.mu.value;
 		RETURN MathCumulative.InvGauss(mu, lambda, x)
 	END Cumulative;
 
@@ -108,8 +108,8 @@ MODULE ReliabilityInvGauss;
 			mu, lambda, logLambda, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		lambda := node.lambda.Value();
+		mu := node.mu.value;
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		logLikelihood := 0.5 * logLambda - 1.5 * MathFunc.Ln(x) - 
 		0.5 * (lambda / (mu * mu * x)) * (x - mu) * (x - mu) - 0.5 * log2Pi;
@@ -121,17 +121,17 @@ MODULE ReliabilityInvGauss;
 			mu, lambda, diff, diffMu, diffLambda, val: REAL;
 	BEGIN
 		val := node.value;
+		mu := node.mu.value;
+		lambda := node.lambda.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.lambda.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
-			lambda := node.lambda.Value();
+			diffMu := node.mu.Diff(x);
 			diff := diffMu * (lambda * val / mu - lambda) / (mu * mu)
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffLambda := node.lambda.Diff(x);
 			diff := diffLambda * (0.5 / lambda - 0.5 * (val / (mu * mu) - 2 / mu + 1 / val))
 		ELSE
-			node.mu.ValDiff(x, mu, diffMu);
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffMu := node.mu.Diff(x);
+			diffLambda := node.lambda.Diff(x);
 			diff := diffMu * (lambda * val / mu - lambda) / (mu * mu) + 
 			diffLambda * (0.5 / lambda - 0.5 * (val / (mu * mu) - 2 / mu + 1 / val))
 		END;
@@ -143,8 +143,8 @@ MODULE ReliabilityInvGauss;
 			mu, lambda, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		lambda := node.lambda.Value();
+		mu := node.mu.value;
+		lambda := node.lambda.value;
 		RETURN - 1.5 / x - 0.5 * lambda * (1 / (mu * mu) - 1 / (x * x))
 	END DiffLogPrior;
 
@@ -156,7 +156,7 @@ MODULE ReliabilityInvGauss;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.lambda := NIL;
 		node.mu := NIL
 	END InitUnivariate;
@@ -179,7 +179,7 @@ MODULE ReliabilityInvGauss;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
 		p0 := 0.5;
-		mu := likelihood.mu.Value();
+		mu := likelihood.mu.value;
 		value := likelihood.value;
 		p1 := value  - mu;
 		p1 := 0.5 * p1 * p1 / (mu * mu * value);
@@ -190,7 +190,7 @@ MODULE ReliabilityInvGauss;
 		VAR
 			mu: REAL;
 	BEGIN
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		RETURN mu
 	END Location;
 
@@ -199,8 +199,8 @@ MODULE ReliabilityInvGauss;
 			mu, lambda, logLambda, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		lambda := node.lambda.Value();
+		mu := node.mu.value;
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		logLikelihood := 0.5 * logLambda - 1.5 * MathFunc.Ln(x)
 		 - 0.5 * (lambda / (mu * mu * x)) * (x - mu) * (x - mu);
@@ -212,8 +212,8 @@ MODULE ReliabilityInvGauss;
 			mu, lambda, logLambda, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		lambda := node.lambda.Value();
+		mu := node.mu.value;
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		logPrior := - 1.5 * MathFunc.Ln(x) - 0.5 * (lambda / mu * mu * x) * (x - mu) * (x - mu);
 		RETURN logPrior
@@ -239,8 +239,8 @@ MODULE ReliabilityInvGauss;
 			i: INTEGER;
 			lambda, left, mu, right, x: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
-		mu := node.mu.Value();
+		lambda := node.lambda.value;
+		mu := node.mu.value;
 		node.Bounds(left, right);
 		i := maxIts;
 		REPEAT
@@ -250,7 +250,7 @@ MODULE ReliabilityInvGauss;
 		IF i = 0 THEN
 			res := {GraphNodes.lhs, GraphNodes.tooManyIts}
 		ELSE
-			node.SetValue(x);
+			node.value := x;
 			res := {}
 		END
 	END Sample;

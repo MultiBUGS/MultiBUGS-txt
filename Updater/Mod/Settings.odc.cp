@@ -15,8 +15,8 @@ MODULE UpdaterSettings;
 	IMPORT
 		Dialog, Strings,
 		StdTabViews,
-		BugsDialog, BugsFiles, BugsInterface, BugsMsg, BugsRegistry, 
-		UpdaterMethods, UpdaterUpdaters;
+		BugsDialog, BugsFiles, BugsInterface, BugsMsg, BugsRegistry,
+		UpdaterHMC, UpdaterMethods, UpdaterUpdaters;
 
 
 	TYPE
@@ -29,10 +29,17 @@ MODULE UpdaterSettings;
 			node*: Dialog.String
 		END;
 
+		HMCDialog* = POINTER TO RECORD(BugsDialog.DialogBox)
+			numSteps*: INTEGER; 	(*	number of leapfrog steps	*)
+			warmUpPeriod*: INTEGER; 	(*	warmup period	*)
+			eps*: REAL; (*	step length	*)
+		END;
+
 	VAR
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		dialog*: SettingsDialog;
+		dialogHMC*: HMCDialog;
 		compiled: BOOLEAN;
 
 	CONST
@@ -125,13 +132,13 @@ MODULE UpdaterSettings;
 			Strings.Extract(name, 1, len - 2, name)
 		END;
 		i := 0;
-		index := -1;
+		index := - 1;
 		IF UpdaterMethods.factories # NIL THEN
 			len := LEN(UpdaterMethods.factories)
 		ELSE
 			len := 0
 		END;
-		WHILE (i < len) & (index = -1) DO
+		WHILE (i < len) & (index = - 1) DO
 			UpdaterMethods.factories[i].Install(name1);
 			BugsMsg.Lookup(name1, name1);
 			IF name = name1 THEN index := i END;
@@ -143,17 +150,17 @@ MODULE UpdaterSettings;
 	PROCEDURE FindActiveFactory (): INTEGER;
 		VAR
 			name, name1: Dialog.String;
-			i, index,  len: INTEGER;
+			i, index, len: INTEGER;
 	BEGIN
 		dialog.activeMethods.GetItem(dialog.activeMethods.index, name);
 		i := 0;
-		index := -1;
+		index := - 1;
 		IF UpdaterMethods.factories # NIL THEN
 			len := LEN(UpdaterMethods.factories)
 		ELSE
 			len := 0
 		END;
-		WHILE (i < len) & (index = -1) DO
+		WHILE (i < len) & (index = - 1) DO
 			UpdaterMethods.factories[i].Install(name1);
 			BugsMsg.Lookup(name1, name1);
 			IF name = name1 THEN index := i END;
@@ -165,17 +172,17 @@ MODULE UpdaterSettings;
 	PROCEDURE FindFactory (): INTEGER;
 		VAR
 			name, name1: Dialog.String;
-			i, index,  len: INTEGER;
+			i, index, len: INTEGER;
 	BEGIN
 		dialog.methods.GetItem(dialog.methods.index, name);
 		i := 0;
-		index := -1;
+		index := - 1;
 		IF UpdaterMethods.factories # NIL THEN
 			len := LEN(UpdaterMethods.factories)
 		ELSE
 			len := 0
 		END;
-		WHILE (i < len) & (index = -1) DO
+		WHILE (i < len) & (index = - 1) DO
 			UpdaterMethods.factories[i].Install(name1);
 			BugsMsg.Lookup(name1, name1);
 			IF name = name1 THEN index := i END;
@@ -183,6 +190,14 @@ MODULE UpdaterSettings;
 		END;
 		RETURN index
 	END FindFactory;
+
+	PROCEDURE InitDialog;
+	BEGIN
+		dialogHMC.numSteps := 8;
+		dialogHMC.warmUpPeriod := 1000;
+		dialogHMC.eps := 0.25;
+		UpdaterHMC.Clear
+	END InitDialog;
 
 	PROCEDURE SetProperty (fact: UpdaterUpdaters.Factory; value, property: INTEGER);
 	BEGIN
@@ -315,7 +330,7 @@ MODULE UpdaterSettings;
 		dialog.allMethods.index := 0;
 		dialog.activeMethods.index := 0;
 		index := FindAllFactory();
-		IF index # -1 THEN
+		IF index # - 1 THEN
 			fact := UpdaterMethods.factories[index];
 			IF UpdaterUpdaters.enabled IN fact.props THEN
 				dialog.use := yes
@@ -324,7 +339,7 @@ MODULE UpdaterSettings;
 			END
 		END;
 		index := FindActiveFactory();
-		IF index # -1 THEN
+		IF index # - 1 THEN
 			fact := UpdaterMethods.factories[index];
 			dialog.iterations := PropertyValue(fact, UpdaterUpdaters.iterations);
 			dialog.adaptivePhase := PropertyValue(fact, UpdaterUpdaters.adaptivePhase);
@@ -339,8 +354,8 @@ MODULE UpdaterSettings;
 			p: ARRAY 1 OF ARRAY 1024 OF CHAR;
 			index: INTEGER;
 	BEGIN
-		index := FindFactory(); 
-		BugsInterface.ChangeSampler(dialog.node, index , ok);
+		index := FindFactory();
+		BugsInterface.ChangeSampler(dialog.node, index, ok);
 		IF ~ok THEN
 			p[0] := dialog.node$;
 			BugsMsg.LookupParam("BugsCmds:CouldNotChangeUpdater", p, errorMsg);
@@ -385,7 +400,7 @@ MODULE UpdaterSettings;
 			INC(i)
 		END
 	END FillAllList;
-	
+
 	PROCEDURE Disable*;
 		VAR
 			index: INTEGER;
@@ -422,7 +437,7 @@ MODULE UpdaterSettings;
 			fact: UpdaterUpdaters.Factory;
 	BEGIN
 		index := FindActiveFactory();
-		IF index = -1 THEN
+		IF index = - 1 THEN
 			par.disabled := TRUE
 		ELSE
 			fact := UpdaterMethods.factories[index];
@@ -441,7 +456,7 @@ MODULE UpdaterSettings;
 			fact: UpdaterUpdaters.Factory;
 	BEGIN
 		index := FindActiveFactory();
-		IF index = -1 THEN
+		IF index = - 1 THEN
 			par.disabled := TRUE
 		ELSE
 			fact := UpdaterMethods.factories[index];
@@ -455,7 +470,7 @@ MODULE UpdaterSettings;
 			fact: UpdaterUpdaters.Factory;
 	BEGIN
 		index := FindActiveFactory();
-		IF index = -1 THEN
+		IF index = - 1 THEN
 			par.disabled := TRUE
 		ELSE
 			fact := UpdaterMethods.factories[index];
@@ -469,7 +484,7 @@ MODULE UpdaterSettings;
 			fact: UpdaterUpdaters.Factory;
 	BEGIN
 		index := FindActiveFactory();
-		par.disabled := index = -1;
+		par.disabled := index = - 1;
 		IF ~par.disabled THEN
 			fact := UpdaterMethods.factories[index];
 			par.disabled := ~HasParameters(fact) OR ~ValidIterations(fact)
@@ -531,6 +546,11 @@ MODULE UpdaterSettings;
 		Dialog.UpdateList(dialog.activeMethods)
 	END TabNotifier;
 
+	PROCEDURE WarmUpGuard* (VAR par: Dialog.Par);
+	BEGIN
+		par.readOnly := UpdaterHMC.setUp
+	END WarmUpGuard;
+
 	PROCEDURE (d: SettingsDialog) Init-;
 	BEGIN
 		Clear;
@@ -546,6 +566,16 @@ MODULE UpdaterSettings;
 		Dialog.UpdateList(dialog.methods);
 		Dialog.UpdateList(dialog.activeMethods)
 	END Update;
+
+	PROCEDURE (dialogBox: HMCDialog) Update-;
+	BEGIN
+		Dialog.Update(dialogBox)
+	END Update;
+
+	PROCEDURE (dialogBox: HMCDialog) Init-;
+	BEGIN
+		InitDialog
+	END Init;
 
 	(* Initialization *)
 
@@ -564,7 +594,10 @@ MODULE UpdaterSettings;
 		FillDialog;
 		dialog.methods.index := 0;
 		dialog.activeMethods.index := 0;
-		BugsDialog.AddDialog(dialog)
+		BugsDialog.AddDialog(dialog);
+		NEW(dialogHMC);
+		InitDialog;
+		BugsDialog.AddDialog(dialogHMC)
 	END Init;
 
 BEGIN

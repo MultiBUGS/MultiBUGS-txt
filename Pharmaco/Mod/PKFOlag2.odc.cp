@@ -35,20 +35,20 @@ MODULE PharmacoPKFOlag2;
 			logCL, logQ, logV1, logV2, k10, k12, k21, sum, lambda1, lambda2,
 			A, s, dose, Tlag, ka, Ca, Ce, value: REAL;
 	BEGIN
-		logCL := params[0].Value();
-		logQ := params[1].Value();
-		logV1 := params[2].Value();
-		logV2 := params[3].Value();
-		Tlag := Math.Exp(params[4].Value());
-		s := scalars[PharmacoModel.time].Value() - Tlag;
-		dose := scalars[PharmacoModel.dose].Value();
+		logCL := params[0].value;
+		logQ := params[1].value;
+		logV1 := params[2].value;
+		logV2 := params[3].value;
+		Tlag := Math.Exp(params[4].value);
+		s := scalars[PharmacoModel.time].value - Tlag;
+		dose := scalars[PharmacoModel.dose].value;
 		k10 := Math.Exp(logCL - logV1);
 		k12 := Math.Exp(logQ - logV1); k21 := Math.Exp(logQ - logV2);
 		sum := k10 + k12 + k21;
 		lambda1 := 0.5 * (sum + Math.Sqrt(sum * sum - 4 * k10 * k21));
 		lambda2 := sum - lambda1;
 		A := (lambda1 - k21) / (lambda1 - lambda2);
-		ka := lambda1 + Math.Exp(params[5].Value());
+		ka := lambda1 + Math.Exp(params[5].value);
 		IF s < 0 THEN
 			Ca := 0; Ce := 0
 		ELSE
@@ -70,10 +70,10 @@ MODULE PharmacoPKFOlag2;
 		install := "PharmacoPKFOlag2.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

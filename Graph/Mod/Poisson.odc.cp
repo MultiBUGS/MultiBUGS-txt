@@ -48,7 +48,7 @@ MODULE GraphPoisson;
 			lambda: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		IF (GraphStochastic.update IN node.props) & (ABS(r - node.value) > eps) THEN
 			RETURN {GraphNodes.integer, GraphNodes.lhs}
 		END;
@@ -84,7 +84,7 @@ MODULE GraphPoisson;
 		VAR
 			cumulative, lambda: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		cumulative := MathCumulative.Poisson(lambda, r);
 		RETURN cumulative
 	END Cumulative;
@@ -95,11 +95,11 @@ MODULE GraphPoisson;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
 		IF r > 0 THEN
-			lambda := node.lambda.Value();
+			lambda := node.lambda.value;
 			logLambda := MathFunc.Ln(lambda);
 			logDensity := r * logLambda - lambda - MathFunc.LogGammaFunc(r + 1)
 		ELSE
-			lambda := node.lambda .Value();
+			lambda := node.lambda .value;
 			logDensity := - lambda - MathFunc.LogGammaFunc(r + 1)
 		END;
 		RETURN - 2.0 * logDensity
@@ -110,7 +110,8 @@ MODULE GraphPoisson;
 			diff, lambda, r: REAL;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
-		node.lambda.ValDiff(x, lambda, diff);
+		lambda := node.lambda.value;
+		diff := node.lambda.Diff(x);
 		IF r > 0 THEN
 			RETURN diff * (r / lambda - 1)
 		ELSE
@@ -131,7 +132,7 @@ MODULE GraphPoisson;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.integer, GraphStochastic.leftNatural});
+		node.props := node.props + {GraphStochastic.integer, GraphStochastic.leftNatural};
 		node.lambda := NIL
 	END InitUnivariate;
 
@@ -161,11 +162,11 @@ MODULE GraphPoisson;
 	BEGIN
 		r := SHORT(ENTIER(node.value + eps));
 		IF r > 0 THEN
-			lambda := node.lambda.Value();
+			lambda := node.lambda.value;
 			logLambda := MathFunc.Ln(lambda);
 			logLikelihood := r * logLambda - lambda
 		ELSE
-			lambda := node.lambda.Value();
+			lambda := node.lambda.value;
 			logLikelihood := - lambda
 		END;
 		IF ~(GraphNodes.data IN node.props) THEN
@@ -182,7 +183,7 @@ MODULE GraphPoisson;
 		r := SHORT(ENTIER(node.value + eps));
 		logPrior := - MathFunc.LogGammaFunc(r + 1);
 		IF r > 0 THEN
-			lambda := node.lambda.Value();
+			lambda := node.lambda.value;
 			logLambda := MathFunc.Ln(lambda);
 			logPrior := logPrior + r * logLambda
 		END;
@@ -193,7 +194,7 @@ MODULE GraphPoisson;
 		VAR
 			lambda: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		RETURN lambda
 	END Location;
 
@@ -209,7 +210,7 @@ MODULE GraphPoisson;
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.poisson, 21);
-		p0 := node.lambda.Value()
+		p0 := node.lambda.value
 	END PriorForm;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
@@ -222,13 +223,13 @@ MODULE GraphPoisson;
 		node.Bounds(lower, upper);
 		l := SHORT(ENTIER(lower + eps));
 		u := SHORT(ENTIER(upper + eps));
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		REPEAT
 			r := MathRandnum.Poisson(lambda);
 			DEC(iter)
 		UNTIL ((r >= l) & (r <= u)) OR (iter = 0);
 		IF iter # 0 THEN
-			node.SetValue(r)
+			node.value := r
 		ELSE
 			res := {GraphNodes.lhs}
 		END

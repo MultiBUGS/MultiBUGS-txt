@@ -39,7 +39,7 @@ MODULE PharmacoSum;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -56,9 +56,9 @@ MODULE PharmacoSum;
 			GraphNodes.Externalize(node.bio[i], wr); INC(i)
 		END;
 		wr.WriteBool(node.baseIV)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -75,7 +75,7 @@ MODULE PharmacoSum;
 			node.bio[i] := GraphNodes.Internalize(rd); INC(i)
 		END;
 		rd.ReadBool(node.baseIV)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
@@ -151,7 +151,7 @@ MODULE PharmacoSum;
 			PharmacoInputs.GetStart(resInfo, pos, startLoop, res); IF res # {} THEN RETURN END;
 			ASSERT(pos >= startLoop, trap);
 			PharmacoInputs.SetErrorOff(hist.start + pos * PharmacoInputs.nCol + PharmacoInputs.time);
-			let := hist.components[hist.start + pos * PharmacoInputs.nCol + PharmacoInputs.time].Value();
+			let := hist.components[hist.start + pos * PharmacoInputs.nCol + PharmacoInputs.time].value;
 			IF time < let THEN (* pos and time arguments inconsistent *)
 				res := {GraphNodes.arg4, GraphNodes.invalidValue}; RETURN
 			END;
@@ -161,7 +161,7 @@ MODULE PharmacoSum;
 				ri := PharmacoInputs.RealToInt(hist.components[index + PharmacoInputs.reset]);
 				ASSERT((ri = 0) OR (ri = 1), trap);
 				PharmacoInputs.SetErrorOff(index + PharmacoInputs.time);
-				net := hist.components[index + PharmacoInputs.time].Value();
+				net := hist.components[index + PharmacoInputs.time].value;
 				IF (ri = 0) & (time > net) THEN (* pos and time arguments inconsistent *)
 					res := {GraphNodes.arg4, GraphNodes.invalidValue}; RETURN
 				END
@@ -179,7 +179,7 @@ MODULE PharmacoSum;
 				IF ~PharmacoInputs.IsConstant(q) THEN
 					res := {GraphNodes.arg4, GraphNodes.notData}; RETURN
 				END;
-				IF q.Value() <= 0 THEN (* dosing interval values in dosing matrix must be > 0 *)
+				IF q.value <= 0 THEN (* dosing interval values in dosing matrix must be > 0 *)
 					res := {GraphNodes.arg4, GraphNodes.invalidValue}; RETURN
 				END;
 				argsL0.scalars[argsL0.numScalars] := q;
@@ -270,7 +270,7 @@ MODULE PharmacoSum;
 				ASSERT(addlInt > 0, trap);
 				q := hist.components[off + PharmacoInputs.omega];
 				ASSERT(PharmacoInputs.IsConstant(q), trap);
-				interval := q.Value(); ASSERT(interval > 0, trap);
+				interval := q.value; ASSERT(interval > 0, trap);
 				k := 0; s := t + interval;
 				WHILE (k < addlInt) & (s <= time) DO
 					argsL1.scalars[0] := GraphConstant.New(time - s);
@@ -297,7 +297,7 @@ MODULE PharmacoSum;
 			IF ~PharmacoInputs.IsConstant(p) THEN (* time argument must be a constant *)
 				res := {GraphNodes.arg3, GraphNodes.notData}; RETURN
 			END;
-			time := p.Value();
+			time := p.value;
 			p := args.scalars[2];
 			IF ~PharmacoInputs.IsConstant(p) THEN (* pos argument must be a constant *)
 				res := {GraphNodes.arg5, GraphNodes.notData}; RETURN
@@ -334,7 +334,7 @@ MODULE PharmacoSum;
 				inpInt := PharmacoInputs.RealToInt(hist.components[off + PharmacoInputs.input]);
 				ASSERT(PharmacoInputs.IsInteger(hist.components[off + PharmacoInputs.level]), trap);
 				levInt := PharmacoInputs.RealToInt(hist.components[off + PharmacoInputs.level]);
-				t := hist.components[off + PharmacoInputs.time].Value(); ASSERT(time >= t, trap);
+				t := hist.components[off + PharmacoInputs.time].value; ASSERT(time >= t, trap);
 				inpVar := PharmacoInputs.IdToInput(inpInt, summary[levInt - first]); ASSERT(inpVar # NIL, trap);
 				install0 := prefix + inpVar.name + nString; install1 := install0 + ".Install";
 				argsL0.scalars[0] := GraphConstant.New(time - t);
@@ -344,7 +344,7 @@ MODULE PharmacoSum;
 				IF ~PharmacoInputs.IsConstant(p) THEN
 					res := {GraphNodes.arg4, GraphNodes.notData}; RETURN
 				END;
-				IF p.Value() <= 0 THEN (* amount values in dosing matrix must be > 0 *)
+				IF p.value <= 0 THEN (* amount values in dosing matrix must be > 0 *)
 					res := {GraphNodes.arg4, GraphNodes.invalidValue}; RETURN
 				END;
 				argsL0.scalars[1] := p; argsL1.scalars[1] := p;
@@ -397,41 +397,41 @@ MODULE PharmacoSum;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs ;
 	BEGIN
 		HALT(126)
-	END ValDiff;
+	END EvaluateDiffs;
 
 	PROCEDURE (node: SumNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "PharmacoSum.SumInstall"
 	END Install;
 
-	PROCEDURE (node: SumNode) Value (): REAL;
+	PROCEDURE (node: SumNode) Evaluate;
 		VAR
 			len, i: INTEGER; sum, contrib, exp, F: REAL;
 	BEGIN
 		len := LEN(node.model);
 		i := 0; sum := 0;
 		WHILE i < len DO
-			contrib := node.model[i].Value();
+			contrib := node.model[i].value;
 			IF node.bio[i] # NIL THEN
-				exp := Math.Exp(node.bio[i].Value());
+				exp := Math.Exp(node.bio[i].value);
 				IF node.baseIV THEN F := exp / (1 + exp) ELSE F := exp END;
 				contrib := contrib * F
 			END;
 			sum := sum + contrib;
 			INC(i)
 		END;
-		RETURN sum
-	END Value;
+		node.value := sum
+	END Evaluate;
 
 	PROCEDURE (node: LogNode) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
 		install := "PharmacoSum.LogInstall"
 	END Install;
 
-	PROCEDURE (node: LogNode) Value (): REAL;
+	PROCEDURE (node: LogNode) Evaluate;
 		CONST
 			eps = 1.0E-40; logZero = -1.0E+10;
 		VAR
@@ -440,17 +440,17 @@ MODULE PharmacoSum;
 		len := LEN(node.model);
 		i := 0; sum := 0;
 		WHILE i < len DO
-			contrib := node.model[i].Value();
+			contrib := node.model[i].value;
 			IF node.bio[i] # NIL THEN
-				exp := Math.Exp(node.bio[i].Value());
+				exp := Math.Exp(node.bio[i].value);
 				IF node.baseIV THEN F := exp / (1 + exp) ELSE F := exp END;
 				contrib := contrib * F
 			END;
 			sum := sum + contrib;
 			INC(i)
 		END;
-		IF sum > eps THEN RETURN Math.Ln(sum) ELSE RETURN logZero END
-	END Value;
+		IF sum > eps THEN node.value := Math.Ln(sum) ELSE node.value := logZero END
+	END Evaluate;
 
 	PROCEDURE (f: SumFactory) New (): GraphScalar.Node;
 		VAR

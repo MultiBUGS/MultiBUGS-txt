@@ -21,8 +21,9 @@ MODULE GraphODElang;
 	TYPE
 		Node = POINTER TO RECORD (GraphVector.Node)
 			t0, tol: REAL;
-			x0, x, deriv, tGrid: GraphNodes.Vector;
-			x0Start, xStart, derivStart, x0Step, xStep, derivStep: INTEGER;
+			deriv, x0, x, tGrid: GraphNodes.Vector;
+			dependents: GraphLogical.Vector;
+			x0Start, xStart, x0Step, xStep: INTEGER;
 			x0Val, x1Val: POINTER TO ARRAY OF REAL;
 			t: GraphNodes.Node;
 			solver: MathODE.Solver
@@ -36,9 +37,55 @@ MODULE GraphODElang;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
+	PROCEDURE Ancestors (node: Node): GraphLogical.Vector;
+		VAR
+			cursor, list: GraphLogical.List;
+			block, dep: GraphLogical.Vector;
+			i, j, len, numEq: INTEGER;
+			stoch: GraphStochastic.Node;
+			p: GraphLogical.Node;
+		CONST
+			mark = GraphLogical.mark;
+	BEGIN
+		list := GraphLogical.Ancestors(node.deriv);
+		numEq := LEN(node.x0);
+		stoch := node.t(GraphStochastic.Node);
+		dep := stoch.dependents;
+		IF dep # NIL THEN len := LEN(dep); i := 0; WHILE i < len DO INCL(dep[i].props, mark); INC(i) END END;
+		j := 0;
+		WHILE j < numEq DO
+			stoch := node.x[j](GraphStochastic.Node);
+			dep := stoch.dependents;
+			IF dep # NIL THEN
+				len := LEN(dep); i := 0; WHILE i < len DO INCL(dep[i].props, mark); INC(i) END
+			END;
+			INC(j)
+		END;
+		cursor := list; list := NIL;
+		WHILE cursor # NIL DO
+			p := cursor.node;
+			IF mark IN p.props THEN EXCL(p.props, mark); p.AddToList(list); END;
+			cursor := cursor.next
+		END;
+		stoch := node.t(GraphStochastic.Node);
+		dep := stoch.dependents;
+		IF dep # NIL THEN len := LEN(dep); i := 0; WHILE i < len DO EXCL(dep[i].props, mark); INC(i) END END;
+		j := 0;
+		WHILE j < numEq DO
+			stoch := node.x[j](GraphStochastic.Node);
+			dep := stoch.dependents;
+			IF dep # NIL THEN
+				len := LEN(dep); i := 0; WHILE i < len DO EXCL(dep[i].props, mark); INC(i) END
+			END;
+			INC(j)
+		END;
+		block := GraphLogical.ListToVector(list);
+		RETURN block
+	END Ancestors;
+
 	PROCEDURE Externalize (node: Node; VAR wr: Stores.Writer);
 		VAR
-			i, numEq: INTEGER;
+			i, len, numEq: INTEGER;
 			v: GraphNodes.SubVector;
 	BEGIN
 		numEq := node.solver.numEq;
@@ -54,9 +101,10 @@ MODULE GraphODElang;
 		v.components := node.x;
 		v.start := node.xStart; v.nElem := numEq; v.step := node.xStep;
 		GraphNodes.ExternalizeSubvector(v, wr);
-		v.components := node.deriv;
-		v.start := node.derivStart; v.nElem := numEq; v.step := node.derivStep;
-		GraphNodes.ExternalizeSubvector(v, wr);
+		i := 0; WHILE i < numEq DO GraphNodes.Externalize(node.deriv[i], wr); INC(i) END;
+		IF node.dependents # NIL THEN len := LEN(node.dependents) ELSE len := 0 END;
+		wr.WriteInt(len);
+		i := 0; WHILE i < len DO GraphNodes.Externalize(node.dependents[i], wr); INC(i) END;
 		v.components := node.tGrid;
 		v.start := 0;
 		v.nElem := LEN(node.tGrid);
@@ -65,19 +113,12 @@ MODULE GraphODElang;
 		GraphNodes.Externalize(node.t, wr);
 	END Externalize;
 
-	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
-		VAR
-			install1: ARRAY 128 OF CHAR;
-	BEGIN
-		node.solver.Install(install1);
-		BugsMsg.Lookup(install1, install)
-	END Install;
-
 	PROCEDURE Internalize (node: Node; VAR rd: Stores.Reader);
 		VAR
 			v: GraphNodes.SubVector;
-			i, numEq: INTEGER;
+			i, numEq, len: INTEGER;
 			equations: Equations;
+			p: GraphNodes.Node;
 	BEGIN
 		rd.ReadInt(numEq);
 		NEW(equations);
@@ -98,10 +139,14 @@ MODULE GraphODElang;
 		node.xStart := v.start;
 		node.xStep := v.step;
 		GraphNodes.InternalizeSubvector(v, rd);
-		node.deriv := v.components;
-		node.derivStart := v.start;
-		node.derivStep := v.step;
-		GraphNodes.InternalizeSubvector(v, rd);
+		NEW(node.deriv, numEq);
+		i := 0; WHILE i < numEq DO node.deriv[i] := GraphNodes.Internalize(rd); INC(i) END;
+		rd.ReadInt(len);
+		IF len > 0 THEN NEW(node.dependents, len) ELSE node.dependents := NIL END;
+		i := 0;
+		WHILE i < len DO
+			p := GraphNodes.Internalize(rd); node.dependents[i] := p(GraphLogical.Node); INC(i)
+		END;
 		node.tGrid := v.components;
 		node.t := GraphNodes.Internalize(rd);
 	END Internalize;
@@ -111,7 +156,6 @@ MODULE GraphODElang;
 			rep: Node;
 	BEGIN
 		rep := node.components[0](Node);
-		node.SetProps(rep.props + {GraphLogical.dirty});
 		node.solver := rep.solver;
 		node.x0Val := rep.x0Val;
 		node.x1Val := rep.x1Val;
@@ -124,8 +168,7 @@ MODULE GraphODElang;
 		node.xStart := rep.xStart;
 		node.xStep := rep.xStep;
 		node.deriv := rep.deriv;
-		node.derivStart := rep.derivStart;
-		node.derivStep := rep.derivStep;
+		node.dependents := rep.dependents;
 		node.tGrid := rep.tGrid;
 		node.t := rep.t
 	END Copy;
@@ -154,10 +197,8 @@ MODULE GraphODElang;
 			INC(i)
 		END;
 		i := 0;
-		start := node.derivStart;
-		step := node.derivStep;
 		WHILE (i < numEq) & (form = GraphRules.const) DO
-			p := node.deriv[start + i * step];
+			p := node.deriv[i];
 			form := GraphStochastic.ClassFunction(p, parent);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other
@@ -177,40 +218,46 @@ MODULE GraphODElang;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, j, numEq, tGridSize, start, step: INTEGER;
 			t0, tol, solverStep: REAL;
 			theta: ARRAY 1 OF REAL;
 	BEGIN
-		numEq := node.solver.numEq;
-		start := node.x0Start;
-		step := node.x0Step;
-		tGridSize := LEN(node.tGrid);
-		tol := node.tol;
-		i := 0;
-		WHILE i < numEq DO
-			node.x0Val[i] := node.x0[start + i * step].Value();
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < tGridSize DO
-			IF i = 0 THEN
-				t0 := node.t0
-			ELSE
-				t0 := node.tGrid[i - 1].Value()
+		IF node.index = 0 THEN
+			numEq := node.solver.numEq;
+			start := node.x0Start;
+			step := node.x0Step;
+			tGridSize := LEN(node.tGrid);
+			tol := node.tol;
+			i := 0;
+			WHILE i < numEq DO
+				node.x0Val[i] := node.x0[start + i * step].value;
+				INC(i)
 			END;
-			solverStep := node.tGrid[i].Value() - t0;
-			node.solver.AccurateStep(theta, node.x0Val, numEq, t0, solverStep, tol, node.x1Val);
-			j := 0;
-			WHILE j < numEq DO
-				values[i * numEq + j] := node.x1Val[j];
-				node.x0Val[j] := node.x1Val[j];
-				INC(j)
-			END;
-			INC(i)
+			i := 0;
+			WHILE i < tGridSize DO
+				IF i = 0 THEN
+					t0 := node.t0
+				ELSE
+					t0 := node.tGrid[i - 1].value
+				END;
+				solverStep := node.tGrid[i].value - t0;
+				node.solver.AccurateStep(theta, node.x0Val, numEq, t0, solverStep, tol, node.x1Val);
+				j := 0;
+				WHILE j < numEq DO
+					node.components[i * numEq + j].value := node.x1Val[j];
+					node.x0Val[j] := node.x1Val[j];
+					INC(j)
+				END;
+				INC(i)
+			END
 		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs;
+	BEGIN
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 	BEGIN
@@ -230,7 +277,6 @@ MODULE GraphODElang;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.x0 := NIL;
 		node.x0Start := - 1;
 		node.x0Step := 0;
@@ -238,11 +284,18 @@ MODULE GraphODElang;
 		node.xStart := - 1;
 		node.xStep := 0;
 		node.deriv := NIL;
-		node.derivStart := - 1;
-		node.derivStep := 0;
+		node.dependents := NIL;
 		node.tGrid := NIL;
 		node.t := NIL
 	END InitLogical;
+
+	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
+		VAR
+			install1: ARRAY 128 OF CHAR;
+	BEGIN
+		node.solver.Install(install1);
+		BugsMsg.Lookup(install1, install)
+	END Install;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -261,10 +314,8 @@ MODULE GraphODElang;
 			INC(i)
 		END;
 		i := 0;
-		start := node.derivStart;
-		step := node.derivStep;
 		WHILE i < numEq DO
-			p := node.deriv[start + i * step];
+			p := node.deriv[i];
 			p.AddParent(list);
 			INC(i)
 		END;
@@ -313,11 +364,16 @@ MODULE GraphODElang;
 				END;
 				node.tGrid := args.vectors[1].components;
 				ASSERT(args.vectors[2].components # NIL, 21);
-				node.deriv := args.vectors[2].components;
+				(*node.deriv := args.vectors[2].components;*)
 				ASSERT(args.vectors[2].start >= 0, 21);
-				node.derivStart := args.vectors[2].start;
-				node.derivStep := args.vectors[2].step;
 				ASSERT(args.vectors[2].nElem > 0, 21);
+				start := args.vectors[2].start;
+				step := args.vectors[2].step;
+				NEW(node.deriv, numEq);
+				i := 0;
+				WHILE i < numEq DO node.deriv[i] := args.vectors[2].components[i](GraphLogical.Node);
+					INC(i)
+				END;
 				ASSERT(args.vectors[3].components # NIL, 21);
 				node.x := args.vectors[3].components;
 				ASSERT(args.vectors[3].start >= 0, 21);
@@ -333,17 +389,17 @@ MODULE GraphODElang;
 				start := node.xStart;
 				step := node.xStep;
 				WHILE i < numEq DO
-					node.x[start + i * step].SetProps(node.x[start + i * step].props + 
-					{GraphStochastic.hidden, GraphStochastic.initialized});
+					node.x[start + i * step].props := node.x[start + i * step].props + 
+					{GraphStochastic.hidden, GraphStochastic.initialized};
 					INC(i)
 				END;
 				ASSERT(args.scalars[0] # NIL, 21);
 				node.t := args.scalars[0];
-				node.t.SetProps(node.t.props + {GraphStochastic.hidden, GraphStochastic.initialized});
+				node.t.props := node.t.props + {GraphStochastic.hidden, GraphStochastic.initialized};
 				ASSERT(args.scalars[1] # NIL, 21);
-				node.t0 := args.scalars[1].Value();
+				node.t0 := args.scalars[1].value;
 				ASSERT(args.scalars[2] # NIL, 21);
-				node.tol := args.scalars[2].Value();
+				node.tol := args.scalars[2].value;
 				NEW(node.tGrid, tGridSize);
 				i := 0;
 				WHILE i < tGridSize DO
@@ -365,11 +421,6 @@ MODULE GraphODElang;
 		node.solver := solver
 	END SetSolver;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(0)
-	END ValDiff;
-
 	PROCEDURE (equations: Equations) Derivatives (IN theta, x: ARRAY OF REAL;
 	numEq: INTEGER; t: REAL;
 	OUT dxdt: ARRAY OF REAL);
@@ -380,20 +431,20 @@ MODULE GraphODElang;
 	BEGIN
 		node := equations.node;
 		time := node.t(GraphStochastic.Node);
-		time.SetValue(t);
+		time.value := t;
 		start := node.xStart;
 		step := node.xStep;
 		i := 0;
 		WHILE i < numEq DO
 			xx := node.x[start + i * step](GraphStochastic.Node);
-			xx.SetValue(x[i]);
+			xx.value := x[i];
 			INC(i)
 		END;
+		IF node.dependents = NIL THEN node.dependents := Ancestors(node) END;
 		i := 0;
-		start := node.derivStart;
-		step := node.derivStep;
+		GraphLogical.Evaluate(node.dependents);
 		WHILE i < numEq DO
-			dxdt[i] := node.deriv[start + i * step].Value();
+			dxdt[i] := node.deriv[i].value;
 			INC(i)
 		END
 	END Derivatives;

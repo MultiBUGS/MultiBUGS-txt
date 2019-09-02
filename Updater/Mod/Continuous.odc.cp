@@ -63,10 +63,10 @@ MODULE UpdaterContinuous;
 		ELSE
 			IF ~prior.CanSample(univariate) THEN res := {GraphNodes.lhs}; RETURN END;
 			location := prior.Location();
-			prior.SetValue(location);
+			prior.value := location;
 			res := {};
 		END;
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE Maintainer;

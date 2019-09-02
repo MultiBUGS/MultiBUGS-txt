@@ -120,7 +120,7 @@ MODULE UpdaterStage1M;
 		sizeP := updater.Size();
 		i := 0;
 		WHILE i < sizeP DO
-			updater.old[i] := updater.prior[i].Value();
+			updater.old[i] := updater.prior[i].value;
 			INC(i)
 		END;
 		oldDen := prior.LogMVPrior();
@@ -130,7 +130,7 @@ MODULE UpdaterStage1M;
 		i := 0;
 		WHILE i < sizeP DO
 			p := updater.stage1[i];
-			updater.prior[i].SetValue(p.components[index].value);
+			updater.prior[i].value := p.components[index].value;
 			INC(i)
 		END;
 		newDen := prior.LogMVPrior();
@@ -138,7 +138,7 @@ MODULE UpdaterStage1M;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
 			i := 0;
 			WHILE i < sizeP DO
-				updater.prior[i].SetValue(updater.old[i]);
+				updater.prior[i].value := updater.old[i];
 				INC(i)
 			END
 		END

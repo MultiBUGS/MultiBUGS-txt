@@ -56,7 +56,7 @@ MODULE GraphScalartemp1;
 		install := "GraphScalartemp1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			value: REAL;
 			i, size, start, step: INTEGER;
@@ -72,18 +72,17 @@ MODULE GraphScalartemp1;
 		step := node.step[0];
 		log := 0.0;
 		WHILE i < size DO
-			log := log + Math.Ln(node.vectors[0][start + i * step].Value());
+			log := log + Math.Ln(node.vectors[0][start + i * step].value);
 			INC(i)
 		END;
 		log := log / size;
-		value := Math.Exp(log);
-		RETURN value
-	END Value;
+		node.value := Math.Exp(log);
+	END Evaluate;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs;
 	BEGIN
 		HALT(126)
-	END ValDiff;
+	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

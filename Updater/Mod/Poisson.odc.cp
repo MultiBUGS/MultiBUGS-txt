@@ -54,7 +54,7 @@ MODULE UpdaterPoisson;
 		prior := updater.prior;
 		prior.Sample(res);
 		IF res # {} THEN RETURN END;
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
@@ -91,7 +91,7 @@ MODULE UpdaterPoisson;
 		likelihood.LikelihoodForm(as, node, q, n);
 		lambda := lambda * q;
 		value := MathRandnum.Poisson(lambda);
-		prior.SetValue(n + value);
+		prior.value := n + value; prior.Evaluate;
 		res := {}
 	END Sample;
 

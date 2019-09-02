@@ -106,7 +106,7 @@ MODULE GraphWeibullHazard;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean, GraphStochastic.noCDF});
+		node.props := node.props + {GraphStochastic.noMean, GraphStochastic.noCDF};
 		node.nu := NIL;
 		node.function := NIL;
 		node.t := NIL;
@@ -120,7 +120,7 @@ MODULE GraphWeibullHazard;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (node: Node) IsLikelihoodTerm (): BOOLEAN;
@@ -142,8 +142,8 @@ MODULE GraphWeibullHazard;
 			rule: GraphJacobi.Node;
 	BEGIN
 		(*	this causes Gauss-Jacobi rule to be set up if needs be	*)
-		dummy := node.rule.Value();
-		nu := node.nu.Value();
+		dummy := node.rule.value;
+		nu := node.nu.value;
 		time := node.value;
 		scale := Math.Power(0.5 * time, nu);
 		rule := node.rule;
@@ -153,15 +153,15 @@ MODULE GraphWeibullHazard;
 		integral := 0.0; 
 		WHILE i < order DO
 			s := 0.5 * time * (rule.absisca[i] + 1.0);
-			t.SetValue(s);
-			y := node.function.Value();
+			t.value := s;
+			y := node.function.value;
 			integral := integral + rule.weights[i] * y;
 			INC(i)
 		END;
 		log := -integral * nu * scale;
 		IF node.event THEN 
-			t.SetValue(time);
-			y := node.function.Value();
+			t.value := time;
+			y := node.function.value;
 			log := Math.Ln(nu) + (nu - 1.0) * Math.Ln(time) + Math.Ln(y) + log 
 		END;
 		RETURN log
@@ -219,7 +219,7 @@ MODULE GraphWeibullHazard;
 			ASSERT(args.scalars[2] # NIL, 21);
 			node.t := args.scalars[2](GraphStochastic.Node);
 			ASSERT(args.scalars[3] # NIL, 21);
-			node.event := args.scalars[3].Value() > 0.5;
+			node.event := args.scalars[3].value > 0.5;
 			IF (ruleCache = NIL) OR (ruleCache.beta # node.nu) THEN (*	need to create a new rule object	*)
 				logicalArgs.Init;
 				logicalArgs.ops[0] := order;

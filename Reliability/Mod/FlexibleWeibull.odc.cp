@@ -51,10 +51,10 @@ MODULE ReliabilityFlexibleWeibull;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -84,8 +84,8 @@ MODULE ReliabilityFlexibleWeibull;
 		VAR
 			alpha, beta: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		RETURN MathCumulative.FlexibleWeibull(alpha, beta, x)
 	END Cumulative;
 
@@ -94,8 +94,8 @@ MODULE ReliabilityFlexibleWeibull;
 			alpha, beta, factor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		factor := (alpha * x) - (beta / x);
 		logLikelihood := MathFunc.Ln(alpha + (beta / (x * x))) + factor - Math.Exp(factor);
 		RETURN - 2.0 * logLikelihood
@@ -106,19 +106,19 @@ MODULE ReliabilityFlexibleWeibull;
 			alpha, beta, diff, diffAlpha, diffBeta, exp, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			beta := node.beta.Value();
+			diffAlpha := node.alpha.Diff(x);
 			exp := Math.Exp(alpha * val - beta / val);
 			diff := diffAlpha * (1 / (alpha + (beta / (val * val))) + val * (1 - exp))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffBeta := node.beta.Diff(x);
 			exp := Math.Exp(alpha * val - beta / val);
 			diff := diffBeta * (1 / (alpha * val * val + beta) - (1 - exp) / val)
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.beta.ValDiff(x, beta, diffBeta);
+			diffAlpha := node.alpha.Diff(x);
+			diffBeta := node.beta.Diff(x);
 			exp := Math.Exp(alpha * val - beta / val);
 			diff := diffAlpha * (1 / (alpha + (beta / (val * val))) + val * (1 - exp)) + 
 			diffBeta * (1 / (alpha * val * val + beta) - (1 - exp) / val)
@@ -131,8 +131,8 @@ MODULE ReliabilityFlexibleWeibull;
 			alpha, beta, exp, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		exp := Math.Exp(alpha * x - beta / x);
 		RETURN 2 * beta / (x * (alpha * x * x + beta)) + (alpha + beta / (x * x)) * (1 - exp)
 	END DiffLogPrior;
@@ -145,7 +145,7 @@ MODULE ReliabilityFlexibleWeibull;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.beta := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -167,8 +167,8 @@ MODULE ReliabilityFlexibleWeibull;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		u := Math.Ln( - Math.Ln(1.0 - p50));
 		mean := (1 / (2 * alpha)) * (u + Math.Power((u * u) + 4 * alpha * beta, 0.5));
 		RETURN mean
@@ -179,8 +179,8 @@ MODULE ReliabilityFlexibleWeibull;
 			alpha, beta, factor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		factor := (alpha * x) - (beta / x);
 		logLikelihood := MathFunc.Ln(alpha + (beta / (x * x))) + factor - Math.Exp(factor);
 		RETURN logLikelihood
@@ -191,8 +191,8 @@ MODULE ReliabilityFlexibleWeibull;
 			alpha, beta, factor, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		factor := (alpha * x) - (beta / x);
 		logPrior := MathFunc.Ln(alpha + (beta / (x * x))) + factor - Math.Exp(factor);
 		RETURN logPrior
@@ -213,8 +213,8 @@ MODULE ReliabilityFlexibleWeibull;
 			alpha, beta, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.FlexibleWeibull(alpha, beta)
@@ -228,7 +228,7 @@ MODULE ReliabilityFlexibleWeibull;
 				x := MathRandnum.FlexibleWeibullIB(alpha, beta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

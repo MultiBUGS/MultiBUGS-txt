@@ -83,8 +83,8 @@ MODULE UpdaterStage1;
 		p := updater.stage1;
 		size := p.Size();
 		index := MathRandnum.DiscreteUniform(1, size) - 1;
-		prior.SetValue(p.components[index].value);
-		prior.SetProps(prior.props + {GraphStochastic.initialized})
+		prior.value := p.components[index].value;
+		INCL(prior.props, GraphStochastic.initialized)
 	END GenerateInit;
 
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
@@ -101,11 +101,11 @@ MODULE UpdaterStage1;
 		p := updater.stage1;
 		size := p.Size();
 		index := MathRandnum.DiscreteUniform(1, size) - 1;
-		prior.SetValue(p.components[index].value);
+		prior.value := p.components[index].value;
 		newDen := prior.LogPrior();
 		alpha := newDen - oldDen;
 		IF alpha < Math.Ln(MathRandnum.Rand()) THEN
-			prior.SetValue(oldVal)
+			prior.value := oldVal
 		END
 	END Sample;
 

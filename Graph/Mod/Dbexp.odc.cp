@@ -75,8 +75,8 @@ MODULE GraphDbexp;
 		VAR
 			culm, tau, mu: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		culm := MathCumulative.Dbexp(mu, tau, x);
 		RETURN culm
 	END Cumulative;
@@ -86,9 +86,9 @@ MODULE GraphDbexp;
 			logDensity, logTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		logDensity := logTau - ABS(x - mu) * tau - Math.Ln(2.0);
 		RETURN - 2.0 * logDensity
 	END DevianceUnivariate;
@@ -98,17 +98,17 @@ MODULE GraphDbexp;
 			differential, diffMu, diffTau, mu, tau, val: REAL;
 	BEGIN
 		val := node.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.tau.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
-			tau := node.tau.Value();
+			diffMu := node.mu.Diff(x);
 			differential := diffMu * Math.Sign(val - mu) * tau
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.tau.ValDiff(x, tau, diffTau);
+			diffTau := node.tau.Diff(x);
 			differential := diffTau * (1 / tau - ABS(val - mu))
 		ELSE
-			node.tau.ValDiff(x, mu, diffMu);
-			node.mu.ValDiff(x, tau, diffTau);
+			diffMu := node.mu.Diff(x);
+			diffTau := node.tau.Diff(x);
 			differential := diffTau * (1 / tau - ABS(val - mu)) + diffMu * Math.Sign(val - mu) * tau
 		END;
 		RETURN differential
@@ -119,8 +119,8 @@ MODULE GraphDbexp;
 			mu, tau, val: REAL;
 	BEGIN
 		val := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		RETURN - tau * Math.Sign(val - mu)
 	END DiffLogPrior;
 
@@ -134,9 +134,9 @@ MODULE GraphDbexp;
 			logLikelihood, logTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		logLikelihood := logTau - ABS(x - mu) * tau;
 		RETURN logLikelihood
 	END LogLikelihoodUnivariate;
@@ -146,7 +146,7 @@ MODULE GraphDbexp;
 			mu: REAL;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		p0 := 1.0;
 		p1 := ABS(node.value - mu);
 		x := node.tau
@@ -157,8 +157,8 @@ MODULE GraphDbexp;
 			mu, logPrior, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		tau := node.tau.Value();
-		mu := node.mu.Value();
+		tau := node.tau.value;
+		mu := node.mu.value;
 		logPrior := - ABS(x - mu) * tau;
 		RETURN logPrior
 	END LogPrior;
@@ -167,7 +167,7 @@ MODULE GraphDbexp;
 		VAR
 			mu: REAL;
 	BEGIN
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		RETURN mu
 	END Location;
 
@@ -184,7 +184,7 @@ MODULE GraphDbexp;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() < - eps THEN
+		IF node.tau.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -234,8 +234,8 @@ MODULE GraphDbexp;
 			tau, mu, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.DoubleExp(mu, tau)
@@ -249,7 +249,7 @@ MODULE GraphDbexp;
 				x := MathRandnum.DoubleExpIB(mu, tau, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

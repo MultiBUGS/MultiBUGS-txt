@@ -49,7 +49,7 @@ MODULE GraphFounder;
 		IF ~(r IN {1, 2, 3}) THEN
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
-		p := node.p.Value();
+		p := node.p.value;
 		IF (p <= - eps) OR (p >= 1 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
@@ -80,7 +80,7 @@ MODULE GraphFounder;
 			logDensity, logP, logQ, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logDensity := (r - 1) * logP + (3 - r) * logQ;
@@ -95,7 +95,8 @@ MODULE GraphFounder;
 			diff, p, r: REAL;
 	BEGIN
 		r := node.value;
-		node.p.ValDiff(x, p, diff);
+		p := node.p.value;
+		diff := node.p.Diff(x);
 		RETURN diff * ((r - 1) / p - (3 - r) / (1 - p));
 	END DiffLogLikelihood;
 
@@ -117,9 +118,9 @@ MODULE GraphFounder;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
+		node.props := node.props + 
 		{GraphStochastic.integer, GraphStochastic.leftNatural,
-		GraphStochastic.rightNatural, GraphStochastic.noMean});
+		GraphStochastic.rightNatural, GraphStochastic.noMean};
 		node.p := NIL
 	END InitUnivariate;
 
@@ -155,7 +156,7 @@ MODULE GraphFounder;
 			logLikelihood, logP, logQ, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logLikelihood := (r - 1) * logP + (3 - r) * logQ;
@@ -167,7 +168,7 @@ MODULE GraphFounder;
 			logP, logPrior, logQ, p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		logP := MathFunc.Ln(p);
 		logQ := MathFunc.Ln(1 - p);
 		logPrior := (r - 1) * logP + (3 - r) * logQ;
@@ -199,9 +200,9 @@ MODULE GraphFounder;
 		VAR
 			p, r: REAL;
 	BEGIN
-		p := node.p.Value();
+		p := node.p.value;
 		r := MathRandnum.Binomial(p, 2) + 1;
-		node.SetValue(r);
+		node.value := r;
 		res := {}
 	END Sample;
 

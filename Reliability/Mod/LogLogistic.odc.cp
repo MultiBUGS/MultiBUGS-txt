@@ -52,10 +52,10 @@ MODULE ReliabilityLogLogistic;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.beta.Value() < - eps THEN
+		IF node.beta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.theta.Value() < - eps THEN
+		IF node.theta.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -85,8 +85,8 @@ MODULE ReliabilityLogLogistic;
 		VAR
 			beta, theta: REAL;
 	BEGIN
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		RETURN MathCumulative.LogLogistic(beta, theta, x)
 	END Cumulative;
 
@@ -95,8 +95,8 @@ MODULE ReliabilityLogLogistic;
 			logDensity, theta, beta, logBeta, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		logBeta := MathFunc.Ln(beta);
 		factor := Math.Power((x / theta), beta);
 		logDensity := logBeta + MathFunc.Ln(factor) - MathFunc.Ln(x) - 2 * MathFunc.Ln(1 + factor);
@@ -108,20 +108,20 @@ MODULE ReliabilityLogLogistic;
 			beta, theta, diff, diffBeta, diffTheta, log, pow, val: REAL;
 	BEGIN
 		val := node.value;
+		beta := node.beta.value;
+		theta := node.theta.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.theta.props) THEN
-			node.beta.ValDiff(x, beta, diffBeta);
-			theta := node.theta.Value();
+			diffBeta := node.beta.Diff(x);
 			pow := Math.Power(val / theta, beta);
 			log := Math.Ln(val / theta);
 			diff := diffBeta * (1 / beta + log - 2 * pow * log / (1 + pow))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.beta.props) THEN
-			beta := node.beta.Value();
-			node.theta.ValDiff(x, theta, diffTheta);
+			diffTheta := node.theta.Diff(x);
 			pow := Math.Power(val / theta, beta);
 			diff := diffTheta * (beta / theta) * (2 * pow / (1 + pow) - 1)
 		ELSE
-			node.beta.ValDiff(x, beta, diffBeta);
-			node.theta.ValDiff(x, theta, diffTheta);
+			diffBeta := node.beta.Diff(x);
+			diffTheta := node.theta.Diff(x);
 			pow := Math.Power(val / theta, beta);
 			log := Math.Ln(val / theta);
 			diff := diffBeta * (1 / beta + log - 2 * pow * log / (1 + pow))
@@ -135,8 +135,8 @@ MODULE ReliabilityLogLogistic;
 			beta, theta, pow, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		pow := Math.Power(x / theta, beta);
 		RETURN (beta - 1) / x - 2 * pow / (x * (1 + pow))
 	END DiffLogPrior;
@@ -149,7 +149,7 @@ MODULE ReliabilityLogLogistic;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.theta := NIL;
 	END InitUnivariate;
 
@@ -170,8 +170,8 @@ MODULE ReliabilityLogLogistic;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		median := theta * Math.Power(p50 / (1 - p50), (1.0 / beta));
 		RETURN median
 	END Location;
@@ -181,8 +181,8 @@ MODULE ReliabilityLogLogistic;
 			theta, beta, logBeta, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		logBeta := MathFunc.Ln(beta);
 		factor := Math.Power((x / theta), beta);
 		RETURN logBeta + MathFunc.Ln(factor) - MathFunc.Ln(x) - 2 * MathFunc.Ln(1 + factor)
@@ -193,8 +193,8 @@ MODULE ReliabilityLogLogistic;
 			theta, beta, logBeta, factor, x: REAL;
 	BEGIN
 		x := node.value;
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		logBeta := MathFunc.Ln(beta);
 		factor := Math.Power((x / theta), beta);
 		RETURN MathFunc.Ln(factor) - MathFunc.Ln(x) - 2 * MathFunc.Ln(1 + factor)
@@ -215,8 +215,8 @@ MODULE ReliabilityLogLogistic;
 			theta, beta, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		beta := node.beta.Value();
-		theta := node.theta.Value();
+		beta := node.beta.value;
+		theta := node.theta.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Loglogistic(beta, theta)
@@ -230,7 +230,7 @@ MODULE ReliabilityLogLogistic;
 				x := MathRandnum.LoglogisticIB(beta, theta, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

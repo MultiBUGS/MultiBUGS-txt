@@ -25,6 +25,7 @@ MODULE BugsComponents;
 
 	VAR
 		graphModules, updaterModules: List;
+		platform: Dialog.String;
 		allThis-: BOOLEAN;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
@@ -71,7 +72,7 @@ MODULE BugsComponents;
 			END
 		ELSIF name = "MPI" THEN
 			(*	add implementation of MPI map name in string resource file	*)
-			Dialog.MapString("#Bugs:MPIimp", mpiImp);
+			Dialog.MapString("#Bugs:" + platform, mpiImp);
 			AddModule(mpiImp$, modList);
 		END
 	END AddModule;
@@ -222,7 +223,7 @@ MODULE BugsComponents;
 		allThis := TRUE
 	END Clear;
 
-	PROCEDURE Modules* (): POINTER TO ARRAY OF Files.Name;
+	PROCEDURE Modules* (IN plat: ARRAY OF CHAR): POINTER TO ARRAY OF Files.Name;
 		VAR
 			i, numMod: INTEGER;
 			modList: List;
@@ -232,6 +233,7 @@ MODULE BugsComponents;
 			loc: Files.Locator;
 			mod: Meta.Item;
 	BEGIN
+		platform := plat$;
 		modList := NIL;
 
 		(*	add Kernel to modList	*)

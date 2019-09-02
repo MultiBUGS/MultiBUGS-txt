@@ -48,7 +48,7 @@ MODULE ReliabilityLogWeibull;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.sigma.Value() < - eps THEN
+		IF node.sigma.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		ELSE
 			RETURN {}
@@ -79,8 +79,8 @@ MODULE ReliabilityLogWeibull;
 		VAR
 			mu, sigma: REAL;
 	BEGIN
-		sigma := node.sigma.Value();
-		mu := node.mu.Value();
+		sigma := node.sigma.value;
+		mu := node.mu.value;
 		RETURN MathCumulative.LogWeibull(mu, sigma, x)
 	END Cumulative;
 
@@ -89,8 +89,8 @@ MODULE ReliabilityLogWeibull;
 			logDensity, logSigma, mu, sigma, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		logSigma := MathFunc.Ln(sigma);
 		logDensity := - logSigma + ((x - mu) / sigma) - Math.Exp((x - mu) / sigma);
 		RETURN - 2.0 * logDensity
@@ -101,19 +101,19 @@ MODULE ReliabilityLogWeibull;
 			mu, sigma, diff, diffMu, diffSigma, exp, val: REAL;
 	BEGIN
 		val := node.value;
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.sigma.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
-			sigma := node.sigma.Value();
+			diffMu := node.mu.Diff(x);
 			exp := Math.Exp((val - mu) / sigma);
 			diff := diffMu * (exp - 1) / sigma
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.sigma.ValDiff(x, sigma, diffSigma);
+			diffSigma := node.sigma.Diff(x);
 			exp := Math.Exp((val - mu) / sigma);
 			diff := diffSigma * (((val - mu) / sigma) * (exp - 1) - 1) / sigma
 		ELSE
-			node.mu.ValDiff(x, mu, diffMu);
-			node.sigma.ValDiff(x, sigma, diffSigma);
+			diffMu := node.mu.Diff(x);
+			diffSigma := node.sigma.Diff(x);
 			exp := Math.Exp((val - mu) / sigma);
 			diff := diffMu * (exp - 1) / sigma + 
 			diffSigma * (((val - mu) / sigma) * (exp - 1) - 1) / sigma
@@ -126,8 +126,8 @@ MODULE ReliabilityLogWeibull;
 			mu, sigma, exp, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		exp := Math.Exp((x - mu) / sigma);
 		RETURN (1 - exp) / sigma
 	END DiffLogPrior;
@@ -161,8 +161,8 @@ MODULE ReliabilityLogWeibull;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		median := mu + sigma * Math.Ln( - Math.Ln(1 - p50));
 		RETURN median
 	END Location;
@@ -172,8 +172,8 @@ MODULE ReliabilityLogWeibull;
 			logDensity, logSigma, mu, sigma, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		logSigma := MathFunc.Ln(sigma);
 		logDensity := - logSigma + ((x - mu) / sigma) - Math.Exp((x - mu) / sigma);
 		RETURN logDensity
@@ -184,8 +184,8 @@ MODULE ReliabilityLogWeibull;
 			logPrior, mu, sigma, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		logPrior := (x / sigma) - Math.Exp((x - mu) / sigma);
 		RETURN logPrior
 	END LogPrior;
@@ -216,8 +216,8 @@ MODULE ReliabilityLogWeibull;
 			sigma, mu, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		sigma := node.sigma.Value();
+		mu := node.mu.value;
+		sigma := node.sigma.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.LogWeibull(mu, sigma)
@@ -231,7 +231,7 @@ MODULE ReliabilityLogWeibull;
 				x := MathRandnum.LogWeibullIB(mu, sigma, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

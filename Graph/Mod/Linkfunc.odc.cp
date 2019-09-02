@@ -35,23 +35,23 @@ MODULE GraphLinkfunc;
 		RETURN predictor.Check()
 	END Check;
 
-	PROCEDURE (node: Node) ExternalizeLogical- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.predictor, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
 		node.predictor := NIL
 	END InitLogical;
 
-	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
 			p: GraphNodes.Node;
 	BEGIN
 		p := GraphNodes.Internalize(rd);
 		node.predictor := p
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -72,7 +72,7 @@ MODULE GraphLinkfunc;
 			ASSERT(args.scalars[0] # NIL, 21);
 			node.predictor := args.scalars[0];
 			IF GraphNodes.data IN node.predictor.props THEN
-				node.SetProps(node.props + {GraphNodes.data})
+				INCL(node.props, GraphNodes.data)
 			END
 		END
 	END Set;

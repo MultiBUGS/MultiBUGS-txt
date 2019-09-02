@@ -107,7 +107,7 @@ MODULE GraphRandwalk;
 			tau: REAL;
 			i, nnz, size, nElements: INTEGER;
 	BEGIN
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		size := node.Size();
 		nElements := 2 * size - 1;
 		nnz := 0;
@@ -180,7 +180,7 @@ MODULE GraphRandwalk;
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
 		size := node.Size();
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		b := node.components;
 		index := node.index;
 		IF index = 0 THEN

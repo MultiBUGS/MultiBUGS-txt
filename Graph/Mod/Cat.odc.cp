@@ -61,7 +61,7 @@ MODULE GraphCat;
 		sum := 0.0;
 		i := 0;
 		WHILE i < dimP DO
-			p := node.p[start + i * step].Value();
+			p := node.p[start + i * step].value;
 			IF (p < - eps) OR (p > 1.0 + eps) THEN
 				RETURN {GraphNodes.proportion, GraphNodes.arg1}
 			END;
@@ -170,7 +170,7 @@ MODULE GraphCat;
 		cumulative := 0.0;
 		WHILE i < r DO
 			p := node.p[start + i * step];
-			cumulative := cumulative + p.Value();
+			cumulative := cumulative + p.value;
 			INC(i)
 		END;
 		RETURN cumulative
@@ -185,7 +185,7 @@ MODULE GraphCat;
 		start := node.start;
 		step := node.step;
 		off := start + (r - 1) * step;
-		p := node.p[off].Value();
+		p := node.p[off].value;
 		logP := MathFunc.Ln(p);
 		RETURN - 2 * logP
 	END DevianceUnivariate;
@@ -199,7 +199,8 @@ MODULE GraphCat;
 		start := node.start;
 		step := node.step;
 		off := start + (r - 1) * step;
-		node.p[off].ValDiff(x, p, diff);
+		p := node.p[off].value;
+		diff := node.p[off].Diff(x);
 		RETURN diff / p
 	END DiffLogLikelihood;
 
@@ -221,9 +222,9 @@ MODULE GraphCat;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
+		node.props := node.props + 
 		{GraphStochastic.integer, GraphStochastic.leftNatural,
-		GraphStochastic.rightNatural, GraphStochastic.noMean});
+		GraphStochastic.rightNatural, GraphStochastic.noMean};
 		node.p := NIL;
 		node.start := - 1;
 		node.dimP := 0;
@@ -281,7 +282,7 @@ MODULE GraphCat;
 		start := node.start;
 		step := node.step;
 		off := start + (r - 1) * step;
-		p := node.p[off].Value();
+		p := node.p[off].value;
 		logP := MathFunc.Ln(p);
 		RETURN logP
 	END LogLikelihoodUnivariate;
@@ -294,7 +295,7 @@ MODULE GraphCat;
 		r := SHORT(ENTIER(node.value + eps));
 		start := node.start;
 		i := start + r - 1;
-		p := node.p[i].Value();
+		p := node.p[i].value;
 		logP := MathFunc.Ln(p);
 		RETURN logP
 	END LogPrior;
@@ -344,7 +345,7 @@ MODULE GraphCat;
 		r := left - 1;
 		norm := 0.0;
 		WHILE off < finish DO
-			proportions[r] := node.p[off].Value();
+			proportions[r] := node.p[off].value;
 			norm := norm + proportions[r];
 			INC(off, step);
 			INC(r)
@@ -355,7 +356,7 @@ MODULE GraphCat;
 			rand := rand - proportions[r];
 			INC(r)
 		UNTIL rand < 0;
-		node.SetValue(r);
+		node.value := r;
 		res := {}
 	END Sample;
 

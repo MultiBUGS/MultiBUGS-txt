@@ -42,7 +42,7 @@ MODULE GraphLogistic;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() < - eps THEN
+		IF node.tau.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -89,8 +89,8 @@ MODULE GraphLogistic;
 		VAR
 			cumulative, mu, tau: REAL;
 	BEGIN
-		tau := node.tau.Value();
-		mu := node.mu.Value();
+		tau := node.tau.value;
+		mu := node.mu.value;
 		cumulative := 1.0 / (1.0 + Math.Exp( - tau * (x - mu)));
 		RETURN cumulative
 	END Cumulative;
@@ -100,8 +100,8 @@ MODULE GraphLogistic;
 			logDensity, logTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		logDensity := logTau + (x - mu) * tau - 2.0 * Math.Ln(1.0 + Math.Exp(tau * (x - mu)));
 		RETURN - 2.0 * logDensity
@@ -112,19 +112,19 @@ MODULE GraphLogistic;
 			differential, factor, diffTau, mu, diffMu, tau, val: REAL;
 	BEGIN
 		val := node.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.tau.props) THEN
-			node.mu.ValDiff(x, mu, diffMu);
-			tau := node.tau.Value();
+			diffMu := node.mu.Diff(x);
 			differential := diffMu * ( - tau + 2 * tau * factor);
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.tau.ValDiff(x, tau, diffTau);
+			diffTau := node.tau.Diff(x);
 			differential := diffTau * (1 / tau + (val - mu) - 2 * (val - mu) * factor);
 			factor := Math.Exp(tau * (val - mu)) / (1.0 + Math.Exp(tau * (val - mu)));
 			differential := diffMu * ( - tau + 2 * tau * factor);
 		ELSE
-			node.mu.ValDiff(x, mu, diffMu);
-			node.tau.ValDiff(x, tau, diffTau);
+			diffMu := node.mu.Diff(x);
+			diffTau := node.tau.Diff(x);
 			factor := Math.Exp(tau * (val - mu)) / (1.0 + Math.Exp(tau * (val - mu)));
 			differential := diffMu * ( - tau + 2 * tau * factor)
 			 + diffTau * (1 / tau + (val - mu) - 2 * (val - mu) * factor);
@@ -137,8 +137,8 @@ MODULE GraphLogistic;
 			differential, exp, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		exp := Math.Exp(tau * (x - mu));
 		differential := tau - 2.0 * tau * exp / (1.0 + exp);
 		RETURN differential
@@ -171,7 +171,7 @@ MODULE GraphLogistic;
 		VAR
 			mu: REAL;
 	BEGIN
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		RETURN mu
 	END Location;
 
@@ -180,8 +180,8 @@ MODULE GraphLogistic;
 			logDensity, logTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		logDensity := logTau + (x - mu) * tau - 2.0 * Math.Ln(1.0 + Math.Exp(tau * (x - mu)));
 		RETURN logDensity
@@ -192,8 +192,8 @@ MODULE GraphLogistic;
 			x, mu, tau, logPrior: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logPrior := (x - mu) * tau - 2.0 * Math.Ln(1.0 + Math.Exp(tau * (x - mu)));
 		RETURN logPrior
 	END LogPrior;
@@ -224,8 +224,8 @@ MODULE GraphLogistic;
 			tau, mu, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Logistic(mu, tau)
@@ -239,7 +239,7 @@ MODULE GraphLogistic;
 				x := MathRandnum.LogisticIB(mu, tau, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

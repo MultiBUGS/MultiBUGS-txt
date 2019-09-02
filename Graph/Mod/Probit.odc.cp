@@ -13,7 +13,7 @@ MODULE GraphProbit;
 	
 
 	IMPORT
-		Math, 
+		Math,
 		GraphLinkfunc, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathFunc;
 
@@ -41,34 +41,43 @@ MODULE GraphProbit;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphProbit.Install"
-	END Install;
-
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			x, value: REAL;
 			predictor: GraphNodes.Node;
 	BEGIN
 		predictor := node.predictor;
-		x := predictor.Value();
-	(*	IF ABS(x) > maxRange THEN
-			HALT(0)
+		x := predictor.value;
+		(*	IF ABS(x) > maxRange THEN
+		HALT(0)
 		END;*)
-		value := MathFunc.Phi(x);
-		RETURN value
-	END Value;
+		node.value := MathFunc.Phi(x);
+	END Evaluate;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs;
 		VAR
 			predictor: GraphNodes.Node;
+			x: GraphNodes.Vector;
+			val, sqrt: REAL;
+			i, N: INTEGER;
 	BEGIN
+		x := node.diffWRT;
+		N := LEN(x);
 		predictor := node.predictor;
-		predictor.ValDiff(x, val, diff);
-		diff := diff * Math.Exp( - 0.5 * val * val) / Math.Sqrt(2 * Math.Pi());
-		val := MathFunc.Phi(val)
-	END ValDiff;
+		val := predictor.value;
+		sqrt := Math.Sqrt(2 * Math.Pi());
+		i := 0;
+		WHILE i < N DO
+			node.diffs[i] := predictor.Diff(x[i]) * Math.Exp( - 0.5 * val * val) / sqrt;
+			INC(i)
+		END;
+		node.value := MathFunc.Phi(val)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphProbit.Install"
+	END Install;
 
 	PROCEDURE (f: Factory) New (): GraphLinkfunc.Node;
 		VAR

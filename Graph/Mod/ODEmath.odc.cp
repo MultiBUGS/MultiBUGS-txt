@@ -75,7 +75,7 @@ MODULE GraphODEmath;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate ;
 		VAR
 			i, j, tGridSize, x0Size, x0Start, thetaSize, thetaStart, tStart: INTEGER;
 			t0, tol, step: REAL;
@@ -90,12 +90,12 @@ MODULE GraphODEmath;
 		tol := node.tol;
 		i := 0;
 		WHILE i < x0Size DO
-			node.x0Val[i] := node.x0[x0Start + i].Value();
+			node.x0Val[i] := node.x0[x0Start + i].value;
 			INC(i)
 		END;
 		i := 0;
 		WHILE i < thetaSize DO
-			node.thetaVal[i] := node.theta[thetaStart + i].Value();
+			node.thetaVal[i] := node.theta[thetaStart + i].value;
 			INC(i)
 		END;
 		i := 0;
@@ -103,19 +103,24 @@ MODULE GraphODEmath;
 			IF i = 0 THEN
 				t0 := node.t0
 			ELSE
-				t0 := node.tGrid[i - 1 + tStart].Value();
+				t0 := node.tGrid[i - 1 + tStart].value;
 			END;
-			step := node.tGrid[i + tStart].Value() - t0;
+			step := node.tGrid[i + tStart].value - t0;
 			node.solver.AccurateStep(node.thetaVal, node.x0Val, x0Size, t0, step, tol, node.x1Val);
 			j := 0;
 			WHILE j < x0Size DO
-				values[i * x0Size + j] := node.x1Val[j];
+				node.components[i * x0Size + j].value := node.x1Val[j];
 				node.x0Val[j] := node.x1Val[j];
 				INC(j)
 			END;
 			INC(i);
 		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(0)
+	END EvaluateDiffs;
 
 	PROCEDURE Externalize (node: Node; VAR wr: Stores.Writer);
 		VAR
@@ -214,7 +219,6 @@ MODULE GraphODEmath;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent});
 		node.x0 := NIL;
 		node.tol := 0.0;
 		node.x0 := NIL;
@@ -279,7 +283,7 @@ MODULE GraphODEmath;
 			node.x0Size := args.vectors[0].nElem;
 			ASSERT(args.scalars[0] # NIL, 21);
 			(* t0; time origin *)
-			node.t0 := args.scalars[0].Value();
+			node.t0 := args.scalars[0].value;
 			ASSERT(args.vectors[1].components # NIL, 21);
 			node.tGrid := args.vectors[1].components;
 			ASSERT(args.vectors[1].start >= 0, 21);
@@ -294,7 +298,7 @@ MODULE GraphODEmath;
 			node.thetaSize := args.vectors[2].nElem;
 			ASSERT(args.vectors[3].components # NIL, 21);
 			ASSERT(args.vectors[3].nElem > 0, 21);
-			node.tol := args.vectors[3].components[0].Value();
+			node.tol := args.vectors[3].components[0].value;
 			IF node.index = 0 THEN
 				NEW(node.x0Val, node.x0Size);
 				NEW(node.x1Val, node.x0Size);
@@ -312,11 +316,6 @@ MODULE GraphODEmath;
 			END;
 		END;
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(0)
-	END ValDiff;
 
 	PROCEDURE New* (solver: MathODE.Solver; equations: MathODE.Equations;
 	numEq: INTEGER): GraphVector.Node;

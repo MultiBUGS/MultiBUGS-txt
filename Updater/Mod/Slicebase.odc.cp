@@ -57,7 +57,7 @@ MODULE UpdaterSlicebase;
 		updater.oldX := s.oldX;
 		updater.h := s.h
 	END CopyFromUnivariate;
-
+	
 	PROCEDURE (updater: Updater) ExternalizeUnivariate- (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteInt(updater.iteration);
@@ -186,7 +186,7 @@ MODULE UpdaterSlicebase;
 				updater.attempts := 0;
 				INC(updater.attempts);
 				IF updater.attempts > maxIterations - updater.rightIts THEN
-					prior.SetValue(updater.oldX);
+					prior.value := updater.oldX;
 					updater.state := init;
 					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
@@ -198,14 +198,14 @@ MODULE UpdaterSlicebase;
 					updater.state := firstRight;
 					updater.attempts := 0
 				ELSE
-					prior.SetValue(x);
+					prior.value := x;
 					logLikelihood := updater.LogLikelihoodOpt();
 					state := updater.State(logLikelihood)
 				END
 			|left:
 				INC(updater.attempts);
 				IF updater.attempts > maxIterations - updater.rightIts THEN
-					prior.SetValue(updater.oldX);
+					prior.value := updater.oldX;
 					updater.state := init;
 					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
@@ -217,7 +217,7 @@ MODULE UpdaterSlicebase;
 					updater.state := firstRight;
 					updater.attempts := 0
 				ELSE
-					prior.SetValue(x);
+					prior.value := x;
 					logLikelihood := updater.LogLikelihoodOpt();
 					state := updater.State(logLikelihood)
 				END
@@ -225,7 +225,7 @@ MODULE UpdaterSlicebase;
 				updater.attempts := 0;
 				INC(updater.attempts);
 				IF updater.attempts > updater.rightIts THEN
-					prior.SetValue(updater.oldX);
+					prior.value := updater.oldX;
 					updater.state := init;
 					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
@@ -237,14 +237,14 @@ MODULE UpdaterSlicebase;
 					updater.state := sample;
 					updater.attempts := 0
 				ELSE
-					prior.SetValue(x);
+					prior.value := x;
 					logLikelihood := updater.LogLikelihoodOpt();
 					state := updater.State(logLikelihood)
 				END
 			|right:
 				INC(updater.attempts);
 				IF updater.attempts > updater.rightIts THEN
-					prior.SetValue(updater.oldX);
+					prior.value := updater.oldX;
 					updater.state := init;
 					res := {GraphNodes.lhs, GraphNodes.tooManyIts};
 					EXIT
@@ -256,7 +256,7 @@ MODULE UpdaterSlicebase;
 					updater.state := sample;
 					updater.attempts := 0
 				ELSE
-					prior.SetValue(x);
+					prior.value := x;
 					logLikelihood := updater.LogLikelihoodOpt();
 					state := updater.State(logLikelihood)
 				END
@@ -267,7 +267,7 @@ MODULE UpdaterSlicebase;
 					EXIT
 				END;
 				x := MathRandnum.Uniform(updater.left, updater.right);
-				prior.SetValue(x);
+				prior.value := x;
 				logLikelihood := updater.LogLikelihoodOpt();
 				state := updater.State(logLikelihood);
 				IF state = init THEN EXIT END

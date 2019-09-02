@@ -70,7 +70,7 @@ MODULE GraphSample;
 					sNode := children[j](Node);
 					theta := sNode.theta;
 					props := theta.props;
-					theta.SetProps(props + {GraphNodes.mark});
+					theta.props := props + {GraphNodes.mark};
 					size1 := sNode.Size();
 					IF (size0 # - 1) & (size0 # size1) THEN class := GraphRules.invalid END;
 					size0 := size1;
@@ -94,7 +94,7 @@ MODULE GraphSample;
 				sNode := children[j](Node);
 				theta := sNode.theta;
 				props := theta.props;
-				theta.SetProps(props - {GraphNodes.mark});
+				theta.props := props - {GraphNodes.mark};
 			END;
 			INC(j)
 		END;
@@ -139,7 +139,7 @@ MODULE GraphSample;
 
 	PROCEDURE (node: Node) InitStochastic;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noCDF, GraphStochastic.noMean});
+		node.props := node.props + {GraphStochastic.noCDF, GraphStochastic.noMean};
 		node.theta := NIL;
 	END InitStochastic;
 
@@ -170,7 +170,7 @@ MODULE GraphSample;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;

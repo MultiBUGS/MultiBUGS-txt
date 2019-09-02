@@ -200,7 +200,7 @@ MODULE UpdaterMAPproposal;
 		IF updater.iteration = 0 THEN
 			InitializeSampler(updater)
 		END;
-		updater.GetValue(updater.oldVals);
+		updater.Store;
 		sigma := Math.Exp(updater.logSigma);
 		i := 0;
 		WHILE i < nElem DO
@@ -210,7 +210,7 @@ MODULE UpdaterMAPproposal;
 		MathRandnum.MNormal(updater.hessian, updater.newVals, nElem, updater.newVals);
 		i := 0;
 		WHILE i < nElem DO
-			updater.newVals[i] := updater.oldVals[i] + sigma * updater.newVals[i];
+			updater.newVals[i] := updater.prior[i].value + sigma * updater.newVals[i];
 			INC(i)
 		END;
 		accept := updater.CheckBounds(updater.newVals);
@@ -222,7 +222,7 @@ MODULE UpdaterMAPproposal;
 			accept := logAlpha > Math.Ln(MathRandnum.Rand());
 		END;
 		IF ~accept THEN
-			updater.SetValue(updater.oldVals);
+			updater.Restore;
 			INC(updater.rejectCount)
 		END;
 		INC(updater.iteration);

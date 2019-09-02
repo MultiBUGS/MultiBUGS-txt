@@ -116,10 +116,10 @@ MODULE GraphStable;
 		(*	if stable node is for prediction no need to sample its auxillay variable	*)
 		IF ~(GraphStochastic.data IN stable.props) & (stable.children = NIL) THEN RETURN END;
 		x := stable.value;
-		alpha := stable.alpha.Value();
-		beta := stable.beta.Value();
-		delta := stable.delta.Value();
-		gamma := stable.gamma.Value();
+		alpha := stable.alpha.value;
+		beta := stable.beta.value;
+		delta := stable.delta.value;
+		gamma := stable.gamma.value;
 		zRound := MAX(eps, ABS(x - gamma)) / delta;
 		IF x < gamma THEN
 			lower := - 0.5;
@@ -135,7 +135,7 @@ MODULE GraphStable;
 			pow := Math.Power(abs, alpha / (alpha - 1));
 			density := pow * Math.Exp(1 - pow);
 			rand := MathRandnum.Rand();
-			IF density > rand THEN stable.y.SetValue(y); EXIT END;
+			IF density > rand THEN stable.y.value := y; EXIT END;
 			INC(i);
 			IF i = maxIts THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT END;
 		END
@@ -175,15 +175,15 @@ MODULE GraphStable;
 		VAR
 			alpha, beta, delta: REAL;
 	BEGIN
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		IF (alpha < 0) OR (alpha > 2) THEN
 			RETURN {GraphNodes.invalidValue, GraphNodes.arg1}
 		END;
-		beta := node.beta.Value();
+		beta := node.beta.value;
 		IF (beta < - 1) OR (beta > 1) THEN
 			RETURN {GraphNodes.invalidValue, GraphNodes.arg2}
 		END;
-		delta := node.delta.Value();
+		delta := node.delta.value;
 		IF delta < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg4}
 		END;
@@ -251,7 +251,7 @@ MODULE GraphStable;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noPDF, GraphStochastic.noCDF, GraphStochastic.noMean});
+		node.props := node.props + {GraphStochastic.noPDF, GraphStochastic.noCDF, GraphStochastic.noMean};
 		node.alpha := NIL;
 		node.beta := NIL;
 		node.gamma := NIL;
@@ -290,10 +290,10 @@ MODULE GraphStable;
 	BEGIN
 		x := node.value;
 		y := node.y.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
-		delta := node.delta.Value();
-		gamma := node.gamma.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
+		delta := node.delta.value;
+		gamma := node.gamma.value;
 		xMinusGamma := MAX(ABS(x - gamma), eps);
 		t := T(alpha, beta, y);
 		abs := ABS(xMinusGamma / (delta * t));
@@ -310,10 +310,10 @@ MODULE GraphStable;
 	BEGIN
 		x := node.value;
 		y := node.y.value;
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
-		delta := node.delta.Value();
-		gamma := node.gamma.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
+		delta := node.delta.value;
+		gamma := node.gamma.value;
 		xMinusGamma := MAX(ABS(x - gamma), eps);
 		t := T(alpha, beta, y);
 		abs := ABS(xMinusGamma / (delta * t));
@@ -342,12 +342,12 @@ MODULE GraphStable;
 			alpha, beta, gamma, delta, z: REAL;
 	BEGIN
 		res := {};
-		alpha := node.alpha.Value();
-		beta := node.beta.Value();
-		gamma := node.gamma.Value();
-		delta := node.delta.Value();
+		alpha := node.alpha.value;
+		beta := node.beta.value;
+		gamma := node.gamma.value;
+		delta := node.delta.value;
 		z := MathRandnum.Stable(alpha, beta, gamma, delta);
-		node.SetValue(z)
+		node.value := z
 	END Sample;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
@@ -370,8 +370,8 @@ MODULE GraphStable;
 			(*	need to set y	*)
 			y.Set(args, res);
 			node.y := y;
-			y.SetValue(0.0);
-			y.SetProps(y.props + {GraphStochastic.hidden, GraphStochastic.initialized});
+			y.value := 0.0;
+			y.props:= y.props + {GraphStochastic.hidden, GraphStochastic.initialized};
 			auxillary := auxillaryFact.New(node);
 			UpdaterActions.RegisterUpdater(auxillary)
 		END

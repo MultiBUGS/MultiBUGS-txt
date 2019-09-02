@@ -15,7 +15,8 @@ MODULE UpdaterNormal;
 	IMPORT
 		MPIworker, Math, Stores := Stores64,
 		BugsRegistry,
-		GraphConjugateUV, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
+		GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMultivariate, GraphNodes,
+		GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterContinuous, UpdaterUpdaters;
 
@@ -35,16 +36,19 @@ MODULE UpdaterNormal;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		kOR: INTEGER;
-		values: POINTER TO ARRAY OF REAL;
+		mu, slope, values: POINTER TO ARRAY OF REAL;
+		tau: POINTER TO ARRAY OF ARRAY OF REAL;
 
 	PROCEDURE NormalLikelihood (prior: GraphStochastic.Node; OUT p: ARRAY OF REAL);
 		VAR
-			as, i, num: INTEGER;
-			c, fMinus, fPlus, fZero, m, p0, p1: REAL;
+			as, i, j, k, num, size, start, step: INTEGER;
+			c, m, p0, p1: REAL;
 			node: GraphStochastic.Node;
 			x: GraphNodes.Node;
 			children: GraphStochastic.Vector;
+			xVector: GraphNodes.Vector;
 	BEGIN
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.EvaluateDiffs END;
 		as := GraphRules.normal;
 		p[0] := 0.0;
 		p[1] := 0.0;
@@ -60,24 +64,46 @@ MODULE UpdaterNormal;
 						p[0] := p[0] + p0 * p1;
 						p[1] := p[1] + p1
 					ELSE
-						x.ValDiff(prior, c, m);
+						c := x.value;
+						m := x.Diff(prior);
 						c := c - m * prior.value;
 						p[0] := p[0] + m * (p0 - c) * p1;
 						p[1] := p[1] + p1 * m * m;
 					END
-				|node: GraphMultivariate.Node DO
-					prior.SetValue(1.0);
-					fPlus := node.LogMVPrior();
-					prior.SetValue(0.0);
-					fZero := node.LogMVPrior();
-					prior.SetValue( - 1.0);
-					fMinus := node.LogMVPrior();
-					p[0] := p[0] + 0.50 * (fPlus - fMinus);
-					p[1] := p[1] + 2.0 * fZero - fPlus - fMinus
+				|node: GraphConjugateMV.Node DO
+					size := node.Size();
+					IF size > LEN(mu) THEN
+						NEW(mu, size);
+						NEW(slope, size);
+						NEW(tau, size, size);
+					END;
+					node.MVLikelihoodForm(GraphRules.mVN, xVector, start, step, mu, tau);
+					j := 0;
+					WHILE j < size DO
+						x := xVector[start + step * j];
+						slope[j] := x.Diff(prior);
+						c := xVector[start + step * j].value - slope[j] * prior.value;
+						mu[j] := mu[j] - c;
+						INC(j)
+					END;
+					p0 := 0.0; p1 := 0.0;
+					j := 0;
+					WHILE j < size DO
+						k := 0;
+						WHILE k < size DO
+							p1 := p1 + slope[j] * tau[j, k] * slope[k];
+							p0 := p0 + 0.5 * (slope[j] * tau[j, k] * mu[k] + mu[j] * tau[j, k] * slope[k]);
+							INC(k)
+						END;
+						INC(j)
+					END;
+					p[0] := p[0] + p0;
+					p[1] := p[1] + p1
 				END;
 				INC(i)
 			END
 		END;
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.ClearDiffs END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)
 		END
@@ -103,6 +129,29 @@ MODULE UpdaterNormal;
 	BEGIN
 		RETURN FALSE
 	END IsAdapting;
+
+	PROCEDURE (updater: Updater) Optimize;
+		VAR
+			i, num: INTEGER;
+			optimizeDiffs: BOOLEAN;
+			p: GraphLogical.Node;
+			prior: GraphStochastic.Node;
+	BEGIN
+		prior := updater.prior;
+		IF prior.dependents # NIL THEN
+			optimizeDiffs := TRUE;
+			num := LEN(prior.dependents);
+			i := 0;
+			WHILE (i < num) & optimizeDiffs DO
+				p := prior.dependents[i];
+				IF ~(GraphLogical.prediction IN p.props) THEN
+					IF ~(GraphLogical.linear IN p.props) THEN optimizeDiffs := FALSE END
+				END;
+				INC(i)
+			END;
+			IF optimizeDiffs THEN INCL(prior.props, GraphStochastic.optimizeDiffs) END
+		END	
+	END Optimize;
 
 	PROCEDURE (updater: StdUpdater) Clone (): StdUpdater;
 		VAR
@@ -183,7 +232,8 @@ MODULE UpdaterNormal;
 				END;
 			END
 		END;
-		prior.SetValue(x)
+		prior.value := x;
+		prior.Evaluate
 	END Sample;
 
 	PROCEDURE (updater: Rectified) Clone (): Rectified;
@@ -213,7 +263,7 @@ MODULE UpdaterNormal;
 		(*		mu := (p[0] - p1) / quadCoef;*)
 		tau := p[1];
 		rand := MathRandnum.NormalLB(mu, tau, 0);
-		prior.SetValue(rand);
+		prior.value := rand;
 		res := {}
 	END Sample;
 
@@ -337,7 +387,10 @@ MODULE UpdaterNormal;
 			BugsRegistry.WriteSet(name + ".props", fStd.props)
 		END;
 		fStd.GetDefaults;
-		factStd := fStd
+		factStd := fStd;
+		NEW(mu, 1);
+		NEW(slope, 1);
+		NEW(tau, 1, 1)
 	END Init;
 
 BEGIN

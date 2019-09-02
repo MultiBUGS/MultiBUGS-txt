@@ -12,11 +12,11 @@ MODULE BugsSerialize;
 
 	
 
-	IMPORT 
-		Files := Files64, Services, Stores := Stores64, 
+	IMPORT
+		Files := Files64, Services, Stores := Stores64,
 		BugsCPCompiler, BugsGraph, BugsIndex, BugsParser, BugsRandnum,
 		DeviancePlugin,
-		GraphNodes,
+		GraphLogical, GraphNodes, GraphStochastic,
 		MonitorMonitors,
 		UpdaterActions, UpdaterMethods;
 
@@ -79,16 +79,16 @@ MODULE BugsSerialize;
 			nChains = MAX(INTEGER);
 	BEGIN
 		GraphNodes.BeginInternalize(rd);
-		rd.ReadInt(num); 
+		rd.ReadInt(num);
 		GraphNodes.InternalizePointers(num, rd);
 		rd.ReadInt(num);
-		BugsIndex.InternalizePointers(rd); 
+		BugsIndex.InternalizePointers(rd);
 		GraphNodes.InternalizeNodeData(rd);
 		UpdaterActions.InternalizeUpdaterPointers(nChains, rd);
 		GraphNodes.EndInternalize(rd);
 		BugsGraph.CreateDeviance;
 		rd.ReadInt(maxDepth);
-		rd.ReadInt(maxStochDepth); 
+		rd.ReadInt(maxStochDepth);
 		GraphNodes.SetDepth(maxDepth, maxStochDepth)
 	END InternalizeGraph;
 
@@ -114,7 +114,7 @@ MODULE BugsSerialize;
 		BugsRandnum.InternalizeRNGenerators(rd);
 		pos := rd.Pos();
 		chain := 0;
-		numChains := UpdaterActions.NumberChains(); 
+		numChains := UpdaterActions.NumberChains();
 		WHILE chain < numChains DO
 			rd.SetPos(pos);
 			UpdaterActions.InternalizeUpdaterData(chain, rd);
@@ -147,13 +147,22 @@ MODULE BugsSerialize;
 	END Externalize;
 
 	PROCEDURE Internalize* (OUT numWorker: INTEGER; VAR rd: Stores.Reader);
+		VAR
+			dependents: GraphLogical.Vector;
+			stochastics: GraphStochastic.Vector;
+			numChains: INTEGER;
 	BEGIN
 		rd.ReadInt(numWorker);
-		InternalizeModel(rd); 
+		InternalizeModel(rd);
 		InternalizeGraph(rd);
+		(*	set up stochastics and logicals vectors	*)
+		numChains := LEN(UpdaterActions.updaters);
+		UpdaterActions.StoreStochastics;
+		stochastics := GraphStochastic.nodes;
+		dependents := GraphStochastic.Dependents(stochastics);
+		GraphLogical.SetLogicals(dependents, numChains);
 		InternalizeMutable(rd);
 		InternalizeMonitors(rd);
-		UpdaterActions.StoreStochastics;
 		Services.Collect
 	END Internalize;
 

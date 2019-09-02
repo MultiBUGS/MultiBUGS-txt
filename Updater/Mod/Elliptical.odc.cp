@@ -15,7 +15,8 @@ MODULE UpdaterElliptical;
 	IMPORT
 		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphChain, GraphConjugateMV, GraphMRF, GraphMultivariate, GraphRules, GraphStochastic,
+		GraphChain, GraphConjugateMV, GraphLogical, GraphMRF, GraphMultivariate, 
+		GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -112,9 +113,10 @@ MODULE UpdaterElliptical;
 			i := 0;
 			WHILE i < size DO
 				x := mu[i] + (oldX[i] - mu[i]) * cos + nu[i] * sin;
-				updater.prior[i].SetValue(x);
+				updater.prior[i].value := x; 
 				INC(i)
 			END;
+			GraphLogical.Evaluate(updater.dependents);
 			logLikelihood := updater.LogLikelihood();
 			IF logLikelihood > y THEN EXIT
 			ELSIF theta < 0.0 THEN thetaMin := theta

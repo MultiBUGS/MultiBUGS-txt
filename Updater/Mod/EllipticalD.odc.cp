@@ -15,7 +15,7 @@ MODULE UpdaterEllipticalD;
 	IMPORT
 		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphConjugateUV, GraphRules, GraphStochastic,
+		GraphConjugateUV, GraphLogical, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterMultivariate, UpdaterUpdaters;
 
@@ -51,7 +51,7 @@ MODULE UpdaterEllipticalD;
 			class: SET;
 	BEGIN
 		class := {prior.classConditional};
-		RETURN UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE)
+		RETURN UpdaterMultivariate.FixedEffects(prior, class, FALSE)
 	END FindBlock;
 
 	PROCEDURE (updater: Updater) InternalizeMultivariate (VAR rd: Stores.Reader);
@@ -114,9 +114,10 @@ MODULE UpdaterEllipticalD;
 			i := 0;
 			WHILE i < size DO
 				x := mu[i] + (oldX[i] - mu[i]) * cos + nu[i] * sin;
-				updater.prior[i].SetValue(x);
+				updater.prior[i].value := x;
 				INC(i)
 			END;
+			GraphLogical.Evaluate(updater.dependents);
 			logLikelihood := updater.LogLikelihood();
 			IF logLikelihood > y THEN EXIT
 			ELSIF theta < 0.0 THEN thetaMin := theta
@@ -138,7 +139,7 @@ MODULE UpdaterEllipticalD;
 		IF prior.depth = 1 THEN RETURN FALSE END;
 		IF ~(prior.classConditional IN {GraphRules.general, GraphRules.genDiff}) THEN RETURN FALSE END;
 		class := {prior.classConditional};
-		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE); 
 		IF block = NIL THEN  RETURN FALSE END;
 		IF LEN(block) > maxSize THEN RETURN FALSE END;
 		RETURN TRUE
@@ -192,7 +193,7 @@ MODULE UpdaterEllipticalD;
 		Maintainer;
 		NEW(f);
 		f.Install(name);
-		f.SetProps({UpdaterUpdaters.overRelaxation, UpdaterUpdaters.enabled});
+		f.SetProps({UpdaterUpdaters.overRelaxation(*, UpdaterUpdaters.enabled*)});
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN
 			ASSERT(isRegistered, 55)

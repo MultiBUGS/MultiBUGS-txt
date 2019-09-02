@@ -33,11 +33,11 @@ MODULE PharmacoPKFO1;
 		VAR
 			CL, V, time, dose, ka, value: REAL;
 	BEGIN
-		CL := Math.Exp(params[0].Value());
-		V := Math.Exp(params[1].Value());
-		ka := Math.Exp(params[2].Value()) + CL / V;
-		time := scalars[PharmacoModel.time].Value();
-		dose := scalars[PharmacoModel.dose].Value();
+		CL := Math.Exp(params[0].value);
+		V := Math.Exp(params[1].value);
+		ka := Math.Exp(params[2].value) + CL / V;
+		time := scalars[PharmacoModel.time].value;
+		dose := scalars[PharmacoModel.dose].value;
 		IF time < 0 THEN value := 0
 		ELSE value := dose * ka * (Math.Exp( - ka * time) - Math.Exp( - CL * time / V)) / (CL - ka * V)
 		END;
@@ -55,10 +55,10 @@ MODULE PharmacoPKFO1;
 		install := "PharmacoPKFO1.Install"
 	END Install;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN Value(node.params, node.scalars)
-	END Value;
+		node.value := Value(node.params, node.scalars)
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

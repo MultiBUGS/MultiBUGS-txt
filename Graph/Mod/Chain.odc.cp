@@ -113,7 +113,7 @@ MODULE GraphChain;
 
 	PROCEDURE (node: Node) InvMap* (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (node: Node) LogDetJacobian* (): REAL;

@@ -162,7 +162,7 @@ MODULE GraphMVGMRF;
 		node.tau := NIL;
 		node.tauStart := - 1;
 		node.tauStep := 0;
-		node.SetProps(node.props + {GraphStochastic.noMean});
+		INCL(node.props, GraphStochastic.noMean);
 		node.InitMVGMRF
 	END InitStochastic;
 
@@ -214,7 +214,7 @@ MODULE GraphMVGMRF;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				tau := node.tau[tauStart + (i + j * dim) * tauStep].Value();
+				tau := node.tau[tauStart + (i + j * dim) * tauStep].value;
 				trace := trace + prec[i, j] * tau;
 				INC(j)
 			END;
@@ -224,7 +224,7 @@ MODULE GraphMVGMRF;
 		WHILE i < dim DO
 			j := 0;
 			WHILE j < dim DO
-				prec[i, j] := node.tau[tauStart + (i + j * dim) * tauStep].Value();
+				prec[i, j] := node.tau[tauStart + (i + j * dim) * tauStep].value;
 				INC(j)
 			END;
 			INC(i)
@@ -359,7 +359,7 @@ MODULE GraphMVGMRF;
 		END;
 		i := 0;
 		WHILE i < size DO
-			node.components[i].SetValue(x[i]); INC(i)
+			node.components[i].value := x[i]; INC(i)
 		END;
 	END MVSample;
 

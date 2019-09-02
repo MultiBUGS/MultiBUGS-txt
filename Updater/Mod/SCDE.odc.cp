@@ -24,8 +24,7 @@ MODULE UpdaterSCDE;
 
 	TYPE
 		Updater = POINTER TO ABSTRACT RECORD (UpdaterMetropolisUV.Updater)
-			chain: INTEGER;
-			updaters: UpdaterUpdaters.Vector
+			chain, index: INTEGER;
 		END;
 
 
@@ -45,24 +44,24 @@ MODULE UpdaterSCDE;
 
 	PROCEDURE BuildProposal (updater: Updater);
 		VAR
-			i, numChains, index: INTEGER;
+			i, numStoch: INTEGER;
+			stochastics: GraphStochastic.Vector;
 	BEGIN
-		numChains := UpdaterActions.NumberChains();
-		NEW(updater.updaters, numChains);
-		UpdaterActions.FindUpdater(updater, updater.chain, index);
-		i := 0;
-		WHILE i < numChains DO
-			updater.updaters[i] := UpdaterActions.updaters[i, index];
-			INC(i)
+		UpdaterActions.FindUpdater(updater, updater.chain, i);
+		stochastics := GraphStochastic.nodes;
+		IF stochastics # NIL THEN
+			numStoch := LEN(stochastics);
+			i := 0;
+			WHILE (i < numStoch) & (updater.prior # stochastics[i]) DO INC(i) END;
+			updater.index := i
 		END
 	END BuildProposal;
 	
-	PROCEDURE SampleProposal (updater: Updater): REAL;
+	PROCEDURE SampleProposal (updater: Updater);
 		VAR
 			chain, r1, r2, numChains: INTEGER;
 			gamma, x, xMap, xR1, xR2: REAL;
 			prior: GraphStochastic.Node;
-			u1, u2: UpdaterUpdaters.Updater;
 		CONST
 			b = 1.0E-4;
 	BEGIN
@@ -76,16 +75,12 @@ MODULE UpdaterSCDE;
 		xMap := prior.Map();
 		REPEAT r1 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL r1 # chain;
 		REPEAT r2 := MathRandnum.DiscreteUniform(0, numChains - 1) UNTIL (r2 # chain) & (r2 # r1);
-		u1 := updater.updaters[r1];
-		u1.LoadSample;
+		prior.value := GraphStochastic.values[r1, updater.index];
 		xR1 := prior.Map();
-		u2 := updater.updaters[r2];
-		u2.LoadSample;
+		prior.value := GraphStochastic.values[r2, updater.index];
 		xR2 := prior.Map();
-		x := xMap + gamma * (xR1 - xR2) + MathRandnum.Uniform( - b, b);
+		x := xMap + gamma * (xR1 - xR2) + MathRandnum.Normal(0, b);
 		prior.InvMap(x);
-		x := prior.value;
-		RETURN x
 	END SampleProposal;
 
 	PROCEDURE (updater: Updater) CopyFromMetropolisUV (source: UpdaterUpdaters.Updater);
@@ -93,24 +88,26 @@ MODULE UpdaterSCDE;
 			s: Updater;
 	BEGIN
 		s := source(Updater);
-		updater.chain := s.chain
+		updater.chain := s.chain;
+		updater.index := s.index
 	END CopyFromMetropolisUV;
 
 	PROCEDURE (updater: Updater) ExternalizeMetropolis (VAR wr: Stores.Writer);
 	BEGIN
 		wr.WriteInt(updater.chain);
+		wr.WriteInt(updater.index)
 	END ExternalizeMetropolis;
 
 	PROCEDURE (updater: Updater) InternalizeMetropolis (VAR rd: Stores.Reader);
 	BEGIN
 		rd.ReadInt(updater.chain);
-		updater.updaters := NIL
+		rd.ReadInt(updater.index)
 	END InternalizeMetropolis;
 
 	PROCEDURE (updater: Updater) InitializeMetropolis;
 	BEGIN
 		updater.chain :=  - 1;
-		updater.updaters := NIL;
+		updater.index := -1
 	END InitializeMetropolis;
 
 	PROCEDURE (updater: Updater) IsAdapting (): BOOLEAN;
@@ -122,19 +119,19 @@ MODULE UpdaterSCDE;
 
 	PROCEDURE (updater: Updater) Sample (overRelax: BOOLEAN; OUT res: SET);
 		VAR
-			logAlpha, newLogDen, newVal, oldLogDen, oldVal: REAL;
+			logAlpha, newLogDen, newVal, oldLogDen: REAL;
 			prior: GraphStochastic.Node;
 	BEGIN
-		IF updater.updaters =  NIL THEN BuildProposal(updater) END;
+		IF updater.index =  -1 THEN BuildProposal(updater) END;
 		prior := updater.prior;
-		oldVal := prior.value;
+		updater.Store;
 		oldLogDen := updater.LogConditional() + prior.LogDetJacobian();
-		newVal := SampleProposal(updater);
-		prior.SetValue(newVal);
+		SampleProposal(updater);
+		prior.Evaluate;
 		newLogDen := updater.LogConditional() + prior.LogDetJacobian();
 		logAlpha := newLogDen - oldLogDen;
 		IF logAlpha < updater.MetTest() THEN
-			prior.SetValue(oldVal);
+			updater.Restore;
 			INC(updater.rejectCount);
 		END;
 		INC(updater.iteration);

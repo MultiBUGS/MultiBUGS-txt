@@ -14,19 +14,19 @@ MODULE GraphJacobi;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphMemory, GraphNodes, GraphRules, GraphStochastic,
+		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathJacobi;
 
 	TYPE
-		Node* = POINTER TO LIMITED RECORD (GraphMemory.Node)
+		Node* = POINTER TO LIMITED RECORD (GraphScalar.Node)
 			alpha-, beta-: GraphNodes.Node;
 			absisca-, weights-: POINTER TO ARRAY OF REAL;
 		END;
 
-		Factory = POINTER TO RECORD (GraphMemory.Factory) END;
+		Factory = POINTER TO RECORD (GraphScalar.Factory) END;
 
 	VAR
-		fact-: GraphMemory.Factory;
+		fact-: GraphScalar.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -40,19 +40,24 @@ MODULE GraphJacobi;
 		RETURN GraphRules.other
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate- (OUT value: REAL);
+	PROCEDURE (node: Node) Evaluate-;
 		VAR
 			alpha, beta: REAL;
 			order: INTEGER;
 	BEGIN
 		ASSERT(node.absisca # NIL, 21);
 		order := LEN(node.absisca);
-		IF node.alpha # NIL THEN alpha := node.alpha.Value() - 1.0 ELSE alpha := 0.0 END;
-		IF node.beta # NIL THEN beta := node.beta.Value() - 1.0 ELSE beta := 0.0 END;
+		IF node.alpha # NIL THEN alpha := node.alpha.value - 1.0 ELSE alpha := 0.0 END;
+		IF node.beta # NIL THEN beta := node.beta.value - 1.0 ELSE beta := 0.0 END;
 		MathJacobi.QuadratureRule(node.absisca, node.weights, alpha, beta, order);
 	END Evaluate;
 
-	PROCEDURE (node: Node) ExternalizeMemory- (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) EvaluateDiffs-;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -66,9 +71,22 @@ MODULE GraphJacobi;
 			wr.WriteReal(node.weights[i]);
 			INC(i)
 		END
-	END ExternalizeMemory;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeMemory- (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InitLogical-;
+	BEGIN
+		node.alpha := NIL;
+		node.beta := NIL;
+		node.absisca := NIL;
+		node.weights := NIL;
+	END InitLogical;
+
+	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR);
+	BEGIN
+		install := "GraphJacobi.Install"
+	END Install;
+
+	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
 			i, len: INTEGER;
 	BEGIN
@@ -82,21 +100,7 @@ MODULE GraphJacobi;
 			rd.ReadReal(node.weights[i]);
 			INC(i)
 		END		
-	END InternalizeMemory;
-
-	PROCEDURE (node: Node) InitLogical-;
-	BEGIN
-		node.alpha := NIL;
-		node.beta := NIL;
-		node.absisca := NIL;
-		node.weights := NIL;
-		node.SetProps(node.props + {GraphLogical.dependent})
-	END InitLogical;
-
-	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR);
-	BEGIN
-		install := "GraphJacobi.Install"
-	END Install;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -121,16 +125,10 @@ MODULE GraphJacobi;
 			order := args.ops[0];
 			NEW(node.absisca, order);
 			NEW(node.weights, order);
-			node.SetProps(node.props + {GraphLogical.dirty});
 		END
 	END Set;
 
-	PROCEDURE (node: Node) ValDiff* (x: GraphNodes.Node; OUT value, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
-
-	PROCEDURE (f: Factory) New (): GraphMemory.Node;
+	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
 			node: Node;
 	BEGIN

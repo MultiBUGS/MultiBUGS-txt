@@ -77,10 +77,10 @@ MODULE GraphF;
 		VAR
 			cumulative, m, mu, n, tau: REAL;
 	BEGIN
-		m := node.m.Value();
-		n := node.n.Value();
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		m := node.m.value;
+		n := node.n.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		cumulative := MathCumulative.F(m, n, mu, tau, x);
 		RETURN cumulative
 	END Cumulative;
@@ -90,10 +90,10 @@ MODULE GraphF;
 			logDensity, logM, logN, m, mu, n, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		m := node.m.Value();
-		n := node.n.Value();
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		m := node.m.value;
+		n := node.n.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logM := MathFunc.Ln(m);
 		logN := MathFunc.Ln(n);
 		logDensity := MathFunc.LogGammaFunc(0.5 * (m + n))
@@ -128,10 +128,10 @@ MODULE GraphF;
 			logLikelihood, logM, logN, m, n, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		m := node.m.Value();
-		n := node.n.Value();
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		m := node.m.value;
+		n := node.n.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logM := MathFunc.Ln(m);
 		logN := MathFunc.Ln(n);
 		IF (x <= mu) THEN
@@ -151,8 +151,8 @@ MODULE GraphF;
 		VAR
 			logPrior, m, n, mu, tau, x: REAL;
 	BEGIN
-		x := node.value; m := node.m.Value(); n := node.n.Value();
-		mu := node.mu.Value(); tau := node.tau.Value();
+		x := node.value; m := node.m.value; n := node.n.value;
+		mu := node.mu.value; tau := node.tau.value;
 		logPrior := (0.5 * m - 1) * Math.Ln(Math.Sqrt(tau) * (x - mu))
 		 - 0.5 * (m + n) * Math.Ln(1 + m * Math.Sqrt(tau) * (x - mu) / n);
 		RETURN logPrior
@@ -162,7 +162,7 @@ MODULE GraphF;
 		VAR
 			m: REAL;
 	BEGIN
-		m := node.m.Value();
+		m := node.m.value;
 		RETURN m / (m - 2)
 	END Location;
 
@@ -174,16 +174,16 @@ MODULE GraphF;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.value < node.mu.Value() - eps THEN
+		IF node.value < node.mu.value - eps THEN
 			RETURN {GraphNodes.invalidPosative, GraphNodes.lhs}
 		END;
-		IF node.m.Value() < eps THEN
+		IF node.m.value < eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.n.Value() < eps THEN
+		IF node.n.value < eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
-		IF node.tau.Value() < eps THEN
+		IF node.tau.value < eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -211,7 +211,7 @@ MODULE GraphF;
 		node.n := NIL;
 		node.mu := NIL;
 		node.tau := NIL;
-		node.SetProps(node.props + {GraphStochastic.leftNatural})
+		INCL(node.props, GraphStochastic.leftNatural)
 	END InitUnivariate;
 
 	PROCEDURE (node: Node) ParentsUnivariate (all: BOOLEAN): GraphNodes.List;
@@ -246,10 +246,10 @@ MODULE GraphF;
 			m, n, tau, mu, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		m := node.m.Value();
-		n := node.n.Value();
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		m := node.m.value;
+		n := node.n.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Fdist(m, n, mu, tau)
@@ -263,7 +263,7 @@ MODULE GraphF;
 				x := MathRandnum.FdistIB(m, n, mu, tau, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

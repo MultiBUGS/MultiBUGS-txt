@@ -52,10 +52,10 @@ MODULE ReliabilityLogisticExp;
 		IF node.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.lhs}
 		END;
-		IF node.alpha.Value() < - eps THEN
+		IF node.alpha.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg1}
 		END;
-		IF node.lambda.Value() < - eps THEN
+		IF node.lambda.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -85,8 +85,8 @@ MODULE ReliabilityLogisticExp;
 		VAR
 			lambda, alpha: REAL;
 	BEGIN
-		lambda := node.lambda.Value();
-		alpha := node.alpha.Value();
+		lambda := node.lambda.value;
+		alpha := node.alpha.value;
 		RETURN MathCumulative.LogisticExp(alpha, lambda, x)
 	END Cumulative;
 
@@ -95,9 +95,9 @@ MODULE ReliabilityLogisticExp;
 			alpha, logAlpha, lambda, logLambda, factor, logFactor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := Math.Exp(lambda * x) - 1.0;
 		logFactor := MathFunc.Ln(factor);
@@ -111,23 +111,23 @@ MODULE ReliabilityLogisticExp;
 			alpha, lambda, diff, diffAlpha, diffLambda, exp, log, pow, val: REAL;
 	BEGIN
 		val := node.value;
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		IF (GraphStochastic.hint2 IN x.props) OR (GraphNodes.data IN node.lambda.props) THEN
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			lambda := node.lambda.Value();
+			diffAlpha := node.alpha.Diff(x);
 			exp := Math.Exp(lambda * val);
 			pow := Math.Power(exp - 1, alpha);
 			log := Math.Ln(exp - 1);
 			diff := diffAlpha * (1 / alpha + log - 2 * pow * log / (1 + pow))
 		ELSIF (GraphStochastic.hint1 IN x.props) OR (GraphNodes.data IN node.alpha.props) THEN
-			alpha := node.alpha.Value();
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffLambda := node.lambda.Diff(x);
 			exp := Math.Exp(lambda * val);
 			pow := Math.Power(exp - 1, alpha);
 			diff := diffLambda * (1 / lambda + val + (alpha - 1) * val * exp / (exp - 1)
 			 - 2 * alpha * val * exp * pow / ((exp - 1) * (1 + pow)))
 		ELSE
-			node.alpha.ValDiff(x, alpha, diffAlpha);
-			node.lambda.ValDiff(x, lambda, diffLambda);
+			diffAlpha := node.alpha.Diff(x);
+			diffLambda := node.lambda.Diff(x);
 			exp := Math.Exp(lambda * val);
 			pow := Math.Power(exp - 1, alpha);
 			log := Math.Ln(exp - 1);
@@ -143,8 +143,8 @@ MODULE ReliabilityLogisticExp;
 			alpha, lambda, exp, pow, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		exp := Math.Exp(lambda * x);
 		pow := Math.Power(exp - 1, alpha);
 		RETURN lambda + (alpha - 1) * lambda * exp / (exp - 1) - 
@@ -159,7 +159,7 @@ MODULE ReliabilityLogisticExp;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.leftNatural});
+		INCL(node.props, GraphStochastic.leftNatural);
 		node.lambda := NIL;
 		node.alpha := NIL
 	END InitUnivariate;
@@ -181,8 +181,8 @@ MODULE ReliabilityLogisticExp;
 		CONST
 			p50 = 0.5;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		median := (1.0 / lambda) * Math.Ln(1 + Math.Power(p50 / (1.0 - p50), 1.0 / alpha));
 		RETURN median
 	END Location;
@@ -192,9 +192,9 @@ MODULE ReliabilityLogisticExp;
 			alpha, logAlpha, lambda, logLambda, factor, logFactor, logLikelihood, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
+		alpha := node.alpha.value;
 		logAlpha := MathFunc.Ln(alpha);
-		lambda := node.lambda.Value();
+		lambda := node.lambda.value;
 		logLambda := MathFunc.Ln(lambda);
 		factor := Math.Exp(lambda * x) - 1.0;
 		logFactor := MathFunc.Ln(factor);
@@ -208,8 +208,8 @@ MODULE ReliabilityLogisticExp;
 			alpha, lambda, factor, logFactor, logPrior, x: REAL;
 	BEGIN
 		x := node.value;
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		factor := Math.Exp(lambda * x) - 1.0;
 		logFactor := MathFunc.Ln(factor);
 		logPrior := lambda * x + (alpha - 1.0) * logFactor - 2.0 * MathFunc.Ln(1.0 + Math.Power(factor, alpha));
@@ -231,8 +231,8 @@ MODULE ReliabilityLogisticExp;
 			lambda, alpha, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		alpha := node.alpha.Value();
-		lambda := node.lambda.Value();
+		alpha := node.alpha.value;
+		lambda := node.lambda.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.LogisticExponential(alpha, lambda)
@@ -246,7 +246,7 @@ MODULE ReliabilityLogisticExp;
 				x := MathRandnum.LogisticExponentialIB(alpha, lambda, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

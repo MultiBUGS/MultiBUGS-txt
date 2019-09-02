@@ -98,7 +98,7 @@ MODULE GraphFlat;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + {GraphStochastic.noMean})
+		INCL(node.props, GraphStochastic.noMean)
 	END InitUnivariate;
 
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;

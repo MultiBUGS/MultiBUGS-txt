@@ -247,14 +247,15 @@ MODULE GraphMVNormal;
 		|GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin, GraphRules.genDiff:
 			i := 0;
 			WHILE i < nElem DO
-				node.mu[muStart + i * muStep].ValDiff(x, muVal[i], muDiff[i]);
+				muVal[i] := node.mu[muStart + i * muStep].value;
+				muDiff[i] := node.mu[muStart + i * muStep].Diff(x);
 				INC(i)
 			END;
 			i := 0;
 			WHILE i < nElem DO
 				j := 0;
 				WHILE j < nElem DO
-					prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+					prec := node.tau[tauStart + (i * nElem + j) * tauStep].value;
 					diff := diff + muDiff[j] * prec * (node.components[i].value - muVal[i]);
 					INC(j)
 				END;
@@ -268,11 +269,11 @@ MODULE GraphMVNormal;
 			j0 := index MOD nElem;
 			i := 0;
 			WHILE i < nElem DO
-				value[i] := node.components[i].value - node.mu[muStart + i * muStep].Value();
+				value[i] := node.components[i].value - node.mu[muStart + i * muStep].value;
 				mu[i] := value[i];
 				j := 0;
 				WHILE j <= i DO
-					tau[i, j] := wishart.components[tauStart + (i * nElem + j) * tauStep].Value();
+					tau[i, j] := wishart.components[tauStart + (i * nElem + j) * tauStep].value;
 					INC(j)
 				END;
 				INC(i)
@@ -304,8 +305,8 @@ MODULE GraphMVNormal;
 		i := node.index;
 		j := 0;
 		WHILE j < nElem DO
-			y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-			prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+			y := node.components[j].value - node.mu[muStart + j * muStep].value;
+			prec := node.tau[tauStart + (i * nElem + j) * tauStep].value;
 			differential := differential - prec * y;
 			INC(j)
 		END;
@@ -385,7 +386,7 @@ MODULE GraphMVNormal;
 
 	PROCEDURE (node: Node) InvMap (y: REAL);
 	BEGIN
-		node.SetValue(y)
+		node.value := y
 	END InvMap;
 
 	PROCEDURE (node: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
@@ -402,7 +403,8 @@ MODULE GraphMVNormal;
 		(*	use vectors mu and value for val and diff quantities	*)
 		i := 0;
 		WHILE i < nElem DO
-			node.mu[muStart + i * muStep].ValDiff(x, mu[i], value[i]);
+			mu[i] := node.mu[muStart + i * muStep].value;
+			value[i] := node.mu[muStart + i * muStep].Diff(x);
 			mu[i] := node.components[i].value - mu[i];
 			INC(i)
 		END;
@@ -412,7 +414,7 @@ MODULE GraphMVNormal;
 		WHILE i < nElem DO
 			j := 0;
 			WHILE j < nElem DO
-				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				prec := node.tau[tauStart + (i * nElem + j) * tauStep].value;
 				diff1 := diff1 - mu[i] * prec * value[j];
 				diff2 := diff2 + value[i] * prec * value[j];
 				INC(j)
@@ -431,7 +433,7 @@ MODULE GraphMVNormal;
 		index := node.index;
 		start := node.muStart;
 		step := node.muStep;
-		mean := node.mu[start + index * step].Value();
+		mean := node.mu[start + index * step].value;
 		RETURN mean
 	END Location;
 
@@ -453,11 +455,11 @@ MODULE GraphMVNormal;
 		logLikelihood := 0.0;
 		i := 0;
 		WHILE i < nElem DO
-			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
+			x := node.components[i].value - node.mu[muStart + i * muStep].value;
 			j := 0;
 			WHILE j < nElem DO
-				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-				tau[i, j] := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				y := node.components[j].value - node.mu[muStart + j * muStep].value;
+				tau[i, j] := node.tau[tauStart + (i * nElem + j) * tauStep].value;
 				logLikelihood := logLikelihood - 0.5 * x * tau[i, j] * y;
 				INC(j)
 			END;
@@ -480,15 +482,15 @@ MODULE GraphMVNormal;
 		logPrior := 0.0;
 		i := 0;
 		WHILE i < nElem DO
-			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
+			x := node.components[i].value - node.mu[muStart + i * muStep].value;
 			j := 0;
 			WHILE j < i DO
-				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				y := node.components[j].value - node.mu[muStart + j * muStep].value;
+				prec := node.tau[tauStart + (i * nElem + j) * tauStep].value;
 				logPrior := logPrior - x * prec * y;
 				INC(j)
 			END;
-			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
+			prec := node.tau[tauStart + (i * nElem + i) * tauStep].value;
 			logPrior := logPrior - 0.50 * x * prec * x;
 			INC(i)
 		END;
@@ -508,15 +510,15 @@ MODULE GraphMVNormal;
 		logPrior := 0.0;
 		i := 0;
 		WHILE i < nElem DO
-			x := node.components[i].value - node.mu[muStart + i * muStep].Value();
+			x := node.components[i].value - node.mu[muStart + i * muStep].value;
 			j := 0;
 			WHILE j < i DO
-				y := node.components[j].value - node.mu[muStart + j * muStep].Value();
-				prec := node.tau[tauStart + (i * nElem + j) * tauStep].Value();
+				y := node.components[j].value - node.mu[muStart + j * muStep].value;
+				prec := node.tau[tauStart + (i * nElem + j) * tauStep].value;
 				logPrior := logPrior - x * prec * y;
 				INC(j)
 			END;
-			prec := node.tau[tauStart + (i * nElem + i) * tauStep].Value();
+			prec := node.tau[tauStart + (i * nElem + i) * tauStep].value;
 			logPrior := logPrior - 0.50 * x * prec * x;
 			INC(i)
 		END;
@@ -543,7 +545,7 @@ MODULE GraphMVNormal;
 				p0[i] := node.components[i].value;
 				j := 0;
 				WHILE j < nElem DO
-					p1[i, j] := node.tau[start + (i * nElem + j) * step].Value();
+					p1[i, j] := node.tau[start + (i * nElem + j) * step].value;
 					INC(j)
 				END;
 				INC(i)
@@ -556,7 +558,7 @@ MODULE GraphMVNormal;
 			start := node.muStart;
 			step := node.muStep;
 			WHILE i < nElem DO
-				mu[i] := node.components[i].value - node.mu[start + i * step].Value();
+				mu[i] := node.components[i].value - node.mu[start + i * step].value;
 				INC(i)
 			END;
 			i := 0;
@@ -587,7 +589,7 @@ MODULE GraphMVNormal;
 		WHILE i < nElem DO
 			j := 0;
 			WHILE j < nElem DO
-				p1[i, j] := node.tau[start + (i * nElem + j) * step].Value();
+				p1[i, j] := node.tau[start + (i * nElem + j) * step].value;
 				INC(j)
 			END;
 			INC(i)
@@ -596,7 +598,7 @@ MODULE GraphMVNormal;
 		start := node.muStart;
 		step := node.muStep;
 		WHILE i < nElem DO
-			p0[i] := node.mu[start + i * step].Value();
+			p0[i] := node.mu[start + i * step].value;
 			INC(i)
 		END
 	END MVPriorForm;
@@ -613,15 +615,15 @@ MODULE GraphMVNormal;
 		muStep := node.muStep;
 		tauStart := node.tauStart;
 		tauStep := node.tauStep;
-		mu := node.mu[muStart + index * muStep].Value();
-		p1 := node.tau[tauStart + (index * nElem + index) * tauStep].Value();
+		mu := node.mu[muStart + index * muStep].value;
+		p1 := node.tau[tauStart + (index * nElem + index) * tauStep].value;
 		p0 := - p1 * mu;
 		i := 0;
 		WHILE i < nElem DO
 			IF i # index THEN
-				mu := node.mu[muStart + i * muStep].Value();
+				mu := node.mu[muStart + i * muStep].value;
 				x := node.components[i].value;
-				prec := node.tau[tauStart + (i * nElem + index) * tauStep].Value();
+				prec := node.tau[tauStart + (i * nElem + index) * tauStep].value;
 				p0 := p0 + (x - mu) * prec
 			END;
 			INC(i)
@@ -639,7 +641,7 @@ MODULE GraphMVNormal;
 		start := node.muStart;
 		step := node.muStep;
 		WHILE i < nElem DO
-			mu[i] := node.mu[start + i * step].Value();
+			mu[i] := node.mu[start + i * step].value;
 			INC(i)
 		END;
 		i := 0;
@@ -648,7 +650,7 @@ MODULE GraphMVNormal;
 		WHILE i < nElem DO
 			j := 0;
 			WHILE j < nElem DO
-				tau[i, j] := node.tau[start + (i * nElem + j) * step].Value();
+				tau[i, j] := node.tau[start + (i * nElem + j) * step].value;
 				INC(j)
 			END;
 			INC(i)
@@ -657,7 +659,7 @@ MODULE GraphMVNormal;
 		MathRandnum.MNormal(tau, mu, nElem, value);
 		i := 0;
 		WHILE i < nElem DO
-			node.components[i].SetValue(value[i]);
+			node.components[i].value := value[i];
 			INC(i)
 		END
 	END MVSample;
@@ -708,7 +710,7 @@ MODULE GraphMVNormal;
 		IF its = 0 THEN
 			res := {GraphNodes.lhs, GraphNodes.tooManyIts}
 		ELSE
-			node.SetValue(x)
+			node.value := x
 		END
 	END Sample;
 

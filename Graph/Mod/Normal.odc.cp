@@ -44,7 +44,7 @@ MODULE GraphNormal;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() < - eps THEN
+		IF node.tau.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg2}
 		END;
 		RETURN {}
@@ -92,8 +92,8 @@ MODULE GraphNormal;
 		VAR
 			cumulative, mu, tau: REAL;
 	BEGIN
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		cumulative := MathCumulative.Normal(mu, tau, x);
 		RETURN cumulative
 	END Cumulative;
@@ -103,8 +103,8 @@ MODULE GraphNormal;
 			logTau, logDensity, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		logDensity := 0.5 * logTau - 0.5 * tau * (x - mu) * (x - mu) - 0.5 * log2Pi;
 		RETURN - 2.0 * logDensity
@@ -115,21 +115,21 @@ MODULE GraphNormal;
 			differential, diffMu, diffTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
+		mu := node.mu.value;
+		tau := node.tau.value;
 		IF (GraphStochastic.hint2 IN p.props)
 			OR (p.classConditional IN {GraphRules.normal, GraphRules.mVN, GraphRules.mVNLin})
 			OR (GraphNodes.data IN node.tau.props) THEN
-			node.mu.ValDiff(p, mu, diffMu);
-			tau := node.tau.Value();
+			diffMu := node.mu.Diff(p);
 			differential := diffMu * tau * (x - mu)
 		ELSIF (GraphStochastic.hint1 IN p.props)
 			OR (p.classConditional IN {GraphRules.gamma, GraphRules.gamma1})
 			OR (GraphNodes.data IN node.mu.props) THEN
-			mu := node.mu.Value();
-			node.tau.ValDiff(p, tau, diffTau);
+			diffTau := node.tau.Diff(p);
 			differential := 0.5 * diffTau * (1 / tau - (x - mu) * (x - mu))
 		ELSE
-			node.mu.ValDiff(p, mu, diffMu);
-			node.tau.ValDiff(p, tau, diffTau);
+			diffMu := node.mu.Diff(p);
+			diffTau := node.tau.Diff(p);
 			differential := diffMu * tau * (x - mu) + 0.5 * diffTau * (1 / tau - (x - mu) * (x - mu))
 		END;
 		RETURN differential
@@ -140,8 +140,8 @@ MODULE GraphNormal;
 			differential, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		differential := - tau * (x - mu);
 		RETURN differential
 	END DiffLogPrior;
@@ -175,11 +175,11 @@ MODULE GraphNormal;
 		ASSERT(as IN {GraphRules.normal, GraphRules.gamma}, 21);
 		IF as = GraphRules.normal THEN
 			p0 := likelihood.value;
-			p1 := likelihood.tau.Value();
+			p1 := likelihood.tau.value;
 			x := likelihood.mu
 		ELSE
 			p0 := 0.5;
-			p1 := likelihood.value - likelihood.mu.Value();
+			p1 := likelihood.value - likelihood.mu.value;
 			p1 := 0.5 * p1 * p1;
 			x := likelihood.tau
 		END
@@ -189,7 +189,7 @@ MODULE GraphNormal;
 		VAR
 			mu: REAL;
 	BEGIN
-		mu := node.mu.Value();
+		mu := node.mu.value;
 		RETURN mu
 	END Location;
 
@@ -198,8 +198,8 @@ MODULE GraphNormal;
 			logTau, mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		RETURN 0.50 * logTau - 0.50 * tau * (x - mu) * (x - mu)
 	END LogLikelihoodUnivariate;
@@ -209,8 +209,8 @@ MODULE GraphNormal;
 			mu, tau, x: REAL;
 	BEGIN
 		x := node.value;
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		RETURN - 0.50 * tau * (x - mu) * (x - mu)
 	END LogPrior;
 
@@ -227,8 +227,8 @@ MODULE GraphNormal;
 	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
-		p0 := prior.mu.Value();
-		p1 := prior.tau.Value()
+		p0 := prior.mu.value;
+		p1 := prior.tau.value
 	END PriorForm;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);
@@ -247,8 +247,8 @@ MODULE GraphNormal;
 			mu, tau, x, lower, upper: REAL;
 			bounds: SET;
 	BEGIN
-		mu := node.mu.Value();
-		tau := node.tau.Value();
+		mu := node.mu.value;
+		tau := node.tau.value;
 		bounds := node.props * {GraphStochastic.leftImposed, GraphStochastic.rightImposed};
 		IF bounds = {} THEN
 			x := MathRandnum.Normal(mu, tau)
@@ -262,7 +262,7 @@ MODULE GraphNormal;
 				x := MathRandnum. NormalIB(mu, tau, lower, upper)
 			END
 		END;
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

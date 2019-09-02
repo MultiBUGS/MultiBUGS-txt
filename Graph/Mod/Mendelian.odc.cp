@@ -74,8 +74,8 @@ MODULE GraphMendelian;
 			farther, mother, r: INTEGER;
 			density, logDensity: REAL;
 	BEGIN
-		mother := SHORT(ENTIER(node.mother.Value() + eps));
-		farther := SHORT(ENTIER(node.farther.Value() + eps));
+		mother := SHORT(ENTIER(node.mother.value + eps));
+		farther := SHORT(ENTIER(node.farther.value + eps));
 		r := SHORT(ENTIER(node.value + eps));
 		density := prob[mother - 1, farther - 1, r - 1];
 		logDensity := MathFunc.Ln(density);
@@ -102,9 +102,9 @@ MODULE GraphMendelian;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
+		node.props := node.props + 
 		{GraphStochastic.integer, GraphStochastic.leftNatural,
-		GraphStochastic.rightNatural, GraphStochastic.noMean});
+		GraphStochastic.rightNatural, GraphStochastic.noMean};
 		node.mother := NIL;
 		node.farther := NIL
 	END InitUnivariate;
@@ -125,8 +125,8 @@ MODULE GraphMendelian;
 			farther, mother, r: INTEGER;
 			density: REAL;
 	BEGIN
-		mother := SHORT(ENTIER(node.mother.Value() + eps));
-		farther := SHORT(ENTIER(node.farther.Value() + eps));
+		mother := SHORT(ENTIER(node.mother.value + eps));
+		farther := SHORT(ENTIER(node.farther.value + eps));
 		r := SHORT(ENTIER(node.value + eps));
 		density := prob[mother - 1, farther - 1, r - 1];
 		RETURN MathFunc.Ln(density)
@@ -137,8 +137,8 @@ MODULE GraphMendelian;
 			farther, mother, r: INTEGER;
 			density: REAL;
 	BEGIN
-		mother := SHORT(ENTIER(node.mother.Value() + eps));
-		farther := SHORT(ENTIER(node.farther.Value() + eps));
+		mother := SHORT(ENTIER(node.mother.value + eps));
+		farther := SHORT(ENTIER(node.farther.value + eps));
 		r := SHORT(ENTIER(node.value + eps));
 		density := prob[mother - 1, farther - 1, r - 1];
 		RETURN MathFunc.Ln(density)
@@ -166,17 +166,17 @@ MODULE GraphMendelian;
 			rand: REAL;
 			p: ARRAY 2 OF REAL;
 	BEGIN
-		mother := SHORT(ENTIER(node.mother.Value() + eps));
-		farther := SHORT(ENTIER(node.farther.Value() + eps));
+		mother := SHORT(ENTIER(node.mother.value + eps));
+		farther := SHORT(ENTIER(node.farther.value + eps));
 		p[0] := prob[mother - 1, farther - 1, 0];
 		p[1] := p[0] + prob[mother - 1, farther - 1, 1];
 		rand := MathRandnum.Rand();
 		IF rand < p[0] THEN
-			node.SetValue(1)
+			node.value := 1
 		ELSIF rand < p[1] THEN
-			node.SetValue(2)
+			node.value := 2
 		ELSE
-			node.SetValue(3)
+			node.value := 3
 		END;
 		res := {}
 	END Sample;

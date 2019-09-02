@@ -14,7 +14,7 @@ MODULE UpdaterKernel;
 
 	IMPORT
 		Math, Stores := Stores64, 
-		GraphStochastic,
+		GraphLogical, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMetropolisMV, UpdaterUpdaters;
 
@@ -317,7 +317,7 @@ MODULE UpdaterKernel;
 		size := updater.IndSize();
 		x := updater.mapVals;
 		Sigma := updater.Sigma;
-		updater.GetValue(updater.oldVals);
+		updater.Store;
 		oldLogCond := updater.LogConditional() + updater.LogDetJacobian();
 		CalculateCov(updater);
 		MathRandnum.MNormalCovar(Sigma, size, delta);
@@ -330,13 +330,14 @@ MODULE UpdaterKernel;
 		END;
 		oldProp := updater.ProposalDensity(delta);
 		i := 0; WHILE i < size DO prior[i].InvMap(x[i]); INC(i) END;
+		GraphLogical.Evaluate(updater.dependents);
 		newLogCond := updater.LogConditional() + updater.LogDetJacobian();
 		CalculateCov(updater);
 		newProp := updater.ProposalDensity(delta);
 		logAlpha := newLogCond - oldLogCond + newProp - oldProp;
 		reject := logAlpha < Math.Ln(MathRandnum.Rand());
 		IF reject THEN
-			updater.SetValue(updater.oldVals);
+			updater.Restore;
 			INC(updater.rejectCount)
 		END;
 		IF updater.iteration MOD batch = 0 THEN

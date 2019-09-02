@@ -52,7 +52,7 @@ MODULE GraphBern;
 		IF (r # 0) & (r # 1) THEN
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
-		p := node.p.Value();
+		p := node.p.value;
 		IF (p <= - eps) OR (p >= 1.0 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
@@ -76,7 +76,7 @@ MODULE GraphBern;
 		VAR
 			cumulative, p: REAL;
 	BEGIN
-		p := node.p.Value();
+		p := node.p.value;
 		IF r < 0.50 THEN
 			cumulative := 1.0 - p
 		ELSE
@@ -90,7 +90,7 @@ MODULE GraphBern;
 			p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		IF r < 0.5 THEN
 			RETURN - 2 * MathFunc.Ln(1 - p)
 		ELSE
@@ -103,7 +103,8 @@ MODULE GraphBern;
 			diff, p, r: REAL;
 	BEGIN
 		r := node.value;
-		node.p.ValDiff(x, p, diff);
+		p := node.p.value;
+		diff := node.p.Diff(x);
 		IF r < 0.5 THEN
 			RETURN - diff / (1 - p)
 		ELSE
@@ -124,8 +125,8 @@ MODULE GraphBern;
 
 	PROCEDURE (node: Node) InitUnivariate;
 	BEGIN
-		node.SetProps(node.props + 
-		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural});
+		node.props := node.props + 
+		{GraphStochastic.integer, GraphStochastic.leftNatural, GraphStochastic.rightNatural};
 		node.p := NIL
 	END InitUnivariate;
 
@@ -153,7 +154,7 @@ MODULE GraphBern;
 			p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		IF r < 0.5 THEN
 			RETURN MathFunc.Ln(1 - p)
 		ELSE
@@ -166,7 +167,7 @@ MODULE GraphBern;
 			p, r: REAL;
 	BEGIN
 		r := node.value;
-		p := node.p.Value();
+		p := node.p.value;
 		IF r < 0.5 THEN
 			RETURN MathFunc.Ln(1 - p)
 		ELSE
@@ -178,7 +179,7 @@ MODULE GraphBern;
 		VAR
 			p: REAL;
 	BEGIN
-		p := node.p.Value();
+		p := node.p.value;
 		RETURN p
 	END Location;
 
@@ -203,9 +204,9 @@ MODULE GraphBern;
 			p, r: REAL;
 	BEGIN
 		res := {};
-		p := node.p.Value();
+		p := node.p.value;
 		r := MathRandnum.Bernoulli(p);
-		node.SetValue(r)
+		node.value := r
 	END Sample;
 
 	PROCEDURE (node: Node) SetUnivariate (IN args: GraphNodes.Args; OUT res: SET);

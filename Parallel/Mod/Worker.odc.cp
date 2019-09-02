@@ -14,9 +14,10 @@ The worker program of rank zero sends new sampled values back to the master	*)
 MODULE ParallelWorker;
 
 	IMPORT
+		SYSTEM,
 		Files := Files64, Kernel, MPIworker, Services, Stores := Stores64, Strings,
 		BugsRandnum,
-		GraphStochastic,
+		GraphLogical, GraphStochastic,
 		ParallelActions, ParallelFiles, ParallelHMC, ParallelRandnum;
 
 	CONST
@@ -29,6 +30,7 @@ MODULE ParallelWorker;
 		clearWAIC = 5;
 		checkPoint = 6;
 		restart = 7;
+		updateHMC = 8;
 
 	TYPE
 		Command = ARRAY 5 OF INTEGER;
@@ -41,12 +43,11 @@ MODULE ParallelWorker;
 		col, row: POINTER TO ARRAY OF INTEGER;
 		monitoredValues: POINTER TO ARRAY OF REAL;
 		worldRankString: ARRAY 64 OF CHAR;
-		numSteps, warmUpPeriod: INTEGER;
-		eps: REAL;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	PROCEDURE Update (thin, iteration: INTEGER; seperable, overRelax: BOOLEAN; endOfAdapting: INTEGER);
+		PROCEDURE Update (thin, iteration, endOfAdapting, warmUpPeriod, numSteps: INTEGER;
+	eps: REAL; seperable, overRelax, useHMC: BOOLEAN);
 		VAR
 			i: INTEGER;
 			res: SET;
@@ -54,19 +55,26 @@ MODULE ParallelWorker;
 	BEGIN
 		i := 0;
 		res := {};
-		WHILE (i < thin) & (res = {}) DO
-			ParallelActions.Update(seperable, overRelax, res);
-			INC(i)
-		END;
-		ASSERT(res = {}, 77);
-		IF endOfAdapting > iteration THEN
-			IF ~ParallelActions.IsAdapting() THEN
-				endOfAdapting := iteration + 1
+		IF useHMC THEN
+			ParallelHMC.Update(seperable, numSteps, iteration, warmUpPeriod, eps, reject);
+			IF iteration < warmUpPeriod + ParallelHMC.startIt THEN
+				endOfAdapting := MAX(INTEGER)
+			ELSE
+				endOfAdapting := warmUpPeriod + ParallelHMC.startIt + 1
 			END
+		ELSE
+			WHILE (i < thin) & (res = {}) DO
+				ParallelActions.Update(seperable, overRelax, res);
+				INC(i)
+			END;
+			ASSERT(res = {}, 77);
+			IF endOfAdapting > iteration THEN
+				IF ~ParallelActions.IsAdapting() THEN
+					endOfAdapting := iteration + 1
+				END
+			END;
 		END;
 		MPIworker.SendInteger(endOfAdapting);
-		(*ParallelHMC.Update(seperable, numSteps, iteration, warmUpPeriod, eps, reject);
-		MPIworker.SendInteger(warmUpPeriod + 1);*)
 		IF devianceMonitored OR waicSet THEN
 			deviance := ParallelActions.Deviance();
 			deviance := MPIworker.SumReal(deviance)
@@ -120,7 +128,7 @@ MODULE ParallelWorker;
 		NEW(pos, commSize);
 		i := 0; WHILE i < commSize DO rd.ReadLong(pos[i]); INC(i) END;
 		rd.SetPos(pos[rank]);
-		ParallelActions.Read(chain, rd);
+		ParallelActions.Read(rank, chain, rd);
 		rd.ConnectTo(NIL);
 		f.Close;
 		f := NIL
@@ -135,12 +143,13 @@ MODULE ParallelWorker;
 	PROCEDURE Init;
 		VAR
 			action, endOfAdapting, i, iteration, memory, mutableSize, numMonitored,
-			res, setUpTime, thin: INTEGER;
+			rank, res, setUpTime, thin, warmUpPeriod, numSteps: INTEGER;
+			eps: REAL;
 			resultParams: ARRAY 3 OF INTEGER;
 			command: Command;
 			buffer: ARRAY 4 OF REAL;
 			endTime, startTime: LONGINT;
-			overRelax: BOOLEAN;
+			overRelax, useHMC: BOOLEAN;
 			p: GraphStochastic.Node;
 			fileName: Files.Name;
 			f: Files.File;
@@ -155,15 +164,18 @@ MODULE ParallelWorker;
 		endTime := Services.Ticks();
 		setUpTime := SHORT(endTime - startTime);
 		memory := Kernel.Allocated();
+		rank := MPIworker.rank;
 		resultParams[0] := setUpTime;
 		resultParams[1] := memory;
-		resultParams[2] := MPIworker.rank;
+		resultParams[2] := rank;
+		ParallelActions.LoadSample(rank);
 		MPIworker.SendIntegers(resultParams);
-		ParallelActions.LoadSample;(*
-		ParallelHMC.Setup;
-		numSteps := 8;
-		warmUpPeriod := 1000;
-		eps := 0.25;*)
+		(*	set up stochastic nodes and dependent nodes then evaluate	*)
+		GraphStochastic.SetStochastics(ParallelActions.globalStochs[rank], 1);
+		GraphStochastic.StoreValues(0);
+		GraphLogical.SetLogicals(ParallelActions.globalLogicals, 1);
+		GraphLogical.EvaluateAllDiffs;
+		GraphLogical.StoreValues(0);
 		(*	loop to handle request from master	*)
 		LOOP
 			MPIworker.RecvIntegers(command);
@@ -182,9 +194,17 @@ MODULE ParallelWorker;
 					col := NIL; row := NIL; monitoredValues := NIL
 				END;
 				MPIworker.RecvIntegers(command);
-				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
-				overRelax := command[4] = 1;
-				Update(thin, iteration, seperable, overRelax, endOfAdapting);
+				useHMC := command[0] = updateHMC;
+				IF useHMC THEN
+					warmUpPeriod := command[1]; iteration := command[2]; numSteps := command[3];
+					eps := SYSTEM.VAL(SHORTREAL, command[4]);
+					ParallelHMC.Setup(iteration);
+				ELSE
+					thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
+					overRelax := command[4] = 1
+				END;
+				Update(thin, iteration, endOfAdapting, warmUpPeriod, numSteps,
+				eps, seperable, overRelax, useHMC);
 			|sendMCMCState:
 				IF devianceExists THEN
 					IF ~devianceMonitored & ~waicSet THEN
@@ -212,10 +232,17 @@ MODULE ParallelWorker;
 				END
 			|terminate:
 				EXIT
-			|update:
-				thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
-				overRelax := command[4] = 1;
-				Update(thin, iteration, seperable, overRelax, endOfAdapting);
+			|update, updateHMC:
+				IF action = updateHMC THEN
+					warmUpPeriod := command[1]; iteration := command[2]; numSteps := command[3];
+					eps := SYSTEM.VAL(SHORTREAL, command[4]);
+					ParallelHMC.Setup(iteration);
+				ELSE
+					thin := command[1]; iteration := command[2]; endOfAdapting := command[3];
+					overRelax := command[4] = 1
+				END;
+				Update(thin, iteration, endOfAdapting, warmUpPeriod, numSteps,
+				eps, seperable, overRelax, useHMC);
 			|setWAIC:
 				waicSet := TRUE;
 				ParallelActions.SetWAIC;

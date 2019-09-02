@@ -75,15 +75,9 @@ MODULE MonitorPlugin;
 			node: GraphNodes.Node;
 	BEGIN
 		node := monitor.node;
-		WITH node: GraphVector.Node DO
-			IF node.index = 0 THEN
-				node.SetProps(node.props + {GraphLogical.dirty})
-			END
-		ELSE
-		END;
 		n1 := monitor.sampleSize + 1;
 		delta := monitor.sampleSize / n1;
-		monitor.mean := delta * monitor.mean + node.Value() / n1;
+		monitor.mean := delta * monitor.mean + node.value / n1;
 		INC(monitor.sampleSize)
 	END Update;
 

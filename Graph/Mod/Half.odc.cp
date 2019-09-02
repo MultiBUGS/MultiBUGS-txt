@@ -51,10 +51,10 @@ MODULE GraphHalf;
 		RETURN class
 	END ClassFunction;
 	
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.x, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 	
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -66,10 +66,10 @@ MODULE GraphHalf;
 		install := "GraphHalf.Install"
 	END Install;
 	
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
 		node.x := GraphNodes.Internalize(rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 	
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -90,26 +90,20 @@ MODULE GraphHalf;
 	
 	END Set;
 	
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs;
+		VAR
+			x: GraphNodes.Vector;
+			i, N: INTEGER;
 	BEGIN
-		IF node.x IS GraphStochastic.Node THEN
-			val := 0.5 * node.x.Value();
-			IF node.x = x THEN
-				diff := 0.5
-			ELSE
-				diff := 0.0
-			END
-		ELSE
-			node.x.ValDiff(x, val, diff);
-			val := 0.5 * val;
-			diff := 0.5 * diff
-		END
-	END ValDiff;
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0; WHILE i < N DO node.diffs[i] := 0.5 * node.x.Diff(x[i]); INC(i) END
+	END EvaluateDiffs;
 	
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 	BEGIN
-		RETURN 0.5 * node.x.Value()
-	END Value;
+		node.value :=  0.5 * node.x.value
+	END Evaluate;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

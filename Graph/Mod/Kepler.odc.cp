@@ -51,7 +51,7 @@ MODULE GraphKepler;
 		VAR
 			e: REAL;
 	BEGIN
-		e := node.e.Value();
+		e := node.e.value;
 		IF (e < - eps) OR (e > 1 + eps) THEN
 			RETURN {GraphNodes.proportion, GraphNodes.arg1}
 		END;
@@ -73,17 +73,31 @@ MODULE GraphKepler;
 		RETURN f
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) Evaluate;
+		VAR
+			e, l, value: REAL;
+	BEGIN
+		e := node.e.value;
+		l := node.l.value;
+		node.value := Solve(l, e);
+	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+		HALT(126)
+	END EvaluateDiffs;
+
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.e, wr);
 		GraphNodes.Externalize(node.l, wr)
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
 		node.e := GraphNodes.Internalize(rd);
 		node.l := GraphNodes.Internalize(rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -119,25 +133,10 @@ MODULE GraphKepler;
 			ASSERT(args.scalars[1] # NIL, 21);
 			node.e := args.scalars[1];
 			IF (GraphNodes.data IN node.l.props) & (GraphNodes.data IN node.e.props) THEN
-				node.SetProps(node.props + {GraphNodes.data})
+				INCL(node.props, GraphNodes.data)
 			END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) Value (): REAL;
-		VAR
-			e, l, value: REAL;
-	BEGIN
-		e := node.e.Value();
-		l := node.l.Value();
-		value := Solve(l, e);
-		RETURN value
-	END Value;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(126)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

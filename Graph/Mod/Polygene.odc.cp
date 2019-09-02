@@ -66,17 +66,17 @@ MODULE GraphPolygene;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Mean) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Mean) ExternalizeScalar (VAR wr: Stores.Writer);
 	BEGIN
 		GraphNodes.Externalize(node.mother, wr);
 		GraphNodes.Externalize(node.farther, wr);
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Mean) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Mean) InternalizeScalar (VAR rd: Stores.Reader);
 	BEGIN
 		node.mother := GraphNodes.Internalize(rd);
 		node.farther := GraphNodes.Internalize(rd)
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Mean) InitLogical;
 	BEGIN
@@ -111,25 +111,31 @@ MODULE GraphPolygene;
 		END
 	END Set;
 
-	PROCEDURE (node: Mean) Value (): REAL;
+	PROCEDURE (node: Mean) Evaluate;
 		VAR
 			mother, farther, value: REAL;
 	BEGIN
-		mother := node.mother.Value();
-		farther := node.farther.Value();
-		value := 0.5 * (mother + farther);
-		RETURN value
-	END Value;
+		mother := node.mother.value;
+		farther := node.farther.value;
+		node.value := 0.5 * (mother + farther)
+	END Evaluate;
 
-	PROCEDURE (node: Mean) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Mean) EvaluateDiffs;
 		VAR
-			mother, farther, motherDiff, fartherDiff: REAL;
+			motherDiff, fartherDiff: REAL;
+			x: GraphNodes.Vector;
+			i, N: INTEGER;
 	BEGIN
-		node.mother.ValDiff(x, mother, motherDiff);
-		node.farther.ValDiff(x, farther, fartherDiff);
-		val := 0.5 * (mother + farther);
-		diff := 0.5 * (motherDiff + fartherDiff);
-	END ValDiff;
+		x := node.diffWRT;
+		N := LEN(x);
+		i := 0;
+		WHILE i < N DO
+			motherDiff := node.mother.Diff(x[i]);
+			fartherDiff := node.farther.Diff(x[i]);
+			node.diffs[i] := 0.5 * (motherDiff + fartherDiff);
+			INC(i)
+		END
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) BoundsUnivariate (OUT left, right: REAL);
 	BEGIN
@@ -139,7 +145,7 @@ MODULE GraphPolygene;
 
 	PROCEDURE (node: Node) CheckUnivariate (): SET;
 	BEGIN
-		IF node.tau.Value() < - eps THEN
+		IF node.tau.value < - eps THEN
 			RETURN {GraphNodes.posative, GraphNodes.arg3}
 		END;
 		RETURN {}
@@ -187,8 +193,8 @@ MODULE GraphPolygene;
 		VAR
 			cumulative, mean, tau: REAL;
 	BEGIN
-		mean := node.mean.Value();
-		tau := 2 * node.tau.Value();
+		mean := node.mean.value;
+		tau := 2 * node.tau.value;
 		cumulative := MathFunc.Phi(Math.Sqrt(tau) * (x - mean));
 		RETURN cumulative
 	END Cumulative;
@@ -197,8 +203,8 @@ MODULE GraphPolygene;
 		VAR
 			logDensity, logTau, mean, tau, x: REAL;
 	BEGIN
-		mean := node.mean.Value();
-		tau := 2 * node.tau.Value();
+		mean := node.mean.value;
+		tau := 2 * node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		x := node.value;
 		logDensity := 0.5 * logTau - 0.5 * tau * (x - mean) * (x - mean) - 0.5 * log2Pi;
@@ -209,8 +215,10 @@ MODULE GraphPolygene;
 		VAR
 			differential, mean, tau, val, diffMean, diffTau: REAL;
 	BEGIN
-		node.mean.ValDiff(x, mean, diffMean);
-		node.tau.ValDiff(x, tau, diffTau);
+		mean := node.mean.value;
+		tau := node.tau.value;
+		diffMean := node.mean.Diff(x);
+		diffTau := node.tau.Diff(x);
 		tau := 2 * tau;
 		diffTau := 2 * diffTau;
 		val := node.value;
@@ -222,8 +230,8 @@ MODULE GraphPolygene;
 		VAR
 			differential, logTau, mean, tau, x: REAL;
 	BEGIN
-		mean := node.mean.Value();
-		tau := 2 * node.tau.Value();
+		mean := node.mean.value;
+		tau := 2 * node.tau.value;
 		x := node.value;
 		differential := tau * (x - mean);
 		RETURN differential
@@ -258,11 +266,11 @@ MODULE GraphPolygene;
 		ASSERT(as IN {GraphRules.normal, GraphRules.gamma}, 21);
 		IF as = GraphRules.normal THEN
 			p0 := node.value;
-			p1 := 2 * node.tau.Value();
+			p1 := 2 * node.tau.value;
 			x := node.mean
 		ELSE
 			p0 := 0.5;
-			p1 := node.value - node.mean.Value();
+			p1 := node.value - node.mean.value;
 			p1 := p1 * p1;
 			x := node.tau
 		END
@@ -272,8 +280,8 @@ MODULE GraphPolygene;
 		VAR
 			logTau, mean, tau, x: REAL;
 	BEGIN
-		mean := node.mean.Value();
-		tau := 2 * node.tau.Value();
+		mean := node.mean.value;
+		tau := 2 * node.tau.value;
 		logTau := MathFunc.Ln(tau);
 		x := node.value;
 		RETURN 0.5 * logTau - 0.5 * tau * (x - mean) * (x - mean)
@@ -283,7 +291,7 @@ MODULE GraphPolygene;
 		VAR
 			mean: REAL;
 	BEGIN
-		mean := node.mean.Value();
+		mean := node.mean.value;
 		RETURN mean
 	END Location;
 
@@ -301,8 +309,8 @@ MODULE GraphPolygene;
 		VAR
 			mean, tau, x: REAL;
 	BEGIN
-		mean := node.mean.Value();
-		tau := 2 * node.tau.Value();
+		mean := node.mean.value;
+		tau := 2 * node.tau.value;
 		x := node.value;
 		RETURN - 0.5 * tau * (x - mean) * (x - mean)
 	END LogPrior;
@@ -310,18 +318,18 @@ MODULE GraphPolygene;
 	PROCEDURE (node: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
 	BEGIN
 		ASSERT(as = GraphRules.normal, 21);
-		p0 := node.mean.Value();
-		p1 := 2 * node.tau.Value()
+		p0 := node.mean.value;
+		p1 := 2 * node.tau.value
 	END PriorForm;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR
 			mean, tau, x: REAL;
 	BEGIN
-		mean := node.mean.Value();
-		tau := 2 * node.tau.Value();
+		mean := node.mean.value;
+		tau := 2 * node.tau.value;
 		x := MathRandnum.Normal(mean, tau);
-		node.SetValue(x);
+		node.value := x;
 		res := {}
 	END Sample;
 

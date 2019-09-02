@@ -33,7 +33,7 @@ MODULE SpatialUVCAR;
 			car: Node;
 	BEGIN
 		IF GraphNodes.mark IN node.props THEN RETURN END;
-		node.SetProps(node.props + {GraphNodes.mark});
+		INCL(node.props, GraphNodes.mark);
 		i := 0;
 		IF node.neighs # NIL THEN numNeigh := LEN(node.neighs) ELSE numNeigh := 0 END;
 		WHILE i < numNeigh DO
@@ -70,7 +70,7 @@ MODULE SpatialUVCAR;
 		i := 0;
 		WHILE i < nElem DO
 			car := node.components[i](Node);
-			car.SetProps(car.props - {GraphNodes.mark});
+			EXCL(car.props, GraphNodes.mark);
 			INC(i)
 		END;
 		RETURN numIslands
@@ -134,7 +134,7 @@ MODULE SpatialUVCAR;
 			WHILE i < nElem DO
 				car := node.components[i](Node);
 				car.numIslands := numIslands;
-				car.SetProps(car.props - {GraphNodes.mark});
+				EXCL(car.props, GraphNodes.mark);
 				INC(i)
 			END
 		END
@@ -167,7 +167,7 @@ MODULE SpatialUVCAR;
 		node.neighs := NIL;
 		node.weights := NIL;
 		node.numIslands := 0;
-		node.SetProps(node.props + {GraphStochastic.noMean});
+		INCL(node.props, GraphStochastic.noMean);
 		node.InitUVCAR
 	END InitUVMRF;
 	
@@ -183,8 +183,8 @@ MODULE SpatialUVCAR;
 		IF index =  - 1 THEN
 			node.Init;
 			node.SetComponent(NIL,  - 1);
-			node.SetProps({GraphStochastic.hidden, GraphStochastic.initialized});
-			node.SetValue(0.0)
+			node.props := {GraphStochastic.hidden, GraphStochastic.initialized};
+			node.value := 0.0
 		ELSE
 			rd.ReadInt(numNeigh);
 			IF numNeigh # 0 THEN
@@ -282,8 +282,8 @@ MODULE SpatialUVCAR;
 			ELSE
 				car.Init;
 				car.SetComponent(NIL,  - 1);
-				car.SetProps({GraphStochastic.hidden, GraphStochastic.initialized, GraphStochastic.data});
-				car.SetValue(0.0)
+				car.props := {GraphStochastic.hidden, GraphStochastic.initialized, GraphStochastic.data};
+				car.value := 0.0
 			END;
 			INC(i)
 		END;
@@ -327,7 +327,7 @@ MODULE SpatialUVCAR;
 				res := {GraphNodes.arg2, GraphNodes.length}; RETURN
 			END;
 			start2 := args.vectors[2].start;
-			numNeigh := SHORT(ENTIER(args.vectors[2].components[start2 + index].Value() + eps));
+			numNeigh := SHORT(ENTIER(args.vectors[2].components[start2 + index].value + eps));
 			IF numNeigh > 0 THEN
 				NEW(node.neighs, numNeigh);
 				NEW(node.weights, numNeigh);
@@ -352,7 +352,7 @@ MODULE SpatialUVCAR;
 					IF ~(GraphNodes.data IN p.props) THEN
 						res := {GraphNodes.arg1, GraphNodes.notData}; RETURN
 					END;
-					x := p.Value();
+					x := p.value;
 					IF ABS(x - SHORT(ENTIER(x + eps))) > eps THEN
 						res := {GraphNodes.arg1, GraphNodes.integer}; RETURN
 					END;
@@ -368,7 +368,7 @@ MODULE SpatialUVCAR;
 					IF ~(GraphNodes.data IN p.props) THEN
 						res := {GraphNodes.arg2, GraphNodes.notData}; RETURN
 					END;
-					node.weights[i] := p.Value();
+					node.weights[i] := p.value;
 					INC(i)
 				END;
 			END

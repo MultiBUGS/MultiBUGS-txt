@@ -114,15 +114,15 @@ MODULE UpdaterEllipticalMVN;
 						child.LikelihoodForm(as, x, m, t);
 						i := 0;
 						WHILE i < size DO
-							prior[i].SetValue(0.0);
+							prior[i].value := 0.0;
 							INC(i)
 						END;
-						c := x.Value();
+						c := x.value;
 						i := 0;
 						WHILE i < size DO
-							prior[i].SetValue(1.0);
-							p0[i] := x.Value() - c;
-							prior[i].SetValue(0.0);
+							prior[i].value := 1.0;
+							p0[i] := x.value - c;
+							prior[i].value := 0.0;
 							p[size2 + i] := p[size2 + i] + (m - c) * t * p0[i];
 							INC(i)
 						END;
@@ -286,7 +286,7 @@ MODULE UpdaterEllipticalMVN;
 			i := 0;
 			WHILE i < size DO
 				x := mu[i] + (oldX[i] - mu[i]) * cos + nu[i] * sin;
-				updater.prior[i].SetValue(x);
+				updater.prior[i].value := x;
 				INC(i)
 			END;
 			IF generic # NIL THEN logLikelihood := generic.LogLikelihood() ELSE logLikelihood := 0.0 END;

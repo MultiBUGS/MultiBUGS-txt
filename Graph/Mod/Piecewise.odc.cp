@@ -63,7 +63,7 @@ MODULE GraphPiecewise;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) ExternalizeLogical (VAR wr: Stores.Writer);
+	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);
 		VAR
 			len, i: INTEGER;
 	BEGIN
@@ -76,9 +76,9 @@ MODULE GraphPiecewise;
 			GraphNodes.Externalize(node.components[i], wr);
 			INC(i);
 		END;
-	END ExternalizeLogical;
+	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InternalizeLogical (VAR rd: Stores.Reader);
+	PROCEDURE (node: Node) InternalizeScalar (VAR rd: Stores.Reader);
 		VAR
 			len, i: INTEGER;
 	BEGIN
@@ -95,7 +95,7 @@ MODULE GraphPiecewise;
 			node.components[i] := GraphNodes.Internalize(rd);
 			INC(i);
 		END;
-	END InternalizeLogical;
+	END InternalizeScalar;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
@@ -155,24 +155,24 @@ MODULE GraphPiecewise;
 		END
 	END Set;
 
-	PROCEDURE (node: Node) Value (): REAL;
+	PROCEDURE (node: Node) Evaluate;
 		CONST
 			eps = 1.0E-6;
 		VAR
 			index: INTEGER;
 	BEGIN
 		IF node.index # NIL THEN
-			index := SHORT(ENTIER(node.index.Value() + eps))
+			index := SHORT(ENTIER(node.index.value + eps))
 		ELSE
 			index := 0
 		END;
-		RETURN node.components[index].Value()
-	END Value;
+		node.value :=  node.components[index].value
+	END Evaluate;
 
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
+	PROCEDURE (node: Node) EvaluateDiffs;
 	BEGIN
 		HALT(126)
-	END ValDiff;
+	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR

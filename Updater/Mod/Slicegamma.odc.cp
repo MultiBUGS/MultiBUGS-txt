@@ -12,20 +12,10 @@ MODULE UpdaterSlicegamma;
 	
 
 	IMPORT
-		MPIworker, Math, Stores,
+		MPIworker, Math,
 		BugsRegistry,
 		GraphConjugateUV, GraphLogical, GraphNodes, GraphRules, GraphStochastic,
-		MathRandnum,
 		UpdaterSlicebase, UpdaterUpdaters;
-
-	CONST
-		batch = 25;
-
-		(*	internal states of sampling algorithm	*)
-		init = 0; firstLeft = 1; left = 2; firstRight = 3; right = 4; sample = 5;
-
-		leftBounds = {GraphStochastic.leftNatural, GraphStochastic.leftImposed};
-		rightBounds = {GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 
 	TYPE
 		Updater = POINTER TO RECORD(UpdaterSlicebase.Updater)
@@ -56,7 +46,8 @@ MODULE UpdaterSlicegamma;
 	BEGIN
 		prior := updater.prior;
 		IF updater.gamma # NIL THEN
-			x := updater.gamma.Value();
+			updater.prior.Evaluate;
+			x := updater.gamma.value;
 			logLike := p[0] * Math.Ln(x) - p[1] * x
 		ELSE
 			logLike := 0.0;
@@ -76,13 +67,16 @@ MODULE UpdaterSlicegamma;
 		VAR
 			i, len: INTEGER;
 			children: GraphStochastic.Vector;
+			prior: GraphStochastic.Node;
 			p0, p1: REAL;
 		CONST
 			as = GraphRules.gamma;
 	BEGIN
 		UpdaterSlicebase.adaptivePhase := fact.adaptivePhase;
 		UpdaterSlicebase.maxIterations := fact.iterations;
-		children := updater.prior.children;
+		prior := updater.prior;
+		children := prior.children;
+		prior.EvaluateDiffs;
 		i := 0;
 		p[0] := 0.0; p[1] := 0.0;
 		IF children # NIL THEN

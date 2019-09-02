@@ -12,7 +12,7 @@ MODULE UpdaterKernelblock;
 	
 
 	IMPORT
-		Math, 
+		Math,
 		BugsRegistry,
 		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		UpdaterKernel, UpdaterMultivariate, UpdaterUpdaters;
@@ -23,7 +23,7 @@ MODULE UpdaterKernelblock;
 		UpdaterGLM = POINTER TO RECORD(UpdaterKernel.Updater) END;
 
 		UpdaterGlobal = POINTER TO RECORD(UpdaterKernel.Updater) END;
-	
+
 		UpdaterNL = POINTER TO RECORD(UpdaterKernel.Updater) END;
 
 		UpdaterWishart = POINTER TO RECORD(UpdaterKernel.Updater) END;
@@ -62,18 +62,15 @@ MODULE UpdaterKernelblock;
 			END
 		ELSE
 			class := {prior.classConditional} + {GraphRules.general, GraphRules.genDiff};
-			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+			block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 			IF block = NIL THEN (*	try less restrictive block membership	*)
 				class := class + {GraphRules.normal(*, GraphRules.gamma, GraphRules.gamma1*)};
-				block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+				block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 				IF block = NIL THEN
-					block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, FALSE);
-					IF block = NIL THEN
-						block := UpdaterMultivariate.FixedEffects(prior, class, TRUE, TRUE);
-					END
+					block := UpdaterMultivariate.FixedEffects(prior, class, TRUE);
 				END
 			END
-		END; 
+		END;
 		RETURN block
 	END FindNLBlock;
 
@@ -120,7 +117,7 @@ MODULE UpdaterKernelblock;
 			class: SET;
 	BEGIN
 		class := {prior.classConditional};
-		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE, FALSE);
+		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
 		IF block # NIL THEN
 			IF ~UpdaterMultivariate.IsHomologous(block) THEN
 				RETURN NIL
@@ -210,11 +207,11 @@ MODULE UpdaterKernelblock;
 	END FindBlock;
 
 	PROCEDURE (updater: UpdaterWishart) IndSize (): INTEGER;
-		VAR 
+		VAR
 			dim: INTEGER;
 	BEGIN
 		dim := SHORT(ENTIER(Math.Sqrt(updater.Size() + 1)));
-		RETURN  (dim * (dim + 1)) DIV 2
+		RETURN (dim * (dim + 1)) DIV 2
 	END IndSize;
 
 	PROCEDURE (updater: UpdaterWishart) Install (OUT install: ARRAY OF CHAR);
@@ -261,7 +258,7 @@ MODULE UpdaterKernelblock;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF ~(prior.classConditional IN glm) THEN RETURN FALSE END;
-		block := UpdaterMultivariate.FixedEffects(prior, {prior.classConditional}, FALSE, FALSE);
+		block := UpdaterMultivariate.FixedEffects(prior, {prior.classConditional}, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF GraphStochastic.IsBounded(block) THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;

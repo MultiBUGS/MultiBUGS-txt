@@ -66,7 +66,7 @@ MODULE UpdaterUpdaters;
 	PROCEDURE (updater: Updater) Depth* (): INTEGER, NEW, ABSTRACT;
 
 		(*	writes the updater's mutable internal state to store	*)
-	PROCEDURE (updater: Updater) Externalize- (VAR wr: Stores.Writer), NEW, ABSTRACT;
+	PROCEDURE (updater: Updater) Externalize-(VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 		(*	writes out the 'prior' (posibly a block of nodes) for updater to store	*)
 	PROCEDURE (updater: Updater) ExternalizePrior- (VAR wr: Stores.Writer), NEW, ABSTRACT;
@@ -89,12 +89,6 @@ MODULE UpdaterUpdaters;
 		(*	is updater algorithm in adaptive phase	*)
 	PROCEDURE (updater: Updater) IsAdapting* (): BOOLEAN, NEW, ABSTRACT;
 
-		(*	are nodes associated with updater initialized	*)
-	PROCEDURE (updater: Updater) IsInitialized* (): BOOLEAN, NEW, ABSTRACT;
-
-		(*	load sampled values stored in updater into graphical model	*)
-	PROCEDURE (updater: Updater) LoadSample*, NEW, ABSTRACT;
-
 		(*	calculated the log conditional of the node (nodes) that updater updates	*)
 	PROCEDURE (updater: Updater) LogConditional* (): REAL, NEW, ABSTRACT;
 
@@ -107,6 +101,8 @@ MODULE UpdaterUpdaters;
 		(*	returns the node that updater updates, occasionaly this is not prior	*)
 	PROCEDURE (updater: Updater) Node* (index: INTEGER): GraphStochastic.Node, NEW, ABSTRACT;
 
+	PROCEDURE (updater: Updater) Optimize*, NEW, EMPTY;
+	
 		(*	node(s) in graphical model that updater is associated with	*)
 	PROCEDURE (updater: Updater) Prior* (index: INTEGER): GraphStochastic.Node, NEW, ABSTRACT;
 
@@ -118,9 +114,6 @@ MODULE UpdaterUpdaters;
 
 		(*	number of nodes that updater is associated with	*)
 	PROCEDURE (updater: Updater) Size* (): INTEGER, NEW, ABSTRACT;
-
-		(*	copy node values from graphical model into updater	*)
-	PROCEDURE (updater: Updater) StoreSample*, NEW, ABSTRACT;
 
 		(*	Factory methods	*)
 

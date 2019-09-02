@@ -89,7 +89,7 @@ MODULE SpatialCARl1;
 			i, len: INTEGER;
 	BEGIN
 		x := node.value;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		i := 0;
 		differential := 0.0;
@@ -138,7 +138,7 @@ MODULE SpatialCARl1;
 			i, len: INTEGER;
 	BEGIN
 		x := node.value;
-		tau := node.tau.Value();
+		tau := node.tau.value;
 		IF node.neighs # NIL THEN len := LEN(node.neighs) ELSE len := 0 END;
 		i := 0;
 		logPrior := 0.0;

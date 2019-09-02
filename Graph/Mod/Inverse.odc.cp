@@ -67,41 +67,47 @@ MODULE GraphInverse;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate (OUT values: ARRAY OF REAL);
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			dim, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
 	BEGIN
-		dim := node.dim;
-		start := node.start;
-		step := node.step;
-		i := 0;
-		WHILE i < dim DO
-			j := 0;
-			WHILE j <= i DO
-				off := start + (i * dim + j) * step;
-				IF node.matrix # NIL THEN
-					p := node.matrix[off];
-					tau[i, j] := p.Value()
-				ELSE
-					tau[i, j] := node.constant[off]
+		IF node.index = 0 THEN
+			dim := node.dim;
+			start := node.start;
+			step := node.step;
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j <= i DO
+					off := start + (i * dim + j) * step;
+					IF node.matrix # NIL THEN
+						p := node.matrix[off];
+						tau[i, j] := p.value
+					ELSE
+						tau[i, j] := node.constant[off]
+					END;
+					tau[j, i] := tau[i, j];
+					INC(j)
 				END;
-				tau[j, i] := tau[i, j];
-				INC(j)
+				INC(i)
 			END;
-			INC(i)
-		END;
-		MathMatrix.Invert(tau, dim);
-		i := 0;
-		WHILE i < dim DO
-			j := 0;
-			WHILE j < dim DO
-				values[i * dim + j] := tau[i, j];
-				INC(j)
-			END;
-			INC(i)
+			MathMatrix.Invert(tau, dim);
+			i := 0;
+			WHILE i < dim DO
+				j := 0;
+				WHILE j < dim DO
+					node.components[i * dim + j].value := tau[i, j];
+					INC(j)
+				END;
+				INC(i)
+			END 
 		END
 	END Evaluate;
+
+	PROCEDURE (node: Node) EvaluateDiffs ;
+	BEGIN
+	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeVector (VAR wr: Stores.Writer);
 		VAR
@@ -151,7 +157,6 @@ MODULE GraphInverse;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
-		node.SetProps(node.props + {GraphLogical.dependent})
 	END InitLogical;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -232,8 +237,8 @@ MODULE GraphInverse;
 								isData := isData & (GraphNodes.data IN p.props)
 							END
 						ELSE
-							IF node.constant[off] = INF THEN 
-								res := {GraphNodes.nil, GraphNodes.arg1}; RETURN 
+							IF node.constant[off] = INF THEN
+								res := {GraphNodes.nil, GraphNodes.arg1}; RETURN
 							END
 						END
 					END;
@@ -241,14 +246,9 @@ MODULE GraphInverse;
 				END;
 				INC(i)
 			END;
-			IF isData THEN node.SetProps(node.props + {GraphNodes.data}) END
+			IF isData THEN INCL(node.props, GraphNodes.data) END
 		END
 	END Set;
-
-	PROCEDURE (node: Node) ValDiff (x: GraphNodes.Node; OUT val, diff: REAL);
-	BEGIN
-		HALT(0)
-	END ValDiff;
 
 	PROCEDURE (f: Factory) New (): GraphVector.Node;
 		VAR
@@ -277,7 +277,7 @@ MODULE GraphInverse;
 
 	PROCEDURE Init;
 		CONST
-			len = 20;
+			len = 1;
 		VAR
 			f: Factory;
 	BEGIN
