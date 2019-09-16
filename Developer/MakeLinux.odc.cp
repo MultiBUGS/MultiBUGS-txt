@@ -17,7 +17,7 @@ DevCompiler.CompileThis
 
 HostMenusLinux
 
-Environmentlinux MPI MPIliblinux MPIimp MPImaster MPIworker
+Environmentlinux MPI MPIlib MPIlibmpiso12 MPIlibmpichso12 MPIlibmpichso0 MPIlibmpichso10 MPIimp MPIimplibmpiso12 MPIimplibmpichso12 MPIimplibmpichso0 MPIimplibmpichso10 MPIworker MPImaster
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi
@@ -85,17 +85,18 @@ GraphUnivariatetemp1
 
 GraphCoSelection GraphSpline GraphSplinecon GraphSplinescalar
 
-UpdaterAM UpdaterKernel UpdaterDE UpdaterHamiltonian UpdaterSlicebase
+UpdaterAM UpdaterDE UpdaterHamiltonian 
 
 UpdaterForward
 
-UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial
+UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial UpdaterSlicebase
 
-UpdaterICM UpdaterHMC
+UpdaterICM
 
 UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 
-UpdaterAMblock UpdaterKernelblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet UpdaterElliptical UpdaterEllipticalMVN UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
+UpdaterAMblock UpdaterDEblock UpdaterDelayedDirectional1D UpdaterDirichlet
+UpdaterElliptical UpdaterEllipticalMVN UpdaterEllipticalD UpdaterGLM UpdaterMRFConstrain UpdaterGMRF UpdaterGMRFess  UpdaterMAPproposal UpdaterMultinomial UpdaterMVNormal UpdaterMVNLinear UpdaterStage1M UpdaterVDMVN UpdaterVDMVNContinuous UpdaterVDMVNDescrete UpdaterWishart
 
 UpdaterUnivariateT UpdaterMultivariateT
 
@@ -131,7 +132,7 @@ UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfigLinux BugsHMC
+BugsCmds BugsBatch BugsConfigLinux
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 
@@ -162,14 +163,14 @@ StdCmds1
 
 BugsC
 
+TestScript
+
 BugsPackage
 
 MathSeeds
 
-ParallelFiles ParallelRandnum ParallelActions ParallelHMC ParallelWorker ParallelDebug
+ParallelRandnum ParallelActions ParallelWorker ParallelDebug
 
 ParallelDebug
-
-TestScript
 
 BugsTraphandler

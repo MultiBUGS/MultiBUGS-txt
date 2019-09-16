@@ -72,7 +72,7 @@ MODULE BugsComponents;
 			END
 		ELSIF name = "MPI" THEN
 			(*	add implementation of MPI map name in string resource file	*)
-			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 			AddModule(mpiImp$, modList);
 		END
 	END AddModule;

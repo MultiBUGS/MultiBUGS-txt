@@ -399,30 +399,30 @@ MODULE BugsMaster;
 		Maintainer;
 		globalValues := NIL;
 		platform := "Windows";
-		Dialog.MapString("#Bugs:" + platform, mpiImp);
+		Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 		Meta.Lookup(mpiImp, item);
 		IF MPI.hook = NIL THEN
 			(* ABI Compatibility Initiative, Fedora 29, CentOS 7 *)
-			platform := "Fedora29";
-			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			platform := "ABICI";
+			Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 			Meta.Lookup(mpiImp, item)
 		END;
 		IF MPI.hook = NIL THEN
 			(* CentOS 6, Debian 8/9/10, Ubuntu 16.04, Ubuntu 19.04 *)
-			platform := "Debian8/9/10";
-			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			platform := "Debian";
+			Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 			Meta.Lookup(mpiImp, item)
 		END;
 		IF MPI.hook = NIL THEN
 			(* Ubuntu 18.04 *)
-			platform := "Ubuntu18.04";
-			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			platform := "Ubuntu1804";
+			Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 			Meta.Lookup(mpiImp, item)
 		END;
 		IF MPI.hook = NIL THEN
 			(* Ubuntu 14.04 *)
-			platform := "Ubuntu14.04";
-			Dialog.MapString("#Bugs:" + platform, mpiImp);
+			platform := "Ubuntu1404";
+			Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 			Meta.Lookup(mpiImp, item)
 		END;
 		(*	handle eror	*)
