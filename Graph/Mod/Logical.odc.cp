@@ -19,6 +19,7 @@ MODULE GraphLogical;
 	CONST
 		(*	node properties	*)
 		mark* = 2; 	(*	node is marked	*)
+		diff* = 3; 	(*	differentiation mark	*)
 		linear* = 4; 	(*	node is linear in all its arguments	*)
 		prediction* = 5; 	(*	node is only used for prediction	*)
 		linked* = 6; 	(*	node has been linked into its stochastic parents dependant list	*)
@@ -216,12 +217,48 @@ MODULE GraphLogical;
 		RETURN numParam
 	END NumParam;
 
-	PROCEDURE Ancestors* (nodes: GraphNodes.Vector): List;
+	PROCEDURE ListToVector* (list: List): Vector;
+		VAR
+			i, len, level: INTEGER;
+			cursor: List;
+			vector: Vector;
+			node: Node;
+	BEGIN
+		IF list = NIL THEN
+			vector := NIL
+		ELSE
+			len := 0;
+			level := 0;
+			cursor := list;
+			WHILE cursor # NIL DO
+				INC(len);
+				node := cursor.node;
+				level := MAX(level, node.level);
+				cursor := cursor.next
+			END;
+			NEW(vector, len);
+			(*	put list into vector in order by level	*)
+			i := len;
+			REPEAT
+				cursor := list;
+				WHILE cursor # NIL DO
+					node := cursor.node;
+					IF node.level = level THEN DEC(i); vector[i] := cursor.node END;
+					cursor := cursor.next
+				END;
+				DEC(level);
+			UNTIL level = 0
+		END;
+		RETURN vector
+	END ListToVector;
+
+	PROCEDURE Ancestors* (nodes: GraphNodes.Vector): Vector;
 		VAR
 			i, len: INTEGER;
-			list, list1: List;
+			cursor, list, list1: List;
 			logical: Node;
 			node: GraphNodes.Node;
+			block: Vector;
 		CONST
 			all = TRUE;
 	BEGIN
@@ -230,13 +267,14 @@ MODULE GraphLogical;
 		i := 0;
 		WHILE i < len DO
 			node := nodes[i];
-			IF node IS Node THEN list := Parents(nodes[i], all) ELSE list := NIL END;
-			WHILE list # NIL DO
-				logical := list.node;
+			IF node IS Node THEN list := Parents(node, all) ELSE list := NIL END;
+			cursor := list;
+			WHILE cursor # NIL DO
+				logical := cursor.node;
 				IF ~(mark IN logical.props) THEN
 					logical.AddToList(list1); INCL(logical.props, mark)
 				END;
-				list := list.next
+				cursor := cursor.next
 			END;
 			IF node IS Node THEN
 				logical := node(Node);
@@ -246,7 +284,8 @@ MODULE GraphLogical;
 		END;
 		list := list1;
 		WHILE list1 # NIL DO logical := list1.node; EXCL(logical.props, mark); list1 := list1.next END;
-		RETURN list
+		block := ListToVector(list);
+		RETURN block
 	END Ancestors;
 
 	PROCEDURE Clear*;
@@ -263,12 +302,7 @@ MODULE GraphLogical;
 	BEGIN
 		IF dependents # NIL THEN
 			num := LEN(dependents);
-			i := 0;
-			WHILE i < num DO
-				p := dependents[i];
-				EXCL(p.props, GraphNodes.mark);
-				INC(i)
-			END
+			i := 0; WHILE i < num DO p := dependents[i]; EXCL(p.props, diff); INC(i) END
 		END
 	END ClearDiffs;
 
@@ -330,14 +364,13 @@ MODULE GraphLogical;
 			WHILE i < num DO
 				p := nodes[i];
 				IF ({linear, prediction} * p.props = {}) & (p.diffWRT # NIL) THEN
-					p.EvaluateDiffs
+					p.EvaluateDiffs;INCL(p.props, diff);
 				ELSE
 					p.Evaluate
 				END;
-				INCL(p.props, GraphNodes.mark);
 				INC(i)
 			END;
-			i := 0; WHILE i < num DO p := nodes[i]; EXCL(p.props, GraphNodes.mark); INC(i) END
+			i := 0; WHILE i < num DO p := nodes[i]; EXCL(p.props, diff); INC(i) END
 		END
 	END EvaluateAllDiffs;
 
@@ -353,11 +386,10 @@ MODULE GraphLogical;
 			WHILE i < num DO
 				p := dependents[i];
 				IF ({linear, prediction} * p.props = {}) & (p.diffWRT # NIL) THEN
-					p.EvaluateDiffs;
+					p.EvaluateDiffs;INCL(p.props, diff);
 				ELSE
 					p.Evaluate
 				END;
-				INCL(p.props, GraphNodes.mark);
 				INC(i)
 			END
 		END
@@ -440,41 +472,6 @@ MODULE GraphLogical;
 		END;
 		RETURN v
 	END InternalizeVector;
-
-	PROCEDURE ListToVector* (list: List): Vector;
-		VAR
-			i, len, level: INTEGER;
-			cursor: List;
-			vector: Vector;
-			node: Node;
-	BEGIN
-		IF list = NIL THEN
-			vector := NIL
-		ELSE
-			len := 0;
-			level := 0;
-			cursor := list;
-			WHILE cursor # NIL DO
-				INC(len);
-				node := cursor.node;
-				level := MAX(level, node.level);
-				cursor := cursor.next
-			END;
-			NEW(vector, len);
-			(*	put list into vector in order by level	*)
-			i := len;
-			REPEAT
-				cursor := list;
-				WHILE cursor # NIL DO
-					node := cursor.node;
-					IF node.level = level THEN DEC(i); vector[i] := cursor.node END;
-					cursor := cursor.next
-				END;
-				DEC(level);
-			UNTIL level = 0
-		END;
-		RETURN vector
-	END ListToVector;
 
 	PROCEDURE LoadValues* (chain: INTEGER);
 		VAR

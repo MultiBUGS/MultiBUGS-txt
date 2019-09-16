@@ -98,11 +98,13 @@ MODULE ParallelWorker;
 
 	PROCEDURE Read;
 		VAR
-			chain, commSize, numChains, rank, worldRank, worldSize, i: INTEGER;
+			chain, commSize, numChains, rank, worldRank, worldSize, i, numStoch: INTEGER;
 			pos: POINTER TO ARRAY OF LONGINT;
+			end: LONGINT;
 			f: Files.File;
 			rd: Stores.Reader;
 			loc: Files.Locator;
+			globalStochs: POINTER TO ARRAY OF GraphStochastic.Vector;
 	BEGIN
 		devianceMonitored := FALSE;
 		waicSet := FALSE;
@@ -128,7 +130,20 @@ MODULE ParallelWorker;
 		NEW(pos, commSize);
 		i := 0; WHILE i < commSize DO rd.ReadLong(pos[i]); INC(i) END;
 		rd.SetPos(pos[rank]);
-		ParallelActions.Read(rank, chain, rd);
+		ParallelActions.Read(chain, rd);
+		globalStochs := ParallelActions.globalStochs;
+		numStoch := LEN(globalStochs[0]);
+		end := f.Length();
+		end := end - (numChains - chain) * commSize * numStoch * SIZE(REAL);
+		rd.SetPos(end);
+		rank := 0;
+		WHILE rank < commSize DO
+			i := 0;
+			WHILE i < numStoch DO
+				rd.ReadReal(globalStochs[rank, i].value); INC(i)
+			END;
+			INC(rank)
+		END;
 		rd.ConnectTo(NIL);
 		f.Close;
 		f := NIL
@@ -168,7 +183,6 @@ MODULE ParallelWorker;
 		resultParams[0] := setUpTime;
 		resultParams[1] := memory;
 		resultParams[2] := rank;
-		ParallelActions.LoadSample(rank);
 		MPIworker.SendIntegers(resultParams);
 		(*	set up stochastic nodes and dependent nodes then evaluate	*)
 		GraphStochastic.SetStochastics(ParallelActions.globalStochs[rank], 1);

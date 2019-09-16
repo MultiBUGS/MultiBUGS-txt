@@ -70,10 +70,11 @@ MODULE ParallelDebug;
 		VAR
 			f: Files.File;
 			restartLoc: Files.Locator;
-			adr, i, j, numRows, stringPos: INTEGER;
+			adr, i, j, numRows, numStoch, stringPos: INTEGER;
 			devianceExists, seperable: BOOLEAN;
 			rd: Stores.Reader;
 			pos: POINTER TO ARRAY OF LONGINT;
+			end: LONGINT;
 			p: GraphStochastic.Node;
 			v: Views.View;
 			label: ARRAY 64 OF CHAR;
@@ -82,6 +83,7 @@ MODULE ParallelDebug;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			newAttr, oldAttr: TextModels.Attributes;
 			install: Dialog.String;
+			globalStochs: POINTER TO ARRAY OF GraphStochastic.Vector;
 		CONST
 			space = 35 * Ports.mm;
 			numChains = 1;
@@ -91,7 +93,7 @@ MODULE ParallelDebug;
 		f := Files.dir.New(restartLoc, Files.dontAsk);
 		(*	set the debug flag so that pointer name info is written in the .bug file	*)
 		BugsParallel.debug := TRUE;
-		BugsComponents.WriteModel(f, workersPerChain, numChains);
+		BugsComponents.WriteModel(f, workersPerChain, numChains); 
 		BugsParallel.debug := FALSE;
 		rd.ConnectTo(f);
 		rd.SetPos(0);
@@ -101,7 +103,20 @@ MODULE ParallelDebug;
 		NEW(pos, workersPerChain);
 		i := 0; WHILE i < workersPerChain DO rd.ReadLong(pos[i]); INC(i) END;
 		rd.SetPos(pos[rank]);
-		ParallelActions.Read(rank, chain, rd);
+		ParallelActions.Read(chain, rd);
+		globalStochs := ParallelActions.globalStochs;
+		numStoch := LEN(globalStochs[0]);
+		end := f.Length();
+		end := end - (numChains - chain) * workersPerChain * numStoch * SIZE(REAL);
+		rd.SetPos(end);
+		j := 0;
+		WHILE j < workersPerChain DO
+			i := 0;
+			WHILE i < numStoch DO
+				rd.ReadReal(globalStochs[j, i].value); INC(i)
+			END;
+			INC(j)
+		END;
 		rd.ConnectTo(NIL);
 		f.Close;
 		f := NIL;

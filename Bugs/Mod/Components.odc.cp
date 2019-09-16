@@ -283,7 +283,7 @@ MODULE BugsComponents;
 	PROCEDURE WriteModel* (f: Files.File; workersPerChain, numberChains: INTEGER);
 		VAR
 			pos0: LONGINT;
-			rank: INTEGER;
+			chain, rank: INTEGER;
 			pos: POINTER TO ARRAY OF LONGINT;
 			wr: Stores.Writer;
 			this: BOOLEAN;
@@ -294,7 +294,7 @@ MODULE BugsComponents;
 		wr.WriteBool(BugsGraph.devianceExists);
 		BugsRandnum.ExternalizeRNGenerators(wr);
 		UpdaterActions.MarkDistributed(workersPerChain);
-		BugsParallel.Distribute(workersPerChain);
+		BugsParallel.Distribute(workersPerChain); 
 		pos0 := wr.Pos();
 		wr.WriteBool(allThis);
 		NEW(pos, workersPerChain);
@@ -305,10 +305,15 @@ MODULE BugsComponents;
 		rank := 0;
 		WHILE rank < workersPerChain DO
 			pos[rank] := wr.Pos();
-			BugsParallel.Write(rank, numberChains, this, wr);
+			BugsParallel.Write(rank, numberChains, this, wr); 
 			allThis := allThis & this;
 			AddModules;
 			INC(rank)
+		END;
+		chain := 0;
+		WHILE chain < numberChains DO
+			BugsParallel.WriteValues(chain, wr);
+			INC(chain);
 		END;
 		wr.SetPos(pos0);
 		wr.WriteBool(allThis);

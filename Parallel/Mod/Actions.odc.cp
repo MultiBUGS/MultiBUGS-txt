@@ -11,7 +11,7 @@ MODULE ParallelActions;
 	
 
 	IMPORT
-		SYSTEM,
+		SYSTEM, 
 		MPIworker, Math, Stores := Stores64,
 		GraphLogical, GraphNodes, GraphStochastic,
 		MonitorDeviance,
@@ -294,28 +294,6 @@ MODULE ParallelActions;
 		RETURN jointPDF;
 	END JointPDF;
 
-	PROCEDURE LoadSample* (rank: INTEGER);
-		VAR
-			j, k, commSize, numStochastics: INTEGER;
-			values, globalValues: POINTER TO ARRAY OF REAL;
-			globalStochs: POINTER TO ARRAY OF GraphStochastic.Vector;
-	BEGIN
-		IF globalStochs # NIL THEN
-			commSize := LEN(globalStochs); numStochastics := LEN(globalStochs[0]);
-			j := 0; WHILE j < numStochastics DO values[j] := globalStochs[rank, j].value; INC(j) END;
-			MPIworker.AllGather(values, numStochastics, globalValues);
-			k := 0;
-			WHILE k < commSize DO
-				j := 0;
-				WHILE j < numStochastics DO
-					globalStochs[k, j].value := globalValues[k * numStochastics + j];
-					INC(j)
-				END;
-				INC(k)
-			END
-		END
-	END LoadSample;
-
 	PROCEDURE MapNamedPointer* (p: INTEGER): INTEGER;
 		VAR
 			add, i, num: INTEGER;
@@ -335,7 +313,7 @@ MODULE ParallelActions;
 		RETURN LEN(updaters);
 	END NumUpdaters;
 
-	PROCEDURE Read* (rank, chain: INTEGER; VAR rd: Stores.Reader);
+	PROCEDURE Read* (chain: INTEGER; VAR rd: Stores.Reader);
 		VAR
 			commSize, i, j, num, numChains, numLogicalPointers, numStochasticPointers,
 			numDataPointers: INTEGER;
@@ -358,7 +336,7 @@ MODULE ParallelActions;
 		(*	read in pointer to dummy MV	*)
 		dummyMV := GraphNodes.InternalizePointer(rd);
 		InternalizeStochastics(commSize, numStochasticPointers, rd);
-		NEW(globalLogicals, numLogicalPointers);
+		IF numLogicalPointers > 0 THEN NEW(globalLogicals, numLogicalPointers) END;
 		i := 0;
 		WHILE i < numLogicalPointers DO
 			p := GraphNodes.InternalizePointer(rd);
@@ -399,7 +377,6 @@ MODULE ParallelActions;
 			UpdaterUpdaters.Internalize(updaters[i], rd);
 			INC(i)
 		END;
-		i := 0; WHILE i < numStochasticPointers DO rd.ReadReal(globalStochs[rank, i].value); INC(i) END;
 		sizeUpdaters := SHORT(rd.Pos() + 1 - pos[chain]);
 		rd.SetPos(uEndPos);
 		UpdaterUpdaters.EndInternalize(rd);

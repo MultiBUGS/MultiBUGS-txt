@@ -373,7 +373,7 @@ MODULE UpdaterEllipticalMVN;
 		Maintainer;
 		NEW(f);
 		f.Install(name);
-		f.SetProps({UpdaterUpdaters.overRelaxation, UpdaterUpdaters.enabled});
+		f.SetProps({UpdaterUpdaters.overRelaxation(*, UpdaterUpdaters.enabled*)});
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN
 			ASSERT(isRegistered, 55)

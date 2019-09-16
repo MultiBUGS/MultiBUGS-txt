@@ -13,7 +13,7 @@ MODULE ParallelHMC;
 
 	IMPORT
 		MPIworker,
-		Math, Services, Strings,
+		Math, Strings,
 		GraphLogical, GraphMultivariate, GraphRules, GraphStochastic,
 		MathRandnum,
 		ParallelActions, ParallelRandnum,
@@ -60,6 +60,7 @@ MODULE ParallelHMC;
 			i, numUpdaters, steps: INTEGER;
 			stoch: GraphStochastic.Node;
 			updaters: UpdaterUpdaters.Vector;
+			id: POINTER TO ARRAY OF INTEGER;
 			res: SET;
 
 		CONST
@@ -224,10 +225,12 @@ MODULE ParallelHMC;
 		(*	samples non HMC parameters	*)
 		IF notHMC # NIL THEN
 			updaters := ParallelActions.updaters;
+			id := ParallelActions.id;
 			numUpdaters := LEN(updaters);
 			i := 0;
 			WHILE i < numUpdaters DO
 				IF notHMC[i] THEN updaters[i].Sample(overRelax, res) END;
+				IF id[i] < 0 THEN Allgather END;
 				INC(i)
 			END
 		END

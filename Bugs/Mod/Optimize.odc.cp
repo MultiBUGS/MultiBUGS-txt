@@ -434,6 +434,8 @@ MODULE BugsOptimize;
 						args.scalars[0] := GraphConstant.New(t.parents[0].value);
 						ref := fact.New();
 						ref.Set(args, res);
+						scalar[0] := ref(GraphLogical.Node);;
+						GraphLogical.Evaluate(scalar);
 						t.value := ref.value
 					ELSE
 						args.Init;

@@ -94,7 +94,7 @@ MODULE UpdaterExternal;
 		(*UpdaterMethods.LoadUpdater("UpdaterEllipticalMVN.Install");*)
 
 		(*	eliptical slice updater for MVN prior	*)
-		UpdaterMethods.LoadUpdater("UpdaterElliptical.Install");
+		(*UpdaterMethods.LoadUpdater("UpdaterElliptical.Install");*)
 
 		(*	eliptical slice updater for block of normal priors	*)
 (*		UpdaterMethods.LoadUpdater("UpdaterEllipticalD.Install");*)
@@ -159,7 +159,7 @@ MODULE UpdaterExternal;
 		UpdaterMethods.LoadUpdater("UpdaterMetnormal.InstallMH");*)
 
 		(*	updater for generic distribution with support on whole of real line	*)
-		UpdaterMethods.LoadUpdater("UpdaterSDScale.Install");
+(*		UpdaterMethods.LoadUpdater("UpdaterSDScale.Install");*)
 
 		(*	updater for generic distribution can have bounds	*)
 		UpdaterMethods.LoadUpdater("UpdaterSlicegamma.Install");

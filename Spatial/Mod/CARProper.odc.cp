@@ -150,7 +150,7 @@ MODULE SpatialCARProper;
 			IF f1 = GraphRules.const THEN
 				density := GraphRules.unif
 			ELSIF f1 IN linear THEN
-				density := GraphRules.normal
+				density := GraphRules.logCon
 			ELSE
 				density := GraphRules.general
 			END

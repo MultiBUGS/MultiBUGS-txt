@@ -136,7 +136,6 @@ MODULE BugsMAP;
 		WHILE i < dim DO
 			priors[i].value := oldVals[i]; INC(i)
 		END;
-		(*GraphLogical.EvaluateAll;*)
 		GraphLogical.EvaluateAllDiffs;
 		BugsFiles.SetPrec(prec)
 	END Estimates;

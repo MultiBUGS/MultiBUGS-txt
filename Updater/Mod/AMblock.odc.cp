@@ -49,6 +49,8 @@ MODULE UpdaterAMblock;
 			i, size: INTEGER;
 			class: SET;
 			components, block: GraphStochastic.Vector;
+		CONST
+			maxBlockSize = 10;
 	BEGIN
 		IF prior.ClassifyPrior() = GraphRules.mVN THEN
 			components := prior(GraphMultivariate.Node).components;
@@ -71,6 +73,7 @@ MODULE UpdaterAMblock;
 				END
 			END
 		END;
+		IF (block # NIL) & (LEN(block) > maxBlockSize) THEN block := NIL END;
 		RETURN block
 	END FindNLBlock;
 

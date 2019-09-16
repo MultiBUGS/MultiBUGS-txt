@@ -548,7 +548,8 @@ MODULE GraphStochastic;
 				IF parents = NIL THEN
 					class := GraphRules.const
 				ELSE
-					class := GraphRules.other
+					class := GraphRules.differ
+					(*class := GraphRules.other*)
 				END
 			END
 		|node: Node DO

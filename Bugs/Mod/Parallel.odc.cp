@@ -152,7 +152,7 @@ MODULE BugsParallel;
 				INC(i)
 			END
 		|node: GraphMultivariate.Node DO
-			node.props := node.props + marks;
+			node.props := node.props - marks;
 			i := 0;
 			size := node.Size();
 			WHILE i < size DO
@@ -233,6 +233,8 @@ MODULE BugsParallel;
 					GraphNodes.ExternalizePointer(p, wr);
 					INC(i)
 				END
+			ELSE
+				wr.WriteInt(0)
 			END
 		END
 	END ExternalizeDeviance;
@@ -257,8 +259,8 @@ MODULE BugsParallel;
 
 	PROCEDURE CountDataPointers (): INTEGER;
 		VAR
-			count, i, j, numStoch, workersPerChain: INTEGER;
-			p: GraphStochastic.Node;
+			count, i, j, k, numStoch, size, workersPerChain: INTEGER;
+			p, q: GraphStochastic.Node;
 	BEGIN
 		count := 0;
 		IF globalDeviance # NIL THEN
@@ -270,11 +272,23 @@ MODULE BugsParallel;
 					j := 0;
 					WHILE j < numStoch DO
 						p := globalDeviance[i, j];
-						IF write IN p.props THEN INC(count) END;
+						 IF write IN p.props THEN
+							WITH p: GraphMultivariate.Node DO
+								size := p.Size();
+								k := 0;
+								WHILE k < size DO
+									q := p.components[k];
+									IF GraphNodes.data IN q.props THEN INC(count) END;
+									INC(k)
+								END
+							ELSE
+								IF GraphNodes.data IN p.props THEN INC(count) END
+							END
+						END;
 						INC(j)
 					END;
-					INC(i)
-				END
+				END;
+				INC(i)
 			END
 		END;
 		RETURN count
@@ -282,8 +296,8 @@ MODULE BugsParallel;
 
 	PROCEDURE ExternalizeDataAddresses (VAR wr: Stores.Writer);
 		VAR
-			address, i, j, numStoch, workersPerChain: INTEGER;
-			p: GraphStochastic.Node;
+			address, i, j, k, numStoch, size, workersPerChain: INTEGER;
+			p, q: GraphStochastic.Node;
 	BEGIN
 		IF globalDeviance # NIL THEN
 			workersPerChain := LEN(globalDeviance);
@@ -294,19 +308,35 @@ MODULE BugsParallel;
 					j := 0;
 					WHILE j < numStoch DO
 						p := globalDeviance[i, j];
-						IF write IN p.props THEN address := SYSTEM.VAL(INTEGER, p); wr.WriteInt(address) END;
+						IF write IN p.props THEN
+							WITH p: GraphMultivariate.Node DO
+								size := p.Size();
+								k := 0;
+								WHILE k < size DO
+									q := p.components[k];
+									IF GraphNodes.data IN q.props THEN
+										address := SYSTEM.VAL(INTEGER, q); wr.WriteInt(address)
+									END;
+									INC(k)
+								END
+							ELSE
+								IF GraphNodes.data IN p.props THEN
+									address := SYSTEM.VAL(INTEGER, p); wr.WriteInt(address)
+								END
+							END
+						END;
 						INC(j)
-					END;
-					INC(i)
-				END
+					END
+				END;
+				INC(i)
 			END
 		END
 	END ExternalizeDataAddresses;
 
 	PROCEDURE ExternalizeDataPointers (VAR wr: Stores.Writer);
 		VAR
-			i, j, numStoch, workersPerChain: INTEGER;
-			p: GraphStochastic.Node;
+			i, j, k, numStoch, workersPerChain, size: INTEGER;
+			p, q: GraphStochastic.Node;
 	BEGIN
 		IF globalDeviance # NIL THEN
 			workersPerChain := LEN(globalDeviance);
@@ -317,19 +347,31 @@ MODULE BugsParallel;
 					j := 0;
 					WHILE j < numStoch DO
 						p := globalDeviance[i, j];
-						IF write IN p.props THEN GraphNodes.ExternalizePointer(p, wr) END;
+						IF write IN p.props THEN
+							WITH p: GraphMultivariate.Node DO
+								size := p.Size();
+								k := 0;
+								WHILE k < size DO
+									q := p.components[k];
+									IF GraphNodes.data IN q.props THEN GraphNodes.ExternalizePointer(q, wr) END;
+									INC(k)
+								END
+							ELSE
+								IF GraphNodes.data IN p.props THEN GraphNodes.ExternalizePointer(p, wr) END
+							END
+						END;
 						INC(j)
-					END;
-					INC(i)
-				END
+					END
+				END;
+				INC(i)
 			END
 		END
 	END ExternalizeDataPointers;
 
 	PROCEDURE ExternalizeDataInternals (VAR wr: Stores.Writer);
 		VAR
-			i, j, numStoch, workersPerChain: INTEGER;
-			p: GraphStochastic.Node;
+			i, j, k, numStoch, workersPerChain, size: INTEGER;
+			p, q: GraphStochastic.Node;
 	BEGIN
 		IF globalDeviance # NIL THEN
 			workersPerChain := LEN(globalDeviance);
@@ -340,11 +382,23 @@ MODULE BugsParallel;
 					j := 0;
 					WHILE j < numStoch DO
 						p := globalDeviance[i, j];
-						IF (write IN p.props) & (GraphNodes.data IN p.props) THEN p.Externalize(wr) END;
+						IF write IN p.props THEN
+							WITH p: GraphMultivariate.Node DO
+								size := p.Size();
+								k := 0;
+								WHILE k < size DO
+									q := p.components[k];
+									IF GraphNodes.data IN q.props THEN q.Externalize(wr) END;
+									INC(k)
+								END
+							ELSE
+								IF GraphNodes.data IN p.props THEN p.Externalize(wr) END
+							END
+						END;
 						INC(j)
-					END;
-					INC(i)
-				END
+					END
+				END;
+				INC(i)
 			END
 		END
 	END ExternalizeDataInternals;
@@ -432,7 +486,7 @@ MODULE BugsParallel;
 	PROCEDURE ExternalizeStochasticInternals (rank: INTEGER; OUT this: BOOLEAN;
 	VAR wr: Stores.Writer);
 		VAR
-			i, j, label, num, workersPerChain: INTEGER;
+			i, j, num, workersPerChain: INTEGER;
 			p, dummy: GraphStochastic.Node;
 			dummyMV: GraphMultivariate.Node;
 			thinned, children: GraphStochastic.Vector;
@@ -612,8 +666,8 @@ MODULE BugsParallel;
 						UnmarkNode(p, {write, thisCore});
 						INC(j)
 					END;
-					INC(i)
-				END
+				END;
+				INC(i)
 			END
 		END
 	END ClearMarks;
@@ -942,7 +996,7 @@ MODULE BugsParallel;
 
 	PROCEDURE Write* (rank, numChains: INTEGER; OUT this: BOOLEAN; VAR wr: Stores.Writer);
 		VAR
-			i, chain, workersPerChain, numLogicalPointers, numStochasticPointers, numDataPointers: INTEGER;
+			chain, workersPerChain, numLogicalPointers, numStochasticPointers, numDataPointers: INTEGER;
 			pos, uEndPos: LONGINT;
 			uPos: POINTER TO ARRAY OF LONGINT;
 			dummy: GraphStochastic.Node;
@@ -1014,11 +1068,8 @@ MODULE BugsParallel;
 		WHILE chain < numChains DO
 			uPos[chain] := wr.Pos();
 			ExternalizeUpdatersInternals(rank, chain, wr);
-			GraphStochastic.LoadValues(chain);
-			i := 0; WHILE i < numStochasticPointers DO wr.WriteReal(globalStochs[rank, i].value); INC(i) END;
 			INC(chain)
 		END;
-		GraphStochastic.LoadValues(0);
 		uEndPos := wr.Pos();
 		(*	write out actual positional info	*)
 		wr.SetPos(pos);
@@ -1033,6 +1084,25 @@ MODULE BugsParallel;
 		GraphNodes.EndExternalize(wr);
 		GraphStochastic.FilterDependents(filter)
 	END Write;
+
+	PROCEDURE WriteValues* (chain: INTEGER; VAR wr: Stores.Writer);
+		VAR
+			i, rank, numStochasticPointers, workersPerChain: INTEGER;
+	BEGIN
+		GraphStochastic.LoadValues(chain);
+		workersPerChain := LEN(globalStochs);
+		numStochasticPointers := CountStochasticPointers();
+		rank := 0;
+		WHILE rank < workersPerChain DO
+			i := 0;
+			WHILE i < numStochasticPointers DO
+				wr.WriteReal(globalStochs[rank, i].value);
+				INC(i)
+			END;
+			INC(rank)
+		END;
+		GraphStochastic.LoadValues(0)
+	END WriteValues;
 
 	PROCEDURE Maintainer;
 	BEGIN

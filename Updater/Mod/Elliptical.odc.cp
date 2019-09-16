@@ -15,7 +15,7 @@ MODULE UpdaterElliptical;
 	IMPORT
 		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphChain, GraphConjugateMV, GraphLogical, GraphMRF, GraphMultivariate, 
+		GraphChain, GraphConjugateMV, GraphLogical, GraphMRF, GraphMultivariate,
 		GraphRules, GraphStochastic,
 		MathMatrix, MathRandnum,
 		UpdaterMultivariate, UpdaterUpdaters;
@@ -113,7 +113,7 @@ MODULE UpdaterElliptical;
 			i := 0;
 			WHILE i < size DO
 				x := mu[i] + (oldX[i] - mu[i]) * cos + nu[i] * sin;
-				updater.prior[i].value := x; 
+				updater.prior[i].value := x;
 				INC(i)
 			END;
 			GraphLogical.Evaluate(updater.dependents);
@@ -188,7 +188,7 @@ MODULE UpdaterElliptical;
 		Maintainer;
 		NEW(f);
 		f.Install(name);
-		f.SetProps({UpdaterUpdaters.overRelaxation, UpdaterUpdaters.enabled});
+		f.SetProps({UpdaterUpdaters.overRelaxation(*, UpdaterUpdaters.enabled*)});
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN
 			ASSERT(isRegistered, 55)

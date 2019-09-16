@@ -128,6 +128,7 @@ MODULE UpdaterSCAAR;
 		IF prior.ClassifyPrior() = GraphRules.wishart THEN RETURN FALSE END;
 		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN RETURN FALSE END;
 		IF prior.children = NIL THEN RETURN FALSE END;
+		IF prior.classConditional = GraphRules.logCon THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

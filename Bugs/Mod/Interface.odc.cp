@@ -13,7 +13,7 @@ MODULE BugsInterface;
 	
 
 	IMPORT
-		Dialog, Files, Kernel, Services, Strings, Stores := Stores64,
+		Dialog, Files, Kernel, Services, Strings, Stores := Stores64, 
 		BugsCPCompiler, BugsData, BugsEvaluate, BugsGraph, BugsIndex,
 		BugsMappers, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		BugsVariables,
@@ -256,7 +256,7 @@ MODULE BugsInterface;
 				GraphStochastic.StoreValues(chain);
 				GraphLogical.EvaluateAllDiffs;
 				BugsGraph.OptimizeDifferentiation;
-				GraphLogical.StoreValues(chain);
+				GraphLogical.StoreValues(chain); 
 				BugsNodes.Checks(ok);
 				EXIT
 			ELSE	(*	try again	*)
@@ -296,7 +296,7 @@ MODULE BugsInterface;
 			GenerateInitsForChain(chain, fixFounders, ok);
 			IF ~ok THEN RETURN END;
 			INC(chain)
-		END;
+		END;  
 		UpdaterActions.SetInitialized
 	END GenerateInits;
 

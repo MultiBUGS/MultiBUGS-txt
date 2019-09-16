@@ -73,9 +73,7 @@ MODULE UpdaterNormal;
 				|node: GraphConjugateMV.Node DO
 					size := node.Size();
 					IF size > LEN(mu) THEN
-						NEW(mu, size);
-						NEW(slope, size);
-						NEW(tau, size, size);
+						NEW(mu, size); NEW(slope, size); NEW(tau, size, size);
 					END;
 					node.MVLikelihoodForm(GraphRules.mVN, xVector, start, step, mu, tau);
 					j := 0;
@@ -99,6 +97,8 @@ MODULE UpdaterNormal;
 					END;
 					p[0] := p[0] + p0;
 					p[1] := p[1] + p1
+				|node: GraphMultivariate.Node DO
+					HALT(126)
 				END;
 				INC(i)
 			END

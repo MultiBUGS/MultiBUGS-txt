@@ -187,7 +187,7 @@ MODULE UpdaterCatagorical;
 		rand := p[last] * MathRandnum.Rand();
 		i := first;
 		WHILE (rand > p[i]) & (i < last) DO INC(i) END;
-		prior.value := i; 
+		prior.value := i; prior.Evaluate;
 		res := {}
 	END Sample;
 

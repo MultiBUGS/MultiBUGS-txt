@@ -12,7 +12,7 @@ MODULE BugsGraph;
 	
 
 	IMPORT
-		SYSTEM,
+		SYSTEM, 
 		Strings,
 		BugsIndex, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		GraphConjugateMV, GraphDeviance, GraphLogical, GraphNodes, GraphRules,
@@ -130,6 +130,7 @@ MODULE BugsGraph;
 			list, cursor: GraphStochastic.List;
 			diffWRT: GraphNodes.Vector;
 			stoch: GraphStochastic.Node;
+			isDifferentiable: BOOLEAN;
 
 		CONST
 			all = TRUE;
@@ -142,7 +143,7 @@ MODULE BugsGraph;
 		END IsDifferentiable;
 
 	BEGIN
-		logicals := GraphLogical.nodes;
+		logicals := GraphLogical.nodes; 
 		IF logicals # NIL THEN
 			num := LEN(logicals);
 			i := 0;
@@ -152,7 +153,8 @@ MODULE BugsGraph;
 				cursor := list; size := 0;
 				WHILE cursor # NIL DO
 					stoch := cursor.node;
-					IF IsDifferentiable(stoch) THEN
+					isDifferentiable := IsDifferentiable(stoch);
+					IF isDifferentiable THEN
 						WITH stoch: GraphConjugateMV.Node DO
 							nodeSize := stoch.Size(); INC(size, nodeSize)
 						ELSE
@@ -161,11 +163,12 @@ MODULE BugsGraph;
 					END;
 					cursor := cursor.next
 				END;
-				IF size > 0 THEN NEW(diffWRT, size) END;
+				IF size > 0 THEN NEW(diffWRT, size) ELSE diffWRT := NIL END;
 				cursor := list; size := 0;
 				WHILE cursor # NIL DO
 					stoch := cursor.node;
-					IF IsDifferentiable(stoch) THEN
+					isDifferentiable := IsDifferentiable(stoch);
+					IF isDifferentiable THEN
 						WITH stoch: GraphConjugateMV.Node DO
 							nodeSize := stoch.Size();
 							j := 0;
@@ -1008,7 +1011,7 @@ MODULE BugsGraph;
 		END;
 		logicals := GraphStochastic.Dependents(nodes);
 		GraphLogical.SetLogicals(logicals, numChains);
-		InitDiffs;
+		InitDiffs; 
 		CreateDeviance;
 		(*	stochastic nodes could be set up with initialized flag so propage this info to all chains	*)
 		chain := 0;

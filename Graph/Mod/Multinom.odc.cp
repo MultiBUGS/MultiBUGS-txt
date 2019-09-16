@@ -68,17 +68,16 @@ MODULE GraphMultinom;
 			s := node.components[i];
 			IF GraphNodes.data IN s.props THEN INC(nData) END;
 			r := SHORT(ENTIER(s.value + eps));
-			IF ABS(r - s.value) > eps THEN
+			IF ABS(r - s.value) > eps THEN 
 				RETURN {GraphNodes.integer, GraphNodes.lhs}
 			END;
-			IF r < 0 THEN
+			IF r < 0 THEN	
 				RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 			END;
 			sumX := sumX + r;
 			INC(i)
 		END;
 		IF order # sumX THEN
-			HALT(0);
 			RETURN {GraphNodes.invalidInteger, GraphNodes.lhs}
 		END;
 		IF (nData # 0) & (nData # nElem) THEN
@@ -91,13 +90,13 @@ MODULE GraphMultinom;
 		i := 0;
 		WHILE i < nElem DO
 			prob := p[start + i * step].value;
-			IF (prob < - eps) OR (prob > 1.0 + eps) THEN
+			IF (prob < - eps) OR (prob > 1.0 + eps) THEN 
 				RETURN {GraphNodes.proportion, GraphNodes.arg1}
 			END;
 			sum := sum + prob;
 			INC(i)
 		END;
-		IF ABS(sum - 1.0) > eps THEN
+		IF ABS(sum - 1.0) > eps THEN 
 			RETURN {GraphNodes.invalidProportions, GraphNodes.arg1}
 		END;
 		RETURN {}

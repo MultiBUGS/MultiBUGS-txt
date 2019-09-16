@@ -13,7 +13,7 @@ MODULE GraphSumation;
 	
 
 	IMPORT
-		Math, Stores := Stores64, 
+		Math, Stores := Stores64,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic;
 
 	TYPE
@@ -196,11 +196,12 @@ MODULE GraphSumation;
 		VAR
 			i, j, off, nElem, start, step, N: INTEGER;
 			p: GraphNodes.Node;
-			d: REAL;
+			value: REAL;
 			x: GraphNodes.Vector;
 	BEGIN
 		x := node.diffWRT;
 		N := LEN(x);
+		value := 0.0;
 		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
 		IF node.vector = NIL THEN RETURN END;
 		nElem := node.nElem;
@@ -219,8 +220,14 @@ MODULE GraphSumation;
 				END;
 				INC(i)
 			END;
+			IF node.vector # NIL THEN
+				value := value + p.value
+			ELSE
+				value := value + node.values[off]
+			END;
 			INC(j)
-		END
+		END;
+		node.value := value
 	END EvaluateDiffs;
 
 	PROCEDURE (node: SumNode) Install (OUT install: ARRAY OF CHAR);
