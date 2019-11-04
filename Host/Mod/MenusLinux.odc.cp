@@ -7,7 +7,7 @@ MODULE HostMenus;
 		HostPorts, HostWindows, HostClipboard,
 		Dialog, Services, Properties, StdDialog, Log, StdCmds,
 		Controllers, Views, Stores, Containers, Windows, Documents,
-		HostCmds, HostCFrames, HostMechanisms, HostDates, HostTabFrames, HostTextConv, HostConsole;
+		HostCmds, HostCFrames, HostMechanisms, HostDates, HostTabFrames, HostTextConv, HostConsole, HostGnome;
 
 	CONST
 		idlePeriod = 50; (* ms *)
@@ -536,7 +536,10 @@ MODULE HostMenus;
 		| iCut: HostCmds.Cut
 		| iCopy: HostCmds.Copy
 		| iPaste: HostCmds.Paste
-		| iProperties: StdCmds.ShowProp
+		| iProperties:
+			IF ~ HostGnome.dialogIsOpen THEN
+				StdCmds.ShowProp
+			END
 		| iExit: Exit
 		| iUpdateMenus: Dialog.Call("StdMenuTool.UpdateAllMenus", "", res)
 		| iPopup: PopupMenu
@@ -857,7 +860,7 @@ MODULE HostMenus;
 
 	PROCEDURE [ccall] F (data: GLib.gpointer): GLib.gboolean;
 	BEGIN
-		IF ~ HostWindows.dialogIsOpen THEN
+		IF ~ HostGnome.dialogIsOpen THEN
 			Services.actionHook.Loop; (* immediates *)
 			Windows.dir.Update(NIL);
 		END;
