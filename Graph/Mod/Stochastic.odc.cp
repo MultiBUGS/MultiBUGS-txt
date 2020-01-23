@@ -538,7 +538,7 @@ MODULE GraphStochastic;
 		ASSERT(parent IS Node, 21);
 		WITH node: GraphLogical.Node DO
 			parents := node.parents;
-			num := LEN(parents);
+			IF parents # NIL THEN num := LEN(parents) ELSE num := 0 END;
 			i := 0; WHILE (i < num) & (parents[i] # parent) DO INC(i) END;
 			IF i < num THEN 
 				class := SHORT(ENTIER(node.work[i] + eps))
