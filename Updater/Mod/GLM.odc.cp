@@ -299,7 +299,7 @@ MODULE UpdaterGLM;
 			WHILE (i < num) & optimizeDiffs DO
 				p := updater.dependents[i];
 				IF ~(GraphLogical.prediction IN p.props) THEN
-					IF ~(GraphLogical.linear IN p.props) THEN optimizeDiffs := p IS GraphLinkfunc.Node END
+					IF ~(GraphLogical.constDiffs IN p.props) THEN optimizeDiffs := p IS GraphLinkfunc.Node END
 				END;
 				INC(i)
 			END;
@@ -713,9 +713,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
-		IF prior.classConditional # GraphRules.logitReg THEN
-			RETURN FALSE
-		END;
+		IF prior.classConditional # GraphRules.logitReg THEN RETURN FALSE END;
 		block := FindBlock(prior, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;
@@ -745,9 +743,7 @@ MODULE UpdaterGLM;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
-		IF prior.classConditional # GraphRules.logReg THEN
-			RETURN FALSE
-		END;
+		IF prior.classConditional # GraphRules.logReg THEN RETURN FALSE END;
 		block := FindBlock(prior, FALSE);
 		IF block = NIL THEN RETURN FALSE END;
 		IF ~UpdaterMultivariate.IsHomologous(block) THEN RETURN FALSE END;

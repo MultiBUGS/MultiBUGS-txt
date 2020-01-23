@@ -14,12 +14,13 @@ MODULE UpdaterMetropolisUV;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphStochastic,
+		GraphKernel, GraphLogical, GraphStochastic,
 		UpdaterContinuous, UpdaterUpdaters;
 
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterContinuous.Updater)
-			iteration*, rejectCount*: INTEGER
+			iteration*, rejectCount*: INTEGER;
+			kernels: GraphKernel.Vector
 		END;
 
 	VAR
@@ -73,6 +74,7 @@ MODULE UpdaterMetropolisUV;
 			cacheSize := LEN(dependents) + 1;
 			IF cacheSize > LEN(cache) THEN NEW(cache, cacheSize) END
 		END;
+		updater.kernels := GraphKernel.Kernels(dependents);
 		updater.InitializeMetropolis
 	END InitializeUnivariate;
 
@@ -80,6 +82,7 @@ MODULE UpdaterMetropolisUV;
 		VAR
 			prior: GraphStochastic.Node;
 			dependents: GraphLogical.Vector;
+			kernels: GraphKernel.Vector;
 			i, num: INTEGER;
 	BEGIN
 		prior := updater.prior;
@@ -89,13 +92,19 @@ MODULE UpdaterMetropolisUV;
 			num := LEN(dependents);
 			WHILE i < num DO dependents[i].value := cache[i]; INC(i) END;
 		END;
-		prior.value := cache[i]
+		prior.value := cache[i];
+		kernels := updater.kernels;
+		IF kernels # NIL THEN
+			num := LEN(kernels);
+			i := 0; WHILE i < num DO kernels[i].LoadState; INC(i) END
+		END
 	END Restore;
 
 	PROCEDURE (updater: Updater) Store*, NEW;
 		VAR
 			prior: GraphStochastic.Node;
 			dependents: GraphLogical.Vector;
+			kernels: GraphKernel.Vector;
 			i, num: INTEGER;	
 	BEGIN
 		prior := updater.prior;
@@ -105,7 +114,12 @@ MODULE UpdaterMetropolisUV;
 			num := LEN(dependents);
 			WHILE i < num DO cache[i] := dependents[i].value; INC(i) END;
 		END;
-		cache[i] :=prior.value 
+		cache[i] :=prior.value;
+		kernels := updater.kernels;
+		IF kernels # NIL THEN
+			num := LEN(kernels);
+			i := 0; WHILE i < num DO kernels[i].StoreState; INC(i) END
+		END
 	END Store;
 
 	PROCEDURE Maintainer;

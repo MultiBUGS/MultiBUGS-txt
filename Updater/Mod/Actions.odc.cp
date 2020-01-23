@@ -101,6 +101,7 @@ MODULE UpdaterActions;
 			END;
 			INC(i)
 		END;
+		IF numUpdaters = numForward THEN RETURN 0 END;
 		NEW(x, numUpdaters - numForward);
 		i := 0;
 		j := 0;
@@ -272,7 +273,7 @@ MODULE UpdaterActions;
 			cursor := cursor.next;
 			INC(j)
 		END;
-		HeapSort(lists, numUpdaters);
+		IF numUpdaters > 0 THEN HeapSort(lists, numUpdaters) END;
 		j := 0;
 		k := 0;
 		WHILE j < numUpdaters DO
@@ -634,6 +635,7 @@ MODULE UpdaterActions;
 			numUpdaters: INTEGER;
 	BEGIN
 		numUpdaters := NumberUpdaters();
+		IF numUpdaters = 0 THEN  min := 0; max := 0; RETURN END;
 		max := updaters[0, 0].Depth();
 		min := updaters[0, numUpdaters - 1].Depth()
 	END MinMaxDepth;
@@ -674,7 +676,7 @@ MODULE UpdaterActions;
 		END
 	END OptimizeUpdaters;
 
-	(*	Stores new updater in updaterList insertion sort	*)
+	(*	Stores new updater in updaterList	*)
 	PROCEDURE RegisterUpdater* (updater: UpdaterUpdaters.Updater);
 		VAR
 			element: List;
@@ -730,18 +732,19 @@ MODULE UpdaterActions;
 	END ReplaceUpdater;
 
 	(*	Carry out one sampling update of all registered updaters	*)
-	PROCEDURE Sample* (overRelax: BOOLEAN; chain: INTEGER; OUT res: SET;
-	OUT updater: UpdaterUpdaters.Updater);
+	PROCEDURE Sample* (overRelax: BOOLEAN; chain: INTEGER; OUT res: SET; OUT updater: INTEGER);
 		VAR
 			i, numUpdaters: INTEGER;
+			u: UpdaterUpdaters.Updater;
 	BEGIN
 		res := {};
 		numUpdaters := NumberUpdaters();
 		i := 0;
 		WHILE (i < numUpdaters) & (res = {}) DO
-			updater := updaters[chain, i];
-			ASSERT(updater # NIL, 33);
-			updater.Sample(overRelax, res);
+			u := updaters[chain, i];
+			ASSERT(u#  NIL, 33);
+			u.Sample(overRelax, res);
+			IF res # {} THEN updater := i END;
 			INC(i)
 		END
 	END Sample;

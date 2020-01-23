@@ -41,8 +41,10 @@ MODULE GraphEigenvals;
 		VAR
 			dim, form, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		IF node.constant # NIL THEN RETURN GraphRules.const END;
+		stochastic := parent(GraphStochastic.Node);
 		dim := node.Size();
 		start := node.start;
 		step := node.step;
@@ -53,7 +55,7 @@ MODULE GraphEigenvals;
 			WHILE (j < dim) & (form = GraphRules.const) DO
 				off := start + (i * dim + j) * step;
 				p := node.matrix[off];
-				form := GraphStochastic.ClassFunction(p, parent);
+				form := GraphStochastic.ClassFunction(p, stochastic);
 				INC(j)
 			END;
 			INC(i)

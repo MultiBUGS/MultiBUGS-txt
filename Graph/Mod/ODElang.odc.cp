@@ -37,13 +37,27 @@ MODULE GraphODElang;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-	PROCEDURE Ancestors (node: Node): GraphLogical.Vector;
+	PROCEDURE Copy (node: Node);
 		VAR
-			block: GraphLogical.Vector;
+			rep: Node;
 	BEGIN
-		block := GraphLogical.Ancestors(node.deriv);
-		RETURN block
-	END Ancestors;
+		rep := node.components[0](Node);
+		node.solver := rep.solver;
+		node.x0Val := rep.x0Val;
+		node.x1Val := rep.x1Val;
+		node.t0 := rep.t0;
+		node.tol := rep.tol;
+		node.x0 := rep.x0;
+		node.x0Start := rep.x0Start;
+		node.x0Step := rep.x0Step;
+		node.x := rep.x;
+		node.xStart := rep.xStart;
+		node.xStep := rep.xStep;
+		node.deriv := rep.deriv;
+		node.dependents := rep.dependents;
+		node.tGrid := rep.tGrid;
+		node.t := rep.t
+	END Copy;
 
 	PROCEDURE Externalize (node: Node; VAR wr: Stores.Writer);
 		VAR
@@ -104,28 +118,6 @@ MODULE GraphODElang;
 		node.t := GraphNodes.Internalize(rd);
 	END Internalize;
 
-	PROCEDURE Copy (node: Node);
-		VAR
-			rep: Node;
-	BEGIN
-		rep := node.components[0](Node);
-		node.solver := rep.solver;
-		node.x0Val := rep.x0Val;
-		node.x1Val := rep.x1Val;
-		node.t0 := rep.t0;
-		node.tol := rep.tol;
-		node.x0 := rep.x0;
-		node.x0Start := rep.x0Start;
-		node.x0Step := rep.x0Step;
-		node.x := rep.x;
-		node.xStart := rep.xStart;
-		node.xStep := rep.xStep;
-		node.deriv := rep.deriv;
-		node.dependents := rep.dependents;
-		node.tGrid := rep.tGrid;
-		node.t := rep.t
-	END Copy;
-
 	PROCEDURE (node: Node) Check (): SET;
 	BEGIN
 		RETURN {}
@@ -135,7 +127,9 @@ MODULE GraphODElang;
 		VAR
 			i, form, nElem, numEq, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		numEq := node.solver.numEq;
 		i := 0;
@@ -143,7 +137,7 @@ MODULE GraphODElang;
 		step := node.x0Step;
 		WHILE (i < numEq) & (form = GraphRules.const) DO
 			p := node.x0[start + i * step];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other
 			END;
@@ -152,7 +146,7 @@ MODULE GraphODElang;
 		i := 0;
 		WHILE (i < numEq) & (form = GraphRules.const) DO
 			p := node.deriv[i];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other
 			END;
@@ -162,7 +156,7 @@ MODULE GraphODElang;
 		nElem := LEN(node.tGrid);
 		WHILE (i < nElem) & (form = GraphRules.const) DO
 			p := node.tGrid[i];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other;
 			END;
@@ -400,7 +394,7 @@ MODULE GraphODElang;
 			xx.value := x[i];
 			INC(i)
 		END;
-		IF node.dependents = NIL THEN node.dependents := Ancestors(node) END;
+		IF node.dependents = NIL THEN node.dependents := GraphLogical.Ancestors(node.deriv) END;
 		GraphLogical.Evaluate(node.dependents);
 		i := 0;
 		WHILE i < numEq DO

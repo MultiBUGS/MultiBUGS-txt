@@ -80,20 +80,22 @@ MODULE GraphFunctional;
 		VAR
 			form0, form1: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		form1 := GraphRules.const;
 		p := node.function;
-		form0 := GraphStochastic.ClassFunction(p, parent);
+		stochastic := parent(GraphStochastic.Node);
+		form0 := GraphStochastic.ClassFunction(p, stochastic);
 		IF form0 # GraphRules.const THEN
 			form1 := GraphRules.other
 		END;
 		p := node.x0;
-		form0 := GraphStochastic.ClassFunction(p, parent);
+		form0 := GraphStochastic.ClassFunction(p, stochastic);
 		IF form0 # GraphRules.const THEN
 			form1 := GraphRules.other
 		END;
 		p := node.x1;
-		form0 := GraphStochastic.ClassFunction(p, parent);
+		form0 := GraphStochastic.ClassFunction(p, stochastic);
 		IF form0 # GraphRules.const THEN
 			form1 := GraphRules.other
 		END;

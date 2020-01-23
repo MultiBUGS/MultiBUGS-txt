@@ -39,12 +39,14 @@ MODULE GraphWeight;
 		VAR
 			class: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		p := node.weight;
-		class := GraphStochastic.ClassFunction(p, parent);
+		class := GraphStochastic.ClassFunction(p, stochastic);
 		IF class # GraphRules.const THEN RETURN GraphRules.other END;
 		p := node.cutParent;
-		class := GraphStochastic.ClassFunction(p, parent);
+		class := GraphStochastic.ClassFunction(p, stochastic);
 		RETURN class
 	END ClassFunction;
 
@@ -64,9 +66,9 @@ MODULE GraphWeight;
 			x: GraphNodes.Vector;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
-		i := 0; WHILE i < N DO node.diffs[i]:= node.cutParent.Diff(x[i]); INC(i) END
+		i := 0; WHILE i < N DO node.work[i]:= node.cutParent.Diff(x[i]); INC(i) END
 	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) InitLogical;

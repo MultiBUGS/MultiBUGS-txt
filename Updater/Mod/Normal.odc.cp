@@ -145,7 +145,7 @@ MODULE UpdaterNormal;
 			WHILE (i < num) & optimizeDiffs DO
 				p := prior.dependents[i];
 				IF ~(GraphLogical.prediction IN p.props) THEN
-					IF ~(GraphLogical.linear IN p.props) THEN optimizeDiffs := FALSE END
+					IF ~(GraphLogical.constDiffs IN p.props) THEN optimizeDiffs := FALSE END
 				END;
 				INC(i)
 			END;

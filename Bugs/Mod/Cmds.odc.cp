@@ -21,10 +21,10 @@ MODULE BugsCmds;
 		BugsInterpreter, BugsLatexprinter, BugsMAP, BugsMappers, BugsMsg, BugsNames, BugsParser,
 		BugsPrettyprinter, BugsRandnum, BugsScripting, BugsSerialize, BugsVersion,
 		DevDebug,
-		GraphLogical, GraphNodes, GraphStochastic,
+		GraphNodes, GraphStochastic,
 		MathRandnum,
 		MonitorMonitors,
-		UpdaterActions, UpdaterHMC, UpdaterMethods, UpdaterSettings;
+		UpdaterActions, UpdaterHMC, UpdaterMethods, UpdaterSettings, UpdaterUpdaters;
 
 	TYPE
 		Action = POINTER TO RECORD (Services.Action)
@@ -276,8 +276,8 @@ MODULE BugsCmds;
 
 	PROCEDURE (a: Action) Do;
 		VAR
-			ok, overRelax, reject: BOOLEAN;
-			chain, i, numChains, numSteps, refresh, thin, updates, warmUpPeriod: INTEGER;
+			ok, overRelax: BOOLEAN;
+			i, numChains, refresh, thin, updates, warmUp: INTEGER;
 			elapsedTime: LONGINT;
 			step: REAL;
 			p: ARRAY 2 OF ARRAY 1024 OF CHAR;
@@ -295,8 +295,7 @@ MODULE BugsCmds;
 			BugsInterface.SetHMCParams(UpdaterSettings.dialogHMC.numSteps,
 			UpdaterSettings.dialogHMC.warmUpPeriod,
 			UpdaterSettings.dialogHMC.eps);
-			numSteps := BugsInterface.numSteps;
-			warmUpPeriod := BugsInterface.warmUpPeriod;
+			warmUp := BugsInterface.warmUpPeriod;
 			step := BugsInterface.stepSize
 		END;
 		ok := TRUE;
@@ -305,26 +304,10 @@ MODULE BugsCmds;
 			INC(a.updates);
 			IF ~updateDialog.useHMC OR BugsInterface.IsDistributed() THEN
 				BugsInterface.UpdateModel(numChains, thin, overRelax, ok);
-				IF ok THEN BugsInterface.UpdateMonitors(numChains); END
 			ELSE
-				chain := 0;
-				WHILE chain < numChains DO
-					MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
-					GraphStochastic.LoadValues(chain);
-					GraphLogical.LoadValues(chain);
-					UpdaterHMC.Update(numSteps, updateDialog.iteration + i, warmUpPeriod, chain, step, reject);
-					GraphStochastic.StoreValues(chain);
-					GraphLogical.StoreValues(chain);
-					INC(chain)
-				END;
-				BugsInterface.UpdateMonitors(numChains);
-				MathRandnum.SetGenerator(BugsRandnum.generators[0]);
-				IF UpdaterActions.iteration = UpdaterHMC.startIt + warmUpPeriod THEN
-					UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, UpdaterActions.iteration + 1)
-				ELSE
-					UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, UpdaterActions.endOfAdapting)
-				END
+				BugsInterface.UpdateModelHMC(numChains, ok)
 			END;
+			IF ok THEN BugsInterface.UpdateMonitors(numChains); END;
 			updateDialog.isAdapting := UpdaterActions.endOfAdapting = MAX(INTEGER)
 		END;
 		updateDialog.iteration := updateDialog.iteration + i;
@@ -749,7 +732,7 @@ MODULE BugsCmds;
 
 	PROCEDURE LoadInits* (filePath: ARRAY OF CHAR);
 		VAR
-			ok : BOOLEAN;
+			ok: BOOLEAN;
 			pos: INTEGER;
 			chain: INTEGER;
 			s: BugsMappers.Scanner;

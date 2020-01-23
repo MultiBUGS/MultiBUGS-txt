@@ -24,11 +24,15 @@ MODULE GraphWeibullHazard;
 
 		Factory = POINTER TO RECORD(GraphStochastic.Factory) END;
 		
+		RuleList = POINTER TO RECORD 
+								rule: GraphJacobi.Node;
+								next: RuleList
+							END;
 	CONST
 		order = 8;
 		
 	VAR
-		ruleCache: GraphJacobi.Node;
+		ruleCache: RuleList;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
@@ -209,6 +213,7 @@ MODULE GraphWeibullHazard;
 		VAR
 			logicalArgs: GraphStochastic.ArgsLogical;
 			p: GraphNodes.Node;
+			list: RuleList;
 	BEGIN
 		res := {};
 		WITH args: GraphStochastic.Args DO
@@ -220,16 +225,23 @@ MODULE GraphWeibullHazard;
 			node.t := args.scalars[2](GraphStochastic.Node);
 			ASSERT(args.scalars[3] # NIL, 21);
 			node.event := args.scalars[3].value > 0.5;
-			IF (ruleCache = NIL) OR (ruleCache.beta # node.nu) THEN (*	need to create a new rule object	*)
+			list := ruleCache;
+			WHILE (list # NIL) & (list.rule.beta # node.nu) DO list := list.next END;
+			IF list = NIL THEN
+				NEW(list);
+				list.next := ruleCache;
+				ruleCache := list;
 				logicalArgs.Init;
 				logicalArgs.ops[0] := order;
 				logicalArgs.scalars[0] := NIL;
 				logicalArgs.scalars[1] := node.nu;
 				p := GraphJacobi.fact.New();
-				ruleCache :=  p(GraphJacobi.Node);
-				ruleCache.Set(logicalArgs, res);
-			END;
-			node.rule := ruleCache
+				ruleCache.rule :=  p(GraphJacobi.Node);
+				ruleCache.rule.Set(logicalArgs, res);
+				node.rule := ruleCache.rule
+			ELSE
+				node.rule := list.rule
+			END
 		END		
 	END Set;
 
@@ -258,7 +270,7 @@ MODULE GraphWeibullHazard;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := "sFs"
+		signature := "sHs"
 	END Signature;
 
 	PROCEDURE Install*;

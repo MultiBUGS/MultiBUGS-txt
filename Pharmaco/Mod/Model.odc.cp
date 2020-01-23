@@ -32,18 +32,20 @@ MODULE PharmacoModel;
 		VAR
 			f, form, i, numParams, numScalars: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		numParams := LEN(params); numScalars := LEN(scalars);
 		i := 0;
 		WHILE i < numParams DO
-			p := params[i]; f := GraphStochastic.ClassFunction(p, parent);
+			p := params[i]; f := GraphStochastic.ClassFunction(p, stochastic);
 			IF f # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;
 		i := 0;
 		WHILE i < numScalars DO
-			p := scalars[i]; f := GraphStochastic.ClassFunction(p, parent);
+			p := scalars[i]; f := GraphStochastic.ClassFunction(p, stochastic);
 			IF f # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;

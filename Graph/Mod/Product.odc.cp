@@ -40,8 +40,10 @@ MODULE GraphProduct;
 		VAR
 			i, f, form, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		IF node.constant # NIL THEN RETURN GraphRules.const END;
+		stochastic := parent(GraphStochastic.Node);
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -49,7 +51,7 @@ MODULE GraphProduct;
 		WHILE i < nElem DO
 			off := start + i * step;
 			p := node.vector[off];
-			f := GraphStochastic.ClassFunction(p, parent);
+			f := GraphStochastic.ClassFunction(p, stochastic);
 			IF i = 0 THEN
 				form := f
 			ELSE
@@ -92,13 +94,13 @@ MODULE GraphProduct;
 			x: GraphNodes.Vector;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		product := 1.0;
 		nElem := node.nElem;
 		start := node.start;
 		step := node.step;
-		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := 0.0; INC(i) END;
 		IF node.vector = NIL THEN RETURN END;
 		j := 0;
 		WHILE j < nElem DO
@@ -106,10 +108,10 @@ MODULE GraphProduct;
 			p := node.vector[off];
 			value := p.value;
 			product := product * p.value;
-			i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] + p.Diff(x[i]) / value; INC(i) END;
+			i := 0; WHILE i < N DO node.work[i] := node.work[i] + p.Diff(x[i]) / value; INC(i) END;
 			INC(j)
 		END;
-		i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] * product; INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := node.work[i] * product; INC(i) END;
 	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);

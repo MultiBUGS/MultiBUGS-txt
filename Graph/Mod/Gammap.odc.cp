@@ -51,12 +51,14 @@ MODULE GraphGammap;
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			f: INTEGER;
+			stochastic: GraphStochastic.Node;
 	BEGIN
-		f := GraphStochastic.ClassFunction(node.a, parent);
+		stochastic := parent(GraphStochastic.Node);
+		f := GraphStochastic.ClassFunction(node.a, stochastic);
 		IF f # GraphRules.const THEN
 			RETURN GraphRules.other
 		END;
-		f := GraphStochastic.ClassFunction(node.x, parent);
+		f := GraphStochastic.ClassFunction(node.x, stochastic);
 		IF f # GraphRules.const THEN
 			RETURN GraphRules.other
 		END;

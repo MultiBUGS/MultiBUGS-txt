@@ -244,7 +244,7 @@ MODULE GraphSplinecon;
 			d, lower: REAL;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		order := node.order;
 		continuity := node.continuity;
 		i := 0;
@@ -254,11 +254,11 @@ MODULE GraphSplinecon;
 		k := index MOD (order + 1);
 		IF j = 0 THEN
 			IF k = 0 THEN
-				node.diffs[i] := 1.0
+				node.work[i] := 1.0
 			ELSE
 				lower := node.p0Theta;
 				d := node.x[node.index] - lower;
-				node.diffs[i] := Math.IntPower(d, k)
+				node.work[i] := Math.IntPower(d, k)
 			END
 		ELSE
 			j := (index - order - 1) DIV (order - continuity + 1);
@@ -266,9 +266,9 @@ MODULE GraphSplinecon;
 			d := node.x[node.index] - node.knotValues[j];
 			IF d >  - eps THEN
 				IF k = 0 THEN
-					node.diffs[i] := 1.0
+					node.work[i] := 1.0
 				ELSE
-					node.diffs[i] := Math.IntPower(d, k)
+					node.work[i] := Math.IntPower(d, k)
 				END
 			END
 		END;

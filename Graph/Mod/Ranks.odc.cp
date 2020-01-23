@@ -64,7 +64,9 @@ MODULE GraphRanks;
 		VAR
 			i, form, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		i := 0;
 		nElem := node.nElem;
@@ -74,12 +76,12 @@ MODULE GraphRanks;
 			IF node.vector # NIL THEN
 				off := start + i * step;
 				p := node.vector[off];
-				form := GraphStochastic.ClassFunction(p, parent)
+				form := GraphStochastic.ClassFunction(p, stochastic)
 			END;
 			INC(i)
 		END;
 		IF form = GraphRules.const THEN
-			form := GraphStochastic.ClassFunction(node.rank, parent)
+			form := GraphStochastic.ClassFunction(node.rank, stochastic)
 		END;
 		IF form # GraphRules.const THEN
 			form := GraphRules.other
@@ -232,7 +234,9 @@ MODULE GraphRanks;
 		VAR
 			i, form, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		i := 0;
 		nElem := node.nElem;
@@ -242,12 +246,12 @@ MODULE GraphRanks;
 			WHILE (i < nElem) & (form = GraphRules.const) DO
 				off := start + i * step;
 				p := node.vector[off];
-				form := GraphStochastic.ClassFunction(p, parent);
+				form := GraphStochastic.ClassFunction(p, stochastic);
 				INC(i)
 			END
 		END;
 		IF form = GraphRules.const THEN
-			form := GraphStochastic.ClassFunction(node.index, parent)
+			form := GraphStochastic.ClassFunction(node.index, stochastic)
 		END;
 		IF form # GraphRules.const THEN
 			form := GraphRules.other
@@ -423,8 +427,10 @@ MODULE GraphRanks;
 		VAR
 			form, i, off, nElem, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		IF node.constant # NIL THEN RETURN GraphRules.const END;
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		i := 0;
 		nElem := node.Size();
@@ -433,7 +439,7 @@ MODULE GraphRanks;
 		WHILE i < nElem DO
 			off := start + i * step;
 			p := node.vector[off];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			INC(i)
 		END;
 		IF form # GraphRules.const THEN

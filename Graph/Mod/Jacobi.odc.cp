@@ -14,11 +14,11 @@ MODULE GraphJacobi;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
+		GraphKernel, GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathJacobi;
 
 	TYPE
-		Node* = POINTER TO LIMITED RECORD (GraphScalar.Node)
+		Node* = POINTER TO LIMITED RECORD (GraphKernel.Node)
 			alpha-, beta-: GraphNodes.Node;
 			absisca-, weights-: POINTER TO ARRAY OF REAL;
 		END;
@@ -73,13 +73,13 @@ MODULE GraphJacobi;
 		END
 	END ExternalizeScalar;
 
-	PROCEDURE (node: Node) InitLogical-;
+	PROCEDURE (node: Node) InitKernel-;
 	BEGIN
 		node.alpha := NIL;
 		node.beta := NIL;
 		node.absisca := NIL;
 		node.weights := NIL;
-	END InitLogical;
+	END InitKernel;
 
 	PROCEDURE (node: Node) Install* (OUT install: ARRAY OF CHAR);
 	BEGIN
@@ -99,8 +99,21 @@ MODULE GraphJacobi;
 			rd.ReadReal(node.absisca[i]);
 			rd.ReadReal(node.weights[i]);
 			INC(i)
-		END		
+		END
 	END InternalizeScalar;
+
+	PROCEDURE (node: Node) LoadState*;
+		VAR
+			i, order: INTEGER;
+	BEGIN
+		order := LEN(node.absisca);
+		i := 0;
+		WHILE i < order DO
+			node.absisca[i] := node.state[i];
+			node.weights[i] := node.state[order + i];
+			INC(i)
+		END
+	END LoadState;
 
 	PROCEDURE (node: Node) Parents* (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -125,8 +138,22 @@ MODULE GraphJacobi;
 			order := args.ops[0];
 			NEW(node.absisca, order);
 			NEW(node.weights, order);
+			node.AllocateState(2 * order)
 		END
 	END Set;
+
+	PROCEDURE (node: Node) StoreState*;
+		VAR
+			i, order: INTEGER;
+	BEGIN
+		order := LEN(node.absisca);
+		i := 0;
+		WHILE i < order DO
+			node.state[i] := node.absisca[i];
+			node.state[order + i] := node.weights[i];
+			INC(i)
+		END
+	END StoreState;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;
 		VAR
@@ -146,7 +173,7 @@ MODULE GraphJacobi;
 	BEGIN
 		GraphNodes.SetFactory(fact)
 	END Install;
-	
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 500;

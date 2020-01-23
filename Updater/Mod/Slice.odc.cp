@@ -13,7 +13,7 @@ MODULE UpdaterSlice;
 
 	IMPORT
 		BugsRegistry,
-		GraphStochastic,
+		GraphRules, GraphStochastic,
 		UpdaterSlicebase, UpdaterUpdaters;
 
 	TYPE
@@ -63,6 +63,8 @@ MODULE UpdaterSlice;
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.wishart THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

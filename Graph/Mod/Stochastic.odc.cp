@@ -146,15 +146,16 @@ MODULE GraphStochastic;
 
 	PROCEDURE (node: Node) AddDependent* (dependent: GraphLogical.Node), NEW;
 		VAR
-			list: GraphLogical.List;
+			element: GraphLogical.List;
 			label: INTEGER;
 	BEGIN
 		ASSERT(dependent # NIL, 21);
-		label := GraphNodes.Label(node);
-		label := ABS(label);
-		list := cacheDependents[label - 1];
-		dependent.AddToList(list);
-		cacheDependents[label - 1] := list
+		label := node.label;
+		IF label > 0 THEN
+			element := cacheDependents[label - 1];
+			dependent.AddToList(element);
+			cacheDependents[label - 1] := element
+		END
 	END AddDependent;
 
 	PROCEDURE (node: Node) BuildLikelihood*, NEW;
@@ -169,12 +170,13 @@ MODULE GraphStochastic;
 				label: INTEGER;
 		BEGIN
 			IF ~(GraphNodes.mark IN likelihoodTerm.props) THEN
-				label := GraphNodes.Label(prior);
-				label := ABS(label);
-				NEW(element);
-				element.node := likelihoodTerm;
-				element.next := cacheLikelihood[label - 1];
-				cacheLikelihood[label - 1] := element
+				label := prior.label;
+				IF label > 0 THEN
+					NEW(element);
+					element.node := likelihoodTerm;
+					element.next := cacheLikelihood[label - 1];
+					cacheLikelihood[label - 1] := element
+				END
 			END
 		END AddLikelihood;
 
@@ -366,7 +368,7 @@ MODULE GraphStochastic;
 		p := node.Representative();
 		IF p = node THEN
 			label := GraphNodes.Label(node);
-			label := ABS(label); 
+			label := ABS(label);
 			children := ListToVector(cacheLikelihood[label - 1]);
 			dependents := GraphLogical.ListToVector(cacheDependents[label - 1]);
 			IF dependents # NIL THEN
@@ -525,33 +527,24 @@ MODULE GraphStochastic;
 		END
 	END AddToList;
 
-	PROCEDURE ClassFunction* (node, parent: GraphNodes.Node): INTEGER;
-		CONST
-			maxLevel = 7;
+	PROCEDURE ClassFunction* (node: GraphNodes.Node; parent: Node): INTEGER;
 		VAR
-			class: INTEGER;
-			p: GraphNodes.Node;
-			parents: List;
+			parents: GraphNodes.Vector;
 			all: BOOLEAN;
+			class, i, num: INTEGER;
+		CONST
+			eps = 1.0E-6;
 	BEGIN
 		ASSERT(parent IS Node, 21);
 		WITH node: GraphLogical.Node DO
-			all := FALSE;
-			IF node.level < maxLevel THEN
-				class := node.ClassFunction(parent)
-			ELSE
-				parents := Parents(node, all);
-				p := parent.Representative();
-				WHILE (parents # NIL) & (parents.node.Representative() # p) DO
-					parents := parents.next
-				END;
-				IF parents = NIL THEN
-					class := GraphRules.const
-				ELSE
-					class := GraphRules.differ
-					(*class := GraphRules.other*)
-				END
-			END
+			parents := node.parents;
+			num := LEN(parents);
+			i := 0; WHILE (i < num) & (parents[i] # parent) DO INC(i) END;
+			IF i < num THEN 
+				class := SHORT(ENTIER(node.work[i] + eps))
+			ELSE 
+				 class := GraphRules.const
+			END;
 		|node: Node DO
 			IF node = parent THEN
 				class := GraphRules.ident
@@ -576,7 +569,7 @@ MODULE GraphStochastic;
 		dependentsFilter := {MIN(SET)..MAX(SET)};
 	END Clear;
 
-	(*	clear likelihood dependent cache	*)
+	(*	clear likelihood and dependent caches	*)
 	PROCEDURE ClearCache*;
 	BEGIN
 		cacheLikelihood := NIL;
@@ -690,7 +683,7 @@ MODULE GraphStochastic;
 	BEGIN
 		IF numStoch > 0 THEN
 			NEW(cacheLikelihood, numStoch);
-			NEW(cacheDependents, numStoch);
+			NEW(cacheDependents, numStoch)
 		END;
 		i := 0;
 		WHILE i < numStoch DO

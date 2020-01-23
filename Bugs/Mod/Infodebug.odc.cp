@@ -183,7 +183,12 @@ MODULE BugsInfodebug;
 						IF pos # -1 THEN string[pos] := 0X END
 					ELSE
 						Strings.Find(string, "GraphConstant", 0, pos);
-						IF pos # -1 THEN string := "const" END
+						IF pos # -1 THEN 
+							string := "const" 
+						ELSE	
+							Strings.Find(string, "GraphDeviance", 0, pos);
+							IF pos # -1 THEN string := "Deviance" END
+						END
 					END
 				END;
 				f.WriteString(string);

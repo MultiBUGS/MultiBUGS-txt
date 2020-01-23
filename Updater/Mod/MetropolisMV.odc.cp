@@ -14,12 +14,13 @@ MODULE UpdaterMetropolisMV;
 
 	IMPORT
 		Stores := Stores64,
-		GraphLogical, GraphStochastic,
+		GraphKernel, GraphLogical, GraphStochastic,
 		UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
 		Updater* = POINTER TO ABSTRACT RECORD (UpdaterMultivariate.Updater)
-			iteration*, rejectCount*: INTEGER
+			iteration*, rejectCount*: INTEGER;
+			kernels: GraphKernel.Vector
 		END;
 
 	VAR
@@ -56,6 +57,8 @@ MODULE UpdaterMetropolisMV;
 			cacheSize, i, size: INTEGER;
 			dependents: GraphLogical.Vector;
 	BEGIN
+		updater.iteration := 0;
+		updater.rejectCount := 0;
 		size := updater.Size();
 		dependents:= updater.dependents;
 		IF dependents # NIL THEN
@@ -64,8 +67,7 @@ MODULE UpdaterMetropolisMV;
 			cacheSize := LEN(updater.prior);
 		END;
 		IF cacheSize > LEN(cache) THEN NEW(cache, cacheSize) END;
-		updater.iteration := 0;
-		updater.rejectCount := 0;
+		updater.kernels := GraphKernel.Kernels(dependents);
 		updater.InitializeMetropolisMV
 	END InitializeMultivariate;
 
@@ -82,6 +84,7 @@ MODULE UpdaterMetropolisMV;
 		VAR
 			prior: GraphStochastic.Vector;
 			dependents: GraphLogical.Vector;
+			kernels: GraphKernel.Vector;
 			i, j, num, size: INTEGER;	
 	BEGIN
 		prior := updater.prior;
@@ -92,13 +95,19 @@ MODULE UpdaterMetropolisMV;
 			WHILE i < num DO dependents[i].value := cache[i]; INC(i) END;
 		END;
 		size := LEN(updater.prior);
-		j := 0; WHILE j < size DO prior[j].value := cache[i]; INC(i); INC(j) END
+		j := 0; WHILE j < size DO prior[j].value := cache[i]; INC(i); INC(j) END;
+		kernels := updater.kernels;
+		IF kernels # NIL THEN
+			num := LEN(kernels);
+			i := 0; WHILE i < num DO kernels[i].LoadState; INC(i) END
+		END
 	END Restore;
 
 	PROCEDURE (updater: Updater) Store*, NEW;
 		VAR
 			prior: GraphStochastic.Vector;
 			dependents: GraphLogical.Vector;
+			kernels: GraphKernel.Vector;
 			i, j, num, size: INTEGER;	
 	BEGIN
 		prior := updater.prior;
@@ -109,7 +118,12 @@ MODULE UpdaterMetropolisMV;
 			WHILE i < num DO cache[i] := dependents[i].value; INC(i) END;
 		END;
 		size := LEN(updater.prior);
-		j := 0; WHILE j < size DO cache[i] := prior[j].value; INC(i); INC(j) END
+		j := 0; WHILE j < size DO cache[i] := prior[j].value; INC(i); INC(j) END;
+		kernels := updater.kernels;
+		IF kernels # NIL THEN
+			num := LEN(kernels);
+			i := 0; WHILE i < num DO kernels[i].StoreState; INC(i) END
+		END
 	END Store;
 
 	PROCEDURE Maintainer;

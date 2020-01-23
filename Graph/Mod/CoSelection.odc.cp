@@ -120,16 +120,16 @@ MODULE GraphCoSelection;
 			i, j, k, index, numCovariates, start, step, N: INTEGER;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
-		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := 0.0; INC(i) END;
 		index := node.index;
 		start := node.zStart;
 		step := node.zStep;
 		i := 0;
 		WHILE i < N DO
 			IF x[i] = node.beta[0] THEN
-				node.diffs[i] := node.diffs[i] + 1.0
+				node.work[i] := node.work[i] + 1.0
 			ELSE
 				j := 0;
 				k := 1;
@@ -138,9 +138,9 @@ MODULE GraphCoSelection;
 					IF node.theta[j] THEN
 						IF node.beta[k] = x[i] THEN
 							IF node.z # NIL THEN
-								node.diffs[i] := node.diffs[i] + node.z[start + (index * numCovariates + j) * step].value
+								node.work[i] := node.work[i] + node.z[start + (index * numCovariates + j) * step].value
 							ELSE
-								node.diffs[i] := node.diffs[i] + node.zVals[start + (index * numCovariates + j) * step]
+								node.work[i] := node.work[i] + node.zVals[start + (index * numCovariates + j) * step]
 							END
 						END;
 						INC(k)

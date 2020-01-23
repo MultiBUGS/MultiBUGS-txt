@@ -391,7 +391,7 @@ MODULE BugsCodegen;
 					IF vector.components = NIL THEN args.valid := FALSE; RETURN END;
 					args.vectors[args.numVectors] := vector;
 					INC(args.numVectors)
-				ELSIF signature[i] = "F" THEN
+				ELSIF signature[i] = "H" THEN
 					args.scalars[args.numScalars] := BugsEvaluate.RHScalar(parents[j]);
 					IF ~args.valid THEN RETURN END;
 					INC(args.numScalars);

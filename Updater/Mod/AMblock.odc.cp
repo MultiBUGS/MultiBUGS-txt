@@ -121,11 +121,6 @@ MODULE UpdaterAMblock;
 	BEGIN
 		class := {prior.classConditional};
 		block := UpdaterMultivariate.FixedEffects(prior, class, FALSE);
-		IF block # NIL THEN
-			IF ~UpdaterMultivariate.IsHomologous(block) THEN
-				RETURN NIL
-			END
-		END;
 		RETURN block
 	END FindBlock;
 

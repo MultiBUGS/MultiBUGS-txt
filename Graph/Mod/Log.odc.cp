@@ -31,9 +31,11 @@ MODULE GraphLog;
 		VAR
 			form: INTEGER;
 			predictor: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		predictor := node.predictor;
-		form := GraphStochastic.ClassFunction(predictor, parent);
+		form := GraphStochastic.ClassFunction(predictor, stochastic);
 		form := GraphRules.logF[form];
 		RETURN form
 	END ClassFunction;
@@ -60,12 +62,12 @@ MODULE GraphLog;
 			val: REAL;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		predictor := node.predictor;
 		val := predictor.value;
 		val := Math.Exp(val);
-		i := 0; WHILE i < N DO node.diffs[i] := predictor.Diff(x[i]) * val; INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := predictor.Diff(x[i]) * val; INC(i) END;
 		node.value := val
 	END EvaluateDiffs;
 	

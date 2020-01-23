@@ -95,9 +95,9 @@ MODULE GraphHalf;
 			x: GraphNodes.Vector;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
-		i := 0; WHILE i < N DO node.diffs[i] := 0.5 * node.x.Diff(x[i]); INC(i) END
+		i := 0; WHILE i < N DO node.work[i] := 0.5 * node.x.Diff(x[i]); INC(i) END
 	END EvaluateDiffs;
 	
 	PROCEDURE (node: Node) Evaluate;

@@ -15,7 +15,7 @@ MODULE UpdaterSCDE;
 	IMPORT
 		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphStochastic,
+		GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterActions, UpdaterMetropolisUV, UpdaterUpdaters;
 
@@ -180,7 +180,11 @@ MODULE UpdaterSCDE;
 	PROCEDURE (f: FactoryMet) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
+		IF GraphStochastic.bounds * prior.props # {} THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.wishart THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN RETURN FALSE END;
 		IF prior.children = NIL THEN RETURN FALSE END;
+		IF ~(prior.classConditional IN {GraphRules.general, GraphRules.genDiff}) THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

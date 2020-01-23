@@ -14,7 +14,7 @@ MODULE ParallelDebug;
 		SYSTEM,
 		Dialog, Files := Files64, Ports, Stores := Stores64, Strings, Views,
 		TextMappers, TextModels,
-		BugsComponents, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsParallel,
+		BugsCmds, BugsComponents, BugsDialog, BugsFiles, BugsIndex, BugsInterface, BugsParallel,
 		BugsRandnum,
 		DevDebug,
 		GraphStochastic,
@@ -22,7 +22,7 @@ MODULE ParallelDebug;
 
 	TYPE
 		DialogBox* = POINTER TO RECORD(BugsDialog.DialogBox)
-			workersPerChain*, rank*: INTEGER
+			 rank*: INTEGER
 		END;
 
 	VAR
@@ -32,7 +32,7 @@ MODULE ParallelDebug;
 
 	PROCEDURE (dialog: DialogBox) Init-;
 	BEGIN
-		dialog.workersPerChain := 2; dialog.rank := 0
+		dialog.rank := 0
 	END Init;
 
 	PROCEDURE (dialog: DialogBox) Update-;
@@ -134,8 +134,8 @@ MODULE ParallelDebug;
 			form.WriteString("Number of workers per chain: ");
 			form.WriteInt(workersPerChain);
 			form.WriteLn;
-			form.WriteString("Shards are ");
-			IF ~seperable THEN form.WriteString("not ") END; form.WriteString("seperable");
+			form.WriteString("Graph shards are ");
+			IF ~seperable THEN form.WriteString("not ") END; form.WriteString("seperable over cores");
 			form.WriteLn;
 			form.WriteLn;
 			form.WriteTab;
@@ -187,7 +187,7 @@ MODULE ParallelDebug;
 		VAR
 			rank, workersPerChain: INTEGER;
 	BEGIN
-		workersPerChain := dialog.workersPerChain;
+		workersPerChain := BugsCmds.specificationDialog.workersPerChain;
 		rank := dialog.rank;
 		Distribute(rank, workersPerChain)
 	END ShowDistribution;
@@ -195,9 +195,10 @@ MODULE ParallelDebug;
 	PROCEDURE Update* (iterations: INTEGER);
 		VAR
 			res: SET;
+			updater: INTEGER;
 	BEGIN
 		REPEAT
-			ParallelActions.Update(FALSE, FALSE, res); DEC(iterations)
+			ParallelActions.Update(FALSE, FALSE, res, updater); DEC(iterations)
 		UNTIL iterations = 0
 	END Update;
 
@@ -205,6 +206,15 @@ MODULE ParallelDebug;
 	BEGIN
 		par.disabled := ~BugsInterface.IsInitialized()
 	END Guard;
+
+	PROCEDURE WorkerNotifier* (op, from, to: INTEGER);
+	BEGIN
+		IF dialog.rank < 0 THEN
+			dialog.rank := 0
+		ELSIF dialog.rank >= BugsCmds.specificationDialog.workersPerChain THEN
+			dialog.rank := BugsCmds.specificationDialog.workersPerChain - 1
+		END
+	END WorkerNotifier;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -217,7 +227,6 @@ MODULE ParallelDebug;
 		Maintainer;
 		DevDebug.MapHex := MapGraphAddress;
 		NEW(dialog);
-		dialog.workersPerChain := 2;
 		dialog.rank := 0;
 		BugsDialog.AddDialog(dialog);
 		BugsDialog.UpdateDialogs

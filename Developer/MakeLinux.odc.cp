@@ -17,7 +17,7 @@ DevCompiler.CompileThis
 
 HostMenusLinux
 
-Environmentlinux MPI MPIlib MPIlibmpiso12 MPIlibmpichso12 MPIlibmpichso0 MPIlibmpichso10 MPIimp MPIimplibmpiso12 MPIimplibmpichso12 MPIimplibmpichso0 MPIimplibmpichso10 MPIworker MPImaster
+Environmentlinux MPI MPIliblinux MPIimp MPIworker MPImaster
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi
@@ -28,7 +28,7 @@ BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
-GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
+GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar GraphMemory GraphLinkfunc GraphKernel GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
 GraphFunctional GraphMessages GraphResources GraphJacobi
 
 GraphDummy GraphDummyMV GraphSentinel GraphDeviance
@@ -42,7 +42,11 @@ GraphConstant GraphMixture GraphMAP
 
 DeviancePlugin
 
-BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
+BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter
+
+UpdaterHMC
+
+BugsSerialize BugsInterface BugsRobjects
 BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel BugsComponents BugsInfo
 
 BugsRectData BugsSplusData

@@ -30,9 +30,11 @@ MODULE GraphCloglog;
 		VAR
 			class: INTEGER;
 			predictor: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		predictor := node.predictor;
-		class := GraphStochastic.ClassFunction(predictor, parent);
+		class := GraphStochastic.ClassFunction(predictor, stochastic);
 		class := GraphRules.cloglogF[class];
 		RETURN class
 	END ClassFunction;
@@ -60,7 +62,7 @@ MODULE GraphCloglog;
 			temp, temp1, val: REAL;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		predictor := node.predictor;
 		val := predictor.value;
@@ -68,7 +70,7 @@ MODULE GraphCloglog;
 		temp1 := Math.Exp( - temp);
 		i := 0;
 		WHILE i < N DO
-			node.diffs[i] := predictor.Diff(x[i]) * temp * temp1;
+			node.work[i] := predictor.Diff(x[i]) * temp * temp1;
 			INC(i)
 		END;
 		node.value := 1.0 - temp1

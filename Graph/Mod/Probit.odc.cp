@@ -34,9 +34,11 @@ MODULE GraphProbit;
 		VAR
 			form: INTEGER;
 			predictor: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		predictor := node.predictor;
-		form := GraphStochastic.ClassFunction(predictor, parent);
+		form := GraphStochastic.ClassFunction(predictor, stochastic);
 		form := GraphRules.probitF[form];
 		RETURN form
 	END ClassFunction;
@@ -61,14 +63,14 @@ MODULE GraphProbit;
 			val, sqrt: REAL;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		predictor := node.predictor;
 		val := predictor.value;
 		sqrt := Math.Sqrt(2 * Math.Pi());
 		i := 0;
 		WHILE i < N DO
-			node.diffs[i] := predictor.Diff(x[i]) * Math.Exp( - 0.5 * val * val) / sqrt;
+			node.work[i] := predictor.Diff(x[i]) * Math.Exp( - 0.5 * val * val) / sqrt;
 			INC(i)
 		END;
 		node.value := MathFunc.Phi(val)

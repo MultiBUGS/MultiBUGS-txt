@@ -207,7 +207,9 @@ MODULE GraphODEBlockM;
 		VAR
 			form, numEq, numBlocks, gridSize, numPar, i: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		numEq := LEN(node.x0);
 		numBlocks := LEN(node.origins);
 		gridSize := LEN(node.grid);
@@ -215,25 +217,25 @@ MODULE GraphODEBlockM;
 		form := GraphRules.const;
 		i := 0;
 		WHILE (i < numBlocks) & (form = GraphRules.const) DO
-			p := node.origins[i]; form := GraphStochastic.ClassFunction(p, parent);
+			p := node.origins[i]; form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;
 		i := 0;
 		WHILE (i < gridSize) & (form = GraphRules.const) DO
-			p := node.grid[i]; form := GraphStochastic.ClassFunction(p, parent);
+			p := node.grid[i]; form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;
 		i := 0;
 		WHILE (i < numPar) & (form = GraphRules.const) DO
-			p := node.theta[i]; form := GraphStochastic.ClassFunction(p, parent);
+			p := node.theta[i]; form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;
 		i := 0;
 		WHILE (i < numEq) & (form = GraphRules.const) DO
-			p := node.inits[i]; form := GraphStochastic.ClassFunction(p, parent);
+			p := node.inits[i]; form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;
@@ -249,6 +251,7 @@ MODULE GraphODEBlockM;
 			incBlock, incGrid: BOOLEAN;
 			index: GraphStochastic.Node;
 	BEGIN
+		IF node.index # 0 THEN RETURN END;
 		numEq := LEN(node.x0);
 		numBlocks := LEN(node.origins); gridSize := LEN(node.grid);
 		numPar := LEN(node.theta);

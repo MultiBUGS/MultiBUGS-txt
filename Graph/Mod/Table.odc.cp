@@ -40,8 +40,10 @@ MODULE GraphTable;
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			f, form, i, nElem, xStart, xStep, yStart, yStep: INTEGER;
+			stochastic: GraphStochastic.Node;
 	BEGIN
-		form := GraphStochastic.ClassFunction(node.x0, parent);
+		stochastic := parent(GraphStochastic.Node);
+		form := GraphStochastic.ClassFunction(node.x0, stochastic);
 		IF form # GraphRules.const THEN
 			form := GraphRules.other
 		END;
@@ -53,7 +55,7 @@ MODULE GraphTable;
 		nElem := node.nElem;
 		WHILE (i < nElem) & (form # GraphRules.other) DO
 			IF node.x # NIL THEN
-				f := GraphStochastic.ClassFunction(node.x[xStart + i * xStep], parent)
+				f := GraphStochastic.ClassFunction(node.x[xStart + i * xStep], stochastic)
 			ELSE
 				f := GraphRules.const
 			END;
@@ -61,7 +63,7 @@ MODULE GraphTable;
 				form := GraphRules.other
 			END;
 			IF node.y # NIL THEN
-				f := GraphStochastic.ClassFunction(node.y[yStart + i * yStep], parent)
+				f := GraphStochastic.ClassFunction(node.y[yStart + i * yStep], stochastic)
 			ELSE
 				f := GraphRules.const
 			END;
@@ -262,14 +264,14 @@ MODULE GraphTable;
 			offX, offY: INTEGER;
 			z: GraphNodes.Vector;
 	BEGIN
-		z := node.diffWRT;
+		z := node.parents;
 		N := LEN(z);
 		xStart := node.xStart;
 		xStep := node.xStep;
 		yStart := node.yStart;
 		yStep := node.yStep;
 		x0 := node.x0.value;
-		i := 0; WHILE i < N DO node.diffs[i] := node.x0.Diff(z[i]); INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := node.x0.Diff(z[i]); INC(i) END;
 		lower := 0;
 		upper := node.nElem;
 		WHILE upper - lower > 1 DO
@@ -301,7 +303,7 @@ MODULE GraphTable;
 			y1 := node.constantY[offY + yStep]
 		END;
 		slope := (y1 - y) / (x1 - x);
-		i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] * slope; INC(i) END
+		i := 0; WHILE i < N DO node.work[i] := node.work[i] * slope; INC(i) END
 	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;

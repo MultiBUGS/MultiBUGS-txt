@@ -51,12 +51,14 @@ MODULE GraphPiecewise;
 		VAR
 			numComp, i, form: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		numComp := LEN(node.components);
 		form := GraphRules.const;
 		i := 0;
 		WHILE (i < numComp) & (form = GraphRules.const) DO
-			p := node.components[i]; form := GraphStochastic.ClassFunction(p, parent);
+			p := node.components[i]; form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN form := GraphRules.other END;
 			INC(i)
 		END;
@@ -171,7 +173,6 @@ MODULE GraphPiecewise;
 
 	PROCEDURE (node: Node) EvaluateDiffs;
 	BEGIN
-		HALT(126)
 	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;

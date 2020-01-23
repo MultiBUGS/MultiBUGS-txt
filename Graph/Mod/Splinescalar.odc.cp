@@ -97,14 +97,16 @@ MODULE GraphSplinescalar;
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			class, class1, i, len, off: INTEGER;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		class := GraphRules.const;
 		IF node.beta = NIL THEN RETURN class END;
 		len := node.betaSize;
 		i := 0;
 		WHILE i < len DO
 			off := node.betaStart + i * node.betaStep;
-			class1 := GraphStochastic.ClassFunction(node.beta[off], parent);
+			class1 := GraphStochastic.ClassFunction(node.beta[off], stochastic);
 			class := GraphRules.addF[class, class1];
 			INC(i)
 		END;
@@ -258,7 +260,7 @@ MODULE GraphSplinescalar;
 			xVal, d, basis: REAL;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		xVal := node.x.value;
 		numKnots := node.knotsSize;
@@ -266,14 +268,14 @@ MODULE GraphSplinescalar;
 		continuity := node.continuity;
 		i := 0;
 		WHILE i < N DO
-			node.diffs[i] := 0.0;
+			node.work[i] := 0.0;
 			j := 0;
 			d := xVal;
 			basis := 1.0;
 			WHILE j < order DO
 				off := node.betaStart + node.betaStep * j;
 				IF node.beta # NIL THEN
-					node.diffs[i] := node.diffs[i] + node.beta[off].Diff(x[i]) * basis
+					node.work[i] := node.work[i] + node.beta[off].Diff(x[i]) * basis
 				END;
 				basis := basis * d;
 				INC(j)
@@ -293,7 +295,7 @@ MODULE GraphSplinescalar;
 						off := order + 1 + (order - continuity + 1) * j + k - continuity;
 						off := node.betaStart + node.betaStep * off;
 						IF node.beta # NIL THEN
-							node.diffs[i] := node.diffs[i] + node.beta[off].Diff(x[i]) * basis
+							node.work[i] := node.work[i] + node.beta[off].Diff(x[i]) * basis
 						END;
 						basis := basis * d;
 						INC(k)

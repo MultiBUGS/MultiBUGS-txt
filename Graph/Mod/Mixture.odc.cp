@@ -44,12 +44,14 @@ MODULE GraphMixture;
 			class0, class, n, off, slots: INTEGER;
 			i: ARRAY maxSlots OF INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		class := GraphRules.const;
 		n := 0;
 		slots := node.slots;
 		WHILE (n < slots) & (class # GraphRules.other) DO
-			class := GraphStochastic.ClassFunction(node.index[n], parent);
+			class := GraphStochastic.ClassFunction(node.index[n], stochastic);
 			IF class # GraphRules.const THEN
 				class := GraphRules.other
 			END;
@@ -70,7 +72,7 @@ MODULE GraphMixture;
 							INC(n)
 						END;
 						p := node.vector[off];
-						class0 := GraphStochastic.ClassFunction(p, parent);
+						class0 := GraphStochastic.ClassFunction(p, stochastic);
 						IF (i[0] = 0) & (i[1] = 0) THEN
 							class := class0
 						ELSE
@@ -119,7 +121,7 @@ MODULE GraphMixture;
 			p, q: GraphNodes.Node;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		i := 0;
 		slots := node.slots;
@@ -131,7 +133,7 @@ MODULE GraphMixture;
 			INC(i)
 		END;
 		q := node.vector[off];
-		i := 0; WHILE i < N DO node.diffs[i] := q.Diff(x[i]); INC(i) END
+		i := 0; WHILE i < N DO node.work[i] := q.Diff(x[i]); INC(i) END
 	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeScalar (VAR wr: Stores.Writer);

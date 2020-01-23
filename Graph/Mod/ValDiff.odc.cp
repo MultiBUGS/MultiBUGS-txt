@@ -114,9 +114,11 @@ MODULE GraphValDiff;
 		VAR
 			class: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		p := node.parent;
-		class := GraphStochastic.ClassFunction(p, parent);
+		class := GraphStochastic.ClassFunction(p, stochastic);
 		RETURN class
 	END ClassFunction;
 

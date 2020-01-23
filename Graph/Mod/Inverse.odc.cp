@@ -44,8 +44,10 @@ MODULE GraphInverse;
 		VAR
 			dim, form, i, j, off, start, step: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		IF node.constant # NIL THEN RETURN GraphRules.const END;
+		stochastic := parent(GraphStochastic.Node);
 		dim := node.dim;
 		start := node.start;
 		step := node.step;
@@ -56,7 +58,7 @@ MODULE GraphInverse;
 			WHILE (j < dim) & (form = GraphRules.const) DO
 				off := start + (i * dim + j) * step;
 				p := node.matrix[off];
-				form := GraphStochastic.ClassFunction(p, parent);
+				form := GraphStochastic.ClassFunction(p, stochastic);
 				INC(j)
 			END;
 			INC(i)

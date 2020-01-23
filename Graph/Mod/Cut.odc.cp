@@ -38,9 +38,11 @@ MODULE GraphCut;
 		VAR
 			class: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		p := node.cutParent;
-		class := GraphStochastic.ClassFunction(p, parent);
+		class := GraphStochastic.ClassFunction(p, stochastic);
 		RETURN class
 	END ClassFunction;
 
@@ -101,10 +103,10 @@ MODULE GraphCut;
 			x: GraphNodes.Vector;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		p := node.cutParent;
-		i := 0; WHILE i < N DO node.diffs[i] := p.Diff(x[i]); INC(i) END
+		i := 0; WHILE i < N DO node.work[i] := p.Diff(x[i]); INC(i) END
 	END EvaluateDiffs;
 
 	PROCEDURE (f: Factory) New (): GraphScalar.Node;

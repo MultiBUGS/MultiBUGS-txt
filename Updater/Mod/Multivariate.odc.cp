@@ -210,45 +210,67 @@ MODULE UpdaterMultivariate;
 
 	PROCEDURE IsHomologous* (block: GraphStochastic.Vector): BOOLEAN;
 		VAR
-			class, i, num: INTEGER;
+			class, class1, i, j, num, size: INTEGER;
 			likelihood: GraphStochastic.Vector;
 			prior: GraphStochastic.Node;
+			isHomologous: BOOLEAN;
 	BEGIN
 		IF block = NIL THEN RETURN FALSE END;
-		prior := block[0];
-		likelihood := BlockLikelihood(block);
-		IF likelihood # NIL THEN num := LEN(likelihood) ELSE num := 0 END;
-		i := 0;
+		size := LEN(block);
 		GraphStochastic.AddMarks(block, {GraphStochastic.mark});
-		class := likelihood[0].ClassifyLikelihood(prior);
-		LOOP
-			IF i = num THEN EXIT END;
-			IF class # likelihood[i].ClassifyLikelihood(prior) THEN EXIT END;
+		i := 0; WHILE i < size DO GraphLogical.Classify(block[i].dependents); INC(i) END;
+		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
+		prior := block[0];
+		class := prior.children[0].ClassifyLikelihood(prior);
+		class1 := class;
+		i := 0;
+		WHILE (i < size) & (class = class1) DO
+			num := LEN(block[i].children);
+			j := 0;
+			prior := block[i];
+			likelihood := prior.children;
+			WHILE (j < num) & (class = class1) DO
+				class := likelihood[j].ClassifyLikelihood(prior); INC(j)
+			END;
 			INC(i)
 		END;
-		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
-		RETURN i = num
+		isHomologous := class = class1; 
+		i := 0; WHILE i < size DO GraphLogical.Classify(block[i].dependents); INC(i) END;
+		RETURN isHomologous
 	END IsHomologous;
 
 	PROCEDURE ClassifyBlock* (block: GraphStochastic.Vector): INTEGER;
 		VAR
-			class, class1, i, num: INTEGER;
+			class, class1, i, j, num, size: INTEGER;
 			likelihood: GraphStochastic.Vector;
 			prior: GraphStochastic.Node;
 	BEGIN
 		IF block = NIL THEN RETURN GraphRules.unif END;
+		size := LEN(block);
 		prior := block[0];
 		likelihood := BlockLikelihood(block);
 		IF likelihood # NIL THEN num := LEN(likelihood) ELSE num := 0 END;
 		i := 0;
 		GraphStochastic.AddMarks(block, {GraphStochastic.mark});
-		class := likelihood[0].ClassifyLikelihood(prior);
-		WHILE i < num DO
-			class1 := likelihood[i].ClassifyLikelihood(prior);
-			class := GraphRules.product[class, class1];
+		i := 0; WHILE i < size DO GraphLogical.Classify(block[i].dependents); INC(i) END;
+		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
+		prior := block[0];
+		class := prior.children[0].ClassifyLikelihood(prior);
+		class1 := class;
+		i := 0;
+		WHILE i < size DO
+			num := LEN(block[i].children);
+			j := 0;
+			prior := block[i];
+			likelihood := prior.children;
+			WHILE j < num DO
+				class1 := likelihood[j].ClassifyLikelihood(prior); 
+				class := GraphRules.product[class, class1];
+				INC(j)
+			END;
 			INC(i)
 		END;
-		GraphStochastic.ClearMarks(block, {GraphStochastic.mark});
+		i := 0; WHILE i < size DO GraphLogical.Classify(block[i].dependents); INC(i) END;
 		RETURN class
 	END ClassifyBlock;
 

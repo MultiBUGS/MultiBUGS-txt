@@ -20,17 +20,17 @@ MODULE GraphLogical;
 		(*	node properties	*)
 		mark* = 2; 	(*	node is marked	*)
 		diff* = 3; 	(*	differentiation mark	*)
-		linear* = 4; 	(*	node is linear in all its arguments	*)
-		prediction* = 5; 	(*	node is only used for prediction	*)
-		linked* = 6; 	(*	node has been linked into its stochastic parents dependant list	*)
-		(*stochParent* = 9; *)	(*	logical node is parent of stochastic node	*)
+		constDiffs* = 4; 	(*	node is  linear in all its arguments	*)
+		linear* = 5; 	(*	node is marked as linear in all its arguments	*)
+		prediction* = 6; 	(*	node is only used for prediction	*)
+		linked* = 7; 	(*	node has been linked into its stochastic parents dependant list	*)
 
 		undefined* = MAX(INTEGER); 	(*	recursive level of node is undefined	*)
 
 	TYPE
 		Node* = POINTER TO ABSTRACT RECORD (GraphNodes.Node)
-			diffs-: POINTER TO ARRAY OF REAL;
-			diffWRT-: GraphNodes.Vector;
+			work-: POINTER TO ARRAY OF REAL;
+			parents-: GraphNodes.Vector;
 			level-: INTEGER;
 		END;
 
@@ -104,34 +104,17 @@ MODULE GraphLogical;
 		END
 	END CalculateLevel;
 
-	PROCEDURE (node: Node) ClearLevel*, NEW;
-		VAR
-			list: List;
-			p: Node;
-			all: BOOLEAN;
-	BEGIN
-		IF node.level # undefined THEN
-			all := TRUE;
-			node.level := undefined;
-			list := Parents(node, all);
-			WHILE list # NIL DO
-				p := list.node;
-				p.level := undefined;
-				list := list.next
-			END
-		END
-	END ClearLevel;
-
 	PROCEDURE (node: Node) Diff* (x: GraphNodes.Node): REAL;
 		VAR
 			i, num: INTEGER;
 			diffWRT: GraphNodes.Vector;
 	BEGIN
-		diffWRT := node.diffWRT;
+		diffWRT := node.parents;
 		num := LEN(diffWRT);
 		i := 0; WHILE (i < num) & (diffWRT[i] # x) DO INC(i) END;
-		IF i < num THEN RETURN node.diffs[i] ELSE RETURN 0.0 END;
+		IF i < num THEN RETURN node.work[i] ELSE RETURN 0.0 END;
 	END Diff;
+
 
 	(*	writes internal fields of logical node to store	*)
 	PROCEDURE (node: Node) ExternalizeNode- (VAR wr: Stores.Writer);
@@ -139,12 +122,12 @@ MODULE GraphLogical;
 			i, num: INTEGER;
 	BEGIN
 		wr.WriteInt(node.level);
-		IF node.diffWRT # NIL THEN
-			num := LEN(node.diffWRT);
+		IF node.parents # NIL THEN
+			num := LEN(node.parents);
 			wr.WriteInt(num);
-			i := 0; WHILE i < num DO GraphNodes.Externalize(node.diffWRT[i], wr); INC(i) END;
-			IF linear IN node.props THEN
-				i := 0; WHILE i < num DO wr.WriteReal(node.diffs[i]); INC(i) END
+			i := 0; WHILE i < num DO GraphNodes.Externalize(node.parents[i], wr); INC(i) END;
+			IF constDiffs IN node.props THEN
+				i := 0; WHILE i < num DO wr.WriteReal(node.work[i]); INC(i) END
 			END
 		ELSE
 			wr.WriteInt(0)
@@ -156,8 +139,8 @@ MODULE GraphLogical;
 	BEGIN
 		node.props := {prediction};
 		node.level := undefined;
-		node.diffs := NIL;
-		node.diffWRT := NIL;
+		node.work := NIL;
+		node.parents := NIL;
 		node.InitLogical
 	END InitNode;
 
@@ -169,35 +152,35 @@ MODULE GraphLogical;
 		rd.ReadInt(node.level);
 		rd.ReadInt(num);
 		IF num # 0 THEN
-			NEW(node.diffWRT, num);
-			i := 0; WHILE i < num DO node.diffWRT[i] := GraphNodes.Internalize(rd); INC(i) END;
-			NEW(node.diffs, num);
-			IF linear IN node.props THEN
-				i := 0; WHILE i < num DO rd.ReadReal(node.diffs[i]); INC(i) END
+			NEW(node.parents, num);
+			i := 0; WHILE i < num DO node.parents[i] := GraphNodes.Internalize(rd); INC(i) END;
+			NEW(node.work, num);
+			IF constDiffs IN node.props THEN
+				i := 0; WHILE i < num DO rd.ReadReal(node.work[i]); INC(i) END
 			END;
 			node.AllocateDiffs(num)
 		ELSE
-			node.diffWRT := NIL;
-			node.diffs := NIL
+			node.parents := NIL;
+			node.work := NIL
 		END;
 		node.InternalizeLogical(rd)
 	END InternalizeNode;
 
 	PROCEDURE (node: Node) Representative* (): Node, ABSTRACT;
 
-	PROCEDURE (node: Node) SetDiffWRT* (diffWRT: GraphNodes.Vector), NEW;
+	PROCEDURE (node: Node) SetParents* (parents: GraphNodes.Vector), NEW;
 		VAR
-			numDiffs: INTEGER;
+			num: INTEGER;
 	BEGIN
-		node.diffWRT := diffWRT;
-		IF diffWRT # NIL THEN
-			numDiffs := LEN(diffWRT);
-			IF (node.diffs = NIL) OR (numDiffs > LEN(node.diffs)) THEN
-				NEW(node.diffs, numDiffs);
-				node.AllocateDiffs(numDiffs);
+		node.parents := parents;
+		IF parents # NIL THEN
+			num := LEN(parents);
+			IF (node.work = NIL) OR (num > LEN(node.work)) THEN
+				NEW(node.work, num);
+				node.AllocateDiffs(num);
 			END
 		END
-	END SetDiffWRT;
+	END SetParents;
 
 	(*	Factory methods	*)
 	PROCEDURE (f: Factory) New* (): Node, ABSTRACT;
@@ -267,7 +250,7 @@ MODULE GraphLogical;
 		i := 0;
 		WHILE i < len DO
 			node := nodes[i];
-			IF node IS Node THEN list := Parents(node, all) ELSE list := NIL END;
+			IF (node # NIL) & (node IS Node) THEN list := Parents(node, all) ELSE list := NIL END;
 			cursor := list;
 			WHILE cursor # NIL DO
 				logical := cursor.node;
@@ -276,7 +259,7 @@ MODULE GraphLogical;
 				END;
 				cursor := cursor.next
 			END;
-			IF node IS Node THEN
+			IF (node # NIL) & (node IS Node) THEN
 				logical := node(Node);
 				IF ~(mark IN logical.props) THEN logical.AddToList(list1); INCL(logical.props, mark) END
 			END;
@@ -287,6 +270,34 @@ MODULE GraphLogical;
 		block := ListToVector(list);
 		RETURN block
 	END Ancestors;
+
+	PROCEDURE Classify* (dependents: Vector);
+		VAR
+			i, j, num, numDep: INTEGER;
+			node: Node;
+	BEGIN
+		IF dependents # NIL THEN
+			numDep := LEN(dependents);
+			i := 0;
+			WHILE i < numDep DO
+				node := dependents[i];
+				IF node.parents # NIL THEN
+					num := LEN(node.parents);
+					j := 0;
+					WHILE j < num DO
+						node.work[j] := node.ClassFunction(node.parents[j]);
+						INC(j)
+					END
+				END;
+				INC(i)
+			END
+		END
+	END Classify;
+
+	PROCEDURE ClassifyAll*;
+	BEGIN
+		Classify(nodes)
+	END ClassifyAll;
 
 	PROCEDURE Clear*;
 	BEGIN
@@ -335,44 +346,11 @@ MODULE GraphLogical;
 		END
 	END Evaluate;
 
-	(*	evaluates all sdependent nodes	*)
-	PROCEDURE EvaluateAll*;
-		VAR
-			p: Node;
-			i, num: INTEGER;
-	BEGIN
-		IF nodes # NIL THEN
-			num := LEN(nodes);
-			i := 0;
-			WHILE i < num DO
-				p := nodes[i];
-				p.Evaluate;
-				INC(i)
-			END
-		END
-	END EvaluateAll;
-
 	(*	evaluates all dependent nodes	*)
-	PROCEDURE EvaluateAllDiffs*;
-		VAR
-			p: Node;
-			i, num: INTEGER;
+	PROCEDURE EvaluateAll*;
 	BEGIN
-		IF nodes # NIL THEN
-			num := LEN(nodes);
-			i := 0;
-			WHILE i < num DO
-				p := nodes[i];
-				IF ({linear, prediction} * p.props = {}) & (p.diffWRT # NIL) THEN
-					p.EvaluateDiffs;INCL(p.props, diff);
-				ELSE
-					p.Evaluate
-				END;
-				INC(i)
-			END;
-			i := 0; WHILE i < num DO p := nodes[i]; EXCL(p.props, diff); INC(i) END
-		END
-	END EvaluateAllDiffs;
+		Evaluate(nodes)
+	END EvaluateAll;
 
 	(*	evaluates the derivatives of a set of dependent nodes note that procedure leaves marks set	*)
 	PROCEDURE EvaluateDiffs* (dependents: Vector);
@@ -385,8 +363,8 @@ MODULE GraphLogical;
 			i := 0;
 			WHILE i < num DO
 				p := dependents[i];
-				IF ({linear, prediction} * p.props = {}) & (p.diffWRT # NIL) THEN
-					p.EvaluateDiffs;INCL(p.props, diff);
+				IF ({constDiffs, prediction} * p.props = {}) & (p.parents # NIL) THEN
+					p.EvaluateDiffs; INCL(p.props, diff);
 				ELSE
 					p.Evaluate
 				END;
@@ -394,6 +372,19 @@ MODULE GraphLogical;
 			END
 		END
 	END EvaluateDiffs;
+
+	(*	evaluates the derivatives of all dependent nodes	*)
+	PROCEDURE EvaluateAllDiffs*;
+		VAR
+			p: Node;
+			i, num: INTEGER;
+	BEGIN
+		IF nodes # NIL THEN
+			num := LEN(nodes);
+			EvaluateDiffs(nodes);
+			i := 0; WHILE i < num DO p := nodes[i]; EXCL(p.props, diff); INC(i) END
+		END
+	END EvaluateAllDiffs;
 
 	PROCEDURE ExternalizeValues* (VAR wr: Stores.Writer);
 		VAR
@@ -525,6 +516,7 @@ MODULE GraphLogical;
 		VAR
 			i, num: INTEGER;
 	BEGIN
+		values := NIL;
 		nodes := logicals;
 		IF nodes # NIL THEN
 			num := LEN(nodes);

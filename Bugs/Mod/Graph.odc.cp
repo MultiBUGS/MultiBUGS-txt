@@ -12,10 +12,10 @@ MODULE BugsGraph;
 	
 
 	IMPORT
-		SYSTEM, 
+		SYSTEM,
 		Strings,
 		BugsIndex, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
-		GraphConjugateMV, GraphDeviance, GraphLogical, GraphNodes, GraphRules,
+		GraphConjugateMV, GraphDeviance, GraphKernel, GraphLogical, GraphNodes, GraphRules,
 		GraphScalar, GraphStochastic, GraphUnivariate, GraphVector,
 		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
 
@@ -44,6 +44,10 @@ MODULE BugsGraph;
 
 		CountStochastic = POINTER TO RECORD(BugsNames.ElementVisitor)
 			num: INTEGER
+		END;
+
+		StoreStochastic = POINTER TO RECORD(BugsNames.ElementVisitor)
+			nodes: GraphStochastic.Vector
 		END;
 
 		BuildDependent = POINTER TO RECORD(BugsNames.ElementVisitor) END;
@@ -122,28 +126,19 @@ MODULE BugsGraph;
 		END
 	END HeapSort;
 
-	PROCEDURE InitDiffs;
+	PROCEDURE InitLogicals;
 		VAR
 			logicals: GraphLogical.Vector;
 			i, j, nodeSize, num, size: INTEGER;
 			p: GraphLogical.Node;
 			list, cursor: GraphStochastic.List;
-			diffWRT: GraphNodes.Vector;
+			parents: GraphNodes.Vector;
 			stoch: GraphStochastic.Node;
-			isDifferentiable: BOOLEAN;
-
+			nonDiff: BOOLEAN;
 		CONST
 			all = TRUE;
-			hidden = GraphStochastic.hidden;
-
-		PROCEDURE IsDifferentiable (node: GraphStochastic.Node): BOOLEAN;
-		BEGIN
-			RETURN ~(node.classConditional IN {GraphRules.general, GraphRules.catagorical,
-			GraphRules.poisson, GraphRules.descrete}) & ~(hidden IN node.props)
-		END IsDifferentiable;
-
 	BEGIN
-		logicals := GraphLogical.nodes; 
+		logicals := GraphLogical.nodes;
 		IF logicals # NIL THEN
 			num := LEN(logicals);
 			i := 0;
@@ -153,8 +148,8 @@ MODULE BugsGraph;
 				cursor := list; size := 0;
 				WHILE cursor # NIL DO
 					stoch := cursor.node;
-					isDifferentiable := IsDifferentiable(stoch);
-					IF isDifferentiable THEN
+					nonDiff := {GraphStochastic.hidden, GraphStochastic.integer} * stoch.props # {};
+					IF ~nonDiff THEN
 						WITH stoch: GraphConjugateMV.Node DO
 							nodeSize := stoch.Size(); INC(size, nodeSize)
 						ELSE
@@ -163,85 +158,57 @@ MODULE BugsGraph;
 					END;
 					cursor := cursor.next
 				END;
-				IF size > 0 THEN NEW(diffWRT, size) ELSE diffWRT := NIL END;
+				IF size > 0 THEN NEW(parents, size) ELSE parents := NIL END;
 				cursor := list; size := 0;
 				WHILE cursor # NIL DO
 					stoch := cursor.node;
-					isDifferentiable := IsDifferentiable(stoch);
-					IF isDifferentiable THEN
+					nonDiff := {GraphStochastic.hidden, GraphStochastic.integer} * stoch.props # {};
+					IF ~nonDiff THEN
 						WITH stoch: GraphConjugateMV.Node DO
 							nodeSize := stoch.Size();
 							j := 0;
 							WHILE j < nodeSize DO
-								diffWRT[size] := stoch.components[j]; INC(size); INC(j)
+								parents[size] := stoch.components[j]; INC(size); INC(j)
 							END
 						ELSE
-							diffWRT[size] := stoch; INC(size)
+							parents[size] := stoch; INC(size)
 						END
 					END;
 					cursor := cursor.next
 				END;
-				IF size > 0 THEN HeapSort(diffWRT) END;
-				p.SetDiffWRT(diffWRT);
+				IF size > 0 THEN HeapSort(parents) END;
+				p.SetParents(parents);
 				INC(i)
 			END
 		END
-	END InitDiffs;
-
-	PROCEDURE IsInitialized* (chain: INTEGER): BOOLEAN;
-		VAR
-			i, numStoch: INTEGER;
-			isInit: BOOLEAN;
-	BEGIN
-		isInit := TRUE;
-		IF (initialized # NIL) & (initialized[chain] # NIL) THEN
-			numStoch := LEN(initialized[chain]);
-			i := 0; WHILE isInit & (i < numStoch) DO isInit := initialized[chain, i]; INC(i) END
-		END;
-		RETURN isInit
-	END IsInitialized;
-
-	PROCEDURE LoadInits* (chain: INTEGER);
-		VAR
-			i, numStoch: INTEGER;
-			stochastics: GraphStochastic.Vector;
-	BEGIN
-		stochastics := GraphStochastic.nodes;
-		IF stochastics # NIL THEN
-			numStoch := LEN(stochastics);
-			i := 0;
-			WHILE i < numStoch DO
-				IF initialized[chain, i] THEN
-					INCL(stochastics[i].props, GraphStochastic.initialized)
-				ELSE
-					EXCL(stochastics[i].props, GraphStochastic.initialized)
-				END;
-				INC(i)
-			END
-		END
-	END LoadInits;
+	END InitLogicals;
 
 	(*	mark linear nodes	*)
-	PROCEDURE OptimizeDifferentiation*;
+	PROCEDURE OptimizeDifferentiation;
 		VAR
 			class, i, j, len, size: INTEGER;
 			p: GraphLogical.Node;
-			diffWRT: GraphNodes.Vector;
-			nodes: GraphLogical.Vector;
+			stoch: GraphStochastic.Node;
+			parents: GraphNodes.Vector;
+			dependent, nodes: GraphLogical.Vector;
 	BEGIN
 		nodes := GraphLogical.nodes;
 		IF nodes # NIL THEN
+			NEW(dependent, 1);
 			size := LEN(nodes);
 			i := 0;
 			WHILE i < size DO
 				p := nodes[i];
-				diffWRT := p.diffWRT;
-				IF diffWRT # NIL THEN
-					len := LEN(diffWRT);
-					p.SetDiffWRT(diffWRT);
-					j := 0; WHILE j < len DO INCL(diffWRT[j].props, GraphStochastic.mark); INC(j) END;
-					class := p.ClassFunction(diffWRT[0]);
-					j := 0; WHILE j < len DO EXCL(diffWRT[j].props, GraphStochastic.mark); INC(j) END;
+				parents := p.parents;
+				IF parents # NIL THEN
+					len := LEN(parents);
+					j := 0; WHILE j < len DO INCL(parents[j].props, GraphStochastic.mark); INC(j) END;
+					stoch := parents[0](GraphStochastic.Node);
+					dependent[0] := p;
+					GraphLogical.Classify(dependent);
+					class := GraphStochastic.ClassFunction(p, stoch);
+					j := 0; WHILE j < len DO EXCL(parents[j].props, GraphStochastic.mark); INC(j) END;
+					GraphLogical.Classify(dependent);
 					IF class IN {GraphRules.ident, GraphRules.prod, GraphRules.linear} THEN
 						INCL(p.props, GraphLogical.linear)
 					END;
@@ -251,52 +218,51 @@ MODULE BugsGraph;
 		END
 	END OptimizeDifferentiation;
 
-	PROCEDURE SetInitialized*;
+	PROCEDURE RemoveNonDifferentiable;
 		VAR
-			i, chain, numStoch, numChains: INTEGER;
-			isInit: BOOLEAN;
+			i, j, k, newSize, num, size: INTEGER;
+			logicals: GraphLogical.Vector;
+			newParents, parents: GraphNodes.Vector;
+			p: GraphLogical.Node;
+			stoch: GraphStochastic.Node;
 	BEGIN
-		isInit := TRUE;
-		IF (initialized # NIL) & (initialized[0] # NIL) THEN
-			numStoch := LEN(initialized[0]); numChains := LEN(initialized);
-			chain := 0;
-			WHILE isInit & (chain < numChains) DO
-				i := 0; WHILE isInit & (i < numStoch) DO isInit := initialized[chain, i]; INC(i) END;
-				INC(chain)
-			END;
-		END;
-		IF isInit THEN UpdaterActions.SetInitialized; UpdaterActions.OptimizeUpdaters END
-	END SetInitialized;
-
-	PROCEDURE StoreInits* (chain: INTEGER);
-		VAR
-			i, numStoch: INTEGER;
-			stochastics: GraphStochastic.Vector;
-	BEGIN
-		stochastics := GraphStochastic.nodes;
-		IF stochastics # NIL THEN
-			numStoch := LEN(stochastics);
+		logicals := GraphLogical.nodes;
+		IF logicals # NIL THEN
+			num := LEN(logicals);
 			i := 0;
-			WHILE i < numStoch DO
-				initialized[chain, i] := GraphStochastic.initialized IN stochastics[i].props;
+			WHILE i < num DO
+				p := logicals[i];
+				parents := p.parents;
+				IF parents # NIL THEN size := LEN(parents) ELSE size := 0 END;
+				newSize := size;
+				j := 0;
+				WHILE j < size DO
+					stoch := parents[j](GraphStochastic.Node);
+					IF stoch.classConditional = GraphRules.general THEN DEC(newSize) END;
+					INC(j)
+				END;
+				IF newSize # size THEN
+					IF newSize # 0 THEN
+						NEW(newParents, newSize);
+						k := 0;
+						j := 0;
+						WHILE j < size DO
+							stoch := parents[j](GraphStochastic.Node);
+							IF stoch.classConditional # GraphRules.general THEN
+								newParents[k] := parents[j]; INC(k)
+							END;
+							INC(j)
+						END;
+						parents := newParents
+					ELSE
+						parents := NIL
+					END;
+					p.SetParents(parents)
+				END;
 				INC(i)
 			END
 		END
-	END StoreInits;
-
-	PROCEDURE IsAdapting* (numChains: INTEGER): BOOLEAN;
-		VAR
-			isAdaptingChain: BOOLEAN;
-			chain: INTEGER;
-	BEGIN
-		chain := 0;
-		isAdaptingChain := FALSE;
-		WHILE (chain < numChains) & ~isAdaptingChain DO
-			isAdaptingChain := UpdaterActions.IsAdapting(chain);
-			INC(chain)
-		END;
-		RETURN isAdaptingChain
-	END IsAdapting;
+	END RemoveNonDifferentiable;
 
 	PROCEDURE Error (errorNum: INTEGER; name: ARRAY OF CHAR);
 		VAR
@@ -400,7 +366,7 @@ MODULE BugsGraph;
 			node: GraphStochastic.Node;
 	BEGIN
 		NEW(v);
-		BugsIndex.Accept(v); 
+		BugsIndex.Accept(v);
 		cursor := GraphStochastic.auxillary;
 		WHILE cursor # NIL DO
 			node := cursor.node;
@@ -477,22 +443,6 @@ MODULE BugsGraph;
 			END
 		END
 	END Do;
-
-	PROCEDURE ConditionalsOfClass* (class: SET): GraphStochastic.Vector;
-		VAR
-			v: ConditionalOfClass;
-			vector: GraphStochastic.Vector;
-			list: GraphStochastic.List;
-	BEGIN
-		NEW(v);
-		v.class := class;
-		v.list := NIL;
-		BugsIndex.Accept(v);
-		list := v.list;
-		vector := GraphStochastic.ListToVector(list);
-		GraphStochastic.ClearMarks(vector, {GraphNodes.mark});
-		RETURN vector
-	END ConditionalsOfClass;
 
 	PROCEDURE (v: CreateUpdaterByMethod) Do (name: BugsNames.Name);
 		CONST
@@ -650,7 +600,7 @@ MODULE BugsGraph;
 								WHILE parents # NIL DO
 									p := parents.node;
 									INC(numParam);
-									class := GraphStochastic.ClassFunction(p, node);
+									class := GraphStochastic.ClassFunction(p, stochastic);
 									IF class # GraphRules.const THEN
 										hint := numParam;
 										IF hint = 1 THEN
@@ -839,22 +789,6 @@ MODULE BugsGraph;
 		CalculateDepths;
 	END WriteGraph;
 
-	PROCEDURE CreateDeviance*;
-		VAR
-			name: BugsNames.Name;
-			dev: GraphNodes.Node;
-	BEGIN
-		dev := GraphDeviance.fact.New();
-		devianceExists := dev # NIL;
-		IF devianceExists THEN
-			name := BugsNames.New("deviance", 0);
-			name.passByreference := TRUE;
-			name.AllocateNodes;
-			name.components[0] := dev;
-			BugsIndex.Store(name)
-		END
-	END CreateDeviance;
-
 	PROCEDURE LinkNode (node: GraphLogical.Node);
 		VAR
 			pLen, i: INTEGER;
@@ -888,11 +822,27 @@ MODULE BugsGraph;
 	PROCEDURE (v: CountStochastic) Do (name: BugsNames.Name);
 		VAR
 			node: GraphNodes.Node;
+			label: INTEGER;
 	BEGIN
 		IF name.passByreference THEN
 			node := name.components[v.index];
 			IF (node # NIL) & (node IS GraphStochastic.Node) & ~(GraphNodes.data IN node.props) THEN
+				label := GraphNodes.Label(node);
 				INC(v.num)
+			END
+		END
+	END Do;
+
+	PROCEDURE (v: StoreStochastic) Do (name: BugsNames.Name);
+		VAR
+			node: GraphNodes.Node;
+			label: INTEGER;
+	BEGIN
+		IF name.passByreference THEN
+			node := name.components[v.index];
+			IF (node # NIL) & (node IS GraphStochastic.Node) & ~(GraphNodes.data IN node.props) THEN
+				label := GraphNodes.Label(node);
+				v.nodes[label - 1] := node(GraphStochastic.Node);
 			END
 		END
 	END Do;
@@ -928,19 +878,31 @@ MODULE BugsGraph;
 		END
 	END Do;
 
-	PROCEDURE AllocateCaches;
+	PROCEDURE AllocateCaches (OUT nodes: GraphStochastic.Vector);
 		VAR
 			v: CountStochastic;
+			v1: StoreStochastic;
 			cursor: GraphStochastic.List;
-			numStoch: INTEGER;
+			label, numStoch: INTEGER;
 	BEGIN
 		NEW(v);
+		NEW(v1);
 		v.num := 0;
 		BugsIndex.Accept(v);
 		numStoch := v.num;
 		cursor := GraphStochastic.auxillary;
-		WHILE cursor # NIL DO INC(numStoch); cursor := cursor.next END;
+		WHILE cursor # NIL DO
+			label := GraphNodes.Label(cursor.node); INC(numStoch); cursor := cursor.next
+		END;
 		GraphStochastic.InitCache(numStoch);
+		NEW(v1.nodes, numStoch);
+		BugsIndex.Accept(v1);
+		cursor := GraphStochastic.auxillary;
+		WHILE cursor # NIL DO
+			label := GraphNodes.Label(cursor.node); v1.nodes[label - 1] := cursor.node;
+			cursor := cursor.next
+		END;
+		nodes := v1.nodes
 	END AllocateCaches;
 
 	PROCEDURE BuildDependantLists;
@@ -958,7 +920,7 @@ MODULE BugsGraph;
 		WHILE cursor # NIL DO
 			node := cursor.node;
 			all := TRUE;
-			list := GraphLogical.Parents(node, all); 
+			list := GraphLogical.Parents(node, all);
 			WHILE list # NIL DO
 				logical := list.node;
 				IF ~(GraphLogical.linked IN logical.props) THEN
@@ -970,19 +932,102 @@ MODULE BugsGraph;
 		END;
 	END BuildDependantLists;
 
+	PROCEDURE IsInitialized* (chain: INTEGER): BOOLEAN;
+		VAR
+			i, numStoch: INTEGER;
+			isInit: BOOLEAN;
+	BEGIN
+		isInit := TRUE;
+		IF (initialized # NIL) & (initialized[chain] # NIL) THEN
+			numStoch := LEN(initialized[chain]);
+			i := 0; WHILE isInit & (i < numStoch) DO isInit := initialized[chain, i]; INC(i) END
+		END;
+		RETURN isInit
+	END IsInitialized;
+
+	PROCEDURE SetInitialized*;
+		VAR
+			i, chain, numStoch, numChains: INTEGER;
+			isInit: BOOLEAN;
+	BEGIN
+		isInit := TRUE;
+		IF (initialized # NIL) & (initialized[0] # NIL) THEN
+			numStoch := LEN(initialized[0]); numChains := LEN(initialized);
+			chain := 0;
+			WHILE isInit & (chain < numChains) DO
+				i := 0; WHILE isInit & (i < numStoch) DO isInit := initialized[chain, i]; INC(i) END;
+				INC(chain)
+			END;
+		END;
+		IF isInit THEN UpdaterActions.SetInitialized; UpdaterActions.OptimizeUpdaters END
+	END SetInitialized;
+
+	PROCEDURE IsAdapting* (numChains: INTEGER): BOOLEAN;
+		VAR
+			isAdaptingChain: BOOLEAN;
+			chain: INTEGER;
+	BEGIN
+		chain := 0;
+		isAdaptingChain := FALSE;
+		WHILE (chain < numChains) & ~isAdaptingChain DO
+			isAdaptingChain := UpdaterActions.IsAdapting(chain);
+			INC(chain)
+		END;
+		RETURN isAdaptingChain
+	END IsAdapting;
+
+	PROCEDURE CreateDeviance*;
+		VAR
+			name: BugsNames.Name;
+			dev: GraphNodes.Node;
+	BEGIN
+		dev := GraphDeviance.fact.New();
+		devianceExists := dev # NIL;
+		IF devianceExists THEN
+			name := BugsNames.New("deviance", 0);
+			name.passByreference := TRUE;
+			name.AllocateNodes;
+			name.components[0] := dev;
+			BugsIndex.Store(name)
+		END
+	END CreateDeviance;
+
+	PROCEDURE StoreInits* (chain: INTEGER);
+		VAR
+			i, numStoch: INTEGER;
+			stochastics: GraphStochastic.Vector;
+	BEGIN
+		stochastics := GraphStochastic.nodes;
+		IF stochastics # NIL THEN
+			numStoch := LEN(stochastics);
+			i := 0;
+			WHILE i < numStoch DO
+				initialized[chain, i] := GraphStochastic.initialized IN stochastics[i].props;
+				INC(i)
+			END
+		END
+	END StoreInits;
+
 	PROCEDURE Compile* (numChains: INTEGER; updaterByMethod: BOOLEAN; OUT ok: BOOLEAN);
 		VAR
 			inits: BOOLEAN;
 			chain, i, j, numStoch: INTEGER;
 			nodes: GraphStochastic.Vector;
 			logicals: GraphLogical.Vector;
+			kernels: GraphKernel.Vector;
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
 		WriteGraph(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
-		AllocateCaches;
+		AllocateCaches(nodes); ;
 		BuildFullConditionals;
 		BuildDependantLists;
 		ReadCaches;
+		logicals := GraphStochastic.Dependents(nodes);
+		GraphLogical.SetLogicals(logicals, numChains);
+		kernels := GraphKernel.Kernels(logicals);
+		GraphKernel.SetKernels(kernels, numChains);
+		InitLogicals;
+		GraphLogical.ClassifyAll;
 		ClassifyConditionals;
 		IF updaterByMethod THEN
 			CreateUpdatersByMethod
@@ -1009,9 +1054,8 @@ MODULE BugsGraph;
 				INC(i)
 			END
 		END;
-		logicals := GraphStochastic.Dependents(nodes);
-		GraphLogical.SetLogicals(logicals, numChains);
-		InitDiffs; 
+		OptimizeDifferentiation;
+		RemoveNonDifferentiable;
 		CreateDeviance;
 		(*	stochastic nodes could be set up with initialized flag so propage this info to all chains	*)
 		chain := 0;
@@ -1027,6 +1071,42 @@ MODULE BugsGraph;
 			IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END
 		END
 	END Compile;
+
+	PROCEDURE ConditionalsOfClass* (class: SET): GraphStochastic.Vector;
+		VAR
+			v: ConditionalOfClass;
+			vector: GraphStochastic.Vector;
+			list: GraphStochastic.List;
+	BEGIN
+		NEW(v);
+		v.class := class;
+		v.list := NIL;
+		BugsIndex.Accept(v);
+		list := v.list;
+		vector := GraphStochastic.ListToVector(list);
+		GraphStochastic.ClearMarks(vector, {GraphNodes.mark});
+		RETURN vector
+	END ConditionalsOfClass;
+
+	PROCEDURE LoadInits* (chain: INTEGER);
+		VAR
+			i, numStoch: INTEGER;
+			stochastics: GraphStochastic.Vector;
+	BEGIN
+		stochastics := GraphStochastic.nodes;
+		IF stochastics # NIL THEN
+			numStoch := LEN(stochastics);
+			i := 0;
+			WHILE i < numStoch DO
+				IF initialized[chain, i] THEN
+					INCL(stochastics[i].props, GraphStochastic.initialized)
+				ELSE
+					EXCL(stochastics[i].props, GraphStochastic.initialized)
+				END;
+				INC(i)
+			END
+		END
+	END LoadInits;
 
 	PROCEDURE Maintainer;
 	BEGIN

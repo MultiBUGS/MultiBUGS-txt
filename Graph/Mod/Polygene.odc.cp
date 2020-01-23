@@ -49,9 +49,11 @@ MODULE GraphPolygene;
 			linear = {GraphRules.const, GraphRules.ident, GraphRules.prod, GraphRules.linear};
 		VAR
 			fF, fM, form: INTEGER;
+			stochastic: GraphStochastic.Node;
 	BEGIN
-		fM := GraphStochastic.ClassFunction(node.mother, parent);
-		fF := GraphStochastic.ClassFunction(node.farther, parent);
+		stochastic := parent(GraphStochastic.Node);
+		fM := GraphStochastic.ClassFunction(node.mother, stochastic);
+		fF := GraphStochastic.ClassFunction(node.farther, stochastic);
 		IF (fM IN linear) & (fF IN linear) THEN
 			IF (fM = GraphRules.const) & (fF = GraphRules.const) THEN
 				form := GraphRules.const
@@ -126,13 +128,13 @@ MODULE GraphPolygene;
 			x: GraphNodes.Vector;
 			i, N: INTEGER;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		i := 0;
 		WHILE i < N DO
 			motherDiff := node.mother.Diff(x[i]);
 			fartherDiff := node.farther.Diff(x[i]);
-			node.diffs[i] := 0.5 * (motherDiff + fartherDiff);
+			node.work[i] := 0.5 * (motherDiff + fartherDiff);
 			INC(i)
 		END
 	END EvaluateDiffs;

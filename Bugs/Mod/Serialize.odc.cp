@@ -16,7 +16,7 @@ MODULE BugsSerialize;
 		Files := Files64, Services, Stores := Stores64,
 		BugsCPCompiler, BugsGraph, BugsIndex, BugsParser, BugsRandnum,
 		DeviancePlugin,
-		GraphLogical, GraphNodes, GraphStochastic,
+		GraphKernel, GraphLogical, GraphNodes, GraphStochastic,
 		MonitorMonitors,
 		UpdaterActions, UpdaterMethods;
 
@@ -148,8 +148,9 @@ MODULE BugsSerialize;
 
 	PROCEDURE Internalize* (OUT numWorker: INTEGER; VAR rd: Stores.Reader);
 		VAR
-			dependents: GraphLogical.Vector;
+			logicals: GraphLogical.Vector;
 			stochastics: GraphStochastic.Vector;
+			kernels: GraphKernel.Vector;
 			numChains: INTEGER;
 	BEGIN
 		rd.ReadInt(numWorker);
@@ -159,8 +160,10 @@ MODULE BugsSerialize;
 		numChains := LEN(UpdaterActions.updaters);
 		UpdaterActions.StoreStochastics;
 		stochastics := GraphStochastic.nodes;
-		dependents := GraphStochastic.Dependents(stochastics);
-		GraphLogical.SetLogicals(dependents, numChains);
+		logicals := GraphStochastic.Dependents(stochastics);
+		GraphLogical.SetLogicals(logicals, numChains);
+		kernels := GraphKernel.Kernels(logicals);
+		GraphKernel.SetKernels(kernels, numChains);
 		InternalizeMutable(rd);
 		InternalizeMonitors(rd);
 		Services.Collect

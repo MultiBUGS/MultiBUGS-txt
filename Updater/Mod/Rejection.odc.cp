@@ -182,7 +182,7 @@ MODULE UpdaterRejection;
 			WHILE (i < num) & optimizeDiffs DO
 				p := prior.dependents[i];
 				IF ~(GraphLogical.prediction IN p.props) THEN
-					IF ~(GraphLogical.linear IN p.props) THEN optimizeDiffs := p IS GraphLinkfunc.Node END
+					IF ~(GraphLogical.constDiffs IN p.props) THEN optimizeDiffs := p IS GraphLinkfunc.Node END
 				END;
 				INC(i)
 			END;

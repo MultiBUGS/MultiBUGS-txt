@@ -12,7 +12,7 @@ MODULE UpdaterHMC;
 	
 
 	IMPORT
-		Math,
+		Math, 
 		BugsIndex, BugsNames,
 		GraphDeviance, GraphLogical, GraphMultivariate, GraphNodes, GraphRules, GraphStochastic,
 		MathRandnum,
@@ -20,7 +20,7 @@ MODULE UpdaterHMC;
 
 	VAR
 		mean, mean2, sigma: POINTER TO ARRAY OF POINTER TO ARRAY OF REAL;
-		logJointOld, logJointNew, oldVals, p: POINTER TO ARRAY OF REAL;
+		logJointOld, logJointNew, p: POINTER TO ARRAY OF REAL;
 		data, stochastics: GraphStochastic.Vector;
 		numStochastics: INTEGER;
 		otherUpdaters: POINTER TO ARRAY OF INTEGER;
@@ -33,18 +33,17 @@ MODULE UpdaterHMC;
 	CONST
 		nonHMC = {GraphRules.wishart, GraphRules.dirichlet, GraphRules.general};
 
-	PROCEDURE EstimateMeans (iteration, warmUpPeriod, chain: INTEGER);
+	PROCEDURE EstimateMeans (iteration, warmUp, chain: INTEGER);
 		VAR
-			j, sampleSize: INTEGER;
+			j, sampleSize, updater: INTEGER;
 			res: SET;
-			updater: UpdaterUpdaters.Updater;
 			mapVal: REAL;
 		CONST
 			overRelax = FALSE;
 	BEGIN
 		UpdaterActions.Sample(overRelax, chain, res, updater);
-		IF iteration >= warmUpPeriod DIV 2 THEN
-			sampleSize := iteration - (warmUpPeriod DIV 2) + 1;
+		IF iteration >= warmUp DIV 2 THEN
+			sampleSize := iteration - (warmUp DIV 2) + 1;
 			j := 0;
 			WHILE j < numStochastics DO
 				mapVal := stochastics[j].Map();
@@ -55,10 +54,11 @@ MODULE UpdaterHMC;
 		END
 	END EstimateMeans;
 
-	PROCEDURE LeapFrog (numSteps, chain: INTEGER; eps: REAL; OUT reject: BOOLEAN);
+	PROCEDURE HMC (numSteps, chain: INTEGER; eps: REAL);
 		VAR
 			diff, kineticNew, kineticOld, logAlpha, x: REAL;
 			i, steps: INTEGER;
+			reject: BOOLEAN;
 			stoch: GraphStochastic.Node;
 
 		PROCEDURE LogJoint (): REAL;
@@ -78,6 +78,7 @@ MODULE UpdaterHMC;
 				ELSE
 					priorDensity := priorDensity + stoch.LogLikelihood()
 				END;
+				(*	only include jacobian term for HMC type nodes	*)
 				IF index < numStochastics THEN logDetJac := logDetJac + stoch.LogDetJacobian() END;
 				INC(index)
 			END;
@@ -96,17 +97,15 @@ MODULE UpdaterHMC;
 		END LogJoint;
 
 	BEGIN
-		(*	generate momentum and calculate kinetic energy, store old values	*)
+		(*	generate momentum and calculate kinetic energy	*)
 		kineticOld := 0.0;
 		i := 0;
 		WHILE i < numStochastics DO
-			stoch := stochastics[i];
 			p[i] := MathRandnum.StandardNormal();
-			oldVals[i] := stoch.value;
 			kineticOld := kineticOld + 0.5 * p[i] * p[i];
 			INC(i)
 		END;
-		(*	calculate initial potential energy if it has changed	*)
+		(*	calculate initial potential energy if it has changed or if non HMC nodes	*)
 		IF first[chain] OR (otherUpdaters # NIL) THEN
 			first[chain] := FALSE; logJointOld[chain] := LogJoint()
 		END;
@@ -114,8 +113,8 @@ MODULE UpdaterHMC;
 		(*	leapfrog steps	*)
 		i := 0;
 		WHILE i < numStochastics DO
-			stoch := stochastics[i]; 
-			diff := stoch.DiffLogConditional(); 
+			stoch := stochastics[i];
+			diff := stoch.DiffLogConditional();
 			p[i] := p[i] + 0.5 * sigma[chain, i] * eps * diff;
 			INC(i)
 		END;
@@ -125,14 +124,13 @@ MODULE UpdaterHMC;
 			WHILE i < numStochastics DO
 				stoch := stochastics[i];
 				x := stoch.Map(); x := x + sigma[chain, i] * eps * p[i]; stoch.InvMap(x);
-				(*IF ABS(eps * p[i]) > 10 THEN reject := TRUE; res := {}; RETURN END;*)
 				INC(i)
 			END;
 			GraphLogical.EvaluateAllDiffs;
 			i := 0;
 			WHILE i < numStochastics DO
-				stoch := stochastics[i]; 
-				diff := stoch.DiffLogConditional(); 
+				stoch := stochastics[i];
+				diff := stoch.DiffLogConditional();
 				p[i] := p[i] + sigma[chain, i] * eps * diff;
 				INC(i)
 			END;
@@ -140,7 +138,8 @@ MODULE UpdaterHMC;
 		END;
 		i := 0;
 		WHILE i < numStochastics DO
-			stoch := stochastics[i]; x := stoch.Map(); x := x + sigma[chain, i] * eps * p[i]; stoch.InvMap(x);
+			stoch := stochastics[i]; 
+			x := stoch.Map(); x := x + sigma[chain, i] * eps * p[i]; stoch.InvMap(x);
 			INC(i)
 		END;
 		GraphLogical.EvaluateAllDiffs;
@@ -148,8 +147,8 @@ MODULE UpdaterHMC;
 		kineticNew := 0.0;
 		i := 0;
 		WHILE i < numStochastics DO
-			stoch := stochastics[i]; 
-			diff := stoch.DiffLogConditional(); 
+			stoch := stochastics[i];
+			diff := stoch.DiffLogConditional();
 			p[i] := p[i] + 0.5 * sigma[chain, i] * eps * diff;
 			kineticNew := kineticNew + 0.5 * p[i] * p[i];
 			INC(i)
@@ -164,7 +163,7 @@ MODULE UpdaterHMC;
 		ELSE
 			logJointOld[chain] := logJointNew[chain]
 		END;
-	END LeapFrog;
+	END HMC;
 
 	PROCEDURE Clear*;
 	BEGIN
@@ -193,16 +192,14 @@ MODULE UpdaterHMC;
 		data := GraphDeviance.DevianceTerms(deviance);
 		otherUpdaters := NIL;
 		stochastics := GraphStochastic.nodes;
-		IF stochastics # NIL THEN numStochastics := LEN(stochastics) ELSE  numStochastics := 0 END;
+		IF stochastics # NIL THEN numStochastics := LEN(stochastics) ELSE numStochastics := 0 END;
 		numOtherUpdater := 0;
 		(*	mark auxillary nodes prior to removal	*)
 		auxillary := GraphStochastic.auxillary;
 		WHILE auxillary # NIL DO
-			stoch := auxillary.node;
-			INCL(stoch.props, GraphNodes.mark);
-			auxillary := auxillary.next
+			stoch := auxillary.node; INCL(stoch.props, GraphNodes.mark); auxillary := auxillary.next
 		END;
-		(*	remove conjugate wishart and conjugate dirichlet etc	*)
+		(*	count conjugate wishart, conjugate dirichlet, non differentiable, integer and auxillary	*)
 		numOtherStoch := 0;
 		i := 0;
 		WHILE i < numStochastics DO
@@ -213,6 +210,7 @@ MODULE UpdaterHMC;
 			END;
 			INC(i)
 		END;
+		(*	place the non HMC nodes after the HMC nodes	*)
 		IF numOtherStoch > 0 THEN
 			NEW(vector, numStochastics);
 			i := 0;
@@ -248,11 +246,10 @@ MODULE UpdaterHMC;
 				INC(i)
 			END
 		END;
+		(*	clear mark on auxillary nodes	*)
 		auxillary := GraphStochastic.auxillary;
 		WHILE auxillary # NIL DO
-			stoch := auxillary.node;
-			EXCL(stoch.props, GraphNodes.mark);
-			auxillary := auxillary.next
+			stoch := auxillary.node; EXCL(stoch.props, GraphNodes.mark); auxillary := auxillary.next
 		END;
 		NEW(mean, numChains);
 		NEW(mean2, numChains);
@@ -274,43 +271,40 @@ MODULE UpdaterHMC;
 			first[chain] := TRUE;
 			INC(chain)
 		END;
-		NEW(oldVals, numStochastics);
 		NEW(p, numStochastics);
 	END Setup;
 
-	PROCEDURE Update* (numSteps, iteration, warmUpPeriod, chain: INTEGER; eps: REAL;
-	OUT reject: BOOLEAN);
+	PROCEDURE Update* (numSteps, iteration, warmUp, chain: INTEGER; eps: REAL; 
+				OUT res: SET; OUT updater: INTEGER);
 		VAR
 			j, numOtherUpdater: INTEGER;
-			res: SET;
 		CONST
 			overRelax = FALSE;
 	BEGIN
 		ASSERT(setUp, 21);
-		reject := FALSE;
 		res := {};
 		ASSERT(iteration # 0, 33);
-		IF iteration - startIt = warmUpPeriod THEN
+		IF iteration - startIt = warmUp THEN
 			j := 0;
 			WHILE j < numStochastics DO
 				sigma[chain, j] := Math.Sqrt(mean2[chain, j] - mean[chain, j] * mean[chain, j]);
 				INC(j)
 			END
 		END;
-		IF iteration - startIt < warmUpPeriod THEN
-			EstimateMeans(iteration, warmUpPeriod, chain);
+		IF iteration - startIt < warmUp THEN
+			EstimateMeans(iteration, warmUp, chain);
 		ELSE
-			LeapFrog(numSteps, chain, eps, reject);
+			HMC(numSteps, chain, eps); 
 			IF otherUpdaters # NIL THEN
 				numOtherUpdater := LEN(otherUpdaters);
 				j := 0;
-				WHILE j < numOtherUpdater DO;
-					UpdaterActions.updaters[chain, otherUpdaters[j]].Sample(overRelax, res);
+				WHILE (j < numOtherUpdater) & (res = {}) DO;
+					updater := otherUpdaters[j];
+					UpdaterActions.updaters[chain, updater].Sample(overRelax, res);
 					INC(j)
 				END;
 			END
-		END;
-		ASSERT(res = {}, 77);
+		END
 	END Update;
 
 	PROCEDURE Maintainer;

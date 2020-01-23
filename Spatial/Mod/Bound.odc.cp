@@ -84,10 +84,12 @@ MODULE SpatialBound;
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			form, i, len: INTEGER;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		i := 0; len := LEN(node.c); form := GraphRules.const;
 		WHILE (i < len) & (form = GraphRules.const) DO
-			form := GraphStochastic.ClassFunction(node.c[i], parent); INC(i)
+			form := GraphStochastic.ClassFunction(node.c[i], stochastic); INC(i)
 		END;
 		IF form # GraphRules.const THEN form := GraphRules.other END;
 		RETURN form

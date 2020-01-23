@@ -36,7 +36,9 @@ MODULE GraphODEmath;
 		VAR
 			form, i, size, start: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		(* starting points *)
 		i := 0;
@@ -44,7 +46,7 @@ MODULE GraphODEmath;
 		size := node.x0Size;
 		WHILE (i < size) & (form = GraphRules.const) DO
 			p := node.x0[i + start];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other
 			END;
@@ -55,7 +57,7 @@ MODULE GraphODEmath;
 		size := node.thetaSize;
 		WHILE (i < size) & (form = GraphRules.const) DO
 			p := node.theta[i + start];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other
 			END;
@@ -66,7 +68,7 @@ MODULE GraphODEmath;
 		start := node.tGridStart;
 		WHILE (i < size) & (form = GraphRules.const) DO
 			p := node.tGrid[i + start];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			IF form # GraphRules.const THEN
 				form := GraphRules.other;
 			END;

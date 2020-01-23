@@ -272,7 +272,7 @@ MODULE BugsParallel;
 					j := 0;
 					WHILE j < numStoch DO
 						p := globalDeviance[i, j];
-						 IF write IN p.props THEN
+						IF write IN p.props THEN
 							WITH p: GraphMultivariate.Node DO
 								size := p.Size();
 								k := 0;
@@ -671,6 +671,12 @@ MODULE BugsParallel;
 			END
 		END
 	END ClearMarks;
+
+	PROCEDURE MapUpdater* (worker, updater: INTEGER): INTEGER;
+	BEGIN
+		updater := globalUpdaters[worker, updater];
+		RETURN updater
+	END MapUpdater;
 
 	(*	Mark markov blanket of nodes updated on this core. The write mark meanis
 	that the internal fields of the marked node are needed and thisCore means that the node will

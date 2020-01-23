@@ -421,22 +421,24 @@ MODULE ParallelActions;
 		END
 	END SetWAIC;
 
-	PROCEDURE Update* (seperable, overRelax: BOOLEAN; OUT res: SET);
+	PROCEDURE Update* (seperable, overRelax: BOOLEAN; OUT res: SET; OUT updater: INTEGER);
 		VAR
 			blockSize, i, j, k, numWorker, rank, numUpdaters, end, start, size: INTEGER;
 	BEGIN
 		res := {};
+		updater := -1;
 		numUpdaters := LEN(updaters);
 		numWorker := MPIworker.commSize;
 		rank := MPIworker.rank;
 		i := 0;
 		end := 0;
 		IF id # NIL THEN (*	chain is distributed	*)
-			WHILE (i < numUpdaters) & (res = {}) DO
+			WHILE i < numUpdaters DO
 				IF id[i] = 0 THEN ParallelRandnum.UseSameStream END;
-				updaters[i].Sample(overRelax, res);
-				IF res # {} THEN
-					(*	handle error	*) HALT(0)
+				IF res = {} THEN 
+					updaters[i].Sample(overRelax, res) 
+				ELSIF updater = -1 THEN
+					updater := i
 				END;
 				size := updaters[i].Size();
 				INC(end, size);
@@ -467,9 +469,7 @@ MODULE ParallelActions;
 		ELSE
 			WHILE (i < numUpdaters) & (res = {}) DO
 				updaters[i].Sample(overRelax, res);
-				IF res # {} THEN
-					(*	handle error	*) HALT(0)
-				END;
+				IF res # {} THEN updater := i END;
 				INC(i)
 			END
 		END;

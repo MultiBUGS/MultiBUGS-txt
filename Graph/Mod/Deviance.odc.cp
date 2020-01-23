@@ -19,7 +19,7 @@ MODULE GraphDeviance;
 
 	TYPE
 		Node = POINTER TO RECORD(GraphScalar.Node)
-			terms, parents: GraphStochastic.Vector;
+			terms, stochParents: GraphStochastic.Vector;
 		END;
 
 		Factory = POINTER TO RECORD(GraphLogical.Factory) END;
@@ -51,10 +51,10 @@ MODULE GraphDeviance;
 			GraphNodes.Externalize(node.terms[i], wr);
 			INC(i)
 		END;
-		IF node.parents # NIL THEN len := LEN(node.parents) ELSE len := 0 END;
+		IF node.stochParents # NIL THEN len := LEN(node.stochParents) ELSE len := 0 END;
 		wr.WriteInt(len);
 		WHILE i < len DO
-			GraphNodes.Externalize(node.parents[i], wr);
+			GraphNodes.Externalize(node.stochParents[i], wr);
 			INC(i)
 		END
 	END ExternalizeScalar;
@@ -74,10 +74,10 @@ MODULE GraphDeviance;
 		END;
 		i := 0;
 		rd.ReadInt(len);
-		IF len > 0 THEN NEW(node.parents, len) ELSE node.parents := NIL END;
+		IF len > 0 THEN NEW(node.stochParents, len) ELSE node.stochParents := NIL END;
 		WHILE i < len DO
 			p := GraphNodes.Internalize(rd);
-			node.parents[i] := p(GraphStochastic.Node);
+			node.stochParents[i] := p(GraphStochastic.Node);
 			INC(i)
 		END
 	END InternalizeScalar;
@@ -85,7 +85,7 @@ MODULE GraphDeviance;
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
 		node.terms := NIL;
-		node.parents := NIL
+		node.stochParents := NIL
 	END InitLogical;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -99,10 +99,10 @@ MODULE GraphDeviance;
 			list: GraphNodes.List;
 	BEGIN
 		i := 0;
-		IF node.parents # NIL THEN len := LEN(node.parents) ELSE len := 0 END;
+		IF node.stochParents # NIL THEN len := LEN(node.stochParents) ELSE len := 0 END;
 		list := NIL;
 		WHILE i < len DO
-			node.parents[i].AddParent(list);
+			node.stochParents[i].AddParent(list);
 			INC(i)
 		END;
 		GraphNodes.ClearList(list);
@@ -274,14 +274,14 @@ MODULE GraphDeviance;
 			END
 		END;
 		IF numTerms > 0 THEN NEW(deviance.terms, numTerms) END;
-		IF numParents > 0 THEN NEW(deviance.parents, numParents) END;
+		IF numParents > 0 THEN NEW(deviance.stochParents, numParents) END;
 		i := 0;
 		numTerms := 0;
 		numParents := 0;
 		WHILE i < len DO
 			stoch := stochastics[i];
 			IF GraphStochastic.devParent IN stoch.props THEN
-				deviance.parents[numParents] := stoch;
+				deviance.stochParents[numParents] := stoch;
 				INC(numParents)
 			END;
 			p := stoch.Representative();

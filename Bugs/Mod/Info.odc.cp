@@ -588,8 +588,8 @@ MODULE BugsInfo;
 			num := LEN(nodes);
 			i := 0;
 			WHILE i < num DO
-				IF nodes[i].diffWRT # NIL THEN
-					INC(numDiffs, LEN(nodes[i].diffWRT))
+				IF nodes[i].parents # NIL THEN
+					INC(numDiffs, LEN(nodes[i].parents))
 				END;
 				INC(i)
 			END
@@ -883,9 +883,9 @@ MODULE BugsInfo;
 		IF BugsInterface.IsDistributed() THEN
 			f.WriteTab;
 			IF BugsComponents.allThis THEN
-				f.WriteString("Graph seperates over cores")
+				f.WriteString("Graph shards are seperable over cores")
 			ELSE
-				f.WriteString("Graph does not seperate over cores")
+				f.WriteString("Graph shards are not seperable over cores")
 			END;
 			f.WriteLn;
 			f.WriteLn;
@@ -1016,7 +1016,7 @@ MODULE BugsInfo;
 		numObs := CountObservations();
 		numData := CountDatum();
 		numLogical := CountLogicals();
-		numTotLog := LEN(GraphLogical.nodes);
+		IF GraphLogical.nodes # NIL THEN numTotLog := LEN(GraphLogical.nodes) ELSE numTotLog := 0 END;
 		numParam := UpdaterActions.NumParameters();
 		numUpdater := UpdaterActions.NumberUpdaters();
 		meanNumChild := UpdaterActions.MeanNumChildren();
@@ -1038,9 +1038,12 @@ MODULE BugsInfo;
 		f.WriteTab; f.WriteString("Number of named logical: ");
 		f.WriteInt(numLogical); f.WriteLn;
 		f.WriteTab; f.WriteString("Total number of logical: ");
-		f.WriteInt(numTotLog); f.WriteLn;
-		f.WriteTab; f.WriteString("Max nesting of logical: ");
-		f.WriteInt(GraphLogical.nodes[numTotLog - 1].level); f.WriteLn;
+		IF BugsIndex.Find("deviance") # NIL THEN f.WriteInt(numTotLog + 1) ELSE f.WriteInt(numTotLog) END;
+		f.WriteLn;
+		IF GraphLogical.nodes # NIL THEN
+			f.WriteTab; f.WriteString("Max nesting of logical: ");
+			f.WriteInt(GraphLogical.nodes[numTotLog - 1].level); f.WriteLn
+		END;
 		avDiffs := ENTIER(100 * CountDiffs());
 		f.WriteTab; f.WriteString("Average num diffs: ");
 		f.WriteInt(avDiffs DIV 100); f.WriteChar("."); f.WriteInt(avDiffs MOD 100); f.WriteLn;

@@ -21,7 +21,7 @@ BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
-GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar  GraphLinkfunc GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
+GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar  GraphLinkfunc GraphKernel GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
 GraphFunctional GraphMessages GraphResources GraphJacobi
 
 GraphDummy GraphDummyMV GraphSentinel GraphDeviance
@@ -35,8 +35,12 @@ GraphConstant GraphMixture GraphMAP
 
 DeviancePlugin
 
-BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize BugsInterface BugsRobjects
-BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo 
+BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize
+
+UpdaterHMC
+
+BugsInterface BugsRobjects
+BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo
 
 BugsRectData BugsSplusData
 
@@ -84,7 +88,7 @@ UpdaterForward
 
 UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial 
 
-UpdaterICM UpdaterHMC
+UpdaterICM
 
 UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 

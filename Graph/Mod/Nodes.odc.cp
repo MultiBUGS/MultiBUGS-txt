@@ -13,7 +13,7 @@ MODULE GraphNodes;
 
 	
 
-	IMPORT Services,
+	IMPORT 
 		Meta, Stores := Stores64, Strings;
 
 	CONST
@@ -61,7 +61,7 @@ MODULE GraphNodes;
 	TYPE
 		(*	abstract base type from which all nodes in graphical model are derived	*)
 		Node* = POINTER TO ABSTRACT RECORD
-			label: INTEGER;
+			label-: INTEGER;
 			props*: SET; 	(*	properties of node	*)
 			value*: REAL
 		END;
@@ -326,8 +326,6 @@ MODULE GraphNodes;
 		VAR
 			logical: BOOLEAN;
 	BEGIN
-(*		logical := Services.Is(node, "GraphLogical.Node");
-		IF logical & ~(node.label > 0) THEN nodes := ListToVector(nodeList); HALT(0) END;*)
 		Externalize0(node, deep, wr)
 	END Externalize;
 

@@ -45,7 +45,9 @@ MODULE GraphScalarT;
 		VAR
 			class, i, j, nElem, numScalars, numVectors: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		class := GraphRules.const;
 		IF node.scalars # NIL THEN
 			numScalars := LEN(node.scalars)
@@ -55,7 +57,7 @@ MODULE GraphScalarT;
 		i := 0;
 		WHILE (i < numScalars) & (class = GraphRules.const) DO
 			p := node.scalars[i];
-			class := GraphStochastic.ClassFunction(p, parent);
+			class := GraphStochastic.ClassFunction(p, stochastic);
 			INC(i)
 		END;
 		IF node.vectors # NIL THEN
@@ -69,7 +71,7 @@ MODULE GraphScalarT;
 			j := 0;
 			WHILE (j < nElem) & (class = GraphRules.const) DO
 				p := node.vectors[i][j];
-				class := GraphStochastic.ClassFunction(p, parent);
+				class := GraphStochastic.ClassFunction(p, stochastic);
 				INC(j)
 			END;
 			INC(i)

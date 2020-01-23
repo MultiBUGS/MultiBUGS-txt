@@ -104,6 +104,8 @@ MODULE UpdaterSlicegamma;
 			p0, p1: REAL;
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.wishart THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN RETURN FALSE END;
 		children := prior.children;
 		gamma := children # NIL;
 		IF children # NIL THEN

@@ -14,7 +14,7 @@ MODULE GraphGPprior;
 
 	IMPORT
 		Math, Stores := Stores64, Strings, 
-		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphLogical, GraphMultivariate, 
+		GraphChain, GraphConjugateMV, GraphConjugateUV, GraphKernel, GraphLogical, GraphMultivariate, 
 		GraphNodes, GraphRules, GraphScalar, GraphStochastic, GraphUnivariate,
 		MathFunc, MathMatrix, MathRandnum;
 
@@ -22,7 +22,7 @@ MODULE GraphGPprior;
 
 		Point* = POINTER TO ARRAY OF REAL;
 
-		Kernel* = POINTER TO ABSTRACT RECORD (GraphScalar.Node)
+		Kernel* = POINTER TO ABSTRACT RECORD (GraphKernel.Node)
 							node-: Node
 						END;
 
@@ -143,10 +143,10 @@ MODULE GraphGPprior;
 		GraphNodes.Externalize(kernel.node, wr)
 	END ExternalizeScalar;
 	
-	PROCEDURE (kernel: Kernel) InitLogical-;
+	PROCEDURE (kernel: Kernel) InitKernel-;
 	BEGIN
 		kernel.node := NIL
-	END InitLogical;
+	END InitKernel;
 
 	PROCEDURE (kernel: Kernel) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
@@ -155,6 +155,20 @@ MODULE GraphGPprior;
 		p := GraphNodes.Internalize(rd);
 		kernel.node := p(Node)
 	END InternalizeScalar;
+
+	PROCEDURE (kernel: Kernel) LoadState*;
+		VAR
+			i, j, size: INTEGER;
+			node: Node;
+	BEGIN
+		node := kernel.node;
+		size := node.Size();
+		i := 0;
+		WHILE i < size DO
+			j := 0; WHILE j < size DO node.cov[i, j] := kernel.state[i * size + j]; INC(j) END;
+			INC(i)
+		END
+	END LoadState;
 	
 	PROCEDURE (kernel: Kernel) NumParams* (): INTEGER, NEW, ABSTRACT;
 	
@@ -185,6 +199,20 @@ MODULE GraphGPprior;
 			kernel.node := args.scalars[0](Node)
 		END
 	END Set;
+
+	PROCEDURE (kernel: Kernel) StoreState*;
+		VAR
+			i, j, size: INTEGER;
+			node: Node;
+	BEGIN
+		node := kernel.node;
+		size := node.Size();
+		i := 0;
+		WHILE i < size DO
+			j := 0; WHILE j < size DO kernel.state[i * size + j] :=  node.cov[i, j]; INC(j) END;
+			INC(i)
+		END
+	END StoreState;
 
 	(*	log determinant of covariance matrix, is minus log determinant of precision matrix	*)
 	PROCEDURE LogDet (node: Node): REAL;
@@ -362,10 +390,10 @@ MODULE GraphGPprior;
 			IF ~(f1 IN linear) THEN
 				density := GraphRules.general
 			ELSIF f1 # GraphRules.const THEN
-				IF f0 # GraphRules.const THEN
-					density := GraphRules.general
+				IF f0 = GraphRules.const THEN
+					density := GraphRules.logCon
 				ELSE
-					density := GraphRules.normal
+					density := GraphRules.general
 				END
 			END
 		END;
@@ -706,8 +734,9 @@ MODULE GraphGPprior;
 		res := {};
 		IF node.index = 0 THEN
 			Set(node, args, res);
-			i := 1;
 			nElem := node.Size();
+			node.kernel.AllocateState(nElem * nElem);
+			i := 1;
 			WHILE i < nElem DO
 				CopyNode(node, node.components[i](Node)); INC(i)
 			END;

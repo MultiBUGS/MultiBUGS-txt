@@ -15,7 +15,7 @@ MODULE UpdaterSDScale;
 	IMPORT
 		Math, Stores := Stores64,
 		BugsRegistry,
-		GraphLogical, GraphStochastic,
+		GraphLogical, GraphRules, GraphStochastic,
 		MathRandnum,
 		UpdaterMetropolisUV, UpdaterUpdaters;
 
@@ -161,8 +161,11 @@ MODULE UpdaterSDScale;
 			GraphStochastic.rightNatural, GraphStochastic.rightImposed};
 	BEGIN
 		IF GraphStochastic.integer IN prior.props THEN RETURN FALSE END;
-		IF prior.children = NIL THEN RETURN FALSE END;
 		IF bounds * prior.props # {} THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.wishart THEN RETURN FALSE END;
+		IF prior.ClassifyPrior() = GraphRules.dirichlet THEN RETURN FALSE END;
+		IF prior.children = NIL THEN RETURN FALSE END;
+		IF ~(prior.classConditional IN {GraphRules.general, GraphRules.genDiff}) THEN RETURN FALSE END;
 		RETURN TRUE
 	END CanUpdate;
 

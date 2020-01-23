@@ -317,11 +317,13 @@ MODULE BugsMaster;
 	END SendMutable;
 
 	PROCEDURE (h: Hook) Update (thin, iteration: INTEGER; overRelax: BOOLEAN;
-	VAR endOfAdapting: INTEGER);
+	OUT res: SET; VAR updater, worker, endOfAdapting: INTEGER);
 		VAR
 			command: BugsInterface.Command;
-			end, i, numChains, numWorkers, workersPerChain, worker: INTEGER;
+			status: ARRAY 3 OF INTEGER;
+			end, i, numChains, numWorkers, workersPerChain: INTEGER;
 	BEGIN
+		updater := -1;
 		workersPerChain := h.workersPerChain;
 		numChains := h.numChains;
 		numWorkers := workersPerChain * numChains;
@@ -366,12 +368,18 @@ MODULE BugsMaster;
 			IF overRelax THEN command[4] := 1 ELSE command[4] := 0 END
 		END;
 		BugsInterface.SendCommand(command);
-		worker := 0;
+		i := 0;
 		endOfAdapting := 0;
-		WHILE worker < numWorkers DO
-			end := MPImaster.RecvInteger(worker);
+		WHILE i < numWorkers DO
+			MPImaster.RecvIntegers(status, i);
+			end := status[0];
+			res := BITS(status[1]);
+			IF (res # {}) & (updater = -1) THEN
+				updater := status[2]; worker := i;
+				updater := BugsParallel.MapUpdater(worker, updater);
+			END;
 			endOfAdapting := MAX(endOfAdapting, end);
-			INC(worker)
+			INC(i)
 		END;
 		RecvMonitoredValues(numChains)
 	END Update;

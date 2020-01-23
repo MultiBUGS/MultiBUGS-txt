@@ -35,13 +35,13 @@ MODULE ParallelHMC;
 
 	PROCEDURE EstimateMeans (seperable: BOOLEAN; iteration, warmUpPeriod: INTEGER);
 		VAR
-			j, sampleSize: INTEGER;
+			j, sampleSize, updater: INTEGER;
 			res: SET;
 			mapVal: REAL;
 		CONST
 			overRelax = FALSE;
 	BEGIN
-		ParallelActions.Update(seperable, overRelax, res);
+		ParallelActions.Update(seperable, overRelax, res, updater);
 		IF iteration >= warmUpPeriod DIV 2 THEN
 			sampleSize := iteration - (warmUpPeriod DIV 2) + 1;
 			j := 0;

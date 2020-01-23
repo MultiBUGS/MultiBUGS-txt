@@ -85,15 +85,17 @@ MODULE PharmacoSum;
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			f, form, i, len: INTEGER; p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		form := GraphRules.const;
 		len := LEN(node.model);
 		i := 0;
 		WHILE i < len DO
-			p := node.model[i]; f := GraphStochastic.ClassFunction(p, parent);
+			p := node.model[i]; f := GraphStochastic.ClassFunction(p, stochastic);
 			IF f # GraphRules.const THEN form := GraphRules.other END;
 			IF node.bio[i] # NIL THEN
-				p := node.bio[i]; f := GraphStochastic.ClassFunction(p, parent);
+				p := node.bio[i]; f := GraphStochastic.ClassFunction(p, stochastic);
 				IF f # GraphRules.const THEN form := GraphRules.other END
 			END;
 			INC(i)

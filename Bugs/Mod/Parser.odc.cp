@@ -442,7 +442,7 @@ MODULE BugsParser;
 		numPar := fact.NumParam();
 		i := 0;
 		WHILE i < numPar DO
-			IF signature[i] = "F" THEN	(*	functional	*)
+			IF signature[i] = "H" THEN	(*	Hazard	*) 
 				INC(numPar) 
 			END;
 			INC(i)
@@ -675,7 +675,9 @@ MODULE BugsParser;
 		VAR
 			numSlots: INTEGER;
 			functionName: ARRAY 120 OF CHAR;
+			functional: BOOLEAN;
 	BEGIN
+		functional := s.string[0] = "F";
 		s.Scan;
 		IF (s.type # BugsMappers.char) OR (s.char # "(") THEN
 			Error(3);
@@ -695,7 +697,11 @@ MODULE BugsParser;
 			RETURN
 		END;
 		functionName := independent.name.string$;
-		functionName := "F(" + functionName + ")";
+		IF functional THEN
+			functionName :=  "F(" + functionName + ")"
+		ELSE
+			functionName :=  "H(" + functionName + ")"
+		END;
 		NEW(functionVar);
 		functionVar.pos := s.Pos();
 		functionVar.value := 0.0;
@@ -1161,8 +1167,8 @@ MODULE BugsParser;
 				density.parents[j] := ParseVariable(loops, s);
 				IF density.parents[j] = NIL THEN RETURN NIL END;
 				s.Scan
-			|"F":
-				ParseFnotation(loops, s, functionVar, independent);
+			|"H":
+				ParseFnotation(loops, s, functionVar, independent); 
 				IF functionVar = NIL THEN RETURN NIL END;
 				density.parents[j] := functionVar;
 				density.parents[j + 1] := independent;
@@ -1192,7 +1198,7 @@ MODULE BugsParser;
 		IF density = NIL THEN RETURN NIL END;
 		ParseCen(loops, s, density);
 		IF density = NIL THEN RETURN NIL END;
-		ParseTrunc(loops, s, density);
+		ParseTrunc(loops, s, density); 
 		RETURN density
 	END ParseDensity;
 
@@ -1482,7 +1488,8 @@ MODULE BugsParser;
 				statement := ParseForLoop(loops, s);
 				IF statement = NIL THEN RETURN END;
 				statement.CopyToList(loops)	(*	push loop stack	*)
-			ELSIF ((s.type = BugsMappers.string) OR (s.type = BugsMappers.function)) & (s.string = "if") THEN
+			ELSIF ((s.type = BugsMappers.string) 
+					OR (s.type = BugsMappers.function)) & (s.string = "if") THEN
 				s.Scan;
 				statement := ParseIf(loops, s);
 				IF statement = NIL THEN RETURN END;
@@ -1568,8 +1575,8 @@ MODULE BugsParser;
 							(*	put loops before statement	*)
 							IF loops # NIL THEN loops.MergeLists(model) END
 						END
-					ELSIF s.string = "F" THEN
-						ParseFnotation(loops, s, functionVar, independent);
+					ELSIF (s.string = "F") OR (s.string = "H") THEN
+						ParseFnotation(loops, s, functionVar, independent); 
 						functionVar.name.passByreference := TRUE; 
 						independent.name.passByreference := TRUE; 
 						IF s.char # "<" THEN Error(38); RETURN END;

@@ -91,6 +91,8 @@ MODULE BugsPrettyprinter;
 			string := variable.name.string$;
 			IF (string[0] = "F") & (string[1] = "(") THEN
 				j := 0; WHILE string[j] # ")" DO f.WriteChar(string[j]); INC(j) END
+			ELSIF (string[0] = "H") & (string[1] = "(") THEN
+				j := 0; WHILE string[j] # ")" DO f.WriteChar(string[j]); INC(j) END	
 			ELSIF (string[0] = "D") & (string[1] = "(") THEN
 				j := 0; WHILE string[j] # "," DO f.WriteChar(string[j]); INC(j) END
 			ELSE
@@ -116,6 +118,8 @@ MODULE BugsPrettyprinter;
 			END;
 			IF (string[0] = "F") & (string[1] = "(") THEN
 				f.WriteChar(")")
+			ELSIF (string[0] = "H") & (string[1] = "(") THEN
+				f.WriteChar(")")	
 			ELSIF (string[0] = "D") & (string[1] = "(") THEN
 				f.WriteString(", ");
 				INC(j);
@@ -126,20 +130,25 @@ MODULE BugsPrettyprinter;
 			f.WriteString(index.name)
 		ELSIF node IS BugsParser.Density THEN
 			density := node(BugsParser.Density);
-			f.WriteString(density.descriptor.name);
+			descriptor := density.descriptor;
+			fact := descriptor.fact;
+			numPar := fact.NumParam();
+			fact.Signature(signiture);
+			f.WriteString(descriptor.name);
 			f.WriteChar("(");
 			i := 0;
-			IF density.parents # NIL THEN
-				len := LEN(density.parents)
-			ELSE
-				len := 0
-			END;
-			WHILE i < len DO
-				PrintNode(density.parents[i], f);
+			j := 0;
+			WHILE i < numPar DO
+				PrintNode(density.parents[j], f);
+				ch := signiture[i]; 
+				CASE ch OF
+				|"H": INC(j, 2)	(*	functional	*)
+				ELSE  INC(j)
+				END;
 				INC(i);
-				IF i = len THEN f.WriteChar(")") ELSE f.WriteString(", ") END
+				IF i = numPar THEN f.WriteChar(")") ELSE f.WriteString(", ") END
 			END;
-			IF len = 0 THEN f.WriteChar(")") END;
+			IF numPar = 0 THEN f.WriteChar(")") END;
 			IF (density.leftCen # NIL) OR (density.rightCen # NIL) THEN
 				f.WriteString("C(");
 				IF density.leftCen # NIL THEN
@@ -167,9 +176,9 @@ MODULE BugsPrettyprinter;
 			descriptor := function.descriptor;
 			fact := descriptor.fact;
 			numPar := fact.NumParam();
+			fact.Signature(signiture);
 			f.WriteString(descriptor.name);
 			f.WriteChar("(");
-			fact.Signature(signiture);
 			i := 0;
 			j := 0;
 			WHILE i < numPar DO

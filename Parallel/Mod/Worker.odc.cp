@@ -17,7 +17,7 @@ MODULE ParallelWorker;
 		SYSTEM,
 		Files := Files64, Kernel, MPIworker, Services, Stores := Stores64, Strings,
 		BugsRandnum,
-		GraphLogical, GraphStochastic,
+		GraphKernel, GraphLogical, GraphStochastic,
 		ParallelActions, ParallelFiles, ParallelHMC, ParallelRandnum;
 
 	CONST
@@ -41,6 +41,7 @@ MODULE ParallelWorker;
 		informationCriteria: ARRAY 2 OF REAL;
 		deviance, meanDeviance, meanDeviance2: REAL;
 		col, row: POINTER TO ARRAY OF INTEGER;
+		status: ARRAY 3 OF INTEGER;
 		monitoredValues: POINTER TO ARRAY OF REAL;
 		worldRankString: ARRAY 64 OF CHAR;
 		version-: INTEGER; 	(*	version number	*)
@@ -49,7 +50,7 @@ MODULE ParallelWorker;
 		PROCEDURE Update (thin, iteration, endOfAdapting, warmUpPeriod, numSteps: INTEGER;
 	eps: REAL; seperable, overRelax, useHMC: BOOLEAN);
 		VAR
-			i: INTEGER;
+			i, updater: INTEGER;
 			res: SET;
 			reject: BOOLEAN;
 	BEGIN
@@ -64,17 +65,19 @@ MODULE ParallelWorker;
 			END
 		ELSE
 			WHILE (i < thin) & (res = {}) DO
-				ParallelActions.Update(seperable, overRelax, res);
+				ParallelActions.Update(seperable, overRelax, res, updater);
 				INC(i)
 			END;
-			ASSERT(res = {}, 77);
 			IF endOfAdapting > iteration THEN
 				IF ~ParallelActions.IsAdapting() THEN
 					endOfAdapting := iteration + 1
 				END
 			END;
 		END;
-		MPIworker.SendInteger(endOfAdapting);
+		status[0] := endOfAdapting;
+		status[1] := ORD(res);
+		status[2] := updater;
+		MPIworker.SendIntegers(status);
 		IF devianceMonitored OR waicSet THEN
 			deviance := ParallelActions.Deviance();
 			deviance := MPIworker.SumReal(deviance)
@@ -172,6 +175,7 @@ MODULE ParallelWorker;
 			rd: Stores.Reader;
 			wr: Stores.Writer;
 			mutableState: POINTER TO ARRAY OF BYTE;
+			kernels: GraphKernel.Vector;
 	BEGIN
 		Maintainer;
 		startTime := Services.Ticks();
@@ -188,6 +192,8 @@ MODULE ParallelWorker;
 		GraphStochastic.SetStochastics(ParallelActions.globalStochs[rank], 1);
 		GraphStochastic.StoreValues(0);
 		GraphLogical.SetLogicals(ParallelActions.globalLogicals, 1);
+		kernels := GraphKernel.Kernels(ParallelActions.globalLogicals);
+		GraphKernel.SetKernels(kernels, 1);
 		GraphLogical.EvaluateAllDiffs;
 		GraphLogical.StoreValues(0);
 		(*	loop to handle request from master	*)

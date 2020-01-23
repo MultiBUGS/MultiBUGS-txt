@@ -61,12 +61,14 @@ MODULE GraphKepler;
 	PROCEDURE (node: Node) ClassFunction (parent: GraphNodes.Node): INTEGER;
 		VAR
 			f: INTEGER;
+			stochastic: GraphStochastic.Node;
 	BEGIN
-		f := GraphStochastic.ClassFunction(node.e, parent);
+		stochastic := parent(GraphStochastic.Node);
+		f := GraphStochastic.ClassFunction(node.e, stochastic);
 		IF f # GraphRules.const THEN
 			RETURN GraphRules.other
 		END;
-		f := GraphStochastic.ClassFunction(node.l, parent);
+		f := GraphStochastic.ClassFunction(node.l, stochastic);
 		IF f # GraphRules.const THEN
 			RETURN GraphRules.other
 		END;

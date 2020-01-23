@@ -50,8 +50,10 @@ MODULE GraphSumation;
 		VAR
 			i, f, form, off, nElem, step, start: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		IF node.vector = NIL THEN RETURN GraphRules.const END;
+		stochastic := parent(GraphStochastic.Node);
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -59,7 +61,7 @@ MODULE GraphSumation;
 		WHILE i < nElem DO
 			off := start + i * step;
 			p := node.vector[off];
-			f := GraphStochastic.ClassFunction(p, parent);
+			f := GraphStochastic.ClassFunction(p, stochastic);
 			IF i = 0 THEN
 				form := f
 			ELSE
@@ -199,10 +201,10 @@ MODULE GraphSumation;
 			value: REAL;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		value := 0.0;
-		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := 0.0; INC(i) END;
 		IF node.vector = NIL THEN RETURN END;
 		nElem := node.nElem;
 		start := node.start;
@@ -214,9 +216,9 @@ MODULE GraphSumation;
 			i := 0;
 			WHILE i < N DO
 				IF p = x[i] THEN
-					node.diffs[i] := node.diffs[i] + 1.0;
+					node.work[i] := node.work[i] + 1.0;
 				ELSIF ~(GraphNodes.data IN p.props) THEN
-					node.diffs[i] := node.diffs[i] + p.Diff(x[i])
+					node.work[i] := node.work[i] + p.Diff(x[i])
 				END;
 				INC(i)
 			END;
@@ -273,10 +275,10 @@ MODULE GraphSumation;
 			p: GraphNodes.Node;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		i := 0;
-		WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		WHILE i < N DO node.work[i] := 0.0; INC(i) END;
 		j := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -287,15 +289,15 @@ MODULE GraphSumation;
 			i := 0;
 			WHILE i < N DO
 				IF p = x[i] THEN
-					node.diffs[i] := node.diffs[i] + 1.0;
+					node.work[i] := node.work[i] + 1.0;
 				ELSIF ~(GraphNodes.data IN p.props) THEN
-					node.diffs[i] := node.diffs[i] + p.Diff(x[i])
+					node.work[i] := node.work[i] + p.Diff(x[i])
 				END;
 				INC(i)
 			END;
 			INC(j)
 		END;
-		i := 0; WHILE i < N DO node.diffs[i] := node.diffs[i] / node.nElem; INC(i) END
+		i := 0; WHILE i < N DO node.work[i] := node.work[i] / node.nElem; INC(i) END
 	END EvaluateDiffs;
 
 	PROCEDURE (node: MeanNode) Install (OUT install: ARRAY OF CHAR);
@@ -307,9 +309,11 @@ MODULE GraphSumation;
 		VAR
 			form, i, off, nElem, step, start: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
 		form := GraphRules.const;
 		IF node.vector = NIL THEN RETURN form END;
+		stochastic := parent(GraphStochastic.Node);
 		i := 0;
 		nElem := node.nElem;
 		start := node.start;
@@ -317,7 +321,7 @@ MODULE GraphSumation;
 		WHILE (i < nElem) & (form = GraphRules.const) DO
 			off := start + i * step;
 			p := node.vector[off];
-			form := GraphStochastic.ClassFunction(p, parent);
+			form := GraphStochastic.ClassFunction(p, stochastic);
 			INC(i)
 		END;
 		IF form # GraphRules.const THEN
@@ -368,9 +372,9 @@ MODULE GraphSumation;
 			p: GraphNodes.Node;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
-		i := 0; WHILE i < N DO node.diffs[i] := 0.0; INC(i) END;
+		i := 0; WHILE i < N DO node.work[i] := 0.0; INC(i) END;
 		IF node.vector = NIL THEN RETURN END;
 		sum := 0.0;
 		sum2 := 0.0;
@@ -407,7 +411,7 @@ MODULE GraphSumation;
 					differ2 := differ2 + 2.0 * value * d
 				END;
 			END;
-			node.diffs[i] := (differ2 - 2.0 * sum * differ1) * nElem / ((nElem - 1) * 2.0 * sum2);
+			node.work[i] := (differ2 - 2.0 * sum * differ1) * nElem / ((nElem - 1) * 2.0 * sum2);
 			INC(i)
 		END
 	END EvaluateDiffs;

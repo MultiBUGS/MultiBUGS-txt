@@ -227,7 +227,7 @@ MODULE GraphHazard;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := "Fs"
+		signature := "Hs"
 	END Signature;
 
 	PROCEDURE Install*;

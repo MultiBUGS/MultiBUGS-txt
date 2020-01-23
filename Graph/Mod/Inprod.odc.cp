@@ -39,20 +39,22 @@ MODULE GraphInprod;
 		VAR
 			i, f0, f1, form, off, nElem: INTEGER;
 			p: GraphNodes.Node;
+			stochastic: GraphStochastic.Node;
 	BEGIN
+		stochastic := parent(GraphStochastic.Node);
 		i := 0; nElem := node.nElem;
 		WHILE i < nElem DO
 			off := node.start0 + i * node.step0;
 			IF node.vector0 # NIL THEN
 				p := node.vector0[off];
-				f0 := GraphStochastic.ClassFunction(p, parent)
+				f0 := GraphStochastic.ClassFunction(p, stochastic)
 			ELSE
 				f0 := GraphRules.const
 			END;
 			IF node.vector1 # NIL THEN
 				off := node.start1 + i * node.step1;
 				p := node.vector1[off];
-				f1 := GraphStochastic.ClassFunction(p, parent)
+				f1 := GraphStochastic.ClassFunction(p, stochastic)
 			ELSE
 				f1 := GraphRules.const
 			END;
@@ -121,7 +123,7 @@ MODULE GraphInprod;
 			p, p0, p1: GraphNodes.Node;
 			x: GraphNodes.Vector;
 	BEGIN
-		x := node.diffWRT;
+		x := node.parents;
 		N := LEN(x);
 		j := 0;
 		nElem := node.nElem;
@@ -129,12 +131,12 @@ MODULE GraphInprod;
 			IF node.constant1 = NIL THEN
 				i := 0;
 				WHILE i < N DO
-					node.diffs[i] := 0.0;
+					node.work[i] := 0.0;
 					WHILE j < nElem DO
 						off0 := node.start0 + j * node.step0;
 						off1 := node.start1 + j * node.step1;
 						p := node.vector1[off1];
-						node.diffs[i] := node.diffs[i] + node.constant0[off0] * p.Diff(x[i]);
+						node.work[i] := node.work[i] + node.constant0[off0] * p.Diff(x[i]);
 						INC(j)
 					END;
 					INC(i)
@@ -144,12 +146,12 @@ MODULE GraphInprod;
 			IF node.constant1 # NIL THEN
 				i := 0;
 				WHILE i < N DO
-					node.diffs[i] := 0.0;
+					node.work[i] := 0.0;
 					WHILE j < nElem DO
 						off0 := node.start0 + j * node.step0;
 						off1 := node.start1 + j * node.step1;
 						p := node.vector0[off0];
-						node.diffs[i] := node.diffs[i] + p.Diff(x[i]) * node.constant1[off1];
+						node.work[i] := node.work[i] + p.Diff(x[i]) * node.constant1[off1];
 						INC(j)
 					END;
 					INC(i)
@@ -157,7 +159,7 @@ MODULE GraphInprod;
 			ELSE
 				i := 0;
 				WHILE i < N DO
-					node.diffs[i] := 0.0;
+					node.work[i] := 0.0;
 					WHILE j < nElem DO
 						off0 := node.start0 + j * node.step0;
 						off1 := node.start1 + j * node.step1;
@@ -165,7 +167,7 @@ MODULE GraphInprod;
 						value0 := p0.value;
 						p1 := node.vector1[off1];
 						value1 := p1.value;
-						node.diffs[i] := node.diffs[i] + value0 * p1.Diff(x[i]) + value1 * p0.Diff(x[i]);
+						node.work[i] := node.work[i] + value0 * p1.Diff(x[i]) + value1 * p0.Diff(x[i]);
 						INC(j)
 					END;
 					INC(i)

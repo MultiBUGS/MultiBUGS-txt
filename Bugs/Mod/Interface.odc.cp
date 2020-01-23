@@ -13,14 +13,14 @@ MODULE BugsInterface;
 	
 
 	IMPORT
-		Dialog, Files, Kernel, Services, Strings, Stores := Stores64, 
+		Dialog, Files, Kernel, Services, Strings, Stores := Stores64,
 		BugsCPCompiler, BugsData, BugsEvaluate, BugsGraph, BugsIndex,
 		BugsMappers, BugsMsg, BugsNames, BugsNodes, BugsParser, BugsRandnum,
 		BugsVariables,
-		GraphDeviance, GraphLogical, GraphNodes, GraphStochastic,
+		GraphDeviance, GraphKernel, GraphLogical, GraphNodes, GraphStochastic,
 		MathRandnum,
 		MonitorMonitors,
-		UpdaterActions, UpdaterMethods, UpdaterUpdaters;
+		UpdaterActions, UpdaterHMC, UpdaterMethods, UpdaterUpdaters;
 
 	TYPE
 		DistributeHook* = POINTER TO ABSTRACT RECORD
@@ -68,8 +68,8 @@ MODULE BugsInterface;
 
 	PROCEDURE (h: DistributeHook) SendMutable- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-		PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
-	VAR endOfAdating: INTEGER), NEW, ABSTRACT;
+	PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
+	OUT res: SET; VAR updater, worker, endOfAdating: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE DeleteFiles;
 		VAR
@@ -97,6 +97,42 @@ MODULE BugsInterface;
 		BugsMsg.StoreError(errorMsg)
 	END Error;
 
+	PROCEDURE OptimizeLinear;
+		VAR
+			i, num: INTEGER;
+			logicals: GraphLogical.Vector;
+			p: GraphLogical.Node;
+			parents: GraphNodes.List;
+			node: GraphNodes.Node;
+			constDiffs: BOOLEAN;
+		CONST
+			all = TRUE;
+	BEGIN
+		logicals := GraphLogical.nodes;
+		IF logicals # NIL THEN
+			num := LEN(logicals);
+			i := 0;
+			WHILE i < num DO
+				p := logicals[i];
+				IF GraphLogical.linear IN p.props THEN
+					EXCL(p.props, GraphLogical.linear);
+					parents := p.Parents(all);
+					constDiffs := TRUE;
+					WHILE (parents # NIL) & constDiffs DO
+						node := parents.node;
+						WITH node: GraphLogical.Node DO
+							constDiffs := GraphLogical.constDiffs IN node.props
+						ELSE
+						END;
+						parents := parents.next
+					END;
+					IF constDiffs THEN INCL(p.props, GraphLogical.constDiffs) END
+				END; 
+				INC(i)
+			END
+		END
+	END OptimizeLinear;
+	
 	PROCEDURE ReplaceSampler (node: GraphStochastic.Node; fact: UpdaterUpdaters.Factory; OUT ok: BOOLEAN);
 		VAR
 			i, size: INTEGER;
@@ -204,13 +240,12 @@ MODULE BugsInterface;
 
 	PROCEDURE Clear*;
 	BEGIN
-		IF hook # NIL THEN
-			hook.Clear;
-			hook := NIL
-		END;
+		IF hook # NIL THEN hook.Clear; hook := NIL END;
 		BugsMsg.Clear;
 		DeleteFiles;
 		GraphStochastic.Clear;
+		GraphLogical.Clear;
+		GraphKernel.Clear;
 		BugsParser.Clear;
 		BugsVariables.Clear;
 		UpdaterActions.Clear;
@@ -224,10 +259,7 @@ MODULE BugsInterface;
 	PROCEDURE Distribute* (workersPerChain, numChains: INTEGER);
 	BEGIN
 		ASSERT(hook # NIL, 20);
-		IF workersPerChain = 0 THEN
-			hook := NIL;
-			RETURN
-		END;
+		IF workersPerChain = 0 THEN hook := NIL; RETURN END;
 		hook.numChains := numChains;
 		hook.workersPerChain := workersPerChain;
 		hook.Distribute
@@ -255,8 +287,8 @@ MODULE BugsInterface;
 				BugsGraph.StoreInits(chain);
 				GraphStochastic.StoreValues(chain);
 				GraphLogical.EvaluateAllDiffs;
-				BugsGraph.OptimizeDifferentiation;
-				GraphLogical.StoreValues(chain); 
+				OptimizeLinear;
+				GraphLogical.StoreValues(chain);
 				BugsNodes.Checks(ok);
 				EXIT
 			ELSE	(*	try again	*)
@@ -296,7 +328,7 @@ MODULE BugsInterface;
 			GenerateInitsForChain(chain, fixFounders, ok);
 			IF ~ok THEN RETURN END;
 			INC(chain)
-		END;  
+		END;
 		UpdaterActions.SetInitialized
 	END GenerateInits;
 
@@ -368,7 +400,7 @@ MODULE BugsInterface;
 		MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
 	END LoadGenerator;
 
-	PROCEDURE LoadInits* (VAR s: BugsMappers.Scanner; chain: INTEGER;  OUT ok: BOOLEAN);
+	PROCEDURE LoadInits* (VAR s: BugsMappers.Scanner; chain: INTEGER; OUT ok: BOOLEAN);
 		VAR
 			pos: INTEGER;
 			protocol: ARRAY 120 OF CHAR;
@@ -394,7 +426,7 @@ MODULE BugsInterface;
 		GraphStochastic.StoreValues(chain);
 		IF BugsGraph.IsInitialized(chain) THEN
 			GraphLogical.EvaluateAllDiffs;
-			BugsGraph.OptimizeDifferentiation;
+			OptimizeLinear;
 			GraphLogical.StoreValues(chain);
 			BugsNodes.Checks(ok);
 			IF ~ok THEN RETURN END;
@@ -449,9 +481,7 @@ MODULE BugsInterface;
 
 	PROCEDURE RecvMCMCState*;
 	BEGIN
-		IF hook # NIL THEN
-			hook.RecvMCMCState
-		END
+		IF hook # NIL THEN hook.RecvMCMCState END
 	END RecvMCMCState;
 
 	PROCEDURE Restart* (VAR rd: Stores.Reader);
@@ -471,9 +501,7 @@ MODULE BugsInterface;
 
 	PROCEDURE SendCommand* (IN command: Command);
 	BEGIN
-		IF hook # NIL THEN
-			hook.SendCommand(command)
-		END
+		IF hook # NIL THEN hook.SendCommand(command) END
 	END SendCommand;
 
 	PROCEDURE SetDistributeHook* (h: DistributeHook);
@@ -486,21 +514,50 @@ MODULE BugsInterface;
 		MonitorMonitors.SetNumChainsMonitors(numChains)
 	END SetNumChainsMonitors;
 
+	PROCEDURE UpdateError* (res: SET; updater: UpdaterUpdaters.Updater);
+		VAR
+			i, pos: INTEGER;
+			error, name, msg, install: Dialog.String;
+			p: GraphNodes.Node;
+	BEGIN
+		p := updater.Prior(0);
+		BugsIndex.FindGraphNode(p, name);
+		IF name[0] = "<" THEN name[0] := " " END;
+		Strings.Find(name, ">", 0, pos); IF pos # - 1 THEN name[pos] := " " END;
+		updater.Install(install);
+		BugsMsg.Lookup(install, install);
+		msg := "update error for node " + name + " algorithm " + install + " error";
+		i := 0;
+		WHILE i < MAX(SET) DO
+			IF i IN res THEN
+				Strings.IntToString(i, error);
+				error := "UpdaterError" + error;
+				BugsMsg.Lookup(error, error);
+				msg := msg + " " + error
+			END;
+			INC(i)
+		END;
+		BugsMsg.StoreError(msg)
+	END UpdateError;
+
 	PROCEDURE UpdateModel* (numChains, thin: INTEGER; overRelax: BOOLEAN; OUT ok: BOOLEAN);
 		VAR
 			res: SET;
-			chain, endOfAdapting, i, iteration, j, pos: INTEGER;
-			error, name, name1, msg, install: Dialog.String;
-			updater: UpdaterUpdaters.Updater;
-			p: GraphNodes.Node;
+			chain, endOfAdapting, iteration, j, updater, worker: INTEGER;
+			u: UpdaterUpdaters.Updater;
 	BEGIN
 		ok := TRUE;
-		IF hook # NIL THEN
+		IF hook # NIL THEN	(*	model is distributed	*)
 			iteration := UpdaterActions.iteration;
 			endOfAdapting := UpdaterActions.endOfAdapting;
-			hook.Update(thin, iteration, overRelax, endOfAdapting);
+			hook.Update(thin, iteration, overRelax, res, updater, worker, endOfAdapting);
 			UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, endOfAdapting);
-		ELSE
+			IF res # {} THEN
+				ok := FALSE;
+				u := UpdaterActions.updaters[0, updater];
+				UpdateError(res, u)
+			END
+		ELSE (*	model is not distributed	*)
 			chain := 0;
 			WHILE (chain < numChains) & ok DO
 				MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
@@ -517,28 +574,8 @@ MODULE BugsInterface;
 					GraphLogical.StoreValues(chain);
 					INC(chain)
 				ELSE
-					GraphStochastic.LoadValues(chain);
-					GraphLogical.LoadValues(chain);
-					p := updater.Prior(0);
-					updater.Install(name);
-					BugsMsg.Lookup(name, name1);
-					BugsIndex.FindGraphNode(p, name);
-					IF name[0] = "<" THEN name[0] := " " END;
-					Strings.Find(name, ">", 0, pos); IF pos # - 1 THEN name[pos] := " " END;
-					updater.Install(install);
-					BugsMsg.Lookup(install, install);
-					msg := "update error for node " + name + " algorithm " + install + " error";
-					i := 0;
-					WHILE i < MAX(SET) DO
-						IF i IN res THEN
-							Strings.IntToString(i, error);
-							error := "UpdaterError" + error;
-							BugsMsg.Lookup(error, error);
-							msg := msg + " " + error
-						END;
-						INC(i)
-					END;
-					BugsMsg.StoreError(msg);
+					u := UpdaterActions.updaters[0, updater];
+					UpdateError(res, u)
 				END
 			END;
 			MathRandnum.SetGenerator(BugsRandnum.generators[0]);
@@ -552,6 +589,40 @@ MODULE BugsInterface;
 			END
 		END
 	END UpdateModel;
+
+	PROCEDURE UpdateModelHMC* (numChains: INTEGER; OUT ok: BOOLEAN);
+		VAR
+			chain, iteration, updater: INTEGER;
+			res: SET;
+			u: UpdaterUpdaters.Updater;
+	BEGIN
+		chain := 0;
+		res := {};
+		WHILE (chain < numChains) & (res = {}) DO
+			MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
+			GraphStochastic.LoadValues(chain);
+			GraphLogical.LoadValues(chain);
+			iteration := UpdaterActions.iteration + 1;
+			UpdaterHMC.Update(numSteps, iteration, warmUpPeriod, chain, stepSize, res, updater);
+			ok := res = {};
+			IF ok THEN
+				GraphStochastic.StoreValues(chain);
+				GraphLogical.StoreValues(chain)
+			ELSE
+				GraphStochastic.LoadValues(chain);
+				GraphLogical.LoadValues(chain);
+				u := UpdaterActions.updaters[0, updater];
+				UpdateError(res, u)
+			END;
+			INC(chain)
+		END;
+		MathRandnum.SetGenerator(BugsRandnum.generators[0]);
+		IF UpdaterActions.iteration = UpdaterHMC.startIt + warmUpPeriod THEN
+			UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, UpdaterActions.iteration + 1)
+		ELSE
+			UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, UpdaterActions.endOfAdapting)
+		END
+	END UpdateModelHMC;
 
 	PROCEDURE UpdateMonitors* (numChains: INTEGER);
 		VAR
