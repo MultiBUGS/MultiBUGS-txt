@@ -170,11 +170,7 @@ MODULE SpatialCARNormal;
 			i, size: INTEGER;
 	BEGIN
 		size := node.Size();
-		i := 0;
-		WHILE i < size DO
-			p0[i] := 0.0;
-			INC(i)
-		END
+		i := 0; WHILE i < size DO p0[i] := 0.0; INC(i) END
 	END MVPriorForm;
 
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;

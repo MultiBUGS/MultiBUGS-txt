@@ -12,8 +12,7 @@ MODULE GraphKernel;
 	
 
 	IMPORT
-		Stores := Stores64,
-		GraphLogical, GraphNodes, GraphScalar;
+		GraphLogical, GraphScalar;
 
 	TYPE
 
@@ -31,7 +30,7 @@ MODULE GraphKernel;
 
 	PROCEDURE (node: Node) AllocateState* (size: INTEGER), NEW;
 	BEGIN
-		NEW(node.state, size)
+		IF size > 0 THEN NEW(node.state, size) END
 	END AllocateState;
 
 	PROCEDURE (node: Node) InitKernel-, NEW, ABSTRACT;
@@ -53,7 +52,7 @@ MODULE GraphKernel;
 
 	PROCEDURE Kernels* (logicals: GraphLogical.Vector): Vector;
 		VAR
-			i, j, num, numKernel, size: INTEGER;
+			i, j, num, numKernel: INTEGER;
 			p: GraphLogical.Node;
 			nodes: Vector;
 	BEGIN
@@ -62,27 +61,12 @@ MODULE GraphKernel;
 			num := LEN(logicals);
 			i := 0;
 			numKernel := 0;
-			size := 0;
-			WHILE i < num DO
-				p := logicals[i];
-				WITH p: Node DO
-					INC(numKernel);
-				ELSE
-				END;
-				INC(i)
-			END;
-			IF size > 0 THEN
+			WHILE i < num DO p := logicals[i]; WITH p: Node DO INC(numKernel); ELSE END; INC(i) END;
+			IF numKernel > 0 THEN
 				NEW(nodes, numKernel);
 				i := 0;
 				j := 0;
-				WHILE i < num DO
-					p := logicals[i];
-					WITH p: Node DO
-						nodes[j] := p; INC(j)
-					ELSE
-					END;
-					INC(i)
-				END
+				WHILE i < num DO p := logicals[i]; WITH p: Node DO nodes[j] := p; INC(j) ELSE END; INC(i) END
 			END
 		END;
 		RETURN nodes
@@ -99,7 +83,7 @@ MODULE GraphKernel;
 			j := 0;
 			WHILE i < num DO
 				node := nodes[i];
-				size := LEN(node.state);
+				IF node.state # NIL THEN size := LEN(node.state) ELSE size := 0 END;
 				k := 0; WHILE k < size DO node.state[k] := values[chain, j]; INC(k); INC(j) END;
 				node.LoadState;
 				INC(i)
@@ -118,9 +102,7 @@ MODULE GraphKernel;
 			num := LEN(kernels);
 			i := 0;
 			WHILE i < num DO
-				p := kernels[i];
-				IF p.state # NIL THEN INC(size, LEN(p.state)) END;
-				INC(i)
+				p := kernels[i]; IF p.state # NIL THEN INC(size, LEN(p.state)) END; INC(i)
 			END;
 			IF size # 0 THEN
 				NEW(values, numChains);
@@ -142,7 +124,7 @@ MODULE GraphKernel;
 			WHILE i < num DO
 				node := nodes[i];
 				size := LEN(node.state);
-				node.StoreState;
+				node.StoreState; 
 				k := 0; WHILE k < size DO values[chain, j] := node.state[k]; INC(k); INC(j) END;
 				INC(i)
 			END

@@ -20,7 +20,7 @@ MODULE GraphPiecewise;
 
 	TYPE
 		Node = POINTER TO RECORD (GraphScalar.Node)
-			components: POINTER TO ARRAY OF GraphNodes.Node;
+			components: GraphNodes.Vector;
 			index, dummy: GraphNodes.Node
 		END;
 

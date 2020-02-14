@@ -139,7 +139,7 @@ MODULE PharmacoModel;
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction- (parent: GraphNodes.Node): INTEGER;
 	BEGIN
 		RETURN ClassFunction(node.params, node.scalars, parent)
 	END ClassFunction;

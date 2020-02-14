@@ -52,6 +52,15 @@ MODULE BugsComponents;
 		RETURN vector;
 	END ListToVector;
 
+	PROCEDURE IsNew (name: Files.Name; modList: List): BOOLEAN;
+		VAR
+			cursor: List;
+	BEGIN
+		cursor := modList;
+		WHILE (cursor # NIL) & (cursor.name # name) DO cursor := cursor.next END;
+		RETURN cursor = NIL
+	END IsNew;
+
 	PROCEDURE AddModule (name: Files.Name; VAR modList: List);
 		VAR
 			entry: List;
@@ -66,25 +75,16 @@ MODULE BugsComponents;
 		ELSIF name = "Files64" THEN
 			AddModule("HostFiles64", modList)
 		ELSIF name = "MathSparsematrix" THEN
-			(*	add in sparse matrix library if found on this computer	*)
+			(*	add in sparse matrix library if found on this computer and used	*)
 			IF Kernel.ThisLoadedMod("MathTaucsImp") # NIL THEN
-				AddModule("MathTaucsImp", modList)
+				IF ~IsNew("UpdaterGMRF", modList) THEN AddModule("MathTaucsImp", modList) END
 			END
 		ELSIF name = "MPI" THEN
 			(*	add implementation of MPI map name in string resource file	*)
-			Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
+			Dialog.MapString("#Bugs:MPI" + platform, mpiImp); 
 			AddModule(mpiImp$, modList);
 		END
 	END AddModule;
-
-	PROCEDURE IsNew (name: Files.Name; modList: List): BOOLEAN;
-		VAR
-			cursor: List;
-	BEGIN
-		cursor := modList;
-		WHILE (cursor # NIL) & (cursor.name # name) DO cursor := cursor.next END;
-		RETURN cursor = NIL
-	END IsNew;
 
 	PROCEDURE Imports (name: Files.Name; VAR modList: List);
 		VAR

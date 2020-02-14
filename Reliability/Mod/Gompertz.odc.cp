@@ -26,7 +26,7 @@ MODULE ReliabilityGompertz;
 
 	TYPE
 
-		Node = POINTER TO RECORD(GraphConjugateUV.Node)
+		Node = POINTER TO RECORD(GraphUnivariate.Node)
 			alpha, theta: GraphNodes.Node
 		END;
 
@@ -63,29 +63,17 @@ MODULE ReliabilityGompertz;
 
 	PROCEDURE (node: Node) ClassifyLikelihoodUnivariate (parent: GraphStochastic.Node): INTEGER;
 		VAR
-			density, density0, density1, f0, f1: INTEGER;
+			f0, f1: INTEGER;
 	BEGIN
 		f0 := GraphStochastic.ClassFunction(node.alpha, parent);
 		f1 := GraphStochastic.ClassFunction(node.theta, parent);
-		CASE f0 OF
-		|GraphRules.const:
-			density0 := GraphRules.unif
-		|GraphRules.other:
-			density0 := GraphRules.general
+		IF (f0 = GraphRules.const) & (f1 = GraphRules.const) THEN
+			RETURN GraphRules.unif
+		ELSIF (f0 = GraphRules.other) OR (f1 = GraphRules.other) THEN
+			RETURN GraphRules.general
 		ELSE
-			density0 := GraphRules.genDiff
+			RETURN GraphRules.genDiff
 		END;
-		density1 := GraphRules.ClassifyPrecision(f1);
-		IF density0 = GraphRules.unif THEN
-			density := density1
-		ELSIF density1 = GraphRules.unif THEN
-			density := density0
-		ELSIF (density0 # GraphRules.general) & (density1 # GraphRules.general) THEN
-			density := GraphRules.genDiff
-		ELSE
-			density := GraphRules.general
-		END;
-		RETURN density
 	END ClassifyLikelihoodUnivariate;
 
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
@@ -174,19 +162,6 @@ MODULE ReliabilityGompertz;
 		install := "ReliabilityGompertz.Install"
 	END Install;
 
-	PROCEDURE (likelihood: Node) LikelihoodForm (as: INTEGER; VAR x: GraphNodes.Node;
-	OUT p0, p1: REAL);
-		VAR
-			alpha,value: REAL;
-	BEGIN
-		ASSERT(as = GraphRules.gamma, 21);
-		p0 := 1.0;
-		alpha := likelihood.alpha.value;
-		value := likelihood.value;
-		p1 := -(1.0 - Math.Exp(alpha * value)) / alpha;
-		x := likelihood.theta
-	END LikelihoodForm;
-
 	PROCEDURE (node: Node) Location (): REAL;
 		VAR
 			alpha, theta, median: REAL;
@@ -233,11 +208,6 @@ MODULE ReliabilityGompertz;
 		node.theta.AddParent(list);
 		RETURN list
 	END ParentsUnivariate;
-
-	PROCEDURE (prior: Node) PriorForm (as: INTEGER; OUT p0, p1: REAL);
-	BEGIN
-		HALT(0)
-	END PriorForm;
 
 	PROCEDURE (node: Node) Sample (OUT res: SET);
 		VAR

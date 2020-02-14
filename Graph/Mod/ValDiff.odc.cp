@@ -225,7 +225,7 @@ MODULE GraphValDiff;
 	BEGIN
 		p := node.parent;
 		WITH p: GraphLogical.Node DO
-			class := p.ClassFunction(node.x)
+			class := GraphStochastic.ClassFunction(p, node.x)
 		ELSE
 			class := GraphRules.const
 		END;

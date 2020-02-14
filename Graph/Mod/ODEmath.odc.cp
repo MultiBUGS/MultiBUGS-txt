@@ -1,4 +1,4 @@
-(*	
+(*
 
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
@@ -19,7 +19,7 @@ MODULE GraphODEmath;
 			t0, tol: REAL;
 			x0, theta, tGrid: GraphNodes.Vector;
 			x0Start, x0Size, thetaStart, thetaSize, tGridSize, tGridStart: INTEGER;
-			x0Val, x1Val, thetaVal: POINTER TO ARRAY OF REAL;
+			thetaVal: POINTER TO ARRAY OF REAL;
 			solver: MathODE.Solver
 		END;
 
@@ -77,10 +77,11 @@ MODULE GraphODEmath;
 		RETURN form
 	END ClassFunction;
 
-	PROCEDURE (node: Node) Evaluate ;
+	PROCEDURE (node: Node) Evaluate;
 		VAR
 			i, j, tGridSize, x0Size, x0Start, thetaSize, thetaStart, tStart: INTEGER;
 			t0, tol, step: REAL;
+			solver: MathODE.Solver;
 	BEGIN
 		(* size of state space, parameter space, and time grid *)
 		x0Size := node.x0Size;
@@ -91,8 +92,9 @@ MODULE GraphODEmath;
 		tStart := node.tGridStart;
 		tol := node.tol;
 		i := 0;
+		solver := node.solver;
 		WHILE i < x0Size DO
-			node.x0Val[i] := node.x0[x0Start + i].value;
+			solver.x0Val[i] := node.x0[x0Start + i].value;
 			INC(i)
 		END;
 		i := 0;
@@ -108,18 +110,18 @@ MODULE GraphODEmath;
 				t0 := node.tGrid[i - 1 + tStart].value;
 			END;
 			step := node.tGrid[i + tStart].value - t0;
-			node.solver.AccurateStep(node.thetaVal, node.x0Val, x0Size, t0, step, tol, node.x1Val);
+			node.solver.AccurateStep(node.thetaVal, solver.x0Val, x0Size, t0, step, tol, solver.x1Val);
 			j := 0;
 			WHILE j < x0Size DO
-				node.components[i * x0Size + j].value := node.x1Val[j];
-				node.x0Val[j] := node.x1Val[j];
+				node.components[i * x0Size + j].value := solver.x1Val[j];
+				solver.x0Val[j] := solver.x1Val[j];
 				INC(j)
 			END;
 			INC(i);
 		END
 	END Evaluate;
 
-	PROCEDURE (node: Node) EvaluateDiffs ;
+	PROCEDURE (node: Node) EvaluateDiffs;
 	BEGIN
 		HALT(0)
 	END EvaluateDiffs;
@@ -148,12 +150,6 @@ MODULE GraphODEmath;
 		v.nElem := node.tGridSize;
 		v.step := 1;
 		GraphNodes.ExternalizeSubvector(v, wr);
-		len := LEN(node.x0Val);
-		wr.WriteInt(len);
-		i := 0; WHILE i < len DO wr.WriteReal(node.x0Val[i]); INC(i) END;
-		len := LEN(node.x1Val);
-		wr.WriteInt(len);
-		i := 0; WHILE i < len DO wr.WriteReal(node.x1Val[i]); INC(i) END;
 		len := LEN(node.thetaVal);
 		wr.WriteInt(len);
 		i := 0; WHILE i < len DO wr.WriteReal(node.thetaVal[i]); INC(i) END
@@ -183,12 +179,6 @@ MODULE GraphODEmath;
 		node.tGridStart := v.start;
 		node.tGridSize := v.nElem;
 		rd.ReadInt(len);
-		IF len > 0 THEN NEW(node.x0Val, len) ELSE node.x0Val := NIL END;
-		i := 0; WHILE i < len DO rd.ReadReal(node.x0Val[i]); INC(i) END;
-		rd.ReadInt(len);
-		IF len > 0 THEN NEW(node.x1Val, len) ELSE node.x1Val := NIL END;
-		i := 0; WHILE i < len DO rd.ReadReal(node.x1Val[i]); INC(i) END;
-		rd.ReadInt(len);
 		IF len > 0 THEN NEW(node.thetaVal, len) ELSE node.thetaVal := NIL END;
 		i := 0; WHILE i < len DO rd.ReadReal(node.thetaVal[i]); INC(i) END;
 	END Internalize;
@@ -203,19 +193,21 @@ MODULE GraphODEmath;
 	PROCEDURE (node: Node) InternalizeVector (VAR rd: Stores.Reader);
 		VAR
 			p: Node;
+			i, size: INTEGER;
 	BEGIN
 		IF node.index = 0 THEN
-			Internalize(node, rd)
-		ELSE
-			p := node.components[0](Node);
-			node.solver := p.solver;
-			node.tGrid := p.tGrid;
-			node.tGridSize := p.tGridSize;
-			node.tGridStart := p.tGridStart;
-			node.x0Val := p.x0Val;
-			node.x1Val := p.x1Val;
-			node.tol := p.tol;
-			node.thetaVal := p.thetaVal
+			Internalize(node, rd);
+			i := 1;
+			WHILE i < size DO
+				p := node.components[i](Node);
+				p.solver := node.solver;
+				p.tGrid := node.tGrid;
+				p.tGridSize := node.tGridSize;
+				p.tGridStart := node.tGridStart;
+				p.tol := node.tol;
+				p.thetaVal := node.thetaVal;
+				INC(i)
+			END
 		END
 	END InternalizeVector;
 
@@ -224,10 +216,10 @@ MODULE GraphODEmath;
 		node.x0 := NIL;
 		node.tol := 0.0;
 		node.x0 := NIL;
-		node.x0Start :=  - 1;
+		node.x0Start := - 1;
 		node.x0Size := 0;
 		node.theta := NIL;
-		node.thetaStart :=  - 1;
+		node.thetaStart := - 1;
 		node.thetaSize := 0;
 		node.tGrid := NIL;
 		node.tGridStart := 0;
@@ -238,7 +230,7 @@ MODULE GraphODEmath;
 	BEGIN
 		node.solver.equations.Install(install);
 	END Install;
-	
+
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
 			i, start, nElem: INTEGER;
@@ -302,8 +294,6 @@ MODULE GraphODEmath;
 			ASSERT(args.vectors[3].nElem > 0, 21);
 			node.tol := args.vectors[3].components[0].value;
 			IF node.index = 0 THEN
-				NEW(node.x0Val, node.x0Size);
-				NEW(node.x1Val, node.x0Size);
 				NEW(node.thetaVal, node.thetaSize);
 			ELSE
 				p := node.components[0](Node);
@@ -311,8 +301,6 @@ MODULE GraphODEmath;
 				node.tGrid := p.tGrid;
 				node.tGridSize := p.tGridSize;
 				node.tGridStart := p.tGridStart;
-				node.x0Val := p.x0Val;
-				node.x1Val := p.x1Val;
 				node.tol := p.tol;
 				node.thetaVal := p.thetaVal
 			END;

@@ -13,7 +13,7 @@ MODULE GraphUVMRF;
 	
 
 	IMPORT
-		Math, Stores := Stores64,
+		Math, Meta, Stores := Stores64,
 		GraphMRF, GraphNodes, GraphRules, GraphStochastic,
 		MathFunc, MathRandnum, MathSparsematrix;
 
@@ -26,6 +26,7 @@ MODULE GraphUVMRF;
 		eps = 1.0E-10;
 
 	VAR
+		sparseFactory: MathSparsematrix.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 		log2Pi: REAL;
@@ -172,42 +173,30 @@ MODULE GraphUVMRF;
 		CONST
 			epss = 1.0E-6;
 	BEGIN
-		classPrior := node.ClassifyPrior();
-		IF classPrior # GraphRules.normal THEN 
-			res := {GraphNodes.lhs}; RETURN
-		END;
 		res := {};
+		classPrior := node.ClassifyPrior();
+		IF classPrior # GraphRules.normal THEN  res := {GraphNodes.lhs}; RETURN END;
 		size := node.Size();
 		node.MatrixInfo(type, nElements);
 		NEW(colPtr, size);
-		NEW(rowInd, nElements);
-		NEW(elements, nElements);
+		NEW(rowInd, nElements); NEW(elements, nElements);
 		NEW(constraints, 1, size);
-		NEW(x, size);
-		NEW(z, size);
-		NEW(eps, size);
-		NEW(mu, size);
+		NEW(x, size); NEW(z, size); NEW(eps, size); NEW(mu, size);
 		node.MVPriorForm(mu, p1);
 		node.MatrixMap(rowInd, colPtr);
 		node.MatrixElements(elements);
+		MathSparsematrix.SetFactory(sparseFactory);
 		m := MathSparsematrix.New(size, nElements);
+		MathSparsematrix.SetFactory(MathSparsematrix.stdFact);
 		MathSparsematrix.SetMap(m, rowInd, colPtr);
 		MathSparsematrix.SetElements(m, elements);
 		i := 0; WHILE i < size DO eps[i] := epss; INC(i) END;
 		MathSparsematrix.AddDiagonals(m, eps, size);
-		llt := MathSparsematrix.LLTFactor(m);
-		i := 0;
-		WHILE i < size DO
-			x[i] := mu[i] + MathRandnum.StandardNormal();
-			INC(i)
-		END;
+		llt := MathSparsematrix.LLTFactor(m); 
+		i := 0; WHILE i < size DO x[i] := mu[i] + MathRandnum.StandardNormal(); INC(i) END;
 		MathSparsematrix.BackSub(llt, x, size);
 		IF node.NumberConstraints() = 0 THEN
-			i := 0;
-			WHILE i < size DO
-				node.components[i].value := x[i];
-				INC(i)
-			END;
+			i := 0; WHILE i < size DO node.components[i].value := x[i]; INC(i) END;
 		ELSE
 			node.Constraints(constraints);
 			i := 0; WHILE i < size DO z[i] := constraints[0, i]; INC(i) END;
@@ -215,19 +204,11 @@ MODULE GraphUVMRF;
 			MathSparsematrix.BackSub(llt, z, size);
 			aX := 0; aZ := 0;
 			i := 0;
-			WHILE i < size DO
-				aX := aX + constraints[0, i] * x[i];
-				aZ := aZ + constraints[0, i] * z[i];
-				INC(i)
-			END;
+			WHILE i < size DO aX := aX + constraints[0, i] * x[i]; aZ := aZ + constraints[0, i] * z[i]; INC(i) END;
 			i := 0;
-			WHILE i < size DO
-				x[i] := x[i] - z[i] * aX / aZ;
-				node.components[i].value := x[i];
-				INC(i)
-			END;
-			i := 0; constraint := 0.0;
-			WHILE i < size DO constraint := constraint + constraints[0, i] * x[i]; INC(i) END;
+			WHILE i < size DO x[i] := x[i] - z[i] * aX / aZ; node.components[i].value := x[i]; INC(i) END;
+			constraint := 0.0;
+			i := 0; WHILE i < size DO constraint := constraint + constraints[0, i] * x[i]; INC(i) END;
 			constraint := constraint / size;
 			ASSERT(ABS(constraint) < 1.0E-6, 77)
 		END
@@ -281,9 +262,23 @@ MODULE GraphUVMRF;
 	END Maintainer;
 
 	PROCEDURE Init;
+		VAR
+			item: Meta.Item;
+			command: RECORD(Meta.Value) Do: PROCEDURE END;
+			ok: BOOLEAN;
 	BEGIN
-		Maintainer;
 		log2Pi := Math.Ln(2 * Math.Pi());
+		MathSparsematrix.SetFactory(MathSparsematrix.stdFact);
+		Meta.LookupPath("MathTaucsImp.Install", item);
+		IF item.obj = Meta.procObj THEN
+			item.GetVal(command, ok);
+			IF ok THEN
+				command.Do;
+				sparseFactory := MathSparsematrix.fact;
+				MathSparsematrix.SetFactory(MathSparsematrix.stdFact)
+			END
+		END;
+		Maintainer;
 	END Init;
 
 BEGIN

@@ -29,8 +29,7 @@ MODULE GraphMRF;
 
 	PROCEDURE (node: Node) Bounds* (OUT lower, upper: REAL);
 	BEGIN
-		lower :=  - INF;
-		upper := INF
+		lower :=  - INF; upper := INF
 	END Bounds;
 
 	PROCEDURE (node: Node) MatrixElements* (OUT values: ARRAY OF REAL), NEW, ABSTRACT;

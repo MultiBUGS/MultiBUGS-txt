@@ -77,7 +77,7 @@ MODULE BugsParallel;
 		END ChildrenThisCore;
 
 	BEGIN
-		bool := OnThisCore(stoch) & ChildrenThisCore(stoch.children);
+		bool := ~(stoch IS GraphMRF.Node) & OnThisCore(stoch) & ChildrenThisCore(stoch.children);
 		RETURN bool
 	END ThisCore;
 
@@ -118,7 +118,7 @@ MODULE BugsParallel;
 				ELSIF p IS GraphMRF.Node THEN
 					p.Install(install);
 					IF install = "SpatialCARProper.Install" THEN
-						p.props := p.props + marks
+						p.props := p.props + (marks - {thisCore})
 					END
 				END;
 				INC(i)
@@ -162,7 +162,7 @@ MODULE BugsParallel;
 				ELSIF p IS GraphMRF.Node THEN
 					p.Install(install);
 					IF install = "SpatialCARProper.Install" THEN
-						p.props := p.props - marks
+						p.props := p.props - marks 
 					END
 				END;
 				INC(i)
@@ -407,10 +407,7 @@ MODULE BugsParallel;
 		VAR
 			len: INTEGER;
 	BEGIN
-		len := 0;
-		IF globalStochs # NIL THEN
-			len := LEN(globalStochs[0])
-		END;
+		len := 0; IF globalStochs # NIL THEN len := LEN(globalStochs[0]) END;
 		RETURN len
 	END CountStochasticPointers;
 
@@ -699,7 +696,7 @@ MODULE BugsParallel;
 				i := 0;
 				WHILE i < num DO
 					p := globalDeviance[rank, i];
-					MarkNode(p, {write, thisCore});
+					MarkNode(p, {write, thisCore}); 
 					list := GraphLogical.Parents(p, all);
 					WHILE list # NIL DO
 						log := list.node;
@@ -722,21 +719,13 @@ MODULE BugsParallel;
 				WHILE j < size DO
 					p := u.Node(j);
 					q := u.Prior(j);
-					MarkNode(p, {write, thisCore});
+					MarkNode(p, {write, thisCore}); 
 					list := GraphLogical.Parents(p, all);
-					WHILE list # NIL DO
-						log := list.node;
-						MarkNode(log, {write});
-						list := list.next
-					END;
+					WHILE list # NIL DO log := list.node; MarkNode(log, {write}); list := list.next END;
 					IF p # q THEN
 						MarkNode(q, {write});
 						list := GraphLogical.Parents(q, all);
-						WHILE list # NIL DO
-							log := list.node;
-							MarkNode(log, {write});
-							list := list.next
-						END
+						WHILE list # NIL DO log := list.node; MarkNode(log, {write}); list := list.next END
 					END;
 					INC(j)
 				END
@@ -1064,26 +1053,18 @@ MODULE BugsParallel;
 		pos := wr.Pos();
 		chain := 0;
 		WHILE chain < numChains DO
-			uPos[chain] := - 1;
-			wr.WriteLong(uPos[chain]);
-			INC(chain)
+			uPos[chain] := - 1; wr.WriteLong(uPos[chain]); INC(chain)
 		END;
 		uEndPos := - 1;
 		wr.WriteLong(uEndPos);
 		chain := 0;
 		WHILE chain < numChains DO
-			uPos[chain] := wr.Pos();
-			ExternalizeUpdatersInternals(rank, chain, wr);
-			INC(chain)
+			uPos[chain] := wr.Pos(); ExternalizeUpdatersInternals(rank, chain, wr); INC(chain)
 		END;
 		uEndPos := wr.Pos();
 		(*	write out actual positional info	*)
 		wr.SetPos(pos);
-		chain := 0;
-		WHILE chain < numChains DO
-			wr.WriteLong(uPos[chain]);
-			INC(chain)
-		END;
+		chain := 0; WHILE chain < numChains DO wr.WriteLong(uPos[chain]); INC(chain) END;
 		wr.WriteLong(uEndPos);
 		wr.SetPos(uEndPos);
 		UpdaterUpdaters.EndExternalize(wr);

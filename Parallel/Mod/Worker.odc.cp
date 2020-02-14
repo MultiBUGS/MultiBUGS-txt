@@ -47,7 +47,7 @@ MODULE ParallelWorker;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-		PROCEDURE Update (thin, iteration, endOfAdapting, warmUpPeriod, numSteps: INTEGER;
+	PROCEDURE Update (thin, iteration, endOfAdapting, warmUpPeriod, numSteps: INTEGER;
 	eps: REAL; seperable, overRelax, useHMC: BOOLEAN);
 		VAR
 			i, updater: INTEGER;
@@ -69,9 +69,7 @@ MODULE ParallelWorker;
 				INC(i)
 			END;
 			IF endOfAdapting > iteration THEN
-				IF ~ParallelActions.IsAdapting() THEN
-					endOfAdapting := iteration + 1
-				END
+				IF ~ParallelActions.IsAdapting() THEN endOfAdapting := iteration + 1 END
 			END;
 		END;
 		status[0] := endOfAdapting;
@@ -196,6 +194,7 @@ MODULE ParallelWorker;
 		GraphKernel.SetKernels(kernels, 1);
 		GraphLogical.EvaluateAllDiffs;
 		GraphLogical.StoreValues(0);
+		GraphKernel.StoreValues(0);
 		(*	loop to handle request from master	*)
 		LOOP
 			MPIworker.RecvIntegers(command);

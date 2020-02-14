@@ -123,7 +123,7 @@ MODULE UpdaterSlicegamma;
 						child(GraphConjugateUV.Node).LikelihoodForm(GraphRules.normal, x, p0, p1);
 						gamma := x # prior;
 						IF gamma & (x IS GraphLogical.Node) THEN
-							gamma := x(GraphLogical.Node).ClassFunction(prior) = GraphRules.const
+							gamma := GraphStochastic.ClassFunction(x, prior) = GraphRules.const
 						END
 					END
 				END;

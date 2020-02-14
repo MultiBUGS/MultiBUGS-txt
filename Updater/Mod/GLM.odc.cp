@@ -121,7 +121,7 @@ MODULE UpdaterGLM;
 				INC(j)
 			END;
 			IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN
-				GraphLogical.ClearDiffs(updater.dependents)
+				GraphLogical.ClearMarks(updater.dependents, {GraphLogical.diff})
 			END;
 		END
 	END DesignMatrix;

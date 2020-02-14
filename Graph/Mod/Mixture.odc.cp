@@ -133,6 +133,7 @@ MODULE GraphMixture;
 			INC(i)
 		END;
 		q := node.vector[off];
+		q := node.vector[off];
 		i := 0; WHILE i < N DO node.work[i] := q.Diff(x[i]); INC(i) END
 	END EvaluateDiffs;
 

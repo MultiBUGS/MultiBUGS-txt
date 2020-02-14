@@ -43,14 +43,11 @@ MODULE UpdaterDirichlet;
 			child: GraphStochastic.Node;
 			components: GraphStochastic.Vector;
 	BEGIN
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.EvaluateDiffs END;
 		as := GraphRules.dirichlet;
 		size := prior.Size();
 		components := prior.components;
-		i := 0;
-		WHILE i < size DO
-			p[i] := 0.0;
-			INC(i)
-		END;
+		i := 0; WHILE i < size DO p[i] := 0.0; INC(i) END;
 		children := prior.children;
 		IF children # NIL THEN
 			num := LEN(children);
@@ -64,10 +61,7 @@ MODULE UpdaterDirichlet;
 						IF xVector[start + i * step] = components[i] THEN
 							p[i] := p[i] + value[i]
 						ELSE
-							components[i].value := 0.0;
-							weight := xVector[start + i * step].value;
-							components[i].value := 1.0;
-							weight := xVector[start + i * step].value - weight;
+							weight := xVector[start + i * step].Diff(components[i]);
 							p[i] := p[i] + weight * value[i]
 						END;
 						INC(i)
@@ -78,16 +72,14 @@ MODULE UpdaterDirichlet;
 					IF x = components[i] THEN
 						p[i] := p[i] + 1
 					ELSE
-						components[i].value := 0.0;
-						weight := x.value;
-						components[i].value := 1.0;
-						weight := x.value - weight;
+						weight := x.Diff(prior);
 						p[i] := p[i] + weight
 					END
 				END;
 				INC(j)
 			END
 		END;
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.ClearDiffs END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)
 		END
@@ -107,13 +99,37 @@ MODULE UpdaterDirichlet;
 
 	PROCEDURE (updater: Updater) InitializeMultivariate;
 		VAR
-			size: INTEGER;
+			p, prior, q: GraphStochastic.Node;
+			children: GraphStochastic.Vector;
+			continuous: BOOLEAN;
+			list: GraphStochastic.List;
+			i, num, size: INTEGER;
+		CONST
+			all = TRUE;
 	BEGIN
 		size := updater.Size();
 		IF size > LEN(value) THEN
 			NEW(value, size);
 			NEW(alpha, size);
-		END
+		END;
+		continuous := TRUE;
+		prior := updater.prior[0];
+		children := prior.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE (i < num) & continuous DO
+				p := children[i];
+				list := GraphStochastic.Parents(p, all);
+				WHILE (list # NIL) & continuous DO
+					q := list.node;
+					IF GraphStochastic.integer IN q.props THEN continuous := FALSE END;
+					list := list.next
+				END;
+				INC(i)
+			END
+		END;
+		IF continuous THEN INCL(prior.props, GraphStochastic.optimizeDiffs) END
 	END InitializeMultivariate;
 
 	PROCEDURE (updater: Updater) Install (OUT install: ARRAY OF CHAR);

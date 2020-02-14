@@ -13,7 +13,7 @@ MODULE GraphFunctional;
 	
 
 	IMPORT
-		Stores := Stores64, 
+		Stores := Stores64,
 		BugsMsg,
 		GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic,
 		MathFunctional;
@@ -23,7 +23,7 @@ MODULE GraphFunctional;
 			tol: REAL;
 			function, x, x0, x1: GraphNodes.Node;
 			functional: MathFunctional.Functional;
-			ancestors: GraphLogical.Vector;
+			dependents: GraphLogical.Vector;
 		END;
 
 		Function = POINTER TO RECORD(MathFunctional.Function)
@@ -64,15 +64,7 @@ MODULE GraphFunctional;
 	END Ancestors;
 
 	PROCEDURE (node: Node) Check (): SET;
-		VAR 
-			parents: GraphStochastic.List;
-		CONST
-			all = TRUE;
 	BEGIN
-		parents := GraphStochastic.Parents(node, all);
-		IF (parents # NIL) & (parents.next = NIL) THEN
-			parents.node.Evaluate
-		END;
 		RETURN {}
 	END Check;
 
@@ -127,9 +119,9 @@ MODULE GraphFunctional;
 		GraphNodes.Externalize(node.x, wr);
 		GraphNodes.Externalize(node.x0, wr);
 		GraphNodes.Externalize(node.x1, wr);
-		IF node.ancestors # NIL THEN len := LEN(node.ancestors) ELSE len := 0 END;
+		IF node.dependents # NIL THEN len := LEN(node.dependents) ELSE len := 0 END;
 		wr.WriteInt(len);
-		i := 0; WHILE i < len DO GraphNodes.Externalize(node.ancestors[i], wr); INC(i) END
+		i := 0; WHILE i < len DO GraphNodes.Externalize(node.dependents[i], wr); INC(i) END
 	END ExternalizeScalar;
 
 	PROCEDURE (node: Node) Install (OUT install: ARRAY OF CHAR);
@@ -151,10 +143,10 @@ MODULE GraphFunctional;
 		node.x0 := GraphNodes.Internalize(rd);
 		node.x1 := GraphNodes.Internalize(rd);
 		rd.ReadInt(len);
-		IF len > 0 THEN NEW(node.ancestors, len) ELSE node.ancestors := NIL END;
+		IF len > 0 THEN NEW(node.dependents, len) ELSE node.dependents := NIL END;
 		i := 0;
 		WHILE i < len DO
-			p := GraphNodes.Internalize(rd); node.ancestors[i] := p(GraphLogical.Node); INC(i)
+			p := GraphNodes.Internalize(rd); node.dependents[i] := p(GraphLogical.Node); INC(i)
 		END
 	END InternalizeScalar;
 
@@ -164,6 +156,11 @@ MODULE GraphFunctional;
 		node.x0 := NIL;
 		node.x1 := NIL
 	END InitLogical;
+
+	PROCEDURE (node: Node) Link;
+	BEGIN
+		node.dependents := Ancestors(node)
+	END Link;
 
 	PROCEDURE (node: Node) Parents (all: BOOLEAN): GraphNodes.List;
 		VAR
@@ -214,8 +211,7 @@ MODULE GraphFunctional;
 		node := function.node;
 		stochastic := node.x(GraphStochastic.Node);
 		stochastic.value := x;
-		IF node.ancestors = NIL THEN node.ancestors := Ancestors(node) END;
-		GraphLogical.Evaluate(node.ancestors);
+		GraphLogical.Evaluate(node.dependents);
 		value := node.function.value;
 		RETURN value
 	END Value;

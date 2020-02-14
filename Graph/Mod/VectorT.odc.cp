@@ -40,7 +40,7 @@ MODULE GraphVectorT;
 
 	PROCEDURE (node: Node) ClassSpecial- (parent: GraphNodes.Node; VAR class: INTEGER), NEW, EMPTY;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction- (parent: GraphNodes.Node): INTEGER;
 		VAR
 			class, i, j, numScalars, numVectors, size, start, step: INTEGER;
 			p: GraphNodes.Node;

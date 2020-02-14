@@ -161,6 +161,7 @@ MODULE PKBugsPriors;
 			fixFounder = FALSE;
 	BEGIN
 		(*UpdaterActions.LoadSamples(chain);*)
+		GraphStochastic.LoadValues(chain);
 		name := BugsIndex.Find("tau"); ASSERT(name # NIL, 25);
 		node := name.components[0](GraphStochastic.Node);
 		node.value := 1.0;
@@ -170,8 +171,10 @@ MODULE PKBugsPriors;
 		WriteOmegaInv;
 		WriteTheta;
 		(*UpdaterActions.StoreSamples(chain);*)
+		GraphStochastic.StoreValues(chain);
 		BugsInterface.GenerateInitsForChain(chain, fixFounder, ok);
 		(*UpdaterActions.StoreSamples(chain);*)
+		GraphStochastic.StoreValues(chain);
 		ASSERT(ok, 100)
 	END GenerateInitsForChain;
 

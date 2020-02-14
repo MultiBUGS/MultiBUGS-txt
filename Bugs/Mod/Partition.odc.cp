@@ -350,7 +350,7 @@ MODULE BugsPartition;
 			Unmark(u);
 			INC(i)
 		END;
-		rowId.id := - ABS(rowId.id)
+		IF rowId # NIL THEN rowId.id := - ABS(rowId.id) END
 	END RandomEffects;
 
 	(*	finds markov random field node in graph provided they are not markes as distributed	*)

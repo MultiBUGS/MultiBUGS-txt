@@ -53,13 +53,9 @@ MODULE ParallelActions;
 			i, len: INTEGER;
 	BEGIN
 		id := NIL;
-		i := 0;
 		rd.ReadInt(len);
 		IF len > 0 THEN NEW(id, len) END;
-		WHILE i < len DO
-			rd.ReadInt(id[i]);
-			INC(i)
-		END
+		i := 0; WHILE i < len DO rd.ReadInt(id[i]); INC(i) END
 	END InternalizeId;
 
 	PROCEDURE InternalizeStochastics (commSize, numStochPointers: INTEGER; VAR rd: Stores.Reader);
@@ -393,9 +389,7 @@ MODULE ParallelActions;
 		WHILE i < numWorker DO
 			j := 0;
 			WHILE j < numStoch DO
-				offset := i * numStoch + j;
-				globalValues[offset] := globalStochs[i, j].value;
-				INC(j)
+				offset := i * numStoch + j; globalValues[offset] := globalStochs[i, j].value; INC(j)
 			END;
 			INC(i)
 		END;
@@ -446,10 +440,7 @@ MODULE ParallelActions;
 					blockSize := ABS(id[i]) * size;
 					start := end - blockSize;
 					k := 0;
-					WHILE k < blockSize DO
-						values[k] := globalStochs[rank, start + k].value;
-						INC(k)
-					END;
+					WHILE k < blockSize DO values[k] := globalStochs[rank, start + k].value; INC(k) END;
 					MPIworker.AllGather(values, blockSize, globalValues);
 					j := 0;
 					WHILE j < numWorker DO
@@ -468,9 +459,7 @@ MODULE ParallelActions;
 			END;
 		ELSE
 			WHILE (i < numUpdaters) & (res = {}) DO
-				updaters[i].Sample(overRelax, res);
-				IF res # {} THEN updater := i END;
-				INC(i)
+				updaters[i].Sample(overRelax, res); IF res # {} THEN updater := i END; INC(i)
 			END
 		END;
 	END Update;

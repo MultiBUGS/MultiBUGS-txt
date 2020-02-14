@@ -84,13 +84,9 @@ MODULE DevianceIndex;
 			cursor := monitor.devianceMonitors;
 			LOOP
 				IF cursor.next = NIL THEN
-					cursor.next := entry;
-					entry.next := NIL;
-					EXIT
+					cursor.next := entry; entry.next := NIL; EXIT
 				ELSIF devianceMonitors.Name().string < cursor.next.monitor.Name().string THEN
-					entry.next := cursor.next;
-					cursor.next := entry;
-					EXIT
+					entry.next := cursor.next; cursor.next := entry; EXIT
 				END;
 				cursor := cursor.next
 			END
@@ -114,7 +110,6 @@ MODULE DevianceIndex;
 		VAR
 			fact: DeviancePlugin.Factory;
 			plugin: DeviancePlugin.Plugin;
-			parentMonitor: DevianceParents.Monitor;
 			monitor: Monitor;
 			name: BugsNames.Name;
 	BEGIN
@@ -126,14 +121,11 @@ MODULE DevianceIndex;
 			IF (plugin = NIL) OR ~plugin.IsValid() THEN
 				monitor.parentMonitor := NIL;
 			ELSE
-				parentMonitor := DevianceParents.fact.New(plugin);
-				monitor.parentMonitor := parentMonitor
+				monitor.parentMonitor := DevianceParents.fact.New(plugin)
 			END
 		ELSE
 			name := BugsIndex.Find("deviance");
-			IF name # NIL THEN
-				monitor.deviance := SummaryMonitors.fact.New(name)
-			END
+			IF name # NIL THEN monitor.deviance := SummaryMonitors.fact.New(name) END
 		END
 	END InitMonitor;
 
@@ -145,11 +137,7 @@ MODULE DevianceIndex;
 		monitor := GetMonitor();
 		IF monitor # NIL THEN
 			parentMonitor := monitor.parentMonitor;
-			IF parentMonitor # NIL THEN
-				RETURN parentMonitor.Plugin()
-			ELSE
-				RETURN NIL
-			END
+			IF parentMonitor # NIL THEN RETURN parentMonitor.Plugin() ELSE RETURN NIL END
 		ELSE
 			RETURN NIL
 		END
@@ -165,12 +153,10 @@ MODULE DevianceIndex;
 	PROCEDURE (monitor: Monitor) Externalize (VAR wr: Stores.Writer);
 		VAR
 			i, numMonitors, numParents: INTEGER;
-			pos, start: LONGINT;
 			cursor: List;
-			filePos: POINTER TO ARRAY OF LONGINT;
 	BEGIN
 		wr.WriteBool(monitor.updated);
-		IF monitor.parentMonitor # NIL THEN
+		IF monitor.parentMonitor # NIL THEN 
 			numParents := monitor.parentMonitor.Size()
 		ELSE
 			numParents := 0
@@ -182,36 +168,15 @@ MODULE DevianceIndex;
 		numMonitors := 0;
 		WHILE cursor # NIL DO INC(numMonitors); cursor := cursor.next END;
 		wr.WriteInt(numMonitors);
-		start := wr.Pos();
-		IF numMonitors > 0 THEN
-			i := 0; WHILE i < numMonitors DO wr.WriteLong( - 1); INC(i) END;
-			NEW(filePos, numMonitors)
-		END;
 		i := 0;
 		cursor := monitor.devianceMonitors;
-		WHILE cursor # NIL DO
-			filePos[i] := wr.Pos();
-			cursor.monitor.Externalize(wr);
-			INC(i);
-			cursor := cursor.next
-		END;
-		IF numMonitors > 0 THEN
-			pos := wr.Pos();
-			wr.SetPos(start);
-			i := 0;
-			WHILE i < numMonitors DO
-				wr.WriteLong(filePos[i]);
-				INC(i)
-			END;
-			wr.SetPos(pos)
-		END
+		WHILE cursor # NIL DO cursor.monitor.Externalize(wr); INC(i); cursor := cursor.next END
 	END Externalize;
 
 	(*	reads data into variable monitor	*)
 	PROCEDURE (monitor: Monitor) Internalize (VAR rd: Stores.Reader);
 		VAR
 			i, numMonitors, numParents: INTEGER;
-			filePos: LONGINT;
 			devianceMonitor: DevianceMonitors.Monitor;
 			plugin: DeviancePlugin.Plugin;
 	BEGIN
@@ -226,12 +191,7 @@ MODULE DevianceIndex;
 		IF numMonitors > 0 THEN
 			i := 0;
 			WHILE i < numMonitors DO
-				rd.ReadLong(filePos); ASSERT(filePos # - 1, 66);
-				INC(i)
-			END;
-			i := 0;
-			WHILE i < numMonitors DO
-				devianceMonitor := DevianceMonitors.fact.New(NIL, 0);
+				devianceMonitor := DevianceMonitors.fact.New(NIL);
 				devianceMonitor.Internalize(rd);
 				Register(devianceMonitor);
 				INC(i)
@@ -254,12 +214,10 @@ MODULE DevianceIndex;
 			parentMonitor: DevianceParents.Monitor;
 	BEGIN
 		IF monitor.parentMonitor # NIL THEN
-			parentMonitor := monitor.parentMonitor;
-			parentMonitor.SetNumChains(numChains)
+			parentMonitor := monitor.parentMonitor; parentMonitor.SetNumChains(numChains)
 		END;
 		IF monitor.devianceMonitors # NIL THEN
-			devianceMonitor := monitor.devianceMonitors.monitor;
-			devianceMonitor.SetNumChains(numChains)
+			devianceMonitor := monitor.devianceMonitors.monitor; devianceMonitor.SetNumChains(numChains)
 		END
 	END SetNumChains;
 
@@ -268,17 +226,10 @@ MODULE DevianceIndex;
 			cursor: List;
 	BEGIN
 		monitor.updated := TRUE;
-		IF monitor.parentMonitor # NIL THEN
-			monitor.parentMonitor.Update
-		END;
-		IF monitor.deviance # NIL THEN
-			monitor.deviance.Update
-		END;
+		IF monitor.parentMonitor # NIL THEN monitor.parentMonitor.Update END;
 		cursor := monitor.devianceMonitors;
-		WHILE cursor # NIL DO
-			cursor.monitor.Update;
-			cursor := cursor.next
-		END
+		WHILE cursor # NIL DO cursor.monitor.Update; cursor := cursor.next END;
+		IF monitor.deviance # NIL THEN monitor.deviance.Update END
 	END Update;
 
 	PROCEDURE (f: Factory) New (): Monitor;
@@ -296,47 +247,12 @@ MODULE DevianceIndex;
 	BEGIN
 		monitor := GetMonitor();
 		cursor := monitor.devianceMonitors;
-		WHILE (cursor # NIL) & ((cursor.monitor.Name() = NIL)
-			OR (cursor.monitor.Name().string # string)) DO
+		WHILE (cursor # NIL)
+			 & ((cursor.monitor.Name() = NIL) OR (cursor.monitor.Name().string # string)) DO
 			cursor := cursor.next
 		END;
-		IF cursor # NIL THEN
-			RETURN cursor.monitor
-		ELSE
-			RETURN NIL
-		END
+		IF cursor # NIL THEN RETURN cursor.monitor ELSE RETURN NIL END
 	END Find;
-
-	PROCEDURE FindDiscParentMonitor* (VAR rd: Stores.Reader);
-		VAR
-			i, numTypes, offsetGraph, offsetMonitor: INTEGER;
-			found: BOOLEAN;
-			modName, typeName: ARRAY 256 OF CHAR;
-			offsets: POINTER TO ARRAY OF INTEGER;
-	BEGIN
-		rd.SetPos(0);
-		rd.ReadInt(offsetGraph);
-		rd.ReadInt(offsetMonitor);
-		rd.SetPos(offsetMonitor); 	(*	go to start of the stored monitors	*)
-		rd.ReadInt(numTypes);
-		IF numTypes > 0 THEN	(*	find where each type of monitor is stored	*)
-			NEW(offsets, numTypes);
-			i := 0; WHILE i < numTypes DO rd.ReadInt(offsets[i]); INC(i) END;
-		END;
-		i := 0; 	(*	find where "Deviance" monitor stored	*)
-		found := FALSE;
-		WHILE (i < numTypes) & ~found DO
-			rd.SetPos(offsets[i]);
-			rd.ReadString(modName);
-			rd.ReadString(typeName);
-			found := (modName = "DevianceIndex") & (typeName = "Monitor");
-			INC(i)
-		END;
-		IF ~found THEN rd.SetPos(0); RETURN END;
-		rd.SetPos(offsets[i - 1]);
-		rd.ReadString(modName);
-		rd.ReadString(typeName)
-	END FindDiscParentMonitor;
 
 	PROCEDURE GetMonitors* (): POINTER TO ARRAY OF DevianceMonitors.Monitor;
 		VAR
@@ -351,9 +267,8 @@ MODULE DevianceIndex;
 		WHILE cursor # NIL DO INC(len); cursor := cursor.next END;
 		IF len = 0 THEN RETURN NIL ELSE NEW(monitors, len) END;
 		cursor := monitor.devianceMonitors;
-		i := 0;
 		len := LEN(monitors);
-		WHILE i < len DO monitors[i] := cursor.monitor; INC(i); cursor := cursor.next END;
+		i := 0; WHILE i < len DO monitors[i] := cursor.monitor; INC(i); cursor := cursor.next END;
 		RETURN monitors
 	END GetMonitors;
 
@@ -397,21 +312,21 @@ MODULE DevianceIndex;
 		RETURN sd * sd
 	END VarianceOfDeviance;
 
-	PROCEDURE SetValues* (IN values: ARRAY OF REAL);
+	PROCEDURE SetPluginValues* (IN values: ARRAY OF REAL);
 		VAR
 			monitor: Monitor;
 	BEGIN
 		monitor := GetMonitor();
 		monitor.parentMonitor.SetValues(values)
-	END SetValues;
+	END SetPluginValues;
 
-	PROCEDURE Values* (): POINTER TO ARRAY OF REAL;
+	PROCEDURE GetPluginValues* (): POINTER TO ARRAY OF REAL;
 		VAR
 			monitor: Monitor;
 	BEGIN
 		monitor := GetMonitor();
 		RETURN monitor.parentMonitor.Values()
-	END Values;
+	END GetPluginValues;
 
 	PROCEDURE Maintainer;
 	BEGIN

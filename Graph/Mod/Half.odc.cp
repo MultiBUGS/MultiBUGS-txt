@@ -39,7 +39,7 @@ MODULE GraphHalf;
 	BEGIN
 		class := GraphRules.other;
 		IF node.x IS GraphLogical.Node THEN
-			class := node.x(GraphLogical.Node).ClassFunction(parent);
+			class := GraphStochastic.ClassFunction(node.x, parent(GraphStochastic.Node));
 			IF class = GraphRules.ident THEN class := GraphRules.prod END
 		ELSIF node.x IS GraphStochastic.Node THEN
 			IF node.x = parent THEN

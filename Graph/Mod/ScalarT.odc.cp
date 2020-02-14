@@ -41,7 +41,7 @@ MODULE GraphScalarT;
 
 	PROCEDURE (node: Node) ClassSpecial- (parent: GraphNodes.Node; VAR class: INTEGER), NEW, EMPTY;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction- (parent: GraphNodes.Node): INTEGER;
 		VAR
 			class, i, j, nElem, numScalars, numVectors: INTEGER;
 			p: GraphNodes.Node;

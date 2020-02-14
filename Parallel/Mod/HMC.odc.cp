@@ -165,7 +165,6 @@ MODULE ParallelHMC;
 				IF ~(GraphStochastic.mark IN stoch.props) THEN
 					x := stoch.Map(); x := x + sigma[i] * eps * p[i]; stoch.InvMap(x)
 				END;
-				(*IF ABS(eps * p[i]) > 10 THEN reject := TRUE; res := {}; RETURN END;*)
 				INC(i)
 			END;
 			IF ~seperable & (commSize > 1) THEN Allgather END;

@@ -323,6 +323,20 @@ MODULE GraphDeviance;
 		END
 	END DevianceTerms;
 
+	PROCEDURE DevianceValue* (node: GraphNodes.Node): REAL;
+		VAR
+			value: REAL;
+			i, num: INTEGER;
+			data: GraphStochastic.Vector;
+	BEGIN
+		data := DevianceTerms(node);
+		i := 0;
+		IF data # NIL THEN num := LEN(data) ELSE num := 0 END;
+		value := 0.0;
+		WHILE i < num DO value := value + data[i].Deviance(); INC(i) END;
+		RETURN value
+	END DevianceValue;
+
 	PROCEDURE Install*;
 	BEGIN
 		GraphNodes.SetFactory(fact)

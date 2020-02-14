@@ -40,6 +40,7 @@ MODULE UpdaterGamma;
 			children: GraphStochastic.Vector;
 			node: GraphStochastic.Node;
 	BEGIN
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.EvaluateDiffs END;
 		as := GraphRules.gamma;
 		p[0] := 0.0;
 		p[1] := 0.0;
@@ -47,7 +48,6 @@ MODULE UpdaterGamma;
 		IF children # NIL THEN
 			num := LEN(children);
 			i := 0;
-			prior.value := 1.0;
 			WHILE i < num DO
 				node := children[i];
 				WITH node: GraphConjugateUV.Node DO
@@ -58,6 +58,10 @@ MODULE UpdaterGamma;
 				IF x = prior THEN
 					p[0] := p[0] + p0;
 					p[1] := p[1] + p1
+				ELSIF GraphStochastic.optimizeDiffs IN prior.props THEN
+					weight := x.value / prior.value;
+					p[0] := p[0] + p0;
+					p[1] := p[1] + weight * p1
 				ELSE
 					weight := x.Diff(prior);
 					IF weight > eps THEN
@@ -68,6 +72,7 @@ MODULE UpdaterGamma;
 				INC(i)
 			END
 		END;
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.ClearDiffs END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)
 		END
@@ -90,7 +95,33 @@ MODULE UpdaterGamma;
 	END ExternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
+		VAR
+			p, prior, q: GraphStochastic.Node;
+			children: GraphStochastic.Vector;
+			continuous: BOOLEAN;
+			list: GraphStochastic.List;
+			i, num: INTEGER;
+		CONST
+			all = TRUE;
 	BEGIN
+		continuous := TRUE;
+		prior := updater.prior;
+		children := prior.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE (i < num) & continuous DO
+				p := children[i];
+				list := GraphStochastic.Parents(p, all);
+				WHILE (list # NIL) & continuous  DO
+					q := list.node;
+					IF GraphStochastic.integer IN q.props THEN continuous := FALSE END;
+					list := list.next
+				END;
+				INC(i)
+			END
+		END;
+		IF continuous THEN INCL(prior.props,GraphStochastic.optimizeDiffs) END
 	END InitializeUnivariate;
 
 	PROCEDURE (updater: Updater) InternalizeUnivariate- (VAR rd: Stores.Reader);
@@ -120,7 +151,6 @@ MODULE UpdaterGamma;
 	BEGIN
 		res := {};
 		prior := updater.prior(GraphConjugateUV.Node);
-		prior.EvaluateDiffs;
 		oldValue := prior.value;
 		as := GraphRules.gamma;
 		GammaLikelihood(updater.prior, p);
@@ -177,7 +207,8 @@ MODULE UpdaterGamma;
 				END
 			END
 		END;
-		prior.value := rand; prior.ClearDiffs; prior.Evaluate
+		prior.value := rand; 
+		prior.Evaluate
 	END Sample;
 
 	PROCEDURE (f: Factory) GetDefaults;

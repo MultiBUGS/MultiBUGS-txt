@@ -24,7 +24,7 @@ MODULE GraphLogical;
 		linear* = 5; 	(*	node is marked as linear in all its arguments	*)
 		prediction* = 6; 	(*	node is only used for prediction	*)
 		linked* = 7; 	(*	node has been linked into its stochastic parents dependant list	*)
-
+		descreteParent* = 8; 	(*	node has a descrete parent	*)
 		undefined* = MAX(INTEGER); 	(*	recursive level of node is undefined	*)
 
 	TYPE
@@ -55,7 +55,7 @@ MODULE GraphLogical;
 
 	PROCEDURE (node: Node) AllocateDiffs- (numDiffs: INTEGER), NEW, EMPTY;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER, NEW, ABSTRACT;
+	PROCEDURE (node: Node) ClassFunction- (parent: GraphNodes.Node): INTEGER, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) Evaluate-, NEW, ABSTRACT;
 
@@ -66,6 +66,8 @@ MODULE GraphLogical;
 	PROCEDURE (node: Node) InitLogical-, NEW, ABSTRACT;
 
 	PROCEDURE (node: Node) InternalizeLogical- (VAR rd: Stores.Reader), NEW, ABSTRACT;
+
+	PROCEDURE (node: Node) Link-, NEW, EMPTY;
 
 		(*	concrete node methods	*)
 
@@ -305,27 +307,13 @@ MODULE GraphLogical;
 		values := NIL;
 	END Clear;
 
-	(*	clears set marks	*)
-	PROCEDURE ClearDiffs* (dependents: Vector);
-		VAR
-			p: Node;
-			i, num: INTEGER;
-	BEGIN
-		IF dependents # NIL THEN
-			num := LEN(dependents);
-			i := 0; WHILE i < num DO p := dependents[i]; EXCL(p.props, diff); INC(i) END
-		END
-	END ClearDiffs;
-
 	PROCEDURE ClearMarks* (vector: Vector; mark: SET);
 		VAR
 			i, size: INTEGER;
 	BEGIN
-		IF vector # NIL THEN size := LEN(vector) ELSE size := 0 END;
-		i := 0;
-		WHILE i < size DO
-			vector[i].props := vector[i].props - mark;
-			INC(i)
+		IF vector # NIL THEN
+			size := LEN(vector);
+			i := 0; WHILE i < size DO vector[i].props := vector[i].props - mark; INC(i) END
 		END
 	END ClearMarks;
 
@@ -375,14 +363,10 @@ MODULE GraphLogical;
 
 	(*	evaluates the derivatives of all dependent nodes	*)
 	PROCEDURE EvaluateAllDiffs*;
-		VAR
-			p: Node;
-			i, num: INTEGER;
 	BEGIN
 		IF nodes # NIL THEN
-			num := LEN(nodes);
 			EvaluateDiffs(nodes);
-			i := 0; WHILE i < num DO p := nodes[i]; EXCL(p.props, diff); INC(i) END
+			ClearMarks(nodes, {diff})
 		END
 	END EvaluateAllDiffs;
 
@@ -464,6 +448,28 @@ MODULE GraphLogical;
 		RETURN v
 	END InternalizeVector;
 
+	(*	link a set of dependent nodes	*)
+	PROCEDURE Link* (dependents: Vector);
+		VAR
+			p: Node;
+			i, num: INTEGER;
+	BEGIN
+		IF dependents # NIL THEN
+			num := LEN(dependents);
+			i := 0;
+			WHILE i < num DO
+				p := dependents[i];
+				p.Link;
+				INC(i)
+			END
+		END
+	END Link;
+
+	PROCEDURE LinkAll*;
+	BEGIN
+		Link(nodes)
+	END LinkAll;
+
 	PROCEDURE LoadValues* (chain: INTEGER);
 		VAR
 			i, num: INTEGER;
@@ -493,9 +499,7 @@ MODULE GraphLogical;
 				WHILE pList # NIL DO
 					q := pList.node;
 					WITH q: Node DO
-						q.AddToList(list);
-						q.AddParent(cursor);
-						INCL(q.props, GraphNodes.mark)
+						q.AddToList(list); q.AddParent(cursor); INCL(q.props, GraphNodes.mark)
 					ELSE
 					END;
 					pList := pList.next
@@ -503,12 +507,8 @@ MODULE GraphLogical;
 			ELSE
 			END
 		END;
-		list1 := list;
-		WHILE list1 # NIL DO
-			p := list1.node;
-			EXCL(p.props, GraphNodes.mark);
-			list1 := list1.next
-		END;
+		list1 := list; 
+		WHILE list1 # NIL DO p := list1.node; EXCL(p.props, GraphNodes.mark); list1 := list1.next END;
 		RETURN list
 	END Parents;
 

@@ -324,7 +324,6 @@ MODULE BugsCmds;
 			Services.DoLater(a, Services.now)
 		ELSE
 			BugsInterface.RecvMCMCState;
-			BugsInterface.LoadDeviance(0);
 			a.updating := FALSE;
 			elapsedTime := Services.Ticks() - startTime;
 			Strings.IntToString(updates, p[0]);
@@ -1151,9 +1150,7 @@ MODULE BugsCmds;
 		WHILE (i < updates) & ok DO
 			INC(i);
 			BugsInterface.UpdateModel(numChains, thin, overRelax, ok);
-			IF ok THEN
-				BugsInterface.UpdateMonitors(numChains);
-			END
+			IF ok THEN BugsInterface.UpdateMonitors(numChains) END
 		END;
 		BugsInterface.RecvMCMCState;
 		SetAdaptingStatus;

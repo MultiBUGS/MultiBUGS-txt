@@ -35,7 +35,7 @@ MODULE GraphJacobi;
 		RETURN {}
 	END Check;
 
-	PROCEDURE (node: Node) ClassFunction* (parent: GraphNodes.Node): INTEGER;
+	PROCEDURE (node: Node) ClassFunction- (parent: GraphNodes.Node): INTEGER;
 	BEGIN
 		RETURN GraphRules.other
 	END ClassFunction;
@@ -59,14 +59,14 @@ MODULE GraphJacobi;
 
 	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
 		VAR
-			i, len: INTEGER;
+			i, order: INTEGER;
 	BEGIN
 		GraphNodes.Externalize(node.alpha, wr);
 		GraphNodes.Externalize(node.beta, wr);
-		IF node.absisca # NIL THEN len := LEN(node.absisca) ELSE len := 0 END;
-		wr.WriteInt(len);
+		IF node.absisca # NIL THEN order := LEN(node.absisca) ELSE order := 0 END;
+		wr.WriteInt(order);
 		i := 0;
-		WHILE i < len DO
+		WHILE i < order DO
 			wr.WriteReal(node.absisca[i]);
 			wr.WriteReal(node.weights[i]);
 			INC(i)
@@ -88,18 +88,19 @@ MODULE GraphJacobi;
 
 	PROCEDURE (node: Node) InternalizeScalar- (VAR rd: Stores.Reader);
 		VAR
-			i, len: INTEGER;
+			i, order: INTEGER;
 	BEGIN
 		node.alpha := GraphNodes.Internalize(rd);
 		node.beta := GraphNodes.Internalize(rd);
-		rd.ReadInt(len);
-		IF len > 0 THEN NEW(node.absisca, len); NEW(node.weights, len) END;
+		rd.ReadInt(order);
+		IF order > 0 THEN NEW(node.absisca, order); NEW(node.weights, order) END;
 		i := 0;
-		WHILE i < len DO
+		WHILE i < order DO
 			rd.ReadReal(node.absisca[i]);
 			rd.ReadReal(node.weights[i]);
 			INC(i)
-		END
+		END;
+		node.AllocateState(2 * order)
 	END InternalizeScalar;
 
 	PROCEDURE (node: Node) LoadState*;

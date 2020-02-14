@@ -41,6 +41,7 @@ MODULE UpdaterBeta;
 		CONST
 			eps = 1.0E-20;
 	BEGIN
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.EvaluateDiffs END;
 		as := GraphRules.beta;
 		p[0] := 0.0;
 		p[1] := 0.0;
@@ -63,6 +64,7 @@ MODULE UpdaterBeta;
 				INC(i)
 			END
 		END;
+		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN prior.ClearDiffs END;
 		IF GraphStochastic.distributed IN prior.props THEN
 			MPIworker.SumReals(p)
 		END
@@ -85,7 +87,33 @@ MODULE UpdaterBeta;
 	END ExternalizeUnivariate;
 
 	PROCEDURE (updater: Updater) InitializeUnivariate;
+		VAR
+			p, prior, q: GraphStochastic.Node;
+			children: GraphStochastic.Vector;
+			continuous: BOOLEAN;
+			list: GraphStochastic.List;
+			i, num: INTEGER;
+		CONST
+			all = TRUE;
 	BEGIN
+		continuous := TRUE;
+		prior := updater.prior;
+		children := prior.children;
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE (i < num) & continuous DO
+				p := children[i];
+				list := GraphStochastic.Parents(p, all);
+				WHILE (list # NIL) & continuous  DO
+					q := list.node;
+					IF GraphStochastic.integer IN q.props THEN continuous := FALSE END;
+					list := list.next
+				END;
+				INC(i)
+			END
+		END;
+		IF continuous THEN INCL(prior.props,GraphStochastic.optimizeDiffs) END	
 	END InitializeUnivariate;
 
 	PROCEDURE (updater: Updater) InternalizeUnivariate (VAR rd: Stores.Reader);
@@ -114,7 +142,6 @@ MODULE UpdaterBeta;
 	BEGIN
 		res := {};
 		prior := updater.prior(GraphConjugateUV.Node);
-		prior.EvaluateDiffs;
 		oldValue := prior.value;
 		as := GraphRules.beta;
 		BetaLikelihood(prior, p);
@@ -168,7 +195,8 @@ MODULE UpdaterBeta;
 				END
 			END
 		END;
-		prior.value := x; prior.ClearDiffs; prior.Evaluate
+		prior.value := x; 
+		prior.Evaluate
 	END Sample;
 
 	PROCEDURE (f: Factory) CanUpdate (prior: GraphStochastic.Node): BOOLEAN;

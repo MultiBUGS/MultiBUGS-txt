@@ -201,7 +201,7 @@ MODULE UpdaterMVNormal;
 		END;
 		MVNormalLikelihood(prior.components, children, updater.params);
 		IF ~(GraphStochastic.optimizeDiffs IN prior.props) THEN
-			GraphLogical.ClearDiffs(updater.dependents)
+			GraphLogical.ClearMarks(updater.dependents, {GraphLogical.diff})
 		END;
 		prior.MVPriorForm(p0, p1);
 		IF prior.ClassifyPrior() = GraphRules.mVNSigma THEN

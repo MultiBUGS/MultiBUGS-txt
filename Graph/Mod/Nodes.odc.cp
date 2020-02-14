@@ -217,19 +217,14 @@ MODULE GraphNodes;
 	BEGIN
 		node := node.Representative();
 		IF {data, mark} * node.props = {} THEN
-			NEW(cursor);
-			cursor.node := node;
-			cursor.next := list;
-			list := cursor;
-			INCL(node.props, mark)
+			NEW(cursor); cursor.node := node; cursor.next := list; list := cursor; INCL(node.props, mark)
 		END
 	END AddParent;
 
 	(*	initialize node	*)
 	PROCEDURE (node: Node) Init*, NEW;
 	BEGIN
-		node.props := {};
-		node.label := 0;
+		node.props := {}; node.label := 0;
 		node.InitNode
 	END Init;
 
@@ -255,21 +250,14 @@ MODULE GraphNodes;
 			p: Node;
 	BEGIN
 		cursor := list;
-		WHILE cursor # NIL DO
-			p := cursor.node;
-			EXCL(p.props, mark);
-			cursor := cursor.next
-		END
+		WHILE cursor # NIL DO p := cursor.node; EXCL(p.props, mark); cursor := cursor.next END
 	END ClearList;
 
 	(*	init new sub vector	*)
 	PROCEDURE (VAR vector: SubVector) Init*, NEW;
 	BEGIN
-		vector.start := - 1;
-		vector.nElem := - 1;
-		vector.step := - 1;
-		vector.components := NIL;
-		vector.values := NIL
+		vector.start := - 1; vector.nElem := - 1; vector.step := - 1;
+		vector.components := NIL; vector.values := NIL
 	END Init;
 
 	(*	Writes out a pointer to a node to store, if it is the first time this pointer has been

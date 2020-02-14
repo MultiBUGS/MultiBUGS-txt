@@ -15,7 +15,7 @@ MODULE MathODE;
 
 		Solver* = POINTER TO ABSTRACT RECORD
 			numEq-: INTEGER;
-			scale, x, dxdt: POINTER TO ARRAY OF REAL;
+			scale, x, dxdt, x0Val-, x1Val-: POINTER TO ARRAY OF REAL;
 			equations-: Equations
 		END;
 
@@ -23,27 +23,27 @@ MODULE MathODE;
 		version-: INTEGER;
 		maintainer-: ARRAY 20 OF CHAR;
 
-	PROCEDURE (equations: Equations) Derivatives* (IN theta, x: ARRAY OF REAL;
+		PROCEDURE (equations: Equations) Derivatives* (IN theta, x: ARRAY OF REAL;
 	numEq: INTEGER; t: REAL; OUT dxdt: ARRAY OF REAL), NEW, ABSTRACT;
 
 	PROCEDURE (equations: Equations) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
 
-	PROCEDURE (equations: Equations) SecondDerivatives* (IN theta, x: ARRAY OF REAL;
+		PROCEDURE (equations: Equations) SecondDerivatives* (IN theta, x: ARRAY OF REAL;
 	numEq: INTEGER; t: REAL; OUT d2xdt2: ARRAY OF REAL), NEW, ABSTRACT;
 
-	
-	PROCEDURE (equations: Equations) Jacobian* (IN theta, x: ARRAY OF REAL;
+
+		PROCEDURE (equations: Equations) Jacobian* (IN theta, x: ARRAY OF REAL;
 	numEq: INTEGER; t: REAL; OUT jacob: ARRAY OF ARRAY OF REAL), NEW, ABSTRACT;
 
-	PROCEDURE (solver: Solver) Step* (IN theta, x0: ARRAY OF REAL;
+		PROCEDURE (solver: Solver) Step* (IN theta, x0: ARRAY OF REAL;
 	numEq, order: INTEGER; t0, step: REAL; OUT x1, error: ARRAY OF REAL), NEW, ABSTRACT;
 
 
-	PROCEDURE (solver: Solver) TrialStep* (IN theta, x0, scale: ARRAY OF REAL;
-	numEq: INTEGER; t0, step, tol: REAL; OUT actualStep, predStep: REAL;
+		PROCEDURE (solver: Solver) TrialStep* (IN theta, x0, scale: ARRAY OF REAL;
+		numEq: INTEGER; t0, step, tol: REAL; OUT actualStep, predStep: REAL;
 	OUT x1: ARRAY OF REAL), NEW, ABSTRACT;
 
-	PROCEDURE (solver: Solver) AccurateStep* (IN theta, x0: ARRAY OF REAL;
+		PROCEDURE (solver: Solver) AccurateStep* (IN theta, x0: ARRAY OF REAL;
 	numEq: INTEGER; t0, step, tol: REAL; OUT x1: ARRAY OF REAL), NEW;
 		CONST
 			maxSteps = 100000;
@@ -97,17 +97,12 @@ MODULE MathODE;
 		NEW(solver.scale, numEq);
 		NEW(solver.x, numEq);
 		NEW(solver.dxdt, numEq);
+		NEW(solver.x0Val, numEq);
+		NEW(solver.x1Val, numEq);
 		solver.InitStorage
 	END Init;
 
 	PROCEDURE (solver: Solver) Install* (OUT install: ARRAY OF CHAR), NEW, ABSTRACT;
-	
-(*	PROCEDURE (f: SolverFactory) New* (): Solver, NEW, ABSTRACT;*)
-
-(*	PROCEDURE SetSolverFactory* (f: SolverFactory);
-	BEGIN
-		solverFact := f
-	END SetSolverFactory;*)
 
 	PROCEDURE Maintainer;
 	BEGIN

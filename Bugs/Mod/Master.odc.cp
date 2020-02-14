@@ -33,6 +33,7 @@ MODULE BugsMaster;
 		platform: Dialog.String;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		mpiImp: Dialog.String;
 
 	CONST
 		fileStemName = "Bugs";
@@ -70,7 +71,7 @@ MODULE BugsMaster;
 		ELSE
 			Dialog.Call("Dev2Linker1.LinkElfExe", "LinuxLinker", res)
 		END;
-		DevCommanders.par := NIL;
+		DevCommanders.par := NIL; 
 	END LinkModules;
 
 	PROCEDURE RecvMonitoredValues (numChains: INTEGER);
@@ -402,7 +403,6 @@ MODULE BugsMaster;
 	PROCEDURE Init;
 		VAR
 			item: Meta.Item;
-			mpiImp: Dialog.String;
 	BEGIN
 		Maintainer;
 		globalValues := NIL;
@@ -436,7 +436,6 @@ MODULE BugsMaster;
 		(*	handle eror	*)
 		MPImaster.Install
 	END Init;
-
 
 BEGIN
 	Init

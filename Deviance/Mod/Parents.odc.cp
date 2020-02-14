@@ -66,8 +66,7 @@ MODULE DevianceParents;
 	BEGIN
 		IF monitor.monitors # NIL THEN len := LEN(monitor.monitors) ELSE len := 0 END;
 		wr.WriteInt(len);
-		i := 0;
-		WHILE i < len DO monitor.monitors[i].Externalize(wr); INC(i) END
+		i := 0; WHILE i < len DO monitor.monitors[i].Externalize(wr); INC(i) END
 	END Externalize;
 
 	PROCEDURE (monitor: StdMonitor) Internalize (VAR rd: Stores.Reader);
@@ -91,24 +90,15 @@ MODULE DevianceParents;
 			means: POINTER TO ARRAY OF REAL;
 			i, len: INTEGER;
 	BEGIN
-		i := 0;
 		len := LEN(monitor.monitors);
 		NEW(means, len);
-		i := 0;
-		WHILE i < len DO
-			means[i] := monitor.monitors[i].Mean();
-			INC(i)
-		END;
+		i := 0; WHILE i < len DO means[i] := monitor.monitors[i].Mean(); INC(i) END;
 		RETURN means
 	END Means;
 
 	PROCEDURE (monitor: StdMonitor) Parents (): GraphNodes.Vector;
 	BEGIN
-		IF monitor.plugin = NIL THEN
-			RETURN NIL
-		ELSE
-			RETURN monitor.plugin.Parents()
-		END
+		IF monitor.plugin = NIL THEN RETURN NIL ELSE RETURN monitor.plugin.Parents() END
 	END Parents;
 
 	PROCEDURE (monitor: StdMonitor) Plugin (): DeviancePlugin.Plugin;
@@ -132,24 +122,15 @@ MODULE DevianceParents;
 
 	PROCEDURE (monitor: StdMonitor) Size (): INTEGER;
 	BEGIN
-		IF monitor.monitors # NIL THEN
-			RETURN LEN(monitor.monitors)
-		ELSE
-			RETURN 0
-		END
+		IF monitor.monitors # NIL THEN RETURN LEN(monitor.monitors) ELSE RETURN 0 END
 	END Size;
 
 	PROCEDURE (monitor: StdMonitor) Update;
 		VAR
 			i, len: INTEGER;
 	BEGIN
-		i := 0;
 		len := LEN(monitor.monitors);
-		i := 0;
-		WHILE i < len DO
-			monitor.monitors[i].Update;
-			INC(i)
-		END
+		i := 0; WHILE i < len DO monitor.monitors[i].Update; INC(i) END
 	END Update;
 
 	PROCEDURE (monitor: StdMonitor) Values (): POINTER TO ARRAY OF REAL;
@@ -167,13 +148,9 @@ MODULE DevianceParents;
 		NEW(monitor);
 		parents := plugin.Parents();
 		monitor.plugin := plugin;
-		i := 0;
 		len := LEN(parents); 
 		NEW(monitor.monitors, len);
-		WHILE i < len DO
-			monitor.monitors[i] := MonitorPlugin.fact.New(parents[i]);
-			INC(i)
-		END;
+		i := 0; WHILE i < len DO monitor.monitors[i] := MonitorPlugin.fact.New(parents[i]); INC(i) END;
 		RETURN monitor
 	END New;
 

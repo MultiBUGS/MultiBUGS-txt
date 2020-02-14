@@ -68,7 +68,7 @@ MODULE BugsInterface;
 
 	PROCEDURE (h: DistributeHook) SendMutable- (VAR rd: Stores.Reader), NEW, ABSTRACT;
 
-	PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
+		PROCEDURE (h: DistributeHook) Update- (thin, iteration: INTEGER; overRelax: BOOLEAN;
 	OUT res: SET; VAR updater, worker, endOfAdating: INTEGER), NEW, ABSTRACT;
 
 	PROCEDURE DeleteFiles;
@@ -96,6 +96,13 @@ MODULE BugsInterface;
 		BugsMsg.LookupParam("BugsInterface" + numToString, p, errorMsg);
 		BugsMsg.StoreError(errorMsg)
 	END Error;
+
+	PROCEDURE LoadValues (chain: INTEGER);
+	BEGIN
+		GraphStochastic.LoadValues(chain);
+		GraphLogical.LoadValues(chain);
+		GraphKernel.LoadValues(chain);
+	END LoadValues;
 
 	PROCEDURE OptimizeLinear;
 		VAR
@@ -127,12 +134,12 @@ MODULE BugsInterface;
 						parents := parents.next
 					END;
 					IF constDiffs THEN INCL(p.props, GraphLogical.constDiffs) END
-				END; 
+				END;
 				INC(i)
 			END
 		END
 	END OptimizeLinear;
-	
+
 	PROCEDURE ReplaceSampler (node: GraphStochastic.Node; fact: UpdaterUpdaters.Factory; OUT ok: BOOLEAN);
 		VAR
 			i, size: INTEGER;
@@ -179,6 +186,13 @@ MODULE BugsInterface;
 			END
 		END
 	END ReplaceSampler;
+
+	PROCEDURE StoreValues (chain: INTEGER);
+	BEGIN
+		GraphStochastic.StoreValues(chain);
+		GraphLogical.StoreValues(chain);
+		GraphKernel.StoreValues(chain)
+	END StoreValues;
 
 	PROCEDURE AllocatedMemory* (): INTEGER;
 	BEGIN
@@ -280,21 +294,18 @@ MODULE BugsInterface;
 		MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
 		LOOP
 			BugsGraph.LoadInits(chain);
-			GraphStochastic.LoadValues(chain);
-			GraphLogical.LoadValues(chain);
+			LoadValues(chain);
 			UpdaterActions.GenerateInits(chain, fixFounder, res, updater);
 			IF res = {} THEN
 				BugsGraph.StoreInits(chain);
-				GraphStochastic.StoreValues(chain);
 				GraphLogical.EvaluateAllDiffs;
 				OptimizeLinear;
-				GraphLogical.StoreValues(chain);
+				StoreValues(chain);
 				BugsNodes.Checks(ok);
 				EXIT
 			ELSE	(*	try again	*)
 				BugsGraph.LoadInits(chain);
-				GraphStochastic.LoadValues(chain);
-				GraphLogical.LoadValues(chain);
+				LoadValues(chain);
 				INC(trials);
 				IF trials > maxTrials THEN
 					p := updater.Prior(0);
@@ -308,8 +319,7 @@ MODULE BugsInterface;
 					Error(1, msg);
 					ok := FALSE;
 					BugsGraph.LoadInits(chain);
-					GraphStochastic.LoadValues(chain);
-					GraphLogical.LoadValues(chain);
+					LoadValues(chain);
 					EXIT
 				END
 			END
@@ -385,13 +395,16 @@ MODULE BugsInterface;
 			name: BugsNames.Name;
 			value: REAL;
 	BEGIN
-		IF hook # NIL THEN
-			name := BugsIndex.Find("deviance");
-			IF name # NIL THEN
-				node := name.components[0];
+		name := BugsIndex.Find("deviance");
+		IF name # NIL THEN
+			node := name.components[0];
+			IF hook # NIL THEN
 				value := hook.Deviance(chain);
-				GraphDeviance.SetValue(node, value)
-			END
+			ELSE
+				value := GraphDeviance.DevianceValue(node);
+				BugsGraph.devianceValues[chain] := value
+			END;
+			GraphDeviance.SetValue(node, value)
 		END
 	END LoadDeviance;
 
@@ -427,7 +440,7 @@ MODULE BugsInterface;
 		IF BugsGraph.IsInitialized(chain) THEN
 			GraphLogical.EvaluateAllDiffs;
 			OptimizeLinear;
-			GraphLogical.StoreValues(chain);
+			StoreValues(chain);
 			BugsNodes.Checks(ok);
 			IF ~ok THEN RETURN END;
 		END;
@@ -547,22 +560,11 @@ MODULE BugsInterface;
 			u: UpdaterUpdaters.Updater;
 	BEGIN
 		ok := TRUE;
-		IF hook # NIL THEN	(*	model is distributed	*)
-			iteration := UpdaterActions.iteration;
-			endOfAdapting := UpdaterActions.endOfAdapting;
-			hook.Update(thin, iteration, overRelax, res, updater, worker, endOfAdapting);
-			UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, endOfAdapting);
-			IF res # {} THEN
-				ok := FALSE;
-				u := UpdaterActions.updaters[0, updater];
-				UpdateError(res, u)
-			END
-		ELSE (*	model is not distributed	*)
+		IF hook = NIL THEN	(*	model is not distributed	*)
 			chain := 0;
 			WHILE (chain < numChains) & ok DO
 				MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
-				GraphStochastic.LoadValues(chain);
-				GraphLogical.LoadValues(chain);
+				LoadValues(chain);
 				j := 0;
 				WHILE (j < thin) & ok DO
 					UpdaterActions.Sample(overRelax, chain, res, updater);
@@ -570,12 +572,9 @@ MODULE BugsInterface;
 					INC(j)
 				END;
 				IF ok THEN
-					GraphStochastic.StoreValues(chain);
-					GraphLogical.StoreValues(chain);
-					INC(chain)
+					StoreValues(chain); INC(chain)
 				ELSE
-					u := UpdaterActions.updaters[0, updater];
-					UpdateError(res, u)
+					u := UpdaterActions.updaters[0, updater]; UpdateError(res, u)
 				END
 			END;
 			MathRandnum.SetGenerator(BugsRandnum.generators[0]);
@@ -586,6 +585,14 @@ MODULE BugsInterface;
 				ELSE
 					UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, UpdaterActions.endOfAdapting)
 				END
+			END
+		ELSE (*	model is distributed	*)
+			iteration := UpdaterActions.iteration;
+			endOfAdapting := UpdaterActions.endOfAdapting;
+			hook.Update(thin, iteration, overRelax, res, updater, worker, endOfAdapting);
+			UpdaterActions.SetAdaption(UpdaterActions.iteration + 1, endOfAdapting);
+			IF res # {} THEN
+				ok := FALSE; u := UpdaterActions.updaters[0, updater]; UpdateError(res, u)
 			END
 		END
 	END UpdateModel;
@@ -600,19 +607,15 @@ MODULE BugsInterface;
 		res := {};
 		WHILE (chain < numChains) & (res = {}) DO
 			MathRandnum.SetGenerator(BugsRandnum.generators[chain]);
-			GraphStochastic.LoadValues(chain);
-			GraphLogical.LoadValues(chain);
+			LoadValues(chain);
 			iteration := UpdaterActions.iteration + 1;
 			UpdaterHMC.Update(numSteps, iteration, warmUpPeriod, chain, stepSize, res, updater);
 			ok := res = {};
 			IF ok THEN
-				GraphStochastic.StoreValues(chain);
-				GraphLogical.StoreValues(chain)
+				StoreValues(chain);
 			ELSE
-				GraphStochastic.LoadValues(chain);
-				GraphLogical.LoadValues(chain);
-				u := UpdaterActions.updaters[0, updater];
-				UpdateError(res, u)
+				LoadValues(chain);
+				u := UpdaterActions.updaters[0, updater]; UpdateError(res, u)
 			END;
 			INC(chain)
 		END;
@@ -630,11 +633,11 @@ MODULE BugsInterface;
 	BEGIN
 		chain := 0;
 		WHILE chain < numChains DO
-			GraphStochastic.LoadValues(chain);
+			(*GraphStochastic.LoadValues(chain);
 			GraphLogical.LoadValues(chain);
-			IF MonitorMonitors.devianceMonitored THEN
-				LoadDeviance(chain)
-			END;
+			GraphKernel.LoadValues(chain);*)
+			LoadValues(chain);
+			IF MonitorMonitors.devianceMonitored THEN LoadDeviance(chain) END;
 			MonitorMonitors.UpdateMonitors(chain);
 			INC(chain)
 		END

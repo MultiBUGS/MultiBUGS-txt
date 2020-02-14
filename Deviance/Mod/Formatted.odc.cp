@@ -91,21 +91,16 @@ MODULE DevianceFormatted;
 	PROCEDURE Stats* (VAR f: TextMappers.Formatter);
 		VAR
 			i, len: INTEGER;
-			dBar, dHat, pD, pW, dic, waic, dBarTot, dBar2Tot,
+			dBar, dHat, pD, pW, dic, waic, dBarTot,
 			dHatTot, dicTot, waicTot, pDTot, pWTot: REAL;
 			monitors: POINTER TO ARRAY OF DevianceMonitors.Monitor;
 			name: ARRAY 128 OF CHAR;
 	BEGIN
 		Header(f);
 		monitors := DevianceIndex.GetMonitors();
-		IF monitors # NIL THEN
-			len := LEN(monitors)
-		ELSE
-			len := 0
-		END;
+		IF monitors # NIL THEN len := LEN(monitors) ELSE len := 0 END;
 		i := 0;
 		dBarTot := 0.0;
-		dBar2Tot := 0.0;
 		dHatTot := 0.0;
 		dicTot := 0.0;
 		waicTot := 0.0;

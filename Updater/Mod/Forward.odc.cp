@@ -235,21 +235,21 @@ MODULE UpdaterForward;
 			isRegistered: BOOLEAN;
 			res: INTEGER;
 			name: ARRAY 256 OF CHAR;
-			f: FactoryUV;
+			fUV: FactoryUV;
 			fMV: FactoryMV;
 	BEGIN
 		Maintainer;
-		NEW(f);
-		f.SetProps({UpdaterUpdaters.enabled, UpdaterUpdaters.hidden});
-		f.Install(name);
+		NEW(fUV);
+		fUV.SetProps({UpdaterUpdaters.enabled, UpdaterUpdaters.hidden});
+		fUV.Install(name);
 		BugsRegistry.ReadBool(name + ".isRegistered", isRegistered, res);
 		IF res = 0 THEN ASSERT(isRegistered, 55)
 		ELSE
 			BugsRegistry.WriteBool(name + ".isRegistered", TRUE);
-			BugsRegistry.WriteSet(name + ".props", f.props)
+			BugsRegistry.WriteSet(name + ".props", fUV.props)
 		END;
-		f.GetDefaults;
-		factUV := f;
+		fUV.GetDefaults;
+		factUV := fUV;
 		NEW(fMV);
 		fMV.SetProps({UpdaterUpdaters.enabled, UpdaterUpdaters.hidden});
 		fMV.Install(name);

@@ -404,8 +404,8 @@ MODULE SpatialPoissconv;
 					p.Init;
 					argsPoiss.scalars[0] := lambda;
 					p.Set(argsPoiss, res);
-					INCL(p.props, GraphStochastic.hidden);
-					INCL(p.props, GraphNodes.data);
+					p.props := p.props + 
+						{GraphStochastic.hidden, GraphNodes.data, GraphStochastic.initialized};
 					p.value := 0.0;
 					node.poissons[i] := p;
 					INC(i)
@@ -414,7 +414,7 @@ MODULE SpatialPoissconv;
 				children[0] := node;
 				node.poissons[0].SetChildren(children); 
 			END;
-			multinomial := multinomialFact.New(node);
+			multinomial := multinomialFact.New(node); 
 			UpdaterActions.RegisterUpdater(multinomial)
 		END
 	END SetUnivariate;

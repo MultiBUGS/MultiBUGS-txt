@@ -19,7 +19,6 @@ MODULE DeviancePluginS;
 
 	TYPE
 		Plugin = POINTER TO RECORD(DeviancePlugin.Plugin)
-			terms: GraphStochastic.Vector;
 			parents: GraphNodes.Vector
 		END;
 
@@ -31,22 +30,14 @@ MODULE DeviancePluginS;
 
 		fact-: DeviancePlugin.Factory;
 
-	PROCEDURE (plugin: Plugin) DevianceTerm (termOffset: INTEGER): REAL;
-	BEGIN
-		RETURN plugin.terms[termOffset].Deviance()
-	END DevianceTerm;
-
 	PROCEDURE (plugin: Plugin) IsValid (): BOOLEAN;
 		VAR
 			isValid: BOOLEAN;
 			i, len: INTEGER;
 	BEGIN
 		IF plugin.parents # NIL THEN len := LEN(plugin.parents) ELSE len := 0 END;
-		isValid := TRUE;
-		WHILE (i < len) & isValid DO
-			isValid := ~(GraphStochastic.integer IN plugin.parents[i].props);
-			INC(i)
-		END;
+		isValid := TRUE; i := 0;
+		WHILE (i < len) & isValid DO isValid := ~(GraphStochastic.integer IN plugin.parents[i].props); INC(i) END;
 		RETURN isValid
 	END IsValid;
 
@@ -66,15 +57,9 @@ MODULE DeviancePluginS;
 	PROCEDURE (plugin: Plugin) SetValues (IN values: ARRAY OF REAL);
 		VAR
 			i, numPar: INTEGER;
-			stoch: GraphStochastic.Node;
 	BEGIN
 		numPar := LEN(plugin.parents);
-		i := 0;
-		WHILE i < numPar DO
-			stoch := plugin.parents[i](GraphStochastic.Node);
-			stoch.value := values[i];
-			INC(i)
-		END
+		i := 0; WHILE i < numPar DO plugin.parents[i].value := values[i]; INC(i) END
 	END SetValues;
 
 	PROCEDURE (plugin: Plugin) Type (): INTEGER;
@@ -86,16 +71,10 @@ MODULE DeviancePluginS;
 		VAR
 			i, numPar: INTEGER;
 			values: POINTER TO ARRAY OF REAL;
-			stoch: GraphStochastic.Node;
 	BEGIN
 		numPar := LEN(plugin.parents);
 		NEW(values, numPar);
-		i := 0;
-		WHILE i < numPar DO
-			stoch := plugin.parents[i](GraphStochastic.Node);
-			values[i] := stoch.value;
-			INC(i)
-		END;
+		i := 0; WHILE i < numPar DO values[i] := plugin.parents[i].value; INC(i) END;
 		RETURN values
 	END Values;
 
@@ -125,11 +104,7 @@ MODULE DeviancePluginS;
 		cursor := list;
 		WHILE cursor # NIL DO
 			node := cursor.node(GraphStochastic.Node);
-			IF node IS GraphChain.Node THEN
-				size := 1
-			ELSE
-				size := node.Size()
-			END;
+			IF node IS GraphChain.Node THEN size := 1 ELSE size := node.Size() END;
 			INC(len, size);
 			cursor := cursor.next
 		END;
@@ -138,25 +113,14 @@ MODULE DeviancePluginS;
 		cursor := list;
 		WHILE cursor # NIL DO
 			node := cursor.node(GraphStochastic.Node);
-			IF node IS GraphChain.Node THEN
-				size := 1
-			ELSE
-				size := node.Size()
-			END;
+			IF node IS GraphChain.Node THEN size := 1 ELSE size := node.Size() END;
 			WITH node: GraphMultivariate.Node DO
-				j := 0;
-				WHILE j < size DO
-					plugin.parents[i] := node.components[j];
-					INC(j);
-					INC(i)
-				END
+				j := 0; WHILE j < size DO plugin.parents[i] := node.components[j]; INC(j); INC(i) END
 			ELSE
-				plugin.parents[i] := node;
-				INC(i)
+				plugin.parents[i] := node; INC(i)
 			END;
 			cursor := cursor.next
 		END;
-		plugin.terms := GraphDeviance.DevianceTerms(deviance);
 		RETURN plugin
 	END New;
 

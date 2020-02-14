@@ -14,14 +14,14 @@ MODULE DevianceMonitors;
 
 	IMPORT
 		Stores := Stores64,
-		BugsIndex, BugsNames, GraphNodes, GraphStochastic,
+		BugsIndex, BugsNames, 
+		GraphNodes, GraphStochastic,
 		MonitorDeviance;
 
 	TYPE
 		Monitor* = POINTER TO ABSTRACT RECORD END;
 
 		StdMonitor = POINTER TO RECORD(Monitor)
-			termOffset: INTEGER;
 			name: BugsNames.Name;
 			deviances: POINTER TO ARRAY OF MonitorDeviance.Monitor
 		END;
@@ -36,6 +36,8 @@ MODULE DevianceMonitors;
 
 		fact-, stdFact-: Factory;
 
+	PROCEDURE (monitor: Monitor) Deviance* (offset: INTEGER): REAL, NEW, ABSTRACT;
+
 	PROCEDURE (monitor: Monitor) Externalize* (VAR wr: Stores.Writer), NEW, ABSTRACT;
 
 	PROCEDURE (monitor: Monitor) Internalize* (VAR rd: Stores.Reader), NEW, ABSTRACT;
@@ -48,30 +50,33 @@ MODULE DevianceMonitors;
 
 	PROCEDURE (monitor: Monitor) SetNumChains* (numChains: INTEGER), NEW, ABSTRACT;
 
-	PROCEDURE (monitor: Monitor) TermOffset* (): INTEGER, NEW, ABSTRACT;
-
-	PROCEDURE (monitor: Monitor) Stats* (offset: INTEGER; OUT meanDeviance, meanDeviance2, meanDensity: REAL), NEW, ABSTRACT;
-
+	PROCEDURE (monitor: Monitor) Stats* (offset: INTEGER; OUT deviance, deviance2, density: REAL), NEW, ABSTRACT;
+	
 	PROCEDURE (monitor: Monitor) Update*, NEW, ABSTRACT;
 
-	PROCEDURE (f: Factory) New* (name: BugsNames.Name; termOffset: INTEGER): Monitor, NEW, ABSTRACT;
+	PROCEDURE (f: Factory) New* (name: BugsNames.Name): Monitor, NEW, ABSTRACT;
 
+	PROCEDURE (monitor: StdMonitor) Deviance (offset: INTEGER): REAL;
+	VAR
+		name: BugsNames.Name;
+	BEGIN
+		name := monitor.name;
+		RETURN name.components[offset](GraphStochastic.Node).Deviance()
+	END Deviance;
+	
 	PROCEDURE (monitor: StdMonitor) Externalize (VAR wr: Stores.Writer);
 		VAR
 			i, size: INTEGER;
 			present: BOOLEAN;
 	BEGIN
 		wr.WriteString(monitor.name.string);
-		wr.WriteInt(monitor.termOffset);
 		size := LEN(monitor.deviances);
 		wr.WriteInt(size);
 		i := 0;
 		WHILE i < size DO
 			present := monitor.deviances[i] # NIL;
 			wr.WriteBool(present);
-			IF present THEN
-				monitor.deviances[i].Externalize(wr)
-			END;
+			IF present THEN monitor.deviances[i].Externalize(wr) END;
 			INC(i)
 		END
 	END Externalize;
@@ -86,7 +91,6 @@ MODULE DevianceMonitors;
 	BEGIN
 		rd.ReadString(string);
 		monitor.name := BugsIndex.Find(string);
-		rd.ReadInt(monitor.termOffset);
 		rd.ReadInt(size);
 		NEW(monitor.deviances, size);
 		i := 0;
@@ -120,17 +124,13 @@ MODULE DevianceMonitors;
 	END SampleSize;
 
 	PROCEDURE (monitor: StdMonitor) SetNumChains (numChains: INTEGER);
+	BEGIN
 	END SetNumChains;
 
-	PROCEDURE (monitor: StdMonitor) Stats (offset: INTEGER; OUT meanDeviance, meanDeviance2, meanDensity: REAL);
+	PROCEDURE (monitor: StdMonitor) Stats (offset: INTEGER; OUT deviance, deviance2, density: REAL);
 	BEGIN
-		monitor.deviances[offset].Stats(meanDeviance, meanDeviance2, meanDensity)
+		monitor.deviances[offset].Stats(deviance, deviance2, density)
 	END Stats;
-	
-	PROCEDURE (monitor: StdMonitor) TermOffset (): INTEGER;
-	BEGIN
-		RETURN monitor.termOffset
-	END TermOffset;
 
 	PROCEDURE (monitor: StdMonitor) Update;
 		VAR
@@ -140,15 +140,12 @@ MODULE DevianceMonitors;
 			i := 0;
 			len := LEN(monitor.deviances);
 			WHILE i < len DO
-				IF monitor.deviances[i] # NIL THEN
-					monitor.deviances[i].Update
-				END;
-				INC(i)
+				IF monitor.deviances[i] # NIL THEN monitor.deviances[i].Update END; INC(i)
 			END
 		END
 	END Update;
 
-	PROCEDURE (f: StdFactory) New (name: BugsNames.Name; termOffset: INTEGER): Monitor;
+	PROCEDURE (f: StdFactory) New (name: BugsNames.Name): Monitor;
 		CONST
 			observed = {GraphNodes.data, GraphStochastic.censored};
 		VAR
@@ -160,16 +157,11 @@ MODULE DevianceMonitors;
 	BEGIN
 		NEW(monitor);
 		monitor.name := name;
-		monitor.termOffset := termOffset;
 		IF name # NIL THEN
 			set := FALSE;
 			size := name.Size();
 			NEW(monitor.deviances, size);
-			i := 0;
-			WHILE i < size DO
-				monitor.deviances[i] := NIL;
-				INC(i)
-			END;
+			i := 0; WHILE i < size DO monitor.deviances[i] := NIL; INC(i) END;
 			i := 0;
 			WHILE i < size DO
 				node := name.components[i];

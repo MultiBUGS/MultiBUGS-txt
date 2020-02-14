@@ -16,7 +16,7 @@ MODULE BugsInfo;
 		TextMappers, TextModels,
 		BugsComponents, BugsEvaluate, BugsFiles, BugsGraph, BugsIndex, BugsInterface, BugsMsg,
 		BugsNames, BugsParser, BugsPartition,
-		GraphLogical, GraphNodes, GraphStochastic,
+		GraphKernel, GraphLogical, GraphNodes, GraphStochastic,
 		UpdaterActions, UpdaterAuxillary, UpdaterMultivariate, UpdaterUpdaters;
 
 	TYPE
@@ -156,6 +156,7 @@ MODULE BugsInfo;
 		WHILE chain < numChains DO
 			GraphStochastic.LoadValues(chain);
 			GraphLogical.LoadValues(chain);
+			GraphKernel.LoadValues(chain);
 			BugsInterface.LoadDeviance(chain);
 			i := 0;
 			WHILE i < size DO
@@ -183,6 +184,7 @@ MODULE BugsInfo;
 		END;
 		GraphStochastic.LoadValues(0);
 		GraphLogical.LoadValues(0);
+		GraphKernel.LoadValues(0);
 		BugsInterface.LoadDeviance(0);
 		IF ~isConstant & (numChains > 1)THEN
 			max := 2 + MIN(numChains, 10);

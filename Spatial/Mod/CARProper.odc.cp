@@ -13,8 +13,8 @@ MODULE SpatialCARProper;
 
 	IMPORT
 		Math, Stores := Stores64,
-		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, SpatialUVCAR, 
-		MathFunc, MathMatrix;
+		GraphMultivariate, GraphNodes, GraphRules, GraphStochastic, MathFunc,
+		MathMatrix, SpatialUVCAR;
 
 	TYPE
 
@@ -30,7 +30,7 @@ MODULE SpatialCARProper;
 		fact-: GraphMultivariate.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		
+
 	PROCEDURE EigenValues (node: Node): POINTER TO ARRAY OF REAL;
 		VAR
 			a: POINTER TO ARRAY OF ARRAY OF REAL;
@@ -64,7 +64,7 @@ MODULE SpatialCARProper;
 				INC(j)
 			END;
 			INC(row)
-		END; 
+		END;
 		MathMatrix.Jacobi(a, eigenValues, len);
 		RETURN eigenValues
 	END EigenValues;
@@ -121,7 +121,7 @@ MODULE SpatialCARProper;
 			j := 0; WHILE (j < numNeigh1) & (p.neighs[j] # index) DO INC(j) END;
 			mCol := node.components[p.index](Node).m;
 			weightCol := p.weights[j];
-			IF ABS(weightCol * mRow - weight * mCol) > eps THEN 
+			IF ABS(weightCol * mRow - weight * mCol) > eps THEN
 				RETURN {GraphNodes.arg2, GraphNodes.notSymmetric}
 			END;
 			INC(i)
@@ -141,7 +141,7 @@ MODULE SpatialCARProper;
 			density := GraphRules.general
 		ELSE
 			f1 := GraphRules.const;
-			i := 0; nElem := node.Size(); 
+			i := 0; nElem := node.Size();
 			WHILE (i < nElem) & (f1 IN linear) DO
 				p := node.components[i](Node);
 				f1 := GraphStochastic.ClassFunction(p.mu, parent);
@@ -157,12 +157,12 @@ MODULE SpatialCARProper;
 		END;
 		RETURN density
 	END ClassifyLikelihoodUVMRF;
-	
+
 	PROCEDURE (node: Node) ClassifyPrior (): INTEGER;
 	BEGIN
 		RETURN GraphRules.normal
 	END ClassifyPrior;
-	
+
 	PROCEDURE (node: Node) DiffLogPrior (): REAL;
 		VAR
 			x, mu, tau, differential: REAL;
@@ -209,7 +209,7 @@ MODULE SpatialCARProper;
 	BEGIN
 		ASSERT(as = GraphRules.gamma, 21);
 		p0 := 0.50;
-		p1 := QuadraticForm(likelihood); 
+		p1 := QuadraticForm(likelihood);
 		x := likelihood.tau
 	END LikelihoodForm;
 
@@ -218,7 +218,7 @@ MODULE SpatialCARProper;
 			logLikelihood, gamma: REAL;
 	BEGIN
 		gamma := node.gamma.value;
-		logLikelihood := 0.5 * Math.Ln(1.0 - gamma * node.eigenValue); 
+		logLikelihood := 0.5 * Math.Ln(1.0 - gamma * node.eigenValue);
 		RETURN logLikelihood
 	END LogDet;
 
@@ -267,11 +267,7 @@ MODULE SpatialCARProper;
 			i, size: INTEGER;
 	BEGIN
 		size := node.Size();
-		i := 0;
-		WHILE i < size DO
-			p0[i] := node.components[i](Node).mu.value;
-			INC(i)
-		END
+		i := 0; WHILE i < size DO p0[i] := node.components[i](Node).mu.value; INC(i) END
 	END MVPriorForm;
 
 	PROCEDURE (node: Node) NumberConstraints (): INTEGER;
@@ -288,13 +284,8 @@ MODULE SpatialCARProper;
 		list := NIL;
 		p := node.gamma;
 		p.AddParent(list);
-		i := 0;
 		nElem := node.Size();
-		WHILE i < nElem DO
-			p := node.components[i](Node).mu;
-			p.AddParent(list);
-			INC(i) 
-		END;
+		i := 0; WHILE i < nElem DO p := node.components[i]; p(Node).mu.AddParent(list); INC(i) END;
 		RETURN list
 	END ParentsUVMRF;
 
@@ -355,7 +346,7 @@ MODULE SpatialCARProper;
 					p := node.components[i](Node);
 					p.eigenValue := eigenValues[i];
 					p.gammaMax := 1.0 / eigenValues[nElem - 1];
-					p.gammaMin := 1.0 / eigenValues[0]; 
+					p.gammaMin := 1.0 / eigenValues[0];
 					INC(i)
 				END
 			END

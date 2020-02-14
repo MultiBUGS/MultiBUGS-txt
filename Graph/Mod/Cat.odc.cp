@@ -261,7 +261,7 @@ MODULE GraphCat;
 		ELSE (*	stick breaking	*)
 			parent := x;
 			x := node.p[start + (r - 1) * step];
-			class := x(GraphLogical.Node).ClassFunction(parent);
+			class := GraphStochastic.ClassFunction(x, parent(GraphStochastic.Node));
 			x := parent;
 			IF class = GraphRules.ident THEN
 				p0 := 1.0; p1 := 0.0

@@ -139,9 +139,9 @@ MODULE UpdaterUnivariate;
 				END;
 				INC(i)
 			END;
-			IF GraphStochastic.distributed IN prior.props THEN
-				logLikelihood := MPIworker.SumReal(logLikelihood)
-			END
+		END;
+		IF GraphStochastic.distributed IN prior.props THEN
+			logLikelihood := MPIworker.SumReal(logLikelihood)
 		END;
 		RETURN logLikelihood
 	END LogLikelihood;

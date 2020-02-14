@@ -13,14 +13,13 @@ MODULE DevianceInterface;
 	
 
 	IMPORT
-		Math, 
-		BugsIndex, BugsInterface, BugsNames, 
-		DevianceIndex, DevianceMonitors, DeviancePlugin;
+		Math,
+		BugsIndex, BugsInterface, BugsNames,
+		DevianceIndex, DevianceMonitors, DeviancePlugin,
+		GraphLogical;
 
 	TYPE
-		SetDeviance = POINTER TO RECORD(BugsNames.Visitor)
-			termOffset: INTEGER
-		END;
+		SetDeviance = POINTER TO RECORD(BugsNames.Visitor) END;
 
 	CONST
 		setWAIC = 4;
@@ -36,7 +35,7 @@ MODULE DevianceInterface;
 		maintainer-: ARRAY 40 OF CHAR;
 
 	PROCEDURE Clear*;
-	VAR
+		VAR
 			command: BugsInterface.Command;
 	BEGIN
 		IF ~BugsInterface.IsDistributed() THEN
@@ -45,10 +44,10 @@ MODULE DevianceInterface;
 			lpdGlobal := NIL;
 			pWGlobal := NIL;
 			command[0] := clearWAIC;
-			command[1] := -1;
-			command[2] := -1;
-			command[3] := -1;
-			command[4] := -1;
+			command[1] := - 1;
+			command[2] := - 1;
+			command[3] := - 1;
+			command[4] := - 1;
 			BugsInterface.SendCommand(command)
 		END;
 		state := notSet
@@ -63,11 +62,10 @@ MODULE DevianceInterface;
 		monitor := DevianceIndex.Find(name);
 		IF monitor = NIL THEN RETURN 0 END;
 		node := monitor.Name();
-		i := 0;
 		size := node.Size();
 		num := 0;
-		WHILE i < size DO
-			IF monitor.IsMonitored(i) & (monitor.SampleSize(i) > 0) THEN INC(num) END;
+		i := 0;
+		WHILE i < size DO IF monitor.IsMonitored(i) & (monitor.SampleSize(i) > 0) THEN INC(num) END;
 			INC(i)
 		END;
 		RETURN num
@@ -91,13 +89,10 @@ MODULE DevianceInterface;
 			INC(i)
 		END;
 		IF num = 0 THEN RETURN NIL ELSE NEW(offsets, num) END;
-		i := 0;
 		num := 0;
+		i := 0;
 		WHILE i < size DO
-			IF monitor.IsMonitored(i) & (monitor.SampleSize(i) > 0) THEN
-				offsets[num] := i;
-				INC(num)
-			END;
+			IF monitor.IsMonitored(i) & (monitor.SampleSize(i) > 0) THEN offsets[num] := i; INC(num) END;
 			INC(i)
 		END;
 		RETURN offsets
@@ -109,17 +104,16 @@ MODULE DevianceInterface;
 			sum: DevianceMonitors.Monitor;
 	BEGIN
 		offsets := Offsets(name);
-		IF offsets = NIL THEN
-			RETURN 0
-		END;
+		IF offsets = NIL THEN RETURN 0 END;
 		sum := DevianceIndex.Find(name);
 		RETURN sum.SampleSize(offsets[0])
 	END SampleSize;
 
+	(*	NEED TO RE-EVALUATE LOGICAL NODES AFTER PLUGIN STUFF???	*)
 	PROCEDURE Stats* (IN name: ARRAY OF CHAR;
 	OUT dBar, dHat, dic, waic, pD, pW: POINTER TO ARRAY OF REAL);
 		VAR
-			i, j, len, num, termOffset: INTEGER;
+			i, j, len, num: INTEGER;
 			mean, mean2, meanDen, variance, lpd: REAL;
 			monitor: DevianceMonitors.Monitor;
 			means, values: POINTER TO ARRAY OF REAL;
@@ -127,54 +121,41 @@ MODULE DevianceInterface;
 	BEGIN
 		plugin := DevianceIndex.Plugin();
 		IF plugin # NIL THEN
-			means := DevianceIndex.Means();
-			values := DevianceIndex.Values();
-			DevianceIndex.SetValues(means);
+			means := DevianceIndex.Means(); values := DevianceIndex.GetPluginValues();
+			DevianceIndex.SetPluginValues(means); GraphLogical.EvaluateAll
 		END;
 		monitor := DevianceIndex.Find(name);
-		i := 0;
 		len := monitor.Name().Size();
 		num := 0;
-		WHILE i < len DO
-			IF monitor.IsMonitored(i) THEN
-				INC(num)
-			END;
-			INC(i)
-		END;
+		i := 0; WHILE i < len DO IF monitor.IsMonitored(i) THEN INC(num) END; INC(i) END;
 		NEW(dBar, num);
 		NEW(waic, num);
 		NEW(pW, num);
 		IF plugin # NIL THEN
-			NEW(dHat, num);
-			NEW(pD, num);
-			NEW(dic, num)
+			NEW(dHat, num); NEW(pD, num); NEW(dic, num)
 		ELSE
 			dHat := NIL; pD := NIL; dic := NIL
 		END;
 		i := 0;
 		j := 0;
-		termOffset := monitor.TermOffset();
 		WHILE i < len DO
 			IF monitor.IsMonitored(i) THEN
 				monitor.Stats(i, mean, mean2, meanDen);
 				dBar[j] := mean;
 				variance := mean2 - mean * mean;
 				lpd := Math.Ln(meanDen);
+				pW[j] := 0.25 * variance; waic[j] := - 2 * lpd + 2 * pW[j];
 				IF plugin # NIL THEN
-					dHat[j] := plugin.DevianceTerm(termOffset + j);
-					pD[j] := dBar[j] - dHat[j];
-					dic[j] := dBar[j] + pD[j];
+					dHat[j] := monitor.Deviance(i); pD[j] := dBar[j] - dHat[j]; dic[j] := dBar[j] + pD[j];
 				END;
-				pW[j] := 0.25 * variance;
-				waic[j] :=  - 2 * lpd + 2 * pW[j];
 				INC(j)
 			END;
 			INC(i)
 		END;
-		IF plugin # NIL THEN DevianceIndex.SetValues(values) END
+		IF plugin # NIL THEN DevianceIndex.SetPluginValues(values); GraphLogical.EvaluateAll END
 	END Stats;
 
-	PROCEDURE NodeStats* (IN name: ARRAY OF CHAR; OUT dBarTot, dHatTot, dicTot, 
+	PROCEDURE NodeStats* (IN name: ARRAY OF CHAR; OUT dBarTot, dHatTot, dicTot,
 	waicTot, pDTot, pWTot: REAL);
 		VAR
 			i, len: INTEGER;
@@ -192,16 +173,14 @@ MODULE DevianceInterface;
 		offsets := Offsets(name);
 		IF offsets = NIL THEN RETURN END;
 		len := LEN(offsets);
-		i := 0;
 		Stats(name, dBar, dHat, dic, waic, pD, pW);
+		i := 0;
 		WHILE i < len DO
 			dBarTot := dBarTot + dBar[i];
 			waicTot := waicTot + waic[i];
 			pWTot := pWTot + pW[i];
 			IF plugin # NIL THEN
-				pDTot := pDTot + pD[i];
-				dHatTot := dHatTot + dHat[i];
-				dicTot := dicTot + dic[i]
+				pDTot := pDTot + pD[i]; dHatTot := dHatTot + dHat[i]; dicTot := dicTot + dic[i]
 			ELSE
 				pDTot := 0.0; dHatTot := 0.0; dicTot := 0.0
 			END;
@@ -217,21 +196,10 @@ MODULE DevianceInterface;
 	PROCEDURE (v: SetDeviance) Do (node: BugsNames.Name);
 		VAR
 			monitor: DevianceMonitors.Monitor;
-			i, size: INTEGER;
 	BEGIN
 		monitor := NIL;
-		IF node.passByreference THEN
-			monitor := DevianceMonitors.fact.New(node, v.termOffset)
-		END;
-		IF monitor # NIL THEN
-			DevianceIndex.Register(monitor);
-			i := 0;
-			size := node.Size();
-			WHILE i < size DO
-				IF monitor.IsMonitored(i) THEN INC(v.termOffset) END;
-				INC(i)
-			END;
-		END
+		IF node.passByreference THEN monitor := DevianceMonitors.fact.New(node) END;
+		IF monitor # NIL THEN DevianceIndex.Register(monitor) END
 	END Do;
 
 	PROCEDURE Set*;
@@ -245,7 +213,6 @@ MODULE DevianceInterface;
 			name := BugsIndex.Find("deviance");
 			IF name = NIL THEN DeviancePlugin.SetFact(NIL); RETURN END;
 			NEW(v);
-			v.termOffset := 0;
 			BugsIndex.Accept(v);
 			DevianceIndex.InitMonitor;
 			state := set
@@ -255,17 +222,9 @@ MODULE DevianceInterface;
 			NEW(pWGlobal, numChains);
 			NEW(meanDevianceGlobal, numChains);
 			NEW(meanDeviance2Global, numChains);
-			i := 0;
-			WHILE i < numChains DO
-				lpdGlobal[i] :=  - 1.0;
-				pWGlobal[i] :=  - 1.0;
-				INC(i)
-			END;
-			command[0] := setWAIC;
-			command[1] := -1;
-			command[2] := -1;
-			command[3] := -1;
-			command[4] := -1;
+			i := 0; WHILE i < numChains DO lpdGlobal[i] := - 1.0; pWGlobal[i] := - 1.0; INC(i) END;
+			command[0] := setWAIC; command[1] := - 1; command[2] := - 1;
+			command[3] := - 1; command[4] := - 1;
 			BugsInterface.SendCommand(command);
 			state := setDistributed;
 		END

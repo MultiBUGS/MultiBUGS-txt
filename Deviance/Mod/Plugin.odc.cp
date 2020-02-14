@@ -27,8 +27,6 @@ MODULE DeviancePlugin;
 
 		fact-: Factory;
 
-	PROCEDURE (plugin: Plugin) DevianceTerm* (termOffset: INTEGER): REAL, NEW, ABSTRACT;
-
 	PROCEDURE (plugin: Plugin) IsValid* (): BOOLEAN, NEW, ABSTRACT;
 
 	PROCEDURE (plugin: Plugin) NumParents* (): INTEGER, NEW, ABSTRACT;
@@ -57,10 +55,7 @@ MODULE DeviancePlugin;
 	BEGIN
 		present := fact # NIL;
 		wr.WriteBool(present);
-		IF present THEN
-			fact.Install(install);
-			wr.WriteString(install)
-		END
+		IF present THEN fact.Install(install); wr.WriteString(install) END
 	END Externalize;
 
 	PROCEDURE Internalize* (VAR rd: Stores.Reader);
@@ -76,12 +71,7 @@ MODULE DeviancePlugin;
 		IF present THEN
 			rd.ReadString(install);
 			Meta.LookupPath(install, item);
-			IF item.obj = Meta.procObj THEN
-				item.GetVal(cmd, ok);
-				IF ok THEN
-					cmd.Do
-				END
-			END
+			IF item.obj = Meta.procObj THEN item.GetVal(cmd, ok); IF ok THEN cmd.Do END END
 		END
 	END Internalize;
 
