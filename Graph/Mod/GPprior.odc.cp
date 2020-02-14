@@ -928,13 +928,17 @@ MODULE GraphGPprior;
 		VAR
 			i, size, start, step: INTEGER;
 			p: GraphNodes.Node;
+			s: Node;
 			list: GraphNodes.List;
 	BEGIN
 		size := pred.Size(); start := pred.muStart; step := pred.muStep;
 		list := NIL;
-		p := pred.s.kernel;
+		s := pred.s;
+		p := s.kernel;
 		p.AddParent(list);
 		i := 0; WHILE i < size DO p := pred.mu[start + i * step]; p.AddParent(list); INC(i) END; 
+		size := s.Size(); start := s.muStart; step := s.muStep;
+		i := 0; WHILE i < size DO p := s.mu[start + i * step]; p.AddParent(list); INC(i) END; 
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
@@ -1135,12 +1139,18 @@ MODULE GraphGPprior;
 	PROCEDURE (pred: PredUniNode) ParentsUnivariate (all: BOOLEAN): GraphNodes.List;
 		VAR
 			p: GraphNodes.Node;
+			s: Node;
 			list: GraphNodes.List;
+			i, muStart, muStep, size: INTEGER;
 	BEGIN
 		list := NIL;
-		p := pred.s.kernel;
+		s := pred.s;
+		p := s.kernel;
 		p.AddParent(list);
 		p := pred.mu; p.AddParent(list);
+		size := s.Size();
+		muStart := s.muStart; muStep := s.muStep; size := s.Size();
+		i := 0; WHILE i < size DO p := s.mu[muStart + i * muStep]; p.AddParent(list); INC(i) END;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END ParentsUnivariate;
