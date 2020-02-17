@@ -268,6 +268,7 @@ MODULE GraphUVMRF;
 			ok: BOOLEAN;
 	BEGIN
 		log2Pi := Math.Ln(2 * Math.Pi());
+		sparseFactory := NIL;
 		MathSparsematrix.SetFactory(MathSparsematrix.stdFact);
 		Meta.LookupPath("MathTaucsImp.Install", item);
 		IF item.obj = Meta.procObj THEN
@@ -278,6 +279,7 @@ MODULE GraphUVMRF;
 				MathSparsematrix.SetFactory(MathSparsematrix.stdFact)
 			END
 		END;
+		IF sparseFactory = NIL THEN sparseFactory := MathSparsematrix.stdFact END;
 		Maintainer;
 	END Init;
 
