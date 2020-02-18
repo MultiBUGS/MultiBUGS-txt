@@ -29,7 +29,7 @@ Run simulation for K = {1, 2, 4, 8, 16, 32, 64, 128, 256}.. The MLE point estima
 
 Data ( click to open )
 
-Inits for chain 1 
+Inits for chain 1    Inits for chain 2 
 
 
 Results
