@@ -27,7 +27,7 @@
 		}
 
 	# PRIORS
-		beta ~ dnorm(0,1.0E-6) ;     
+		beta ~ dnorm(0,1.0E-6)
 	  
 	# LIKELIHOOD
 		for (i in 1 : I) {                    # loop around strata	

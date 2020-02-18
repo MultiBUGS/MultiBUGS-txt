@@ -62,17 +62,17 @@ All these techniques are illustrated in the code given below, which includes a t
 		}
 
 	# PRIORS
-		beta ~ dnorm(0,1.0E-6) ;     
-	  
+		beta ~ dnorm(0,1.0E-6)
+	
 	# LIKELIHOOD
 		for (i in 1 : I) {                    # loop around strata	
 	# METHOD 1 - logistic regression
 	#        Y[i,1] ~ dbin( p[i,1], 1) 
 	#         logit(p[i,1]) <- beta * (est[i,1] - est[i,J]) 
-	
 	# METHOD 2 - conditional likelihoods
 			Y[i, 1 : J] ~ dmulti( p[i, 1 : J],1)
 			for (j in 1:2){
+
 				p[i, j] <- e[i, j] / sum(e[i, ])
 				log( e[i, j] ) <- beta * est[i, j] 
 			}         
@@ -84,14 +84,14 @@ All these techniques are illustrated in the code given below, which includes a t
 	#beta0[i] ~ dnorm(0, 1.0E-6) 
 	}
 
-Data ( cklick to open )
+Data ( click to open )
 
 
-Inits for chain 1   Inits for chain 2( cklick to open )
+Inits for chain 1   Inits for chain 2( click to open )
 
 
 Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
-	beta	1.875	1.85	0.4223	0.004219	1.108	2.769	1001	20000	10018
+	beta	1.873	1.849	0.4177	0.006939	1.102	2.745	1001	20000	3623
 
