@@ -1,4 +1,4 @@
-		Rats-drop: the rats example, illustrating the
+		RatsDrop: the rats example, illustrating the
 						 effect of different dropout assumptions
 
 This example is taken from  section 6 of Gelfand et al (1990), and concerns 30 young rats whose weights were measured weekly for five weeks. Part of the data is shown below, where Yij is the weight of the ith rat measured at age xj.   
