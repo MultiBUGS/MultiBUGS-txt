@@ -12,8 +12,7 @@
 			}
 		}
 		tauC ~ dgamma(1.0E-3, 1.0E-3)
-		sigmaC <- 1 / sqrt(tauC)
-		varC <- 1 / tauC
+		sigma.C <- 1 / sqrt(tauC)
 		for (k in 1:3) {
 			mu[k] ~ dnorm(0, 1.0E-4)
 			tau[k] ~ dgamma(1.0E-3, 1.0E-3)
