@@ -1,1 +1,1 @@
- list(alpha = 0.2, beta = c(-0.45, -1.0), tau = 5, k = 16)
+list(alpha = 0.6, beta = c(-0.45, -1.0), tau = 5, k = 8)
