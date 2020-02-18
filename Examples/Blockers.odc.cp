@@ -1,4 +1,4 @@
-	Blocker: random effects 
+	Blockers: random effects 
 		meta-analysis of clinical
 		trials
 
