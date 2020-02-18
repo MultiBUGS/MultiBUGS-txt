@@ -18,7 +18,7 @@
 	
 	Cervix: case-control study with errors in covariates
 	
-	Jaw: repeated measures analysis of variance
+	Jaws: repeated measures analysis of variance
 	
 	Birats: a bivariate Normal hierarchical model
 	
@@ -29,13 +29,15 @@
 	
 	Beetles: logistic, probit and extreme value models
 	
-	Alli: multinomial logistic model
+	Alligators: multinomial logistic model
 	
 	Endo: conditional inference in case-control studies
 	
 	Stagnant: a change point problem
 	
 	Asia: an expert system
+	
+	Pigs: genetic counseling and pedigree analysis
 	
 	Simulating data: degree of freedom of a 
 		t distribution

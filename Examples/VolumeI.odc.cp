@@ -23,7 +23,7 @@
 	
 	Epil: repeated measures on Poisson counts
 	
-	Blocker: random effects meta-analysis of 
+	Blockers: random effects meta-analysis of 
 		clinical trials
 	
 	Oxford: smooth fit to log-odds ratios in 
@@ -44,7 +44,7 @@
 	
 	Leuk: survival analysis using Cox regression
 	
-		Cox regression with frailties
+	LeukFr: Cox regression with frailties
 
 	
 	References: 	

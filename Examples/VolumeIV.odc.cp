@@ -9,11 +9,9 @@
 	
 	Abbey: share prices a stable approach
 	
-	Beetles: differential evolution and MLEs
+	Beetles: a censoring approach
 	
 	Preeclampsia: a multistage approach	
-	
-	Beetles: probit regression and censoring	
 
 	Lotka-Volterra: a simple ODE model
 	
@@ -22,6 +20,10 @@
 	Change points: an ODE model with change points
 	
 	Pollution: an autoregressive time series model
+	
+	Methadone: A large e-health random effects model	
+	
+	Functionals: integration and algebraic equations
 	
 	References: 	
 	Sorry - an on-line version of the references is currently unavailable. 
