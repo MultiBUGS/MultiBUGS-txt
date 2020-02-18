@@ -65,7 +65,6 @@ In the BUGS language the model is
 	for (i in 1:n.grid) {
 		sol_VEN[i] <- solution[i, VEN]
 		data[i] ~ dnorm(sol_VEN[i], tau)
-		pred[i] ~ dnorm(sol_VEN[i], 100000000)
 	}
 
 	tau ~ dgamma(tau.a, tau.b)
