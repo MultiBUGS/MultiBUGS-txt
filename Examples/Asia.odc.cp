@@ -18,9 +18,10 @@ tables.
 	}
 
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Results 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS

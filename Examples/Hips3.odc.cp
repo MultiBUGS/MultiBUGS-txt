@@ -121,7 +121,8 @@ Sections of the code that have changed from Model 1 are shown in bold
 	}
 
 
-Data ( click to open )
+Data	( click to open )
+
 
 Results 
 
@@ -216,9 +217,12 @@ vH1 = posterior mean of var.C = 174400
 }
 
 
-Data ( click to open, posterior means and posterior sd of C, BL and BQ from running model 3)
+Posterior means and posterior sd of C, BL and BQ from running model 3:
 
-Results 
+Data	( click to open )
+
+
+Results
 
 mC      4609.03
 mBL      8.687390000000001

@@ -71,14 +71,16 @@ The BUGS code is given below:
 	}
 
 
-Data ( click to open )
+Data	( click to open )
+
 
 Note that school is a 1978 x 3 matrix taking value 1 for all pupils in school 1, 2 for all pupils in school 2 and so on. For computational convenience, Y, mu and tau are indexed over a single dimension p = 1,...,1978  rather than as pupil i within school j as used in equations above. The appropriate school-level coefficients for pupil p are then selected using the school indicator in row p of the data array --- for example alpha[school[p],1]. 
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Results 
-
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	beta[1]	2.589E-4	2.589E-4	9.8E-5	1.195E-6	6.877E-5	4.508E-4	150001	40000	6728

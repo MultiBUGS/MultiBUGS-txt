@@ -22,7 +22,7 @@
 	
 	Birats: a bivariate Normal hierarchical model
 	
-	Schools: muliivariate hierarchical model of 
+	Schools: multivariate hierarchical model of 
 		examination results
 	
 	Ice: non-parametric smoothing in an age-cohort model
@@ -42,8 +42,4 @@
 	Simulating data: degree of freedom of a 
 		t distribution
 	
-	
-	References: 	
-	Sorry - an on-line version of the references is currently unavailable. 
-	Please refer to the existing Examples documentation available from
-	http://www.mrc-bsu.cam.ac.uk/bugs.
+

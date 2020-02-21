@@ -44,10 +44,10 @@ BUGS language for hep example:
 
 Note the use of a very flat but conjugate prior for the population effects: a locally uniform prior could also have been used.
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results
@@ -93,10 +93,9 @@ With measurement error
 
 
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 	Inits for chain 2	( click to open )
-
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 Results
 

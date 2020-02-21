@@ -43,11 +43,12 @@ Histogram smoothing adapted from Example 5.9 from Congdon (2001), p 180. The mod
 	#		T[1 : s, 1 : s] <- inverse(cov[ , ])
 	}
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results
+
+Results  
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	Sm[1]	1.539	1.367	0.8977	0.01541	0.3566	3.754	1001	20000	3393

@@ -49,9 +49,10 @@ where xj = age at jth measurement. Non-informative independent normal priors wer
 
 	}
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Results  
 

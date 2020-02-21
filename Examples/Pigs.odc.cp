@@ -80,12 +80,14 @@ BUGS code for Pigs model:
 	}
 
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Results 
+Results
+
 
 One update took 0.06ms
 

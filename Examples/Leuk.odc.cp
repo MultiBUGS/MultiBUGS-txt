@@ -78,12 +78,13 @@ The fixed effect regression coefficients b are assigned a vague prior
 		beta ~ dnorm(0.0,0.000001)              
 	}
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Results
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	S.placebo[1]	0.9261	0.9366	0.04975	3.619E-4	0.8021	0.9903	1001	20000	18896

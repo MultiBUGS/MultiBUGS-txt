@@ -92,10 +92,11 @@ The Classic BUGS manual (version 0.5) discusses two ways of fitting this model: 
 		}
 	}  
 
+
+
 Data	( click to open )
 
-
-Inits for chain 1   		Inits for chain 2 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results 

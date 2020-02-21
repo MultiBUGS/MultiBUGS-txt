@@ -46,13 +46,12 @@ The BUGS code for this model is given below:
 		delta ~ dnorm(0, 1.0E-4)
 	}
 
+Data	( click to open )
 
-Data ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Inits for chain 1	  Inits for chain 2	 ( click to open )
 
 Results 
-
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	-0.4786	-0.4754	0.2764	0.003029	-1.029	0.04461	1001	20000	8328

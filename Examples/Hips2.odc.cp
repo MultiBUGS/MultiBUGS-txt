@@ -100,7 +100,8 @@ Sections of the code that have changed from Model 1 are shown in bold
 	}
 
 
-Data ( click to open )
+
+Data	( click to open )
 
 Use gen inits to generate initial values but un-check the fix founder box.
 

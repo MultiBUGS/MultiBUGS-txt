@@ -29,10 +29,10 @@ where pj is the probability of respiratory illness for children in the jth expos
 		theta[2] ~ dnorm(0.0, 0.001)
 	}
 
-
 Data	( click to open )
 
-Inits for chain 1	Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Results 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS

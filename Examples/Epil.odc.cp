@@ -79,13 +79,14 @@ BUGS language for epil example model III with covariate centering
 		alpha0 <- a0 - alpha.Base * log.Base4.bar - alpha.Trt * Trt.bar 
 		- alpha.BT * BT.bar - alpha.Age * log.Age.bar - alpha.V4 * V4.bar
 	}
-	
-Data ( click to open )
-
-Inits for chain 1 		Inits for chain 2		( click to open )
 
 
-Results
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha.Age	0.4549	0.4603	0.3787	0.01157	-0.3012	1.194	1001	20000	1070

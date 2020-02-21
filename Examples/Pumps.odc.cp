@@ -54,11 +54,13 @@ BUGS language for pump example:
 		beta ~ dgamma(0.1, 1.0)
 	}
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
 
-Results
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	0.6919	0.6512	0.2684	0.003669	0.2855	1.307	1001	20000	5348

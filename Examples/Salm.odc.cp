@@ -45,11 +45,14 @@ BUGS language for salm example
 		tau ~ dgamma(0.001, 0.001)
 		sigma <- 1 / sqrt(tau)
 	}	
-Data ( click to open )
 
-Inits for chain 1  Inits for chain 2 ( click to open )
 
-Results
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	2.169	2.17	0.3622	0.006463	1.454	2.89	1001	20000	3140

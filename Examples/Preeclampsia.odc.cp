@@ -51,7 +51,9 @@ Data
 
 list(L = 10000, N = 9)
 
-plus the CODA file data ( click to open ).
+plus the CODA file
+
+Data	( click to open )
 
 
 Inits

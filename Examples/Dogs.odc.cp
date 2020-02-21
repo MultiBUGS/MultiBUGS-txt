@@ -31,9 +31,10 @@ Hence we have a generalised linear model for binary data, but with a log-link fu
 		B <- exp(beta)
 	}
 
-Data ( click to open )
 
-Inits for chain 1		Inits for chain 2	( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results 

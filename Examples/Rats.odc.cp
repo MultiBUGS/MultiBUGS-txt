@@ -54,9 +54,10 @@ BUGS language for rats example:
 
 Note the use of a very flat but conjugate  prior for the population effects: a locally uniform prior could also have been used.
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 (Note: the response data (Y) for the rats example can also be found in the file ratsy.odc in rectangular format. The covariate data (x) can be found in S-Plus format in file ratsx.odc. To load data from each of these files, focus the window containing the open data file before clicking on "load data" from the "Specification" dialog.)
@@ -73,7 +74,8 @@ These results may be compared with Figure 5 of Gelfand et al 1990 --- we note th
 
 Gelfand et al 1990 also consider the problem of missing data, and delete the last observation of cases 6-10, the last two from 11-20, the last 3 from 21-25 and the last 4 from 26-30.  The appropriate data file is obtained by simply replacing data values by NA (see below). The model specification is unchanged, since the distinction between observed and unobserved quantities is made in the data file and not the model specification.
 
-Data ( click to open )
+
+Data	( click to open )
 
 Gelfand et al 1990 focus on the parameter estimates and the predictions for the final 4 observations on rat 26. These predictions are obtained automatically in BUGS by monitoring the relevant Y[] nodes. The following estimates were obtained:
 

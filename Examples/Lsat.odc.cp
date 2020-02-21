@@ -68,11 +68,13 @@ Note that the data are read into BUGS in the original multinomial format to econ
 
 NB when generating initial values do not check the fix founder box in the Specification Tool. If you do all the theta will be set to zero and beta will go to la-la land.
 
+
 Data	( click to open )
 
-Inits for chain 1  Inits for chain 2	 ( click to open )
-	
-Results
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	a[1]	-1.26	-1.259	0.1046	8.884E-4	-1.469	-1.059	1001	20000	13874

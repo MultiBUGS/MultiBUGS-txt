@@ -27,8 +27,4 @@
 	
 	St Veit: radio carbon dating with stratification
 	
-	
-	References: 	
-	Sorry - an on-line version of the references is currently unavailable. 
-	Please refer to the existing Examples documentation available from
-	http://www.mrc-bsu.cam.ac.uk/bugs.
+

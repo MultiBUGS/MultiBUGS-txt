@@ -3,7 +3,7 @@
 
 	Rats: Normal hierarchical model
 	
-	Pump: conjugate gamma-Poisson hierarchical model
+	Pumps: conjugate gamma-Poisson hierarchical model
 	
 	Dogs: log linear binary model
 	
@@ -46,8 +46,4 @@
 	
 	LeukFr: Cox regression with frailties
 
-	
-	References: 	
-	Sorry - an on-line version of the references is currently unavailable. 
-	Please refer to the existing Examples documentation available from
-	http://www.mrc-bsu.cam.ac.uk/bugs.
+

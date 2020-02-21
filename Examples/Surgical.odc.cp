@@ -46,7 +46,8 @@ Graphical model for fixed effects surgical example:
 
 Data	( click to open )
 
-Inits for chain 1 			Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 A more realistic model for the surgical data is to assume that the failure rates across hospitals are similar in some way. This is equivalent to specifying a random effects model for the true failure probabilities pi as follows:
 
@@ -78,12 +79,13 @@ BUGS language for random effects surgical model:
 		}
 
 
+
 Data	( click to open )
 
-Inits for chain 1 			Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Results for independent model
+Results for independent model 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	p[1]	0.02059	0.01439	0.02002	1.338E-4	5.563E-4	0.07399	1001	20000	22367
@@ -119,7 +121,7 @@ Results for independent model
 
 
 
-Results for random effects model
+Results for random effects model 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	p[1]	0.05298	0.05224	0.01956	2.329E-4	0.01785	0.09385	1001	20000	7053

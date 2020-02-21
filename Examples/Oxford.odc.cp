@@ -56,11 +56,12 @@ BUGS language for Oxford example:
 	}
 
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	0.5801	0.5809	0.06744	0.001444	0.4542	0.7047	2001	20000	2180

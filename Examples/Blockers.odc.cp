@@ -55,12 +55,14 @@ BUGS language for blocker example:
 		delta.new ~ dnorm(d, tau)
 		sigma <- 1 / sqrt(tau)
 	}
-	
-Data ( click to open )
 
-Inits for chain 1   Inits for chain 2  ( click to open )
-  
-Results
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	d	-0.2502	-0.2514	0.06137	0.001762	-0.3692	-0.1276	1001	20000	1213

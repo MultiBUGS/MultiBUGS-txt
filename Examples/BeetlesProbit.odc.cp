@@ -21,15 +21,15 @@ the model as a censoring problem. To do this we break down each of the binomial 
 		beta ~ dnorm(0.0,0.001)
 		alpha.star ~ dnorm(0.0,0.001)	
 	}
-	
-Data ( click to open )
 
 
-Inits for chain 1   Inits for chain 2( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results 
-	
+
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	-35.01	-34.99	2.624	0.04948	-40.28	-29.95	1001	20000	2812
 	beta	19.77	19.75	1.475	0.02795	16.91	22.73	1001	20000	2784

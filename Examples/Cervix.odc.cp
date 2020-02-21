@@ -88,12 +88,9 @@ The BUGS code is given below. The role of the variables x1 and d1 is to pick the
 		gamma2 <- 1 / (1 + (1 + exp(-beta0C - beta)) / (1 + exp(-beta0C)) * (1 - q) / q)
 	}
 
+Data	( click to open )
 
-
-Data ( click to open )
-
-
-Inits for chain 1		  Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results 

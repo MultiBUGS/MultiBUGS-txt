@@ -110,12 +110,13 @@ The BUGS language for this model is shown below. We assume the bi's to be normal
 
 Note that the data is read into BUGS in the original contigency table format to economize on space and effort. The indivdual responses for each of the 286 patients are then constructed within BUGS.  
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
 
-Results
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
+
+Results 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	a[1]	0.7122	0.7073	0.1386	0.003335	0.4511	0.9922	1001	20000	1727
 	a[2]	3.935	3.927	0.3323	0.01253	3.307	4.608	1001	20000	703

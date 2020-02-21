@@ -72,11 +72,12 @@ BUGS language for kidney example
 	}
 
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	-4.826	-4.753	1.011	0.05058	-6.98	-3.056	5001	20000	399

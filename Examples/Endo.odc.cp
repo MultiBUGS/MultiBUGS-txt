@@ -84,14 +84,14 @@ All these techniques are illustrated in the code given below, which includes a t
 	#beta0[i] ~ dnorm(0, 1.0E-6) 
 	}
 
-Data ( click to open )
 
 
-Inits for chain 1   Inits for chain 2( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results 
-
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	beta	1.873	1.849	0.4177	0.006939	1.102	2.745	1001	20000	3623
 

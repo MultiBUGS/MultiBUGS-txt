@@ -24,7 +24,8 @@ The RW(1) reflects prior beliefs about smoothness of first differences, i.e. sud
 				~  Normal (  -qt-2+ 2qt-1,  f ) for  t = T
 
 Again this may be specified using the stoch.trend  distribution in BUGS.
-		
+
+
 Model
 
 The model code for fitting these two models is given below.
@@ -53,17 +54,15 @@ The model code for fitting these two models is given below.
 
 Note that pollution concentrations were not measured every day. However it is necessary to include days with no measurements as missing values (NA) in the data set, otherwise the temporal neighbourhood structure cannot be specified correctly.
 
-Data 	(Click to open) 
+Data	( click to open )
 
-Inits for chain 1	Inits for chain 2	(Click to open) 
-
-
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 Plus click on gen inits to generate initial values for the missing data
 
 
-
 Results
+
 
 RW(1) prior:
 

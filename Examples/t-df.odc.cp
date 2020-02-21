@@ -22,8 +22,10 @@ Check: should have mean 0, variance 2, etc.
 	
 To analyse the simulated data: first we try a model for learning about the degrees of freedom as a continuous quantity:
 
-Model:
-		
+
+Model
+
+
 		model {
 			for (i in 1:1000) {
 				y[i] ~ dt(0, 1, d)
@@ -38,6 +40,8 @@ Model:
 			}
 			d ~ dunif(2, 100)			# degrees of freedom must be at least two
 		}
+
+
 
 Data	( click to open )
 
@@ -69,7 +73,9 @@ Now we attempt to model the degrees of freedom parameter with a discrete uniform
 
 We should get better mixing if we specify the prior for d on a finer grid, e.g. {2.0, 2.1, 2.2, ..., 6.0}:
 
-Model:
+
+Model
+
 
 	model {
 		for (j in 1:41) {

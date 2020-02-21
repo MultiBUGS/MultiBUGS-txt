@@ -56,9 +56,10 @@ We note a number of tricks in setting up this model. First, individuals who are 
 
 Data	( click to open )
 
-Inits for chain 1 	Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	pos.control	0.3228	0.3201	0.3439	0.004274	-0.3508	0.9976	2001	20000	6476

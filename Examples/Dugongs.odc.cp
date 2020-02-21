@@ -32,10 +32,10 @@ Standard noninformative priors are adopted for a, b and t, and a uniform prior o
 		U3 <- logit(gamma)	
 	}
 
-Data ( click to open )
+Data	( click to open )
 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
 
 Results  
 

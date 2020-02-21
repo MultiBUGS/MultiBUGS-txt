@@ -38,14 +38,16 @@ The corresponding graph is shown below:
 		beta ~ dnorm(0.0,0.001)
 		alpha.star ~ dnorm(0.0,0.001)
 	}
-	
-Data ( click to open )
 
 
-Inits for chain 1		Inits for chain 2( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Results
+
+Results 
 
 Logit model
 

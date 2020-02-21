@@ -23,9 +23,9 @@ We repeat the Otrees example, replacing the 3 independent univariate Normal prio
 	}
 
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results 

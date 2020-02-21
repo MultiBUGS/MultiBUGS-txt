@@ -42,11 +42,13 @@ Bugs language for dyes example
 		theta ~ dnorm(0.0, 1.0E-10)
 	}
 
-Data ( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Data	( click to open )
 
-Results
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	sigma2.btw	2314.0	1375.0	6182.0	32.59	0.01288	10320.0	10001	200000	35975

@@ -2,7 +2,7 @@
 
 
 	
-	Gentians: imperfect detection in site occppancy
+	Gentians: imperfect detection in site occupancy
 	
 	Sparrowhawks: generalised metapopulation model
 	
@@ -16,7 +16,3 @@
 	Impala: distance sampling
 	
 	
-	References: 	
-	Sorry - an on-line version of the references is currently unavailable. 
-	Please refer to the existing Examples documentation available from
-	http://www.mrc-bsu.cam.ac.uk/bugs.

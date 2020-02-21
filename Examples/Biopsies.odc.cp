@@ -38,12 +38,12 @@ The BUGS code for this model is given below. No initial values are provided for 
 		p[1 : 4] ~ ddirich(prior[]);     # prior for p
 	}
 
- 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results 
+
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	error[2,1]	0.5875	0.5882	0.06656	0.001323	0.4549	0.7153	1001	20000	2529

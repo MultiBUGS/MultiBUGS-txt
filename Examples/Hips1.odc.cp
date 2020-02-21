@@ -110,8 +110,8 @@ No updates are required for this model; just load data and compile, then obtain 
 		sd.BQ <- sqrt(var.BQ)
 	}
 
+Data	( click to open )
 
-Data ( click to open )
 
 
 Results

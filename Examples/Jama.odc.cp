@@ -2,7 +2,9 @@
 			Radiocarbon calibration with
 			phase information
 
-This example is from the book Buck CE, Cavanagh WG, & Litton CD (1996) Bayesian approach to interpreting archaeological data.  Wiley: Chichester. p226-232 See also Zeidler,JA, Buck CE & Litton CD (1998) The integration of archaeological phase information and radiocarbon results from the Jama River Valley, Ecuador: a Bayesian approach. Latin American Antiquity 9 160-179 .The model was set up by Andrew Millard. 
+This example is from the book Buck CE, Cavanagh WG, & Litton CD (1996) Bayesian approach to interpreting archaeological data.  Wiley: Chichester. p226-232
+
+See also Zeidler,JA, Buck CE & Litton CD (1998) The integration of archaeological phase information and radiocarbon results from the Jama River Valley, Ecuador: a Bayesian approach. Latin American Antiquity 9 160-179 .The model was set up by Andrew Millard. 
 
 © Andrew Millard 2001 
 
@@ -41,9 +43,10 @@ This example is from the book Buck CE, Cavanagh WG, & Litton CD (1996) Bayesian 
 		}
 	}
 
-Data1 Data2 Radio Carbon Calibration Curve( click to open )
+Data 1    	Data 2    	Data 3	( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Results
 

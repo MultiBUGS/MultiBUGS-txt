@@ -21,10 +21,9 @@ Tanner and Wong present a data set with missing values modeled as a bivariate no
 	}
 
 
-Data ( click to open )
+Data	( click to open )
 
-
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 Results
 

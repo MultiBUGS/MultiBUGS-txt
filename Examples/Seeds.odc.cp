@@ -48,12 +48,12 @@ BUGS language for seeds example
 		}
 
 
-Data ( click to open )
+Data	( click to open )
 
-Inits for chain 1 	Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Results
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha0	-0.5484	-0.5498	0.2143	0.002605	-0.9729	-0.1128	1001	40000	6764
@@ -101,8 +101,9 @@ The graphical model is shown below
 		tau <- 1 / pow(sigma, 2)
 	}
 
-Results	
 
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha0	-0.5526	-0.5519	0.2144	0.004155	-0.9909	-0.1293	1001	40000	2662

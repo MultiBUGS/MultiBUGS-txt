@@ -57,14 +57,13 @@ BUGS language for equiv example
 
 Note the use of the step function to indicate whether q = ef lies between 0.8 and 1.2 which traditionally determines bioequivelence.
 
-Data ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	( click to open )
-
-
-Results
-
+Results 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	equiv	0.9982	1.0	0.04239	2.987E-4	1.0	1.0	2001	20000	20132
 	mu	1.435	1.435	0.05454	0.001215	1.328	1.543	2001	20000	2013

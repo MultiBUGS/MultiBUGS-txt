@@ -54,9 +54,8 @@ parameter depend on a random changepoint.
 
 Data	( click to open )
 
-Inits for chain 1	 Inits for chain 2( click to open )
-    
-    
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Traces of two chains shows complete dependence on starting values
 
@@ -90,7 +89,7 @@ TRY USING CONTINUOUS PARAMETERISATION
 Data	( click to open )
 
 Inits for chain 1	 Inits for chain 2( click to open )
-  
+
 
 Results 
 

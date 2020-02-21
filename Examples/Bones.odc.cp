@@ -75,9 +75,11 @@ BUGS language for bones example
 	}   
 
 
-Data ( click to open )
 
-Inits for chain 1		 Inits for chain 2( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 We note a couple of tricks used in the above code. Firstly, the variable p has been declared as a 3-way rectangular array with the size of the third dimension equal to the maximum number of possible grades (i.e.5) for all items (even though items 1--28 have fewer than 5 categories). The statement 

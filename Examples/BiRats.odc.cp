@@ -34,12 +34,12 @@ This represents our prior guess at the order of magnitude of the covariance matr
 		sigma <- 1 / sqrt(tauC)
 	}
 
-
 Data	( click to open )
 
-Inits for chain 1		Inits for chain 2	( click to open )
-		
-Results  
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	mu.beta[1]	106.6	106.6	2.361	0.02346	101.9	111.3	1001	20000	10131

@@ -47,10 +47,11 @@ See also Buck CE, Litton CD & Shennan SJ (1994) A case study in combining radioc
 			theta.smooth[i] <- 10 * round(theta[i] / 10)
 		}
 	}
+	
 
-Data Radio Carbon Calibration Curve ( click to open )
+Data 1    	Data 2	( click to open )
 
-Inits for chain 1 		Inits for chain 2	( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results

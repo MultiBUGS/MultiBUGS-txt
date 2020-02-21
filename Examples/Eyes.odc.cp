@@ -42,12 +42,10 @@ l1, q, t, P, are given independent ``noninformative" priors, including a uniform
 		lambda[1] ~ dnorm(0.0, 1.0E-6)
 		tau ~ dgamma(0.001, 0.001) sigma <- 1 / sqrt(tau)
 	}
-	
-	
-Data ( click to open )
 
+Data	( click to open )
 
-Inits for chain 1   Inits for chain 2		( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results

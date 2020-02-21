@@ -70,9 +70,12 @@ For computational reasons Breslow and Clayton impose constraints on their random
 		sigma <- 1 / sqrt(tau)
 	}
 
-Data ( click to open )
-     
-Inits for chain 1		Inits for chain 2 ( click to open )
+
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Results 
 
