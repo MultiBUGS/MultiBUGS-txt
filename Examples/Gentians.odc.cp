@@ -2,8 +2,8 @@
  				detection in site-occupancy models
 					for species distribution
 					
-					(contributed by Marc Kerry)
-					
+(Contributed by Marc Kerry)
+
 Modelling species distributions is important in both basic and applied ecology (e.g., Scott et al., 2002, Island Press). Typically, logistic regression-types of models (GLM) with perhaps added smooth terms (GAMs) are used to model detection/non-detection data by a set of explanatory variables. However, most organisms are not always found at all the sites they actually occur. Hence, virtually always people don't model actual distributions, i.e., probability of occurrence per se, but rather the product of the probability of occurrence and the probability of detection, given occurrence. Imperfect detection means that true distribution is underestimated and that factors that affect detection rather than occurrence may end up in predictive models of occurrence.
 
 To model distributions free from the biasing effects of detection, MacKenzie et al. (Ecology, 2002, 2003; 2006; Academic Press) developed site-occupancy models, a sort of coupled logistic regression models where one submodel describes actual occurrence and the other detection given occurrence. Royle and Kery (Ecology, 2007) presented a hierarchical formulation of these models that may easily be fitted using BUGS. Site-occupancy models may be applied whenever information about the detection process separate from that on occurrence is available. For this, replicate detection/nondetection observations are required for at least some of the studied sites during a short time period when the population can be assumed closed, i.e., when occupancy status can be assumed to be constant. (For the dynamic, multi-season version of these models, essentially a generalised metapopulation model; see MacKenzie et al. 2003, 2006; Royle and Kery 2007).
@@ -45,11 +45,9 @@ Notes: A good choice of starting values can be essential for successfully fittin
 	}
 
 
-Data ( click to open )
+Data	( click to open )
 
-
-Inits for chain 1  Inits for chain 2   Inits for chain 3 ( click to open )
-
+Inits for chain 1    	Inits for chain 2    	Inits for chain 3	 ( click to open )
 
 
 Results

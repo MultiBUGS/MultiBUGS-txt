@@ -2,8 +2,8 @@
 						occupancy, or generalised
 						metapopulation, model for the
 						dynamics of distributions
-					
-					(contributed by Marc Kery)
+
+(Contributed by Marc Kerry)
 
 Modelling the dynamics of species distributions is central to metapopulation ecology, biogeography and other branches of ecology. However, simple analyses that do not account for possible imperfect detection will lead to distorted results; the general distributional extent and patch survival rate will be underestimated and colonisation rates and turnover rates will be overestimated. And worse, the degree of the induced bias may be related to the very factors one wants to study. For instance, most species will have lower abundance at range edges leading to reduced probability to detect them in occupied patches; therefore, increased turnover rates at range edges would be expected as a mere sampling effect. Similar effects will occur in metapopulation studies unless possible imperfect detection is accounted for (Moilanen, Oikos, 2002).
 
@@ -87,16 +87,12 @@ The analysis presented here uses "presence/absence" data for the European Sparro
 	}
 
 
+Data	( click to open )
 
-Data ( click to open )
-
-
-Inits for chain 1  Inits for chain 2   ( click to open )
-
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results
-
 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS

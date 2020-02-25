@@ -71,12 +71,13 @@ model {
 }
 
 
-Data1   Data2    Data3 ( click to open )
+Data 1    	Data 2    	Data 3	( click to open )
 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Inits for chain 1  Inits for chain 2 ( click to open )
 
 Results
+
 
 
 

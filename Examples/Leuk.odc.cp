@@ -1,6 +1,6 @@
 	Leuk: Cox regression
 
-Several authors have discussed Bayesian inference for censored survival data where the integrated baseline hazard function is to be estimated non-parametrically Kalbfleisch (1978) ,Kalbfleisch and Prentice (1980), Clayton (1991), Clayton (1994).Clayton (1994) formulates the Cox model using the counting process notation introduced by Andersen and Gill (1982) and discusses estimation of the baseline hazard and regression parameters using MCMC methods. Although his approach may appear somewhat contrived, it forms the basis for extensions to random effect (frailty) models, time-dependent covariates, smoothed hazards, multiple events and so on. We show below how to implement this formulation of the Cox model in BUGS.
+Several authors have discussed Bayesian inference for censored survival data where the integrated baseline hazard function is to be estimated non-parametrically Kalbfleisch (1978), Kalbfleisch and Prentice (1980), Clayton (1991), Clayton (1994). Clayton (1994) formulates the Cox model using the counting process notation introduced by Andersen and Gill (1982) and discusses estimation of the baseline hazard and regression parameters using MCMC methods. Although his approach may appear somewhat contrived, it forms the basis for extensions to random effect (frailty) models, time-dependent covariates, smoothed hazards, multiple events and so on. We show below how to implement this formulation of the Cox model in BUGS.
 
 For subjects i = 1,...,n, we observe processes Ni(t) which count the number of failures which have occurred up to time t. The corresponding intensity process Ii(t) is given by
 
@@ -10,7 +10,7 @@ where dNi(t) is the increment of Ni over the small time interval [t, t+dt), and 
 
 	Ii(t)  = Yi(t)l0(t)exp(bzi)
 	
-where Yi(t) is an observed process taking the value 1 or 0 according to whether or not subject i is observed at time t and l0(t)exp(bzi) is the familiar Cox regression model. Thus we have observed data D = Ni(t), Yi(t), zi; i = 1,..n and unknown parameters b and L0(t) = Integral(l0(u), u, t, 0), the latter to be estimated non-parametrically. 	
+where Yi(t) is an observed process taking the value 1 or 0 according to whether or not subject i is observed at time t and l0(t)exp(bzi) is the familiar Cox regression model. Thus we have observed data D = Ni(t), Yi(t), zi; i = 1,..n and unknown parameters b and L0(t) = Integral(l0(u), u, t, 0), the latter to be estimated non-parametrically. 	n
 
 The joint posterior distribution for the above model is defined by
 
@@ -18,9 +18,7 @@ The joint posterior distribution for the above model is defined by
 	
 For BUGS, we need to specify the form of the likelihood P(D | b, L0()) and prior distributions for b and L0(). Under non-informative censoring, the likelihood of the data is proportional to	
 
-	 n
-	P[P Ii(t)dNi(t)] exp(- Ii(t)dt)
-	i = 1  t >= 0
+	Pi=1,...,n[Pt>=0 Ii(t)dNi(t)] exp(- Ii(t)dt)
 	
 	
 This is essentially as if the counting process increments dNi(t) in the time interval [t, t+dt) are independent Poisson random variables with means Ii(t)dt:	

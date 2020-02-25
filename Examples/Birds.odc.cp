@@ -1,9 +1,9 @@
  Birds: species richness,estimating
 					the size of a Closed "Population"
 					with individual heterogeneity in
-     detection probability 
-					
-					(contributed by Marc Kery)
+     detection probability
+
+(Contributed by Marc Kerry)
 
 This example expands on the previous example of estimating the size of a closed population by allowing for each individual to have its own detection probability. Let J denote the number of sample occasions. The observations are the number of encounters (out of J samples) on each of n individuals, yi for i =1, 2,...,nind. We suppose that, for each individual in the population, 
 
@@ -56,18 +56,17 @@ Comments:
 		# Derived parameters 
 		N<-sum(z[1 : nind + nz]) 
 		sigma<-sqrt(1  / tau) 
-	}   
+	}
 
 
-Data ( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1  Inits for chain 2 
+Results
 
-Results 
 
-	
-	
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	N	90.54	87.0	13.16	0.7961	76.0	125.0	1001	20000	273
 	mu	-2.701	-2.633	0.4928	0.03078	-3.864	-1.991	1001	20000	256

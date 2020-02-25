@@ -2,8 +2,9 @@
 					for modelling and estimation of
 					abundance in the presence of
 					imperfect detection
-					
-					(contributed by Marc Kery)
+
+
+(Contributed by Marc Kery)
 
 Abundance, or population size, is the central quantity in much of ecology (e.g., Krebs, Addison Wesley, 2001). Abundance is assessed by counting individuals, and patterns in abundance are typically modelled by assuming some sort of a Poisson GLM for these counts. This approach neglects the important fact that almost universally some individuals are overlooked; i.e., individual detection probability is arguably always less than 1 in the field. This means that counts usually underestimate true abundance. Worse yet, covariates that affect detectability may mask true covariate relationships with abundance, distort them or feign spurious abundance relationships.
 
@@ -57,17 +58,12 @@ Hints:  Good starting values can be essential for fitting the model successfully
 	}
 
 
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2    	Inits for chain 3	 ( click to open )
 
 
-Data ( click to open )
-
-
-Inits for chain 1  Inits for chain 2  Inits for chain 3 ( click to open )
-
-
-
-Results 
-
+Results
 
 Running 3 chains for 11k iterations, with 1k discarded as a burnin, yields these results 
 

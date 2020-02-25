@@ -32,8 +32,10 @@ The third functional depends on a stochastic variable limit and so changes its v
 		limit ~ dunif(0, 1)
 	}
 	
-	
-Inits list(limit = 0.5)
+
+Inits	
+
+list(limit = 0.5)
 	
 
 

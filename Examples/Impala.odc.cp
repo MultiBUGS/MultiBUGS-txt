@@ -1,7 +1,8 @@
 
- Impala: distance Sampling 
-					
-					(contributed by Andy Royle)
+ Impala: distance Sampling
+
+
+(Contributed by Andy Royle)
 
 Distance sampling is a popular method for estimating the density of populations based on observed distances between objects and line or point (see Buckland et al. 2001). It can be viewed as a special type of closed population model for estimating population size, having J=1 replicate sample and with  distance from line or point to individual as an "individual covariate".  We adopt that view here, and thus analyze the model using data augmentation (as in the closed population examples given previously). This analysis derives from Royle and Dorazio (2008; Chapter 7). 
 
@@ -63,23 +64,16 @@ Under data augmentation, population size, N, and density, D are derived paramete
 		N<-sum(z[1:nind + nz])
 		D<- N / 48     # 48 km*km = total area of transects
 	}
- 
 
 
+Data	( click to open )
 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Data ( click to open )
-
-
-Inits for chain 1  Inits for chain 2 
 
 Note that initial values for the missing values of x are not provided. WinBUGS seems to do a good job picking those, but not always (sometimes there is a crash, so try again).
 
-
-
 Results
-
-
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	D	3.738	3.708	0.4679	0.01273	2.917	4.729	1001	20000	1351

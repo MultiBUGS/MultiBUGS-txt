@@ -24,7 +24,7 @@ The model is essentially a random effects linear growth curve
 
 where xbar = 22, and t represents the precision (1/variance) of a normal distribution. We note the absence of a parameter representing correlation between ai and bi unlike in Gelfand et al 1990. However, see the Birats example in Volume 2 which does explicitly model the covariance between ai   and bi. For now, we standardise the xj's around their mean to reduce dependence between ai and bi in their likelihood: in fact for the full balanced data, complete independence is achieved. (Note that, in general, prior independence does not force the posterior distributions to be independent).
 
-ac , ta , bc , tb , tc are given independent ``noninformative'' priors.  Interest particularly focuses on the intercept at zero time (birth), denoted a0 = ac - bc xbar.  
+ac , ta , bc , tb , tc are given independent "noninformative'' priors.  Interest particularly focuses on the intercept at zero time (birth), denoted a0 = ac - bc xbar.  
 
 Graphical model for rats example:
 
@@ -52,7 +52,7 @@ BUGS language for rats example:
 		alpha0 <- alpha.c - xbar * beta.c	
 	}
 
-Note the use of a very flat but conjugate  prior for the population effects: a locally uniform prior could also have been used.
+Note the use of a very flat but conjugate prior for the population effects: a locally uniform prior could also have been used.
 
 
 Data	( click to open )
@@ -60,7 +60,7 @@ Data	( click to open )
 Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-(Note: the response data (Y) for the rats example can also be found in the file ratsy.odc in rectangular format. The covariate data (x) can be found in S-Plus format in file ratsx.odc. To load data from each of these files, focus the window containing the open data file before clicking on "load data" from the "Specification" dialog.)
+(Note: the response data (Y) for the rats example can also be found in the file ratsy in rectangular format. The covariate data (x) can be found in S-Plus format in file ratsx. To load data from each of these files, focus the window containing the open data file before clicking on "load data" from the "Specification" dialog.)
 
 
 Results

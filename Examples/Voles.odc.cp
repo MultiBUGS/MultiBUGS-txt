@@ -2,9 +2,9 @@
  Voles: estimating the size of a 		
 					closed population using the data
 					augmentation technique
- 
-					
-					(contributed by Andy Royle)
+
+
+(Contributed by Andy Royle)
 
 Estimating the size of a closed population is a classical problem in statistical ecology. We consider the simplest of a huge class of models, referred to colloquially as "Model M0" in the jargon of capture-recapture.  We provide a Bayesian analysis of this model based on data augmentation. Data augmentation can be used to analyze any capture-recapture model in which the population size, N,  is unknown.
 
@@ -60,16 +60,16 @@ The model in the BUGS language is
 		N<-sum(z[])
 	}
 
+
+
 Example analysis
 
 The data are capture-recapture data on voles (Microtus) (see Williams, Nichols and Conroy, Academic Press, 2002, for additional details and more extensive data). The study was conducted over J = 5 days and yielded encounter histories on nind = 56 individuals.  For this analysis, the data set was augmented with nz = 60 individuals. This example comes from Chapter 5 of Royle and Dorazio (Academic Press, 2008). 
 
 
-Data ( click to open )
+Data	( click to open )
 
-
-Inits for chain 1  Inits for chain 2  ( click to open )
-
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 Results
