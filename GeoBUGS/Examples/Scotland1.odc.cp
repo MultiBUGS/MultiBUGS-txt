@@ -3,6 +3,7 @@
 
 This example illustrates the use of the proper CAR distribution (car.proper) rather than the intrinsic CAR distribution for the area-specific random effects in the Lip cancer example (9.1). We use the definition of the C and M matrices proposed by Cressie and colleagues (see section on proper CAR models in Appendix 1).
 
+
 Model
 
 			model {
@@ -89,9 +90,13 @@ Model
 
 			}
 
-Data	(Click to open)
 
-Inits for chain 1   Inits for chain 2  (Click to open)
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
 
 
 

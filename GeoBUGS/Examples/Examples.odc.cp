@@ -18,10 +18,6 @@
 				Ecological regression of air pollution and 
 				respiratory illness in children
 
-	Intrinsic multivariate CAR prior for mapping multiple diseases:
-				Oral cavity cancer and lung cancer in 
-						West Yorkshire (UK)
-
 	Shared component for mapping multiple diseases:
 				 Oral cavity cancer and lung cancer in 
 						West Yorkshire (UK)

@@ -1,6 +1,4 @@
-	Shared component model for mapping
-						multiple diseases: Oral cavity cancer and
-						lung cancer cancer in West Yorkshire, UK
+	Shared component model for mapping multiple diseases: Oral cavity cancer and lung caner in West Yorkshire, UK
 
 Knorr-Held and Best (2001) analysed data on mortality from oral cavity and oesophageal cancer in Germany using a shared component model. This model is similar in spirit to conventional factor analysis, and partitions the geographical variation in two diseases into a common (shared) component (f), and two disease-specific (residual) components (y1 and y2). Making the rare disease assumption, the likelihood for each disease is assumed to be independent Poisson, conditional on an unknown mean mik
 
@@ -110,12 +108,13 @@ where Yik and Eik are the observed and age/sex standardised expected counts for 
 			}  
 
 
- Data  	(Click to open)
 
-Inits for chain 1  	Inits for chain 2	(Click to open)
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 Results
-
 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS

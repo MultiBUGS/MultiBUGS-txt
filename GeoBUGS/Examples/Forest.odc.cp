@@ -101,13 +101,12 @@ Model
 				spatial.effect <- exp(theta2)
 			}
 
-			
-Data 	(Click to open)
 
-Inits for chain 1 	  Inits for chain 2	(Click to open)
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 Results
-
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	spatial.effect	0.2843	0.2534	0.1768	0.00718	0.04118	0.692	2001	20000	606

@@ -46,16 +46,18 @@ Model
 				}
 			}
 
-Data	(Click to open)
+
+
+Data	( click to open )
+
 
 Initial values for exponential model
 
-Inits for chain 1	Inits for chain 2	(Click to open)
-
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 Initial values for disc model
 
-Inits for chain 1	Inits for chain 2	(Click to open)
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 The GeoBUGS map tool can be used to produce an approximate map of the posterior mean predicted surface elevation. It is not possible to map point locations using GeoBUGS. However, a map file called elevation is already loaded in the GeoBUGS Map Tool --- this is a 15 x 15 grid with the centroids of the grid cell corresponding to the locations of each of the prediction points. You can use this to produce a map of the posterior mean (or other posterior summaries) of the vector of predicted values height.pred. 

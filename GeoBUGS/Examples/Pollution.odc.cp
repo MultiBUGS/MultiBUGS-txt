@@ -113,9 +113,10 @@ Model
 
 Note that pollution concentrations were not measured every day. However it is necessary to include days with no measurements as missing values (NA) in the data set, otherwise the temporal neighbourhood structure cannot be specified correctly.
 
-Data 	(Click to open) 
 
-Inits for chain 1	Inits for chain 2	(Click to open) 
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
 
@@ -124,6 +125,7 @@ Plus click on gen inits to generate initial values for the missing data
 
 
 Results
+
 
 RW(1) prior:
 

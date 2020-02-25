@@ -14,8 +14,8 @@ We may smooth the raw SMRs by fitting a random-effects Poisson model allowing fo
 
 where a0  is an intercept term representing the baseline (log) relative risk of disease across the study region, xi is the covariate "percentage of the population engaged in agriculture, fishing, or forestry" in district i,  with associated regression coefficient a1 and bi is an area-specific random effect capturing the residual or unexplained (log) relative risk of disease in area i. We often think of  bi  as representing the effect of latent (unobserved) risk factors. 
 
-To allow for spatial dependence between the random effects bi in nearby areas, we may assume a CAR prior for these terms. Technical details, including parameterisation and a discussion of suitable hyperpriors for the parameters of this model, are given in appendix 1. The car.normal distribution may be used to fit this model. The code for the lip cancer data is given below:
- 
+To allow for spatial dependence between the random effects bi in nearby areas, we may assume a CAR prior for these terms. Technical details, including parameterisation and a discussion of suitable hyperpriors for the parameters of this model, are given in appendix 1. The car.normal distribution may be used to fit this model. The code for the lip cancer data is given below.
+
 Model
 
 			model {
@@ -42,11 +42,15 @@ Model
 			   b.mean <- sum(b[])
 			}
 
-Data	(click to open)
+
+Data	( click to open )
+
+
 
 Note that the data for the adjacency matrix (variables adj, num and SumNumNeigh) have been generated using the adj matrix option of the Adjacency Tool menu in GeoBUGS. By default, this treats islands as having no neighbours, and so the three areas representing the Orkneys, Shetland and the Outer Hebrides islands in Scotland have zero neighbours. You can edit the adjacency map of Scotland to include these areas as neighbours if you wish. The car.normal distribution sets the value of bi equal to zero for areas i that are islands. Hence the posterior relative risks for the Orkneys, Shetland and the Outer Hebrides in the present example will just depend on the overall baseline rate  a0  and the covariate xi. Alternatively, you could specify a convolution prior for the area-specific random effects (Besag, York and Mollie 1991) which partitions the overall random effect for each area into the sum of a spatial component plus a non-spatial component. In this model, the islands will just have a non-spatial term for the random effect. See example on lung cancer in a London Health Authority for details of this model.
 
-Inits for chain 1   Inits for chain 2	(click to open)
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 Note that the initial values for elements 6, 8 and 11 of the vector b are set to NA since these correspond to the three islands (Orkneys, Shetland and the Outer Hebrides). The values of b are set to zero by the car.normal prior for these 3 areas, and so they are not stochastic nodes.
 
