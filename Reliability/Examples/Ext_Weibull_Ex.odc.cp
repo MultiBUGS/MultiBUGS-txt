@@ -1,4 +1,4 @@
- Extended Weibull Model 
+ Extended Weibull model 
 										(Marshall-Olkin)
 
 	
@@ -22,18 +22,19 @@
 			lambda~ dunif(0.001, 1000)
 	}
 
-The data set gives 100 observations on breaking stress of carbon fibres, Nichols and Padgett(2006).
+The data set gives 100 observations on breaking stress of carbon fibres, Nichols and Padgett (2006).
 
 Marshall, A. W. and Olkin, I. (1997). A new method for adding a parameter to a family of distributions with application to the exponential and Weibull families. Biometrika, 84(3), 641-652.
 
 Nichols, M.D. and W.J. Padgett, W.J. (2006). A bootstrap control chart for Weibull percentiles, Quality and Reliability Engineering International, 22, 141-151.
 
 
-Data  ( click to open )
+Data	( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results 
+
+Results
 
 The distribution of lambda is extremely skewed.
 

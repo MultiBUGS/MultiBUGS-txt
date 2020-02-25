@@ -1,4 +1,4 @@
-Gompertz Model
+Gompertz model
 
 	
 	
@@ -20,13 +20,15 @@ Murthy, D. N. P., Xie, M., Jiang, R. (2004). Weibull Models, Wiley-Interscience.
 
 MLE's are alpha = 1.968482     theta = 0.019104  
 
-Data  ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
- 
+Results
 
-Results 
+
 
 		mean	sd	MC_error	val2.5pc	median	val97.5pc	start	sample
 	alpha	1.915	0.3626	0.007624	1.226	1.907	2.65	1001	50000

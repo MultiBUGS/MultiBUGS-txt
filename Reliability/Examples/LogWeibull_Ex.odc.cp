@@ -1,4 +1,4 @@
-  Log-Weibull Model
+  Log-Weibull model
 
 	
 	
@@ -24,11 +24,13 @@ Murthy, D. N. P., Xie, M., Jiang, R. (2004), Weibull Models, Wiley-Interscience.
 
 MLE's are mu = 2.36573,    sigma.= 0.49440 
 
-Data  ( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Data	( click to open )
 
-Results 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	mu	2.363	2.365	0.1304	6.402E-4	2.101	2.619	1001	50000	41512

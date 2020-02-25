@@ -1,4 +1,4 @@
-Weibull-Shifted Model
+Weibull-Shifted model
                                                   
 	
 	model
@@ -15,14 +15,15 @@ Weibull-Shifted Model
 			x0 ~ dunif(0, xMin)		
 	}
 	
-Data  generated from Weibull shifted distribution with shape(nu)=0.75, scale(lambda) = 0.75 and location(x0) = 5.0 
-
-Data  ( click to open )
-
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Data generated from Weibull shifted distribution with shape(nu)=0.75, scale(lambda) = 0.75 and location(x0) = 5.0 
 
 
-Results 
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	lambda	0.7184	0.7108	0.121	8.391E-4	0.5007	0.9717	1001	50000	20788

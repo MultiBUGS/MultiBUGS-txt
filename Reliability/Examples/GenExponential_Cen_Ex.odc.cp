@@ -1,5 +1,5 @@
  Censored Generalized Exponential
-						 Model
+						 model
 
 	
 
@@ -31,14 +31,16 @@ predictions on when the N - 2, N - 1 and N th failure will occur.
 
 The data given here arose in tests on endurance of deep groove ball bearings.The test involves 23 ball bearings but the test is halted after 20 ball bearings have failed. The data are the number of million revolutions before failure for each of the 20 ball bearings in the life test plus the censoring time of the 20th failure for the remaining 3 ball bearings.
 
- Lawless, J.F. (2003). Statistical Models and Methods for Lifetime data, Second edition, John Wiley & Sons, New York.
+Lawless, J.F. (2003). Statistical Models and Methods for Lifetime data, Second edition, John Wiley & Sons, New York.
 
 
-Data  ( click to open )
+Data	( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results 
+
+Results
+
 
 		mean	sd	MC_error	val2.5pc	median	val97.5pc	start	sample
 	alpha	5.485	2.261	0.0396	2.244	5.081	10.88	1001	20000

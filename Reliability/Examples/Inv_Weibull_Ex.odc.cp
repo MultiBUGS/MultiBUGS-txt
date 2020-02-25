@@ -1,4 +1,4 @@
-Inverse Weibull Model
+Inverse Weibull model
 
 	
 	
@@ -14,19 +14,19 @@ Inverse Weibull Model
 			lambda~ dunif(0, 2)	
 	}
 
-The data  set is taken from Murthy et al. (2004, pp. 119 ).
+The data  set is taken from Murthy et al. (2004, pp. 119).
 
 Murthy, D. N. P., Xie, M., Jiang, R. (2004). Weibull Models, Wiley-Interscience. 
 
 MLE's are beta = 3.888075,   lambda = 0.803668  
 
-Data  ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
-
-
-Results 
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	beta	3.86	3.839	0.554	0.002709	2.834	5.006	1001	50000	41831

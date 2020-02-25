@@ -25,12 +25,13 @@ Chhikara R.S, Folks J.L.(1977).  The inverse Gaussian distribution as a lifetime
 
 The MLE's are obtained using 'maxLik' package in R  mu = 3.606522 	lambda = 1.658853
 
-Data  ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
-
-Results 
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	lambda	1.682	1.657	0.3496	0.001743	1.07	2.429	1001	50000	40247

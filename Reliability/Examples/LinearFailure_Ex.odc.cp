@@ -1,4 +1,4 @@
-Linear Failure Rate Model
+Linear Failure Rate model
 
 	
 	
@@ -18,16 +18,17 @@ Linear Failure Rate Model
 
 The data set is taken from DACS Software Reliability Dataset, Lyu (1996). The data represents the time-between-failures (time unit in miliseconds) of a software. The data given here is transformed from time-between-failures to failure times.
 
-Lyu, M. R. (1996). Handbook of Software Reliability Engineering, IEEE Computer Society Press,
-http://www.cse.cuhk.edu.hk/~lyu/book/reliability/
+Lyu, M. R. (1996). Handbook of Software Reliability Engineering, IEEE Computer Society Press, http://www.cse.cuhk.edu.hk/~lyu/book/reliability/
 
 The MLE's are alpha = 1.7777e-03,   beta=2.7776e-06  
 
-Data  ( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Data	( click to open )
 
-Results 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results
 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS

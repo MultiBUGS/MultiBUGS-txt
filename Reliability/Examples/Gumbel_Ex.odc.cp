@@ -22,12 +22,13 @@ The data set is taken from Murthy et al. (2004, pp. 119 ).
 Murthy, D. N. P., Xie, M., Jiang, R. (2004). Weibull Models, Wiley-Interscience. 
 
 
-Data  ( click to open )
+Data	( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Results 
+Results
+
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	1.776	1.774	0.1724	9.158E-4	1.441	2.123	1001	50000	35451

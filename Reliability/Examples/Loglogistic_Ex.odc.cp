@@ -1,4 +1,4 @@
-Log-Logistic Model
+Log-Logistic model
 
 	
 	
@@ -20,12 +20,12 @@ The 40 observations are generated from Log-logistic distribution with beta=3.0 a
 The MLEs are beta.mle= 2.97937, theta.mle= 4.82757
 
 
-Data  ( click to open )
+Data	( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
-Results 
 
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	beta	2.985	2.97	0.3909	0.001804	2.264	3.795	1001	50000	46978

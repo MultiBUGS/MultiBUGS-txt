@@ -1,10 +1,10 @@
-Generalized Power Weibull Model
+Generalized Power Weibull model
 
 	
 	
 	
 
-The data set gives 100 observations on breaking stress of carbon fibres,Nichols and Padgett(2006).
+The data set gives 100 observations on breaking stress of carbon fibres, Nichols and Padgett (2006).
 
 Nichols, M.D. and W.J. Padgett, W.J. (2006). A bootstrap control chart for Weibull percentiles, Quality and Reliability Engineering International, 22, 141-151.
 
@@ -22,12 +22,15 @@ Nichols, M.D. and W.J. Padgett, W.J. (2006). A bootstrap control chart for Weibu
 			theta~ dunif(0, 20)		
 	}
 
-Data  ( click to open )
-
-Inits for chain 1		Inits for chain 2	 ( click to open )
 
 
-Results 
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results
+
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	5.814	5.635	1.347	0.02942	3.736	8.946	1001	50000	2097
 	theta	0.1431	0.1403	0.03282	7.132E-4	0.08679	0.2146	1001	50000	2117

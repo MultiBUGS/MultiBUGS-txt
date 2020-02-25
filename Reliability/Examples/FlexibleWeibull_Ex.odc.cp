@@ -1,4 +1,4 @@
-Flexible Weibull Model
+Flexible Weibull model
 
 	
 	
@@ -20,13 +20,14 @@ Bebbington, M., Lai, C.D. and  Zitikis, R. (2007) A flexible Weibull extension. 
 
 The MLE's are alpha = 0.0207 	   beta = 0.25875 
 
-Data  ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Results
 
-
-Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	0.206	0.2063	0.04216	1.945E-4	0.1225	0.2867	1001	50000	46987

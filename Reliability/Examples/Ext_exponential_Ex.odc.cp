@@ -1,4 +1,4 @@
-   Extended Exponential Model   
+   Extended exponential model   
                        (Marshall-Olkin) 
 	
 	
@@ -16,7 +16,7 @@
 			lambda ~ dunif(0.001, 10)					
 	}
 
-The data set gives 100 observations on breaking stress of carbon fibres,Nichols and Padgett(2006).
+The data set gives 100 observations on breaking stress of carbon fibres, Nichols and Padgett (2006).
 
 Marshall, A. W. and Olkin, I. (1997). A new method for adding a parameter to a family of distributions with application to the exponential and Weibull families. Biometrika, 84(3), 641-652.
 
@@ -24,12 +24,13 @@ Nichols, M.D. and W.J. Padgett, W.J. (2006). A bootstrap control chart for Weibu
 
 The MLE’s are alpha =75.67982,   ;   lambda = 1.67576,
 
-Data  ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
-
-Results 
+Results
 		
 		mean	median	mode	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	97.66	91.82	81.29	37.47	0.4723	40.26	182.5	1001	50000	6294

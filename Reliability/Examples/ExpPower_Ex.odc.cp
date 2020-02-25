@@ -1,4 +1,4 @@
-	  Exponential Power Model
+	  Exponential power model
 
 	
 	
@@ -18,12 +18,14 @@
 Simulated data set with alpha = 2.5 and lambda = 0.25 
 The MLEs are alpha =  2.5920853   and lambda = 0.2042697
 
-Data  ( click to open )
+
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Results
 
-Results 
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	2.581	2.564	0.3819	0.001883	1.885	3.377	1001	50000	41110

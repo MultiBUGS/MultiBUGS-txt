@@ -1,15 +1,15 @@
- Logistic-Exponential Model
+ Logistic-Exponential model
 
 	
 	
 	
 
 
-The data set given here arose in tests on endurance of deep groove ball bearings.The data are the number of million revolutions before failure for each of the 23 ball bearings in the life test.  The data  are taken from Lawless(2003, pp. 99 ). 
+The data set given here arose in tests on endurance of deep groove ball bearings.The data are the number of million revolutions before failure for each of the 23 ball bearings in the life test.  The data  are taken from Lawless (2003, pp. 99). 
  
 The MLE’s are alpha = 2.366 ;   lambda = 0 .01059
 
-Lan, Y. and Leemis, L. M. (2008). : The Log-Exponential Distribution. Naval Research Logistics, 55, 252-264. 
+Lan, Y. and Leemis, L. M. (2008). The Log-Exponential Distribution. Naval Research Logistics, 55, 252-264. 
 
 Lawless, J.F. (2003). Statistical Models and Methods for Lifetime data, Second edition, John Wiley & Sons, New York.
 
@@ -26,13 +26,13 @@ Lawless, J.F. (2003). Statistical Models and Methods for Lifetime data, Second e
 							lambda~ dunif(0,1.0)	
 					}
 
-Data  ( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
 
 
-
-Results 
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	2.369	2.35	0.4193	0.002154	1.602	3.242	1001	50000	37902

@@ -1,4 +1,4 @@
-Generalized Exponential Model
+Generalized Exponential model
 
 	
 	
@@ -14,23 +14,23 @@ Generalized Exponential Model
 			lambda~ dgamma(0.001, 0.001)	
 	}
 
-The data given here arose in tests on endurance of deep groove ball bearings.The data are the number of million revolutions before failure for each of the 23 ball bearings in the life test.  The data  are taken from Lawless(2003, pp. 99 ). 
+The data given here arose in tests on endurance of deep groove ball bearings.The data are the number of million revolutions before failure for each of the 23 ball bearings in the life test.  The data  are taken from Lawless (2003, pp. 99). 
 
 Lawless, J.F. (2003). Statistical Models and Methods for Lifetime data, Second edition, John Wiley & Sons, New York.
 
-The MLE’s are  alpha = 5.2589; lambda = 0 .0314 
-
-Data  ( click to open )
+The MLE’s are  alpha = 5.2589; lambda = 0 .0314
 
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Data	( click to open )
+
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
 
 list(alpha = 5.2589; lambda = 0 .0314)
 
 list(alpha = 5.28348, lambda = 0.0322971)
 
-Results 
-
+Results
 
 		mean	sd	MC_error	val2.5pc	median	val97.5pc	start	sample
 	alpha	5.326	2.114	0.02402	2.298	4.977	10.43	1001	50000

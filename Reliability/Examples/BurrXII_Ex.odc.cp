@@ -1,4 +1,4 @@
-  Burr XII Model 
+  Burr XII model 
 	
 	
 	model
@@ -18,11 +18,13 @@
 Simulated data set with alpha = 2.0 and beta = 5.0 
 The MLE’s are using 'maxLik' package in R alpha.mle = 2.11996 beta.mle = 4.03369 
 
-Data  ( click to open )
 
-Inits for chain 1		Inits for chain 2	 ( click to open )
+Data	( click to open )
 
-Results 
+Inits for chain 1    	Inits for chain 2	 ( click to open )
+
+
+Results
 
 		mean	median	sd	MC_error	val2.5pc	val97.5pc	start	sample	ESS
 	alpha	2.182	2.157	0.3915	0.001794	1.486	3.015	1001	50000	47606
