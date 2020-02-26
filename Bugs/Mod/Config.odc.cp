@@ -4,7 +4,7 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
 
-OSLinuxWindows
+OSWindowsLinux
 
 *)
 
@@ -21,7 +21,7 @@ MODULE Config;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
 
-		OS
+		OS(*	Windows	*)
 	PROCEDURE ReadCommandLine (IN line: ARRAY OF CHAR; open: BOOLEAN);
 		VAR name, opt: ARRAY 260 OF CHAR; i, l, t, r, b, res: INTEGER;
 			ok: BOOLEAN; ln: ARRAY 260 OF CHAR;
@@ -78,7 +78,7 @@ MODULE Config;
 			END
 		END
 	END ReadCommandLine;
-	(*	Windows	*)
+	
 
 	PROCEDURE Setup*;
 		VAR
@@ -114,7 +114,7 @@ MODULE Config;
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "R", {});
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "tex", {});
 
-		OS(*	linux	*)
+		OS
 		OleData.Register("OleData.ImportInfo", "OleData.ExportInfo", "BlackBox Info", "", {OleData.info});
 		OleData.Register("OleData.ImportNative", "OleData.ExportNative", "BlackBox Data", "", {});
 		OleData.Register("", "HostTextConv.ExportDRichText", "Rich Text Format", "TextViews.View", {});
@@ -130,7 +130,7 @@ MODULE Config;
 		OleData.Register("HostPictures.ImportDPict", "HostPictures.ExportDPict", "METAFILEPICT",
 		"HostPictures.View", {});
 		OleData.Register("", "OleData.ExportPicture", "METAFILEPICT", "", {});
-		
+		(*	linux	*)
 		Dialog.metricSystem := TRUE;
 
 		(*	initialize subsystems in no particular order only used for unlinked version of BUGS	*)
@@ -153,7 +153,32 @@ MODULE Config;
 			locInfo := locInfo.next;
 		END;
 
-		OSReadCommandLine(line, TRUE); (*	Windows	*)
+		OS(*	Windows	*)
+		k := 1;
+		i := 0;
+		WHILE (i < Kernel.argc) DO
+			j := 0;
+			WHILE Kernel.argv[i][j] # 0X DO
+				INC(j); INC(k);
+			END;
+			INC(k); INC(i)
+		END;
+
+		NEW(line, k);
+
+		k := 0;
+		i := 0;
+		WHILE (i < Kernel.argc) DO
+			j := 0;
+			WHILE Kernel.argv[i][j] # 0X DO
+				line[k] := Kernel.argv[i][j];
+				INC(j); INC(k);
+			END;
+			line[k] := " ";
+			INC(k); INC(i)
+		END;
+		
+		ReadCommandLine(line, TRUE); 
 
 		IF Dialog.commandLinePars # "" THEN
 			Meta.Lookup("BugsBatch", modItem)
