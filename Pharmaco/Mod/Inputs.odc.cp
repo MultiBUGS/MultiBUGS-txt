@@ -146,11 +146,11 @@ MODULE PharmacoInputs;
 
 	PROCEDURE IsConstant* (node: GraphNodes.Node): BOOLEAN;
 		VAR
-			type: ARRAY 80 OF CHAR;
+			install: ARRAY 80 OF CHAR;
 	BEGIN
 		IF node # NIL THEN
-			Services.GetTypeName(node, type);
-			RETURN type = "GraphConstant.Node"
+			node.Install(install);
+			RETURN install = "GraphConstant.Install"
 		ELSE
 			RETURN FALSE
 		END

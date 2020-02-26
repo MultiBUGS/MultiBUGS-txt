@@ -43,11 +43,8 @@ MODULE DevianceInterface;
 		ELSIF state = setDistributed THEN
 			lpdGlobal := NIL;
 			pWGlobal := NIL;
-			command[0] := clearWAIC;
-			command[1] := - 1;
-			command[2] := - 1;
-			command[3] := - 1;
-			command[4] := - 1;
+			command[0] := clearWAIC; command[1] := - 1; command[2] := - 1;
+			command[3] := - 1; command[4] := - 1;
 			BugsInterface.SendCommand(command)
 		END;
 		state := notSet

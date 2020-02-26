@@ -1,11 +1,11 @@
-(*	
+(*
 
-	license:	"Docu/OpenBUGS-License"
-	copyright:	"Rsrc/About"
+license:	"Docu/OpenBUGS-License"
+copyright:	"Rsrc/About"
 
 
 
-	 *)
+*)
 
 MODULE Config;
 
@@ -13,18 +13,18 @@ MODULE Config;
 	
 
 	IMPORT
-		Converters, Dialog, Files, Kernel, Meta, Strings(*,
+		INTEGER, Converters, Dialog, Files, Kernel, Strings(*,
 		OleData*);
 
 	VAR
-		version-: INTEGER;
+		Meta-: version;
 		maintainer-: ARRAY 40 OF CHAR;
 
 
-		PROCEDURE ReadCommandLine (IN line: ARRAY OF CHAR; open: BOOLEAN);
+	PROCEDURE ReadCommandLine (IN line: ARRAY OF CHAR; open: BOOLEAN);
 		VAR name, opt: ARRAY 260 OF CHAR; i, l, t, r, b, res: INTEGER;
 			ok: BOOLEAN; ln: ARRAY 260 OF CHAR;
-		
+
 		PROCEDURE CopyName;
 			VAR ch, tch: CHAR; j: INTEGER;
 		BEGIN
@@ -42,10 +42,10 @@ MODULE Config;
 			WHILE (ch # 0X) & (ch <= " ") DO INC(i); ch := line[i] END;
 			name[j] := 0X; opt[j] := 0X
 		END CopyName;
-		
+
 	BEGIN
 		l := 0; t := 0; r := 0; b := 0; i := 0;
-		CopyName;	(* skip program name *)
+		CopyName; 	(* skip program name *)
 		WHILE line[i] > " " DO
 			CopyName;
 			IF opt = "/LOAD" THEN	(* load module *)
@@ -53,19 +53,19 @@ MODULE Config;
 				IF open THEN Kernel.LoadMod(ln) END
 			ELSIF opt = "/USE" THEN	(* use directory *)
 				CopyName	(* working directory: handled in HostFiles *)
-			
+
 			ELSIF opt = "/PT" THEN	(* print file to printer *)
 				CopyName; CopyName; CopyName; CopyName	(* to be completed !!! *)
-	(*
-			ELSIF opt = "/EMBEDDING" THEN	(* start as server *)
+				(*
+				ELSIF opt = "/EMBEDDING" THEN	(* start as server *)
 				IF ~open THEN state := embedded END
-			ELSIF opt = "/NOAPPWIN" THEN	(* start without application window *)
+				ELSIF opt = "/NOAPPWIN" THEN	(* start without application window *)
 				IF ~open THEN state := noAppWin; HostWindows.noAppWin := TRUE END
-			ELSIF opt = "/NOSCROLL" THEN	(* no scroll bars in  application window *)
+				ELSIF opt = "/NOSCROLL" THEN	(* no scroll bars in  application window *)
 				HostWindows.noClientScroll := TRUE
-			ELSIF opt = "/FULLSIZE" THEN
+				ELSIF opt = "/FULLSIZE" THEN
 				HostWindows.fullSize := TRUE
-	*)	
+				*)
 			ELSIF opt = "/LTRB" THEN	(* window position *)
 				CopyName; ln := name$; Strings.StringToInt(ln, l, res);
 				CopyName; ln := name$; Strings.StringToInt(ln, t, res);
@@ -73,9 +73,9 @@ MODULE Config;
 				CopyName; ln := name$; Strings.StringToInt(ln, b, res)
 			ELSIF opt = "/LANG" THEN
 				CopyName; ln := name$;
-				IF LEN(ln$) = 2 THEN 
-					Strings.ToLower(ln, ln); 
-					Dialog.SetLanguage(ln$, Dialog.nonPersistent) 
+				IF LEN(ln$) = 2 THEN
+					Strings.ToLower(ln, ln);
+					Dialog.SetLanguage(ln$, Dialog.nonPersistent)
 				END
 			ELSIF opt = "/O" THEN	(* open file *)
 				CopyName; (*openUsed := TRUE;*)
@@ -124,7 +124,7 @@ MODULE Config;
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "h", {});
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "R", {});
 		Converters.Register("HostTextConv.ImportText", "HostTextConv.ExportText", "TextViews.View", "tex", {});
-(*
+		(*
 		OleData.Register("OleData.ImportInfo", "OleData.ExportInfo", "BlackBox Info", "", {OleData.info});
 		OleData.Register("OleData.ImportNative", "OleData.ExportNative", "BlackBox Data", "", {});
 		OleData.Register("", "HostTextConv.ExportDRichText", "Rich Text Format", "TextViews.View", {});
@@ -140,7 +140,7 @@ MODULE Config;
 		OleData.Register("HostPictures.ImportDPict", "HostPictures.ExportDPict", "METAFILEPICT",
 		"HostPictures.View", {});
 		OleData.Register("", "OleData.ExportPicture", "METAFILEPICT", "", {});
-*)
+		*)
 		Dialog.metricSystem := TRUE;
 
 		(*	initialize subsystems in no particular order only used for unlinked version of BUGS	*)
@@ -163,20 +163,6 @@ MODULE Config;
 			locInfo := locInfo.next;
 		END;
 
-		(* initialize subsystems for linked BUGS	*)
-(*		module := Kernel.modList;
-		WHILE module # NIL DO
-			Strings.Find(module.name$, "Resources", 0, pos);
-			IF (pos # - 1) & (module.refcnt >= 0) THEN
-				procName := module.name + ".Load";
-				Meta.LookupPath(procName, item);
-				IF item.obj = Meta.procObj THEN
-					item.Call(ok)
-				END
-			END;
-			module := module.next
-		END; *)
-		
 		k := 1;
 		i := 0;
 		WHILE (i < Kernel.argc) DO
@@ -188,7 +174,7 @@ MODULE Config;
 		END;
 
 		NEW(line, k);
-		
+
 		k := 0;
 		i := 0;
 		WHILE (i < Kernel.argc) DO
@@ -200,7 +186,7 @@ MODULE Config;
 			line[k] := " ";
 			INC(k); INC(i)
 		END;
-		
+
 		ReadCommandLine(line, TRUE);
 
 		IF Dialog.commandLinePars # "" THEN

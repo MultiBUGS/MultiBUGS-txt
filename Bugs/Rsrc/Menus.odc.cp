@@ -11,37 +11,30 @@ MENU "Info"
 	"Data"	""	"BugsCmds.WriteData"	"BugsCmds.UpdateGuard"
 	"State"	""	"BugsCmds.WriteChains"	"BugsCmds.NotCompiledGuard"
 	SEPARATOR
+	"Metrics"	""	"BugsCmds.Metrics"	""
+	"Node info..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/InfoDialog', 'Node Tool')"		""
+	SEPARATOR
 	"Show Distribution"	""	"BugsCmds.ShowDistribution"	"BugsCmds.NotCompiledGuard"
 	"Show Deviance Dist"	""	"BugsCmds.ShowDistributionDeviance"	"BugsCmds.DevianceGuard"
-	SEPARATOR
-	"Node info..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/InfoDialog', 'Node Tool')"		""
-	"Metrics"	""	"BugsCmds.Metrics"	"BugsCmds.NotCompiledGuard"
-	"Modules"	""	"BugsCmds.Modules"	""
-	"Memory"	""	"BugsCmds.AllocatedMemory"	""
 	"Distributed graph..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/ParallelDebug', 'Parallel Graph Tool')"		""
 	"Distribution info"	""	"BugsCmds.DistributeInfo"	""
+	SEPARATOR	
+	"Modules"	""	"BugsCmds.Modules"	""
+	"Memory"	""	"BugsCmds.AllocatedMemory"	""
 END
 
 MENU "Model" 
 	"Specification..."	""	"BugsCmds.OpenSpecificationDialog"	""
-	SEPARATOR
-	"PK Specification..."	""	"StdCmds.OpenToolDialog('PKBugs/Rsrc/SpecificationDialog', 'PK Specification Tool')"	""
-	SEPARATOR
 	"Update..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/UpdateDialog', 'Update Tool')"		"BugsCmds.UpdateGuard"
-	SEPARATOR
-	"Random number generator..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/RNDialog', 'RN state')"		"BugsCmds.NotCompiledGuard"	
-	SEPARATOR	
 	"Script"	""	"BugsCmds.Script('')"	""
 	SEPARATOR
 	"Output options..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/DisplayDialog', 'Display options')"	 ""
 	"Compile options..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/CompileDialog', 'Compile options')"	 ""		
 	"Updater options..."	""	"StdCmds.OpenToolDialog('Updater/Rsrc/SettingsDialog', 'Updater options')"	 ""	
-	"HMC options.."	""	"StdCmds.OpenToolDialog('Updater/Rsrc/HMCDialog', 'HMC options')"		""
+	"Random number generator..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/RNDialog', 'RN state')"		"BugsCmds.NotCompiledGuard"	
 	SEPARATOR	
 	"Externalize..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/OutBugDialog', 'Externalize model')"	""
 	"Internalize..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/InBugDialog', 'Internalize model')"	""
-	SEPARATOR
-	"Debug"	""	"BugsCmds.Debug"	"BugsCmds.DebugGuard"
 END
 
 MENU "Inference"
@@ -52,7 +45,6 @@ MENU "Inference"
 	"Summary..."	""	"StdCmds1.OpenToolDialog('Summary/Rsrc/Dialog', 'Summary Monitor Tool')" "BugsCmds.UpdateGuard"
 	"Rank..."	""	"StdCmds.OpenToolDialog('Ranks/Rsrc/Dialog', 'Rank Monitor Tool')"	"BugsCmds.UpdateGuard"
 	"Model..."	""	"StdCmds.OpenToolDialog('Models/Rsrc/Dialog', 'Model Monitor Tool')"	"BugsCmds.UpdateGuard"
-	SEPARATOR
 	"Information Criterion..."	""	"StdCmds.OpenToolDialog('Deviance/Rsrc/Dialog', ' Information Criterion Tool')"	
 	"BugsCmds.DevianceGuard"
 	SEPARATOR	

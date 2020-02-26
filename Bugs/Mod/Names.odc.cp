@@ -40,18 +40,14 @@ MODULE BugsNames;
 		version-: INTEGER; (*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; (*	person maintaining module	*)
 
-	(*	number of components	*)
+		(*	number of components	*)
 	PROCEDURE (name: Name) Size* (): INTEGER, NEW;
 		VAR
 			i, numSlots, size: INTEGER;
 	BEGIN
 		size := 1;
-		i := 0;
 		numSlots := name.numSlots;
-		WHILE i < numSlots DO
-			size := size * name.slotSizes[i];
-			INC(i)
-		END;
+		i := 0; WHILE i < numSlots DO size := size * name.slotSizes[i]; INC(i) END;
 		RETURN size
 	END Size;
 
@@ -64,19 +60,11 @@ MODULE BugsNames;
 		IF name.passByreference THEN
 			IF name.components # NIL THEN RETURN END;
 			NEW(name.components, size);
-			i := 0;
-			WHILE i < size DO
-				name.components[i] := NIL;
-				INC(i)
-			END
+			i := 0; WHILE i < size DO name.components[i] := NIL; INC(i) END
 		ELSE
 			IF name.values # NIL THEN RETURN END;
 			NEW(name.values, size);
-			i := 0;
-			WHILE i < size DO
-				name.values[i] := INF;
-				INC(i)
-			END
+			i := 0; WHILE i < size DO name.values[i] := INF; INC(i) END
 		END
 	END AllocateNodes;
 
@@ -88,12 +76,10 @@ MODULE BugsNames;
 		wr.WriteBool(name.passByreference);
 		wr.WriteString(name.string);
 		wr.WriteInt(name.numSlots);
-		i := 0;
 		len := name.numSlots;
-		WHILE i < len DO wr.WriteInt(name.slotSizes[i]); INC(i) END;
+		i := 0; WHILE i < len DO wr.WriteInt(name.slotSizes[i]); INC(i) END;
 		IF name.values # NIL THEN len := LEN(name.values) ELSE len := 0 END;
-		i := 0;
-		WHILE i < len DO wr.WriteSReal(name.values[i]); INC(i) END
+		i := 0; WHILE i < len DO wr.WriteSReal(name.values[i]); INC(i) END
 	END ExternalizeName;
 
 	(*	Externalizes data contained in name, only pointers to nodes in graph are externalized	*)
@@ -103,12 +89,7 @@ MODULE BugsNames;
 			p: GraphNodes.Node;
 	BEGIN
 		IF name.components # NIL THEN len := LEN(name.components) ELSE len := 0 END;
-		i := 0;
-		WHILE i < len DO
-			p := name.components[i];
-			GraphNodes.ExternalizePointer(p, wr);
-			INC(i)
-		END
+		i := 0; WHILE i < len DO p := name.components[i]; GraphNodes.ExternalizePointer(p, wr); INC(i) END
 	END ExternalizePointers;
 
 	(*	Externalizes the internal fields of each node of the graph associated with name
@@ -162,8 +143,7 @@ MODULE BugsNames;
 		len := name.Size();
 		IF name.passByreference THEN
 			IF len > 0 THEN NEW(name.components, len) ELSE name.components := NIL END;
-			i := 0;
-			WHILE i < len DO name.components[i] := GraphNodes.InternalizePointer(rd); INC(i) END
+			i := 0; WHILE i < len DO name.components[i] := GraphNodes.InternalizePointer(rd); INC(i) END
 		END
 	END InternalizePointers;
 
@@ -185,7 +165,7 @@ MODULE BugsNames;
 				indices := "," + indices
 			END;
 			indices[0] := "[";
-			indices := indices + "]"
+			indices := indices + "]" 
 		END
 	END Indices;
 
@@ -205,10 +185,7 @@ MODULE BugsNames;
 			WHILE (i < size) & initialized DO
 				node := name.components[i];
 				IF node # NIL THEN
-					WITH node: GraphStochastic.Node DO
-						initialized := init * node.props # {}
-					ELSE
-					END
+					WITH node: GraphStochastic.Node DO initialized := init * node.props # {} ELSE END
 				END;
 				INC(i)
 			END
@@ -234,10 +211,8 @@ MODULE BugsNames;
 		IF name.numSlots # 0 THEN
 			i := name.numSlots;
 			step := 1;
-			WHILE i > 0 DO
-				DEC(i);
-				offset := offset + step * (indices[i] - 1);
-				step := step * name.slotSizes[i]
+			WHILE i > 0 DO 
+				DEC(i); offset := offset + step * (indices[i] - 1); step := step * name.slotSizes[i]
 			END
 		END;
 		RETURN offset
@@ -256,10 +231,7 @@ MODULE BugsNames;
 	BEGIN
 		i := name.numSlots - 1;
 		step := 1;
-		WHILE i > slot DO
-			step := step * name.slotSizes[i];
-			DEC(i)
-		END;
+		WHILE i > slot DO step := step * name.slotSizes[i]; DEC(i) END;
 		RETURN step
 	END Step;
 
@@ -292,13 +264,8 @@ MODULE BugsNames;
 			i, size: INTEGER;
 	BEGIN
 		WITH v: ElementVisitor DO
-			i := 0;
 			size := name.Size();
-			WHILE i < size DO
-				v.index := i;
-				v.Do(name);
-				INC(i)
-			END
+			i := 0;WHILE i < size DO v.index := i; v.Do(name); INC(i) END
 		ELSE
 			v.Do(name)
 		END
@@ -317,11 +284,7 @@ MODULE BugsNames;
 		name.values := NIL;
 		IF numSlots > 0 THEN
 			NEW(name.slotSizes, numSlots);
-			i := 0;
-			WHILE i < numSlots DO
-				name.slotSizes[i] := 0;
-				INC(i)
-			END
+			i := 0; WHILE i < numSlots DO name.slotSizes[i] := 0; INC(i) END
 		ELSE
 			name.slotSizes := NIL
 		END;

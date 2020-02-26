@@ -14,7 +14,7 @@ MODULE PKBugsParse;
 	IMPORT
 		PKBugsData,
 		BugsIndex, BugsNames,
-		GraphConstant,
+		GraphConstant, GraphNodes, GraphSentinel,
 		PharmacoInputs;
 
 	TYPE
@@ -24,16 +24,17 @@ MODULE PKBugsParse;
 		END;
 
 		Date = RECORD
-			year*, month*, day*: INTEGER
+			year, month, day: INTEGER
 		END;
 
 	VAR
 		events-: POINTER TO ARRAY OF INTEGER;
-		summary: POINTER TO ARRAY OF LevInfo;
 		offHist-, offData-: POINTER TO ARRAY OF INTEGER;
-		history, time, pos: BugsNames.Name;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
+		summary: POINTER TO ARRAY OF LevInfo;
+		history, time, pos: BugsNames.Name;
+		sentinel: GraphNodes.Node;
 
 	(*	steal the following two functions from Dates module because do not have unix version	*)
 	PROCEDURE ValidDate (IN d: Date): BOOLEAN;
@@ -128,14 +129,26 @@ MODULE PKBugsParse;
 	END GetDim;
 
 	PROCEDURE InitNames (nInd, nHist, nData: INTEGER);
+		VAR
+			i, j: INTEGER;
 	BEGIN
 		ASSERT(nInd > 0, 25); ASSERT(nHist > 0, 25); ASSERT(nData > 0, 25);
-		history := BugsNames.New("hist", 2);
+		history := BugsNames.New("hist", 2); history.passByreference := TRUE;
 		history.SetRange(0, nHist); history.SetRange(1, PharmacoInputs.nCol);
 		history.AllocateNodes;
-		time := BugsNames.New("time", 1); time.SetRange(0, nData);
+		(*		i := 0;
+		WHILE i < nHist DO
+		j := 0;
+		WHILE j < PharmacoInputs.nCol DO
+		history.components[i * PharmacoInputs.nCol  + j] := GraphConstant.New(-1); INC(j)
+		END;
+		INC(i)
+		END;*)
+		time := BugsNames.New("time", 1); time.passByreference := TRUE;
+		time.SetRange(0, nData);
 		time.AllocateNodes;
-		pos := BugsNames.New("pos", 1); pos.SetRange(0, nData);
+		pos := BugsNames.New("pos", 1); pos.passByreference := TRUE;
+		pos.SetRange(0, nData);
 		pos.AllocateNodes;
 		NEW(offHist, nInd + 1); NEW(offData, nInd + 1); offHist[0] := 1; offData[0] := 1
 	END InitNames;
@@ -273,21 +286,21 @@ MODULE PKBugsParse;
 		index := s + PharmacoInputs.time; ASSERT(index < len, 25);
 		history.components[index] := GraphConstant.New(evTime);
 		GetInputName(i, name); new := PharmacoInputs.NameToInput(name);
-		IF new = NIL THEN
-			res := 5316; res := - res; inp := name$; RETURN	(* input not found in PKLink/Rsrc/Inputs.odc *)
-		END;
+		(* input not found in PKLink/Rsrc/Inputs.odc *)
+		IF new = NIL THEN res := 5316; res := - res; inp := name$; RETURN END;
 		index := s + PharmacoInputs.input; ASSERT(index < len, 25);
 		history.components[index] := GraphConstant.New(new.id);
 		IF (name = "IVbol") OR (name = "IVinf") THEN lev := 0 ELSE GetLevel(new.id, ind, lev) END;
 		index := s + PharmacoInputs.level; ASSERT(index < len, 25);
 		history.components[index] := GraphConstant.New(lev);
-		IF PKBugsData.amt[i].missing THEN res := 5303; RETURN END;
 		(* amt missing on dose event record *)
+		IF PKBugsData.amt[i].missing THEN res := 5303; RETURN END;
 		index := s + PharmacoInputs.amount; ASSERT(index < len, 25);
 		history.components[index] := GraphConstant.New(PKBugsData.amt[i].value);
 		IF (PKBugsData.ss # NIL) & ~PKBugsData.ss[i].missing THEN
 			ASSERT(PKBugsData.ii # NIL, 25);
-			IF PKBugsData.ii[i].missing THEN res := 5304; RETURN END; 	(* ii missing for steady state dose *)
+			(* ii missing for steady state dose *)
+			IF PKBugsData.ii[i].missing THEN res := 5304; RETURN END;
 			index := s + PharmacoInputs.ss; ASSERT(index < len, 25);
 			history.components[index] := GraphConstant.New(1);
 			index := s + PharmacoInputs.omega; ASSERT(index < len, 25);
@@ -405,8 +418,14 @@ MODULE PKBugsParse;
 	END CheckInputs;
 
 	PROCEDURE StoreHist*;
+		VAR
+			i, len: INTEGER;
+			components: GraphNodes.Vector;
 	BEGIN
 		ASSERT(history # NIL, 25); BugsIndex.Store(history);
+		components := history.components;
+		len := LEN(components);
+		i := 0; WHILE i < len DO IF components[i] = NIL THEN components[i] := sentinel END; INC(i) END;
 		ASSERT(time # NIL, 25); BugsIndex.Store(time);
 		ASSERT(pos # NIL, 25); BugsIndex.Store(pos)
 	END StoreHist;
@@ -452,10 +471,18 @@ MODULE PKBugsParse;
 	END NumData;
 
 	PROCEDURE Reset*;
+		VAR
+			i, len: INTEGER;
+			components: GraphNodes.Vector;
 	BEGIN
+		IF history # NIL THEN
+			components := history.components;
+			IF components # NIL THEN len := LEN(components) ELSE len := 0 END;
+			i := 0; WHILE i < len DO IF components[i] = sentinel THEN components[i] := NIL END; INC(i) END
+		END;
 		events := NIL; summary := NIL;
 		offHist := NIL; offData := NIL;
-		history := NIL; time := NIL; pos := NIL
+		history := NIL; time := NIL; pos := NIL;
 	END Reset;
 
 	PROCEDURE Maintainer;
@@ -466,7 +493,9 @@ MODULE PKBugsParse;
 
 	PROCEDURE Init;
 	BEGIN
-		Maintainer; Reset
+		Maintainer;
+		sentinel := GraphSentinel.New();
+		Reset
 	END Init;
 
 BEGIN

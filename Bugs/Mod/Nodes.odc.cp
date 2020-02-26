@@ -57,7 +57,7 @@ MODULE BugsNodes;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		p[0] := name$;
-		BugsMsg.LookupParam("BugsNodes" + numToString, p, errorMsg); 
+		BugsMsg.LookupParam("BugsNodes" + numToString, p, errorMsg);
 		BugsMsg.StoreError(errorMsg)
 	END Error;
 
@@ -181,7 +181,7 @@ MODULE BugsNodes;
 		ELSE
 			args.Init;
 			BugsOptimize.FoldConstants(expression);
-			BugsCodegen.WriteTreeArgs(expression, args); 
+			BugsCodegen.WriteTreeArgs(expression, args);
 			IF ~args.valid THEN RETURN NIL END;
 			BugsOptimize.UnMark(expression);
 			node := BugsCPCompiler.CreateLogical(args);
@@ -443,9 +443,9 @@ MODULE BugsNodes;
 			fact.Signature(sig);
 			vectorValued := fact IS GraphVector.Factory;
 			IF vector.nElem = 1 THEN
-				IF vectorValued THEN ok := FALSE; Error(14, varName); RETURN END
+				IF vectorValued THEN ok := FALSE; Error(14, varName); HALT(0); RETURN END
 			ELSE
-				IF ~vectorValued THEN ok := FALSE; Error(15, varName); RETURN END
+				IF ~vectorValued THEN ok := FALSE; Error(15, varName); HALT(0); RETURN END
 			END;
 			IF sig = "eL" THEN
 				BugsCodegen.WriteTreeArgs(function.parents[0], args);
@@ -543,7 +543,6 @@ MODULE BugsNodes;
 	PROCEDURE (v: Check) Do (name: BugsNames.Name);
 		VAR
 			node: GraphNodes.Node;
-			string: ARRAY 1024 OF CHAR;
 			res: SET;
 	BEGIN
 		IF name.passByreference THEN
@@ -552,8 +551,6 @@ MODULE BugsNodes;
 				res := node.Check();
 				IF res # {} THEN
 					v.ok := FALSE;
-					name.Indices(v.index, string);
-					string := name.string + string;
 					NodeError(res, node)
 				END
 			END

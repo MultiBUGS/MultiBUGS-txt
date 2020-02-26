@@ -301,7 +301,7 @@ MODULE BugsInterface;
 				GraphLogical.EvaluateAllDiffs;
 				OptimizeLinear;
 				StoreValues(chain);
-				BugsNodes.Checks(ok);
+				BugsNodes.Checks(ok); 
 				EXIT
 			ELSE	(*	try again	*)
 				BugsGraph.LoadInits(chain);
@@ -317,7 +317,7 @@ MODULE BugsInterface;
 					BugsMsg.Lookup(name, name1);
 					msg := msg + name1;
 					Error(1, msg);
-					ok := FALSE;
+					ok := FALSE; 
 					BugsGraph.LoadInits(chain);
 					LoadValues(chain);
 					EXIT

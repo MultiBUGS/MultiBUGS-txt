@@ -3,7 +3,7 @@
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 
-
+OSLinuxWindows
 
 *)
 
@@ -12,14 +12,12 @@ MODULE PlotsAxis;
 	
 
 	IMPORT
-		Dialog, Fonts, Math, Meta, Stores, Views;
+		Fonts, Math, Meta, Stores, Views OS, SYSTEM, WinApi, HostPorts;
 
 	TYPE
 		Axis* = POINTER TO ABSTRACT RECORD
 			title-, type: ARRAY 80 OF CHAR
 		END;
-
-		VertString* = POINTER TO ABSTRACT RECORD END;
 
 		Factory* = POINTER TO ABSTRACT RECORD END;
 
@@ -27,7 +25,21 @@ MODULE PlotsAxis;
 		maintainer-: ARRAY 20 OF CHAR;
 		version-: INTEGER;
 		fact: Factory;
-		vertString: VertString;
+		
+	OS
+	PROCEDURE SetClipRegion (frame: Views.Frame; OUT noWindow: BOOLEAN): INTEGER;
+		VAR
+			dc, res, rl, rt, rr, rb: INTEGER;
+			port: HostPorts.Port;
+	BEGIN
+		port := frame.rider(HostPorts.Rider).port; dc := port.dc;
+		noWindow := port.wnd = 0;
+		IF noWindow THEN res := WinApi.SaveDC(dc)
+		ELSE res := WinApi.SelectClipRgn(dc, 0) END;
+		frame.rider.GetRect(rl, rt, rr, rb);
+		res := WinApi.IntersectClipRect(dc, rl, rt, rr, rb);
+		RETURN dc
+	END SetClipRegion;
 
 	PROCEDURE SetSpacing* (range: REAL; VAR spacing: REAL);
 		CONST
@@ -87,6 +99,8 @@ MODULE PlotsAxis;
 			a: Axis;
 	BEGIN
 		Meta.LookupPath(type, item);
+		ok := item.Valid();
+		IF ~ok THEN RETURN NIL END;
 		ASSERT(item.obj = Meta.procObj, 66);
 		item.Call(ok);
 		ASSERT(ok, 67);
@@ -150,24 +164,44 @@ MODULE PlotsAxis;
 		a.InternalizeData(rd)
 	END Internalize;
 
-	PROCEDURE (d: VertString) Draw- (f: Views.Frame; txt: ARRAY OF CHAR; xl, yl, colour: INTEGER;
-	font: Fonts.Font), NEW, ABSTRACT;
-
 	PROCEDURE DrawVertString* (f: Views.Frame; txt: ARRAY OF CHAR; xl, yl, colour: INTEGER;
 	font: Fonts.Font);
-		VAR
-			res: INTEGER;
-	BEGIN
-		IF (vertString = NIL) & Dialog.IsWindows()  THEN
-			Dialog.Call("PlotsWindows.Install", "", res)
+OSVAR
+			dc, res, i, hgt, winFont, ang, oldFont, italic, under, strike, len: INTEGER;
+			winTxt, face: ARRAY[untagged] 80 OF SHORTCHAR;
+			oldAlign: SET;
+			noWindow: BOOLEAN;
+	BEGIN 
+OSdc := SetClipRegion(f, noWindow);
+		xl := (xl + f.gx) DIV f.unit;
+		yl := (yl + f.gy) DIV f.unit;
+		len := LEN(txt$);
+		i := 0; WHILE i < len DO winTxt[i] := SHORT(txt[i]); INC(i) END;
+		len := LEN(font.typeface$);
+		i := 0; WHILE i < len DO face[i] := SHORT(font.typeface[i]); INC(i) END;
+		res := WinApi.SetTextColor(dc, colour);
+		hgt := font.size * WinApi.GetDeviceCaps(dc, WinApi.LOGPIXELSY) DIV (Fonts.point * 60);
+		ang := 900;
+		IF Fonts.italic IN font.style THEN italic := WinApi.TRUE
+		ELSE italic := WinApi.FALSE
 		END;
-		IF vertString # NIL THEN vertString.Draw(f, txt, xl, yl, colour, font) END
+		IF Fonts.underline IN font.style THEN under := WinApi.TRUE
+		ELSE under := WinApi.FALSE
+		END;
+		IF Fonts.strikeout IN font.style THEN strike := WinApi.TRUE
+		ELSE strike := WinApi.FALSE
+		END;
+		winFont := WinApi.CreateFont(hgt, 0, ang, ang, font.weight, italic, under, strike,
+		WinApi.ANSI_CHARSET, WinApi.OUT_DEFAULT_PRECIS, WinApi.CLIP_DEFAULT_PRECIS,
+		WinApi.DEFAULT_QUALITY, WinApi.DEFAULT_PITCH, face);
+		oldFont := WinApi.SelectObject(dc, winFont);
+		oldAlign := WinApi.SetTextAlign(dc, WinApi.TA_BASELINE + WinApi.TA_CENTER);
+		res := WinApi.TextOut(dc, xl, yl, winTxt, LEN(txt$));
+		res := WinApi.SelectObject(dc, oldFont);
+		res := WinApi.DeleteObject(winFont);
+		oldAlign := WinApi.SetTextAlign(dc, oldAlign);
+		IF noWindow THEN res := WinApi.RestoreDC(dc, - 1) END
 	END DrawVertString;
-
-	PROCEDURE SetVertString* (d: VertString);
-	BEGIN
-		vertString := d
-	END SetVertString;
 
 	PROCEDURE Maintainer;
 	BEGIN
@@ -180,10 +214,6 @@ MODULE PlotsAxis;
 			res: INTEGER;
 	BEGIN
 		fact := NIL;
-		vertString := NIL;
-(*		IF Dialog.IsWindows() THEN
-			Dialog.Call("PlotsWindows.Install", "", res)
-		END;*)
 		Maintainer
 	END Init;
 

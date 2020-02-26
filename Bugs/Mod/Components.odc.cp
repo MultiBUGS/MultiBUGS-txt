@@ -83,6 +83,7 @@ MODULE BugsComponents;
 			(*	add implementation of MPI map name in string resource file	*)
 			Dialog.MapString("#Bugs:MPI" + platform, mpiImp); 
 			AddModule(mpiImp$, modList);
+			(*AddModule("MPIimp", modList)*)
 		END
 	END AddModule;
 

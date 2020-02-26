@@ -59,11 +59,7 @@ MODULE MathODE;
 		scale := solver.scale;
 		equations := solver.equations;
 		t := t0;
-		i := 0;
-		WHILE i < numEq DO
-			x[i] := x0[i];
-			INC(i)
-		END;
+		i := 0; WHILE i < numEq DO x[i] := x0[i]; INC(i) END;
 		tStep := t0 + step;
 		step := MIN(step, 0.25);
 		iter := 0;
@@ -71,20 +67,12 @@ MODULE MathODE;
 			INC(iter); ASSERT(iter < maxSteps, 33);
 			IF t + step > tStep THEN step := tStep - t END;
 			equations.Derivatives(theta, x, numEq, t, solver.dxdt);
-			i := 0;
-			WHILE i < numEq DO
-				scale[i] := ABS(x[i]) + ABS(dxdt[i] * step) + eps;
-				INC(i)
-			END;
+			i := 0; WHILE i < numEq DO scale[i] := ABS(x[i]) + ABS(dxdt[i] * step) + eps; INC(i) END;
 			solver.TrialStep(theta, x, scale, numEq, t, step, tol, actualStep, predStep, x1);
 			t := t + actualStep;
 			IF ABS(tStep - t) < eps THEN EXIT END;
 			step := predStep;
-			i := 0;
-			WHILE i < numEq DO
-				x[i] := x1[i];
-				INC(i)
-			END
+			i := 0; WHILE i < numEq DO x[i] := x1[i]; INC(i) END
 		END
 	END AccurateStep;
 

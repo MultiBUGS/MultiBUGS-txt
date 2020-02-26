@@ -111,34 +111,28 @@ MENU "Examples"
 	"Examples Vol III"	""	"StdCmds1.OpenBrowser('Examples/VolumeIII', 'Examples Volume III')"	""	
 	"Examples Vol IV"	""	"StdCmds1.OpenBrowser('Examples/VolumeIV', 'Examples Volume IV')"	""	
 	SEPARATOR
-	"GeoBUGS Examples"	""	"StdCmds1.OpenBrowser('GeoBUGS/Examples/Examples', 'GeoBUGS Examples')"	""	
 	"Ecology Examples"	""	"StdCmds1.OpenBrowser('Examples/VolumeEco', 'Ecology Examples')"	""	
-	"Reliability Examples"	""	"StdCmds1.OpenBrowser('Reliability/Examples/Vol', 'Reliability Examples')"	""	
-	"PK Examples"	""	"StdCmds1.OpenBrowser('PKBugs/Examples/Examples', 'PK Examples')"	""	
+	"GeoBUGS Examples"	""	"StdCmds1.OpenBrowser('GeoBugs/Examples/Examples', 'PK Examples')"	""	
+	"ReliaBUGS Examples"	""	"StdCmds1.OpenBrowser('Reliability/Examples/Vol', 'ReliaBUGS Examples')"	""	
 	SEPARATOR
 	"Print Examples Vol I"	""	"BugsDocu.PrintExamplesVolI"	""
 	"Print Examples Vol II"	""	"BugsDocu.PrintExamplesVolII"	""
 	"Print Examples Vol III"	""	"BugsDocu.PrintExamplesVolIII"	""
 	"Print Examples Vol IV"	""	"BugsDocu.PrintExamplesVolIV"	""
-	"Print GeoBUGS Examples"	""	"BugsDocu.PrintExamplesGeoBUGS"	""
 	"Print Ecology Examples"	""	"BugsDocu.PrintExamplesEcology"	""
-	"Print Reliability Examples"	""	"BugsDocu.PrintReliabilityManual"	""
 END
 
 MENU "Manuals"
 	"Getting started"	""	"StdCmds1.OpenBrowser('Manuals/Manual', 'Getting started')"	""
 	SEPARATOR
-	"OpenBUGS User Manual"	"F1"	"StdCmds1.OpenBrowser('Manuals/Contents', 'OpenBUGS User Manual Contents')"	""
-	"DoodleBUGS User Manual"	""	"StdCmds1.OpenBrowser('Manuals/DoodleBUGS', 'DoodleBUGS User Manual')"	""
-	"GeoBUGS User Manual"	""	"StdCmds1.OpenBrowser('GeoBUGS/Manuals/Manual', 'GeoBUGS User Manual')"	""		
+	"MultiBUGS User Manual"	"F1"	"StdCmds1.OpenBrowser('Manuals/Contents', 'MultiBUGS User Manual Contents')"	""
+	"DoodleBUGS User Manual"	""	"StdCmds1.OpenBrowser('Manuals/DoodleBUGS', 'DoodleBUGS User Manual')"	""	
+	"GeoBUGS User Manual"	""	"StdCmds1.OpenBrowser('GeoBugs/Manuals/Manual', 'PKBUGS User Manual')"	""	
 	"ReliaBUGS User Manual"	""	"StdCmds1.OpenBrowser('Reliability/Manuals/Contents', 'ReliaBUGS User Manual')"	""	
-	"PKBUGS User Manual"	""	"StdCmds1.OpenBrowser('PKBugs/Manuals/Manual', 'PKBUGS User Manual')"	""	
 	"OpenBUGS Developer Manual"	""	"StdCmds1.OpenBrowser('Developer/Manual','OpenBUGS Developer Manual')" ""
 	SEPARATOR
-	"Print OpenBUGS User Manual"	""	"BugsDocu.PrintUserManual"	""
-	"Print GeoBUGS User Manual"	""	"BugsDocu.PrintGeoBUGSManual"	""
-	"Print ReliaBUGS User Manual"	""	"BugsDocu.PrintReliabilityManual"	""
-	"Print OpenBUGS Developer Manual"	""	"BugsDocu.PrintDeveloperManual"	""
+	"Print MultiBUGS User Manual"	""	"BugsDocu.PrintUserManual"	""
+	"Print MultiBUGS Developer Manual"	""	"BugsDocu.PrintDeveloperManual"	""
 END
 
 MENU "Help"
@@ -148,7 +142,7 @@ MENU "Help"
 	"Search"	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/Search', 'Search Tool')"		""
 	SEPARATOR	
 	"Licence"	""	"StdCmds1.OpenBrowser('gpl-3.0.txt', 'GNU GPL Licence')"	""
-	"About_OpenBUGS"	""	"BugsCmds.About"	"BugsCmds.AboutGuard"
+	"About MultiBUGS"	""	"StdCmds.OpenToolDialog('System/Rsrc/About', 'About MultiBUGS')"	""
 END
 
 MENU "*" 

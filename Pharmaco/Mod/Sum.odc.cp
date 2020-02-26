@@ -26,8 +26,6 @@ MODULE PharmacoSum;
 			baseIV: BOOLEAN
 		END;
 
-		MemNode = POINTER TO ABSTRACT RECORD(Node) END;
-
 		SumNode = POINTER TO RECORD (Node) END;
 		LogNode = POINTER TO RECORD (Node) END;
 

@@ -174,7 +174,6 @@ MODULE SamplesHistory;
 		yAxis := PlotsAxis.New("PlotsStdaxis.Continuous");
 		yAxis.SetTitle(title);
 		v.SetYAxis(yAxis);
-		(*v.SetTitle(title);*)
 		RETURN v
 	END New;
 

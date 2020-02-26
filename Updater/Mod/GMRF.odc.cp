@@ -17,7 +17,7 @@ MODULE UpdaterGMRF;
 	IMPORT
 		Math, Meta, Stores := Stores64,
 		BugsRegistry,
-		GraphMRF, GraphMultivariate, GraphRules, GraphStochastic, 
+		GraphLogical, GraphMRF, GraphRules, GraphStochastic,
 		MathDiagmatrix, MathMatrix, MathRandnum, MathSparsematrix,
 		UpdaterMetropolisMV, UpdaterRejection, UpdaterUnivariate, UpdaterUpdaters;
 
@@ -49,7 +49,7 @@ MODULE UpdaterGMRF;
 		factGeneral-, factNormal-: UpdaterUpdaters.Factory;
 		version-: INTEGER;
 		maintainer-: ARRAY 40 OF CHAR;
-		a, b, c, mean, oldValues, Amu: POINTER TO ARRAY OF REAL;
+		a, b, c, fMinus, fPlus, mean, oldValues, Amu: POINTER TO ARRAY OF REAL;
 		A, AAT, U, V, Winverse: POINTER TO ARRAY OF ARRAY OF REAL;
 		bandedFactory, diagFactory, fullFactory, sparseFactory: MathSparsematrix.Factory;
 
@@ -97,11 +97,7 @@ MODULE UpdaterGMRF;
 	BEGIN
 		logLikelihood := 0.0;
 		IF likelihood # NIL THEN num := LEN(likelihood) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			logLikelihood := logLikelihood + likelihood[i].LogLikelihood();
-			INC(i)
-		END;
+		i := 0; WHILE i < num DO logLikelihood := logLikelihood + likelihood[i].LogLikelihood(); INC(i) END;
 		RETURN logLikelihood
 	END LogLikelihood;
 
@@ -114,9 +110,10 @@ MODULE UpdaterGMRF;
 			mRF: GraphMRF.Node;
 			prior: GraphStochastic.Vector;
 			children: GraphStochastic.Vector;
-			derivFirst, derivSecond, eta0, f, fMinus, fPlus: REAL;
+			derivFirst, derivSecond: REAL;
 			i, j, k, numConstraints, size: INTEGER;
 			p1: ARRAY 1 OF ARRAY 1 OF REAL;
+			f: REAL;
 	BEGIN
 		updater.SetValue(value);
 		prior := updater.prior;
@@ -125,22 +122,22 @@ MODULE UpdaterGMRF;
 		(*	iterative weighted least squares algorithm	*)
 		WHILE iteration > 0 DO
 			(*	calculate likelihood contribution here by fitting a parabala	*)
+			i := 0; WHILE i < size DO node := prior[i]; node.value := node.value + delta; INC(i) END;
+			GraphLogical.Evaluate(updater.dependents);
+			i := 0; WHILE i < size DO children := prior[i].children; fPlus[i] := LogLikelihood(children); INC(i) END;
+			i := 0; WHILE i < size DO node := prior[i]; node.value := node.value - 2 * delta; INC(i) END;
+			GraphLogical.Evaluate(updater.dependents);
+			i := 0; WHILE i < size DO children := prior[i].children; fMinus[i] := LogLikelihood(children); INC(i) END;
+			i := 0; WHILE i < size DO node := prior[i]; node.value := node.value + delta; INC(i) END;
+			GraphLogical.Evaluate(updater.dependents);
 			i := 0;
 			WHILE i < size DO
-				node := prior[i];
-				children := node.children;
-				eta0 := node.value;
+				children := prior[i].children;
 				f := LogLikelihood(children);
-				node.value := eta0 + delta;
-				fPlus := LogLikelihood(children);
-				node.value:= eta0 - delta;
-				fMinus := LogLikelihood(children);
-				node.value := eta0;
-				derivFirst := (fPlus - fMinus) / (2 * delta);
-				derivSecond := (fPlus - 2.0 * f + fMinus) / (delta * delta);
+				derivFirst := (fPlus[i] - fMinus[i]) / (2 * delta);
+				derivSecond := (fPlus[i] - 2.0 * f + fMinus[i]) / (delta * delta);
 				derivSecond := MIN(derivSecond, 0);
-				a[i] := derivFirst - derivSecond * eta0;
-				b[i] :=  - derivSecond;
+				a[i] := derivFirst - derivSecond * prior[i].value; b[i] := - derivSecond;
 				INC(i)
 			END;
 			MathSparsematrix.SetElements(updater.sparseMatrix, updater.elements);
@@ -149,23 +146,18 @@ MODULE UpdaterGMRF;
 			MathSparsematrix.ForwardSub(updater.choleskyDecomp, a, size);
 			MathSparsematrix.BackSub(updater.choleskyDecomp, a, size);
 			updater.SetValue(a);
+			GraphLogical.Evaluate(updater.dependents);
 			DEC(iteration);
 			(*	collect garbage here except for last iteration	*)
-			IF iteration # 0 THEN
-				updater.choleskyDecomp.Free;
-				updater.choleskyDecomp := NIL;
-			END
+			IF iteration # 0 THEN updater.choleskyDecomp.Free; updater.choleskyDecomp := NIL; END
 		END;
 		ASSERT(updater.choleskyDecomp # NIL, 120);
 		updater.SetValue(value);
+		GraphLogical.Evaluate(updater.dependents);
 		numConstraints := updater.numConstraints;
 		(*	add in mean of GMRF	*)
 		mRF.MVPriorForm(mean, p1);
-		i := 0;
-		WHILE i < size DO
-			updater.mu[i] := mean[i] + a[i];
-			INC(i)
-		END;
+		i := 0; WHILE i < size DO updater.mu[i] := mean[i] + a[i]; INC(i) END;
 		IF numConstraints # 0 THEN
 			IF numConstraints > LEN(c) THEN
 				NEW(c, numConstraints); NEW(Amu, numConstraints);
@@ -186,24 +178,16 @@ MODULE UpdaterGMRF;
 			i := 0;
 			WHILE i < numConstraints DO
 				j := 0;
-				WHILE j < numConstraints DO
-					Winverse[i, j] := MathMatrix.DotProduct(A[i], V[j], size);
-					INC(j)
-				END;
+				WHILE j < numConstraints DO Winverse[i, j] := MathMatrix.DotProduct(A[i], V[j], size); INC(j) END;
 				INC(i)
 			END;
 			MathMatrix.Invert(Winverse, numConstraints);
-			i := 0;
-			WHILE i < numConstraints DO
-				j := 0; WHILE j < size DO U[i, j] := 0.0; INC(j) END;
-				INC(i)
-			END;
+			i := 0; WHILE i < numConstraints DO j := 0; WHILE j < size DO U[i, j] := 0.0; INC(j) END; INC(i) END;
 			i := 0;
 			WHILE i < numConstraints DO
 				j := 0;
 				WHILE j < size DO
-					k := 0; WHILE k < numConstraints DO U[i, j] := U[i, j] + Winverse[i, k] * V[k, j]; INC(k) END;
-					INC(j)
+					k := 0; WHILE k < numConstraints DO U[i, j] := U[i, j] + Winverse[i, k] * V[k, j]; INC(k) END; INC(j)
 				END;
 				INC(i)
 			END
@@ -219,11 +203,7 @@ MODULE UpdaterGMRF;
 		size := updater.Size();
 		numConstraints := updater.numConstraints;
 		density := 0.5 * MathSparsematrix.LogDet(updater.choleskyDecomp);
-		i := 0;
-		WHILE i < size DO
-			b[i] := value[i] - updater.mu[i];
-			INC(i)
-		END;
+		i := 0; WHILE i < size DO b[i] := value[i] - updater.mu[i]; INC(i) END;
 		MathSparsematrix.Multiply(updater.sparseMatrix, b, size, a);
 		density := density - 0.5 * MathMatrix.DotProduct(a, b, size);
 		IF numConstraints # 0 THEN
@@ -232,19 +212,15 @@ MODULE UpdaterGMRF;
 			WHILE i < numConstraints DO
 				j := 0;
 				WHILE j < numConstraints DO
-					AAT[i, j] := 0;
-					k := 0; WHILE k < size DO AAT[i, j] := AAT[i, j] + A[i, k] * A[j, k]; INC(k) END;
-					INC(j)
+					AAT[i, j] := 0; k := 0; WHILE k < size DO AAT[i, j] := AAT[i, j] + A[i, k] * A[j, k]; INC(k) END; INC(j)
 				END;
 				INC(i)
 			END;
-			piAXbarX :=  - 0.5 * MathMatrix.LogDet(AAT, numConstraints);
+			piAXbarX := - 0.5 * MathMatrix.LogDet(AAT, numConstraints);
 			(*	P(AX)	*)
 			i := 0;
 			WHILE i < numConstraints DO
-				Amu[i] := 0.0;
-				j := 0; WHILE j < size DO Amu[i] := Amu[i] + A[i, j] * updater.mu[j]; INC(j) END;
-				INC(i)
+				Amu[i] := 0.0; j := 0; WHILE j < size DO Amu[i] := Amu[i] + A[i, j] * updater.mu[j]; INC(j) END; INC(i)
 			END;
 			piAX := 0.0;
 			i := 0;
@@ -264,35 +240,19 @@ MODULE UpdaterGMRF;
 			mRF: GraphMRF.Node;
 	BEGIN
 		size := updater.Size();
-		i := 0;
-		WHILE i < size DO
-			sample[i] := MathRandnum.StandardNormal();
-			INC(i)
-		END;
+		i := 0; WHILE i < size DO sample[i] := MathRandnum.StandardNormal(); INC(i) END;
 		MathSparsematrix.BackSub(updater.choleskyDecomp, sample, size);
-		i := 0;
-		WHILE i < size DO
-			sample[i] := sample[i] + updater.mu[i];
-			INC(i)
-		END;
+		i := 0; WHILE i < size DO sample[i] := sample[i] + updater.mu[i]; INC(i) END;
 		mRF := updater.prior[0](GraphMRF.Node);
 		numConstraints := mRF.NumberConstraints();
 		IF numConstraints # 0 THEN
 			i := 0;
 			WHILE i < numConstraints DO
-				c[i] := 0;
-				j := 0;
-				WHILE j < size DO
-					c[i] := c[i] + A[i, j] * sample[j];
-					INC(j)
-				END;
-				INC(i)
+				c[i] := 0; j := 0; WHILE j < size DO c[i] := c[i] + A[i, j] * sample[j]; INC(j) END; INC(i)
 			END;
 			i := 0;
 			WHILE i < size DO
-				j := 0;
-				WHILE j < numConstraints DO sample[i] := sample[i] - U[j, i] * c[j]; INC(j) END;
-				INC(i)
+				j := 0; WHILE j < numConstraints DO sample[i] := sample[i] - U[j, i] * c[j]; INC(j) END; INC(i)
 			END
 		END
 	END SampleProposal;
@@ -301,7 +261,7 @@ MODULE UpdaterGMRF;
 	BEGIN
 		RETURN 0
 	END ParamsSize;
-	
+
 	PROCEDURE (updater: Updater) CopyFromGMRF (source: UpdaterUpdaters.Updater), NEW, EMPTY;
 
 	PROCEDURE (updater: Updater) CopyFromMetropolisMV (source: UpdaterUpdaters.Updater);
@@ -345,7 +305,8 @@ MODULE UpdaterGMRF;
 		NEW(updater.mu, size);
 		NEW(updater.elements, nElements);
 		IF size > LEN(a) THEN
-			NEW(a, size); NEW(b, size); NEW(mean, size); NEW(oldValues, size)
+			NEW(a, size); NEW(b, size); NEW(fMinus, size); NEW(fPlus, size); NEW(mean, size);
+			NEW(oldValues, size)
 		END;
 		NEW(colPtr, size);
 		NEW(rowInd, nElements);
@@ -381,7 +342,7 @@ MODULE UpdaterGMRF;
 		NEW(u);
 		RETURN u
 	END Clone;
-		
+
 	PROCEDURE (updater: GeneralUpdater) CopyFromGMRF (source: UpdaterUpdaters.Updater);
 		VAR
 			s: GeneralUpdater;
@@ -396,24 +357,21 @@ MODULE UpdaterGMRF;
 			copy := UpdaterUpdaters.CopyFrom(s.singleSiteUpdaters[i]);
 			updater.singleSiteUpdaters[i] := copy(UpdaterUnivariate.Updater);
 			INC(i)
-		END	
+		END
 	END CopyFromGMRF;
-	
+
 
 	PROCEDURE (updater: GeneralUpdater) ExternalizeMetropolisMV (VAR wr: Stores.Writer);
 		VAR
 			i, size: INTEGER;
 	BEGIN
-		i := 0;
 		size := updater.Size();
-		WHILE i < size DO
-			UpdaterUpdaters.Externalize(updater.singleSiteUpdaters[i], wr); INC(i)
-		END
+		i := 0; WHILE i < size DO UpdaterUpdaters.Externalize(updater.singleSiteUpdaters[i], wr); INC(i) END
 	END ExternalizeMetropolisMV;
 
 	PROCEDURE (updater: GeneralUpdater) Install (OUT install: ARRAY OF CHAR);
 	BEGIN
-		install := "UpdaterGMRF.GeneralInstall"
+		install := "UpdaterGMRF.InstallGeneral"
 	END Install;
 
 	PROCEDURE (updater: GeneralUpdater) InternalizeMetropolisMV (VAR rd: Stores.Reader);
@@ -421,11 +379,8 @@ MODULE UpdaterGMRF;
 			i, size: INTEGER;
 	BEGIN
 		updater.constraints := NIL;
-		i := 0;
 		size := updater.Size();
-		WHILE i < size DO
-			UpdaterUpdaters.Internalize(updater.singleSiteUpdaters[i], rd); INC(i)
-		END
+		i := 0; WHILE i < size DO UpdaterUpdaters.Internalize(updater.singleSiteUpdaters[i], rd); INC(i) END
 	END InternalizeMetropolisMV;
 
 	PROCEDURE (updater: GeneralUpdater) Sample (overRelax: BOOLEAN; OUT res: SET);
@@ -443,6 +398,7 @@ MODULE UpdaterGMRF;
 		prior := updater.prior;
 		IF (updater.iteration MOD batch # 0) & (updater.iteration > 100) THEN
 			updater.GetValue(oldValues);
+			updater.Store;
 			modeIts := factGeneral.iterations;
 			modeIts := MAX(1, modeIts);
 			mrf.MatrixElements(updater.elements);
@@ -450,6 +406,7 @@ MODULE UpdaterGMRF;
 			ConstructProposal(updater, oldValues, modeIts);
 			SampleProposal(updater, updater.new);
 			updater.SetValue(updater.new);
+			GraphLogical.Evaluate(updater.dependents);
 			newDensity := updater.LogConditional();
 			oldProp := ProposalDensity(updater, updater.new);
 			updater.choleskyDecomp.Free;
@@ -457,17 +414,11 @@ MODULE UpdaterGMRF;
 			ConstructProposal(updater, updater.new, modeIts);
 			newProp := ProposalDensity(updater, oldValues);
 			acceptProb := newDensity - oldDensity + newProp - oldProp;
-			IF acceptProb < Math.Ln(MathRandnum.Rand()) THEN
-				updater.SetValue(oldValues);
-			END;
+			IF acceptProb < Math.Ln(MathRandnum.Rand()) THEN updater.Restore END;
 			updater.choleskyDecomp.Free;
 			updater.choleskyDecomp := NIL;
 		ELSE
-			j := 0;
-			WHILE j < size DO
-				updater.singleSiteUpdaters[j].Sample(overRelax, res);
-				INC(j)
-			END;
+			j := 0; WHILE j < size DO updater.singleSiteUpdaters[j].Sample(overRelax, res); INC(j) END;
 			numConstraints := mrf.NumberConstraints();
 			IF numConstraints # 0 THEN
 				IF updater.constraints = NIL THEN
@@ -476,9 +427,7 @@ MODULE UpdaterGMRF;
 				mrf.Constraints(updater.constraints);
 				j := 0;
 				WHILE j < numConstraints DO
-					i := 0;
-					sum := 0.0;
-					numNonZero := 0;
+					i := 0; sum := 0.0; numNonZero := 0;
 					WHILE i < size DO
 						sum := sum + updater.constraints[j, i] * prior[i].value;
 						numNonZero := numNonZero + updater.constraints[j, i];
@@ -487,10 +436,7 @@ MODULE UpdaterGMRF;
 					sum := sum / numNonZero;
 					i := 0;
 					WHILE i < size DO
-						IF updater.constraints[j, i] > 0.5 THEN
-							value := prior[i].value - sum;
-							prior[i].value := value
-						END;
+						IF updater.constraints[j, i] > 0.5 THEN value := prior[i].value - sum; prior[i].value := value END;
 						INC(i)
 					END;
 					INC(j)
@@ -533,6 +479,7 @@ MODULE UpdaterGMRF;
 		ConstructProposal(updater, oldValues, one);
 		SampleProposal(updater, updater.new);
 		updater.SetValue(updater.new);
+		GraphLogical.Evaluate(updater.dependents);
 		IF updater.choleskyDecomp # NIL THEN
 			updater.choleskyDecomp.Free;
 			updater.choleskyDecomp := NIL
@@ -664,6 +611,8 @@ MODULE UpdaterGMRF;
 		Maintainer;
 		NEW(a, size);
 		NEW(b, size);
+		NEW(fMinus, size);
+		NEW(fPlus, size);
 		NEW(mean, size);
 		NEW(oldValues, size);
 		NEW(A, 1, size);

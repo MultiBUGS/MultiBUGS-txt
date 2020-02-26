@@ -70,7 +70,7 @@ MODULE DiffLotkaVolterra;
 
 	PROCEDURE (f: Factory) Signature (OUT signature: ARRAY OF CHAR);
 	BEGIN
-		signature := "vvvsv"
+		signature := "vvvss"
 	END Signature;
 
 	PROCEDURE Install*;

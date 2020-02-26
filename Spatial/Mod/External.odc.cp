@@ -41,12 +41,12 @@ MODULE SpatialExternal;
 		Density("GPexp", "SpatialExpKrig.Install1");
 		
 		Density("line.pred", "GraphGPprior.PredMultiInstall1");
+		Density("line.unipred", "GraphGPprior.PredUniInstall1");
 		Density("spatial.pred", "GraphGPprior.PredMultiInstall2");
 		Density("spatial.unipred", "GraphGPprior.PredUniInstall2");
 
 		Density("dpois.conv", "SpatialPoissconv.Install");
-		
-		Density("mv.car", "SpatialMVCAR.Install")
+
 	END Load;
 
 	PROCEDURE Maintainer;

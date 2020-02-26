@@ -795,37 +795,25 @@ MODULE GraphStochastic;
 		WHILE nList # NIL DO
 			p := nList.node;
 			p := p.Representative();
-			WITH p: Node DO
-				AddToList(p, list);
-				INCL(p.props, GraphNodes.mark)
-			ELSE
-			END;
+			WITH p: Node DO AddToList(p, list); INCL(p.props, GraphNodes.mark) ELSE END;
 			nList := nList.next
 		END;
 		lList := GraphLogical.Parents(node, all);
 		WHILE lList # NIL DO
 			p := lList.node;
-			IF node IS Node THEN
-				EXCL(p.props, GraphLogical.prediction)
-			END;
+			IF node IS Node THEN EXCL(p.props, GraphLogical.prediction) END;
 			nList := p.Parents(all);
 			WHILE nList # NIL DO
 				q := nList.node;
 				q := q.Representative();
-				WITH q: Node DO
-					AddToList(q, list);
-					INCL(q.props, GraphNodes.mark)
-				ELSE
-				END;
+				WITH q: Node DO AddToList(q, list); INCL(q.props, GraphNodes.mark) ELSE END;
 				nList := nList.next
 			END;
 			lList := lList.next
 		END;
 		cursor := list;
 		WHILE cursor # NIL DO
-			stochastic := cursor.node;
-			EXCL(stochastic.props, GraphNodes.mark);
-			cursor := cursor.next
+			stochastic := cursor.node; EXCL(stochastic.props, GraphNodes.mark); cursor := cursor.next
 		END;
 		RETURN list
 	END Parents;

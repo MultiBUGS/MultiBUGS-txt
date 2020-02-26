@@ -8,16 +8,13 @@ List of OpenBUGS modules:
 
 This Make file differs from the Windows version in the following ways:
 HostMenus replaced with HostMenusLinux
-BugsConfig replaced with BugsConfigLinux
-Environment replaced with EnvironmentLinux
 MPIlib replaced with MPIlibLinux
-PlotWindows omitted
 
 DevCompiler.CompileThis
 
 HostMenusLinux
 
-Environmentlinux MPI MPIlib MPIlibmpiso12 MPIlibmpichso12 MPIlibmpichso0 MPIlibmpichso10 MPIimp MPIimplibmpiso12 MPIimplibmpichso12 MPIimplibmpichso0 MPIimplibmpichso10 MPImaster MPIworker
+Environment("OS":"Windows") MPI MPIlib MPIlibmpiso12 MPIlibmpichso12 MPIlibmpichso0 MPIlibmpichso10 MPIimp MPIimplibmpiso12 MPIimplibmpichso12 MPIimplibmpichso0 MPIimplibmpichso10 MPImaster MPIworker
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi
@@ -28,8 +25,7 @@ BugsInterpreter BugsScripts BugsScripting
 
 BugsRandnum
 
-GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar  GraphLinkfunc GraphKernel GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous
-GraphFunctional GraphMessages GraphResources GraphJacobi
+GraphRules GraphNodes GraphGrammar GraphLogical GraphStochastic GraphScalar  GraphLinkfunc GraphKernel GraphVector GraphWeight GraphUnivariate GraphMultivariate GraphConjugateUV GraphConjugateMV GraphChain GraphMRF GraphUVMRF  GraphUVGMRF GraphMVGMRF GraphVD GraphVDDescrete GraphVDContinuous GraphFunctional GraphMessages GraphResources GraphJacobi
 
 GraphDummy GraphDummyMV GraphSentinel GraphDeviance
 
@@ -46,8 +42,7 @@ BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodege
 
 UpdaterHMC
 
-BugsInterface BugsRobjects
-BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel BugsComponents BugsInfo
+BugsInterface BugsRobjects BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel BugsComponents BugsInfo
 
 BugsRectData BugsSplusData
 
@@ -135,13 +130,13 @@ UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfigLinux
+BugsCmds BugsBatch BugsConfig("OS":"Linux")
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 
 BugsInfodebug BugsDocu BugsSearch
 
-PlotsAxis PlotsViews PlotsDialog PlotsNomaxis PlotsStdaxis PlotsEmptyaxis
+PlotsAxis("OS":"Linux") PlotsViews PlotsDialog PlotsNomaxis PlotsStdaxis PlotsEmptyaxis
 
 SamplesViews SamplesPlots SamplesCmds
 SamplesCorrelat SamplesDensity SamplesDiagnostics SamplesHistory SamplesQuantiles SamplesTrace SamplesJumpdist SamplesAccept

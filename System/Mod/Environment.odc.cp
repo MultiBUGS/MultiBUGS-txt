@@ -2,12 +2,15 @@
 
 license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
+
+OSWindowsLinux
+
 *)
 
 MODULE Environment;
 
 	IMPORT 
-		WinApi;
+		OSWinApiLinLibc;
 		
 	VAR
 		out: POINTER TO ARRAY OF CHAR;
@@ -15,11 +18,11 @@ MODULE Environment;
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
 	PROCEDURE RunningUnderMPI* (): BOOLEAN;
-		VAR
+		OSVAR
 			envVarValue: WinApi.PtrWSTR;
 	BEGIN
-		envVarValue := out^;
-		RETURN WinApi.GetEnvironmentVariableW("PMI_SIZE", envVarValue, 256) # 0 
+		OSenvVarValue := out^;
+		RETURN OSWinApi.GetEnvironmentVariableW("PMI_SIZE", envVarValue, 256) # 0LinLibc.getenv("PMI_SIZE") # NIL
 	END RunningUnderMPI;
 
 	PROCEDURE Maintainer;

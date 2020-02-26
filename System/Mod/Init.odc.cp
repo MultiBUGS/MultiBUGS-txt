@@ -17,7 +17,7 @@ MODULE Init;
 
 **)
 
-	IMPORT Kernel, Dialog, Converters, HostMenus, Environment, HostFiles;
+	IMPORT Kernel, Dialog, Converters, HostMenus, Environment;
 
 	PROCEDURE Init;
 		VAR res: INTEGER; m: Kernel.Module;
@@ -28,7 +28,6 @@ MODULE Init;
  			Dialog.appName := "OpenBUGS"
 		END;
 		HostMenus.OpenApp;
-		HostFiles.IgnoreAsk;
 		m := Kernel.ThisMod("DevDebug");
 		IF m = NIL THEN Kernel.LoadMod("StdDebug") END;
 		Converters.Register("Documents.ImportDocument", "Documents.ExportDocument", "", "odc", {});

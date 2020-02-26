@@ -13,11 +13,12 @@ MODULE PKBugsCmds;
 
 	IMPORT
 		Controllers, Dialog, Models, PKBugsCovts,
-		PKBugsData, PKBugsNames,
-		PKBugsNodes, PKBugsParse, PKBugsPriors, PKBugsScanners, PKBugsTree, Strings, TextControllers,
-		TextMappers, TextModels,
-		BugsCmds, BugsDialog, BugsFiles, BugsGraph, BugsInterface, BugsMappers, BugsMsg, 
-		MathRandnum;
+		PKBugsData,
+		PKBugsNames, PKBugsNodes, PKBugsParse,
+		PKBugsPriors, PKBugsScanners, PKBugsTree,
+		Strings, StdLog, TextControllers, TextMappers, TextModels,
+		BugsCmds, BugsDialog, BugsFiles, BugsGraph, BugsInterface, BugsMappers, BugsMsg,
+		MathRandnum, MathTT800;
 
 	CONST
 		namesLoaded* = 1; dataLoaded* = 2; modelCompiled* = 3;
@@ -222,9 +223,7 @@ MODULE PKBugsCmds;
 
 	PROCEDURE ChangeCompNotifier* (op, from, to: INTEGER);
 	BEGIN
-		IF op = Dialog.changed THEN
-			BuildLists
-		END
+		IF op = Dialog.changed THEN BuildLists END
 	END ChangeCompNotifier;
 
 	PROCEDURE ChangeCovtsNotifier* (op, from, to: INTEGER);
@@ -281,7 +280,7 @@ MODULE PKBugsCmds;
 		BugsCmds.NewModel(ok);
 		IF ~ok THEN RETURN END;
 		Reset;
-		BugsCmds.Clear;
+		BugsDialog.UpdateDialogs;
 		m := Controllers.FocusModel();
 		IF m # NIL THEN
 			WITH m: TextModels.Model DO
@@ -349,22 +348,22 @@ MODULE PKBugsCmds;
 			END;
 			res := 0;
 			PKBugsParse.CheckInputs(res, ind);
-			IF res # 0 THEN
-				Strings.IntToString(ind, string); Error(NIL, 0, res, string); RETURN
-			END;
-			PKBugsParse.StoreHist;
+			IF res # 0 THEN Strings.IntToString(ind, string); Error(NIL, 0, res, string); RETURN END;
+			PKBugsParse.StoreHist
 		END;
 		BugsMsg.Lookup("PKBugs:dataLoaded", msg);
 		BugsFiles.ShowStatus(msg);
 		status := {dataLoaded};
 		BuildLists;
+		BugsDialog.UpdateDialogs
 	END ReadData;
 
 	PROCEDURE Compile*;
 		VAR
-			chain, ind, numChains, par, res: INTEGER;
+			chain, ind, len0, len1, numChains, par, res: INTEGER;
 			msg, s: Dialog.String;
-			log, updaterByMethod, ok: BOOLEAN;
+			log, updaterByMethod, 
+			ok: BOOLEAN;
 			u: REAL;
 	BEGIN
 		res := 0;
@@ -385,18 +384,24 @@ MODULE PKBugsCmds;
 		PKBugsNodes.StoreNodes(specificationDialog.nComp);
 		PKBugsNodes.SetGraph;
 		PKBugsTree.Build(specificationDialog.nComp, log);
+		MathTT800.Install;
+		len0 := StdLog.text.Length();
 		BugsGraph.Compile(numChains, updaterByMethod, ok);
-		ASSERT(ok, 77);
+		len1 := StdLog.text.Length();
+		StdLog.text.Delete(len0, len1);
+		BugsDialog.UpdateDialogs;
+		IF ~ok THEN Dialog.ShowStatus(BugsMsg.message); RETURN END;
 		chain := 0;
-		WHILE chain < numChains DO
+		WHILE (chain < numChains) & ok DO
 			IF chain = 0 THEN u := 1.0 ELSE u := MathRandnum.Uniform(0.75, 1.25) END;
-			PKBugsPriors.GenerateInitsForChain(chain, u);
+			PKBugsPriors.InitializeChain(chain, u, ok);
 			INC(chain)
 		END;
+		IF ~ok THEN Dialog.ShowStatus(BugsMsg.message); RETURN END;
+		PKBugsData.Reset; PKBugsParse.Reset; PKBugsNodes.Reset;
 		BugsMsg.Lookup("PKBugs:modelCompiled", msg);
-		Dialog.ShowStatus(msg);
-		SetStatus({modelCompiled});
-		BugsDialog.UpdateDialogs
+		BugsFiles.ShowStatus(msg);
+		SetStatus({modelCompiled})
 	END Compile;
 
 	(*	for use in scripting language	*)

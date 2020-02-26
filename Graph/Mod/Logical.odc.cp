@@ -456,12 +456,7 @@ MODULE GraphLogical;
 	BEGIN
 		IF dependents # NIL THEN
 			num := LEN(dependents);
-			i := 0;
-			WHILE i < num DO
-				p := dependents[i];
-				p.Link;
-				INC(i)
-			END
+			i := 0; WHILE i < num DO p := dependents[i]; p.Link; INC(i) END
 		END
 	END Link;
 

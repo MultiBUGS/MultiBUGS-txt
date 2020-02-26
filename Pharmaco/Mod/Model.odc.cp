@@ -76,8 +76,7 @@ MODULE PharmacoModel;
 		WHILE i < num DO params[i] := GraphNodes.Internalize(rd); INC(i) END;
 		rd.ReadInt(num);
 		IF num # 0 THEN NEW(scalars, num) ELSE scalars := NIL END;
-		i := 0;
-		WHILE i < num DO scalars[i] := GraphNodes.Internalize(rd); INC(i) END
+		i := 0; WHILE i < num DO scalars[i] := GraphNodes.Internalize(rd); INC(i) END
 	END InternalizeScalar;
 
 	PROCEDURE Parents (params, scalars: GraphNodes.Vector; all: BOOLEAN): GraphNodes.List;
@@ -88,16 +87,8 @@ MODULE PharmacoModel;
 	BEGIN
 		numParams := LEN(params); numScalars := LEN(scalars);
 		list := NIL;
-		i := 0;
-		WHILE i < numParams DO
-			p := params[i]; p.AddParent(list);
-			INC(i)
-		END;
-		i := 0;
-		WHILE i < numScalars DO
-			p := scalars[i]; p.AddParent(list);
-			INC(i)
-		END;
+		i := 0; WHILE i < numParams DO p := params[i]; p.AddParent(list); INC(i) END;
+		i := 0; WHILE i < numScalars DO p := scalars[i]; p.AddParent(list); INC(i) END;
 		GraphNodes.ClearList(list);
 		RETURN list
 	END Parents;
@@ -127,7 +118,7 @@ MODULE PharmacoModel;
 			END;
 			NEW(scalars, numScalars);
 			i := 0;
-			WHILE i < numScalars DO
+			WHILE i < numScalars DO 
 				ASSERT(args.scalars[i] # NIL, trap); scalars[i] := args.scalars[i];
 				INC(i)
 			END

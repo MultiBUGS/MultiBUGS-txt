@@ -241,7 +241,9 @@ MODULE BugsGraph;
 				j := 0;
 				WHILE j < size DO
 					stoch := parents[j](GraphStochastic.Node);
-					IF stoch.classConditional = GraphRules.general THEN DEC(newSize) END;
+					IF (stoch.classConditional = GraphRules.general) OR (stoch.children = NIL) THEN 
+						DEC(newSize) 
+					END;
 					INC(j)
 				END;
 				IF newSize # size THEN
@@ -785,7 +787,7 @@ MODULE BugsGraph;
 		BugsNodes.CreateConstants(model, ok);
 		BugsNodes.CreateStochastics(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.CreateLogicals(model, ok); IF ~ok THEN RETURN END;
-		BugsNodes.WriteLogicals(model, ok); IF~ok THEN RETURN END;
+		BugsNodes.WriteLogicals(model, ok); IF ~ok THEN RETURN END;
 		BugsNodes.WriteStochastics(model, ok); IF ~ok THEN RETURN END;
 		CalculateLevels;
 		CalculateLevels1;
@@ -1016,8 +1018,8 @@ MODULE BugsGraph;
 			kernels: GraphKernel.Vector;
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
-		WriteGraph(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
-		AllocateCaches(nodes); ;
+		WriteGraph(ok); IF ~ok THEN (*BugsParser.Clear; UpdaterActions.Clear;*) RETURN END;
+		AllocateCaches(nodes); 
 		BuildFullConditionals;
 		BuildDependantLists;
 		ReadCaches;
@@ -1068,6 +1070,7 @@ MODULE BugsGraph;
 		(*	special case where no stochastic nodes in model	*)
 		inits := IsInitialized(0);
 		IF inits THEN
+			GraphLogical.EvaluateAll; GraphLogical.StoreValues(0);
 			BugsNodes.Checks(ok);
 			IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END
 		END

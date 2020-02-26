@@ -228,11 +228,7 @@ MODULE BugsRectData;
 			s.Scan
 		END;
 		IF list # NIL THEN NEW(labels, numColums) END;
-		WHILE list # NIL DO
-			DEC(numColums);
-			labels[numColums] := list.label;
-			list := list.next
-		END
+		WHILE list # NIL DO DEC(numColums); labels[numColums] := list.label; list := list.next END
 	END ReadLabels;
 
 	PROCEDURE CheckData (VAR s: BugsMappers.Scanner; IN labels: ARRAY OF ColumnLabel;
@@ -247,12 +243,7 @@ MODULE BugsRectData;
 		i := 0;
 		LOOP
 			ReadItem(s, status);
-			IF status = error THEN
-				ok := FALSE;
-				RETURN
-			ELSIF status = end THEN
-				EXIT
-			END;
+			IF status = error THEN ok := FALSE; RETURN ELSIF status = end THEN EXIT END;
 			col := i MOD numCols;
 			row := i DIV numCols;
 			IF labels[col].name # NIL THEN
@@ -268,6 +259,7 @@ MODULE BugsRectData;
 		IF col # numCols - 1 THEN (*	incomplete row of data	*)
 			ok := FALSE; Error(12); RETURN
 		END;
+		row := i DIV numCols;
 		col := 0;
 		WHILE col < numCols DO
 			IF labels[col].name # NIL THEN
@@ -275,7 +267,7 @@ MODULE BugsRectData;
 				IF (name.slotSizes[0] # row) & (name.slotSizes[0] # 0) THEN (*	wrong number of rows	*)
 					ok := FALSE; Error(13); RETURN
 				END;
-				name.slotSizes[0] := row + 1; (*		????	*)
+				name.slotSizes[0] := row
 			END;
 			INC(col)
 		END;

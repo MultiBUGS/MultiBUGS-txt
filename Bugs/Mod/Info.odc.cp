@@ -132,8 +132,8 @@ MODULE BugsInfo;
 		END
 	END MapValue;
 
-	PROCEDURE VariableValues (name: BugsNames.Name; offsets: POINTER TO ARRAY OF INTEGER; numChains: INTEGER;
-	VAR f: TextMappers.Formatter);
+	PROCEDURE VariableValues (name: BugsNames.Name; offsets: POINTER TO ARRAY OF INTEGER;
+	numChains: INTEGER; VAR f: TextMappers.Formatter);
 		CONST
 			all = TRUE;
 		VAR
@@ -146,8 +146,8 @@ MODULE BugsInfo;
 			parents: GraphStochastic.List;
 			init, isConstant: BOOLEAN;
 	BEGIN
-		components := name.components;
 		IF offsets = NIL THEN RETURN END;
+		components := name.components;
 		size := LEN(offsets);
 		NEW(values, size, numChains);
 		NEW(initialized, size, numChains);
@@ -169,14 +169,15 @@ MODULE BugsInfo;
 						parents := GraphStochastic.Parents(node, all);
 						init := TRUE;
 						WHILE (parents # NIL) & init DO
-							init := GraphStochastic.initialized IN parents.node.props;
-							parents := parents.next
+							init := GraphStochastic.initialized IN parents.node.props; parents := parents.next
 						END;
 						initialized[i, chain] := init
 					ELSE
 						initialized[i, chain] := TRUE
 					END;
 					IF initialized[i, chain] THEN values[i, chain] := node.value END
+				ELSE
+					initialized[i, chain] := FALSE
 				END;
 				INC(i)
 			END;
@@ -191,40 +192,30 @@ MODULE BugsInfo;
 			f.WriteTab;
 			i := 0;
 			WHILE i < max - 2 DO
-				f.WriteTab;
-				f.WriteString("chain[");
-				f.WriteInt(i + 1);
-				f.WriteChar("]");
-				INC(i)
+				f.WriteTab; f.WriteString("chain["); f.WriteInt(i + 1); f.WriteChar("]"); INC(i)
 			END;
 			f.WriteLn;
 		END;
 		i := 0;
 		WHILE i < size DO
 			index := offsets[i];
-			IF components[index] # NIL THEN
-				f.WriteString(name.string);
-				name.Indices(index, string);
-				f.WriteString(string);
+			f.WriteString(name.string);
+			name.Indices(index, string);
+			f.WriteString(string);
+			f.WriteTab;
+			chain := 0;
+			WHILE chain < numChains DO
 				f.WriteTab;
-				chain := 0;
-				WHILE chain < numChains DO
-					f.WriteTab;
-					IF components[index] # NIL THEN
-						IF initialized[i, chain] THEN
-							IF ~(GraphNodes.data IN components[index].props) OR (chain = 0) THEN
-								WriteReal(values[i, chain], f)
-							END
-						ELSE
-							f.WriteString("NA")
-						END;
-					ELSE
-						f.WriteString("NA")
-					END;
-					INC(chain)
+				IF initialized[i, chain] THEN
+					IF ~(GraphNodes.data IN components[index].props) OR (chain = 0) THEN
+						WriteReal(values[i, chain], f)
+					END
+				ELSE
+					f.WriteString("NA")
 				END;
-				f.WriteLn
+				INC(chain)
 			END;
+			f.WriteLn;
 			INC(i)
 		END
 	END VariableValues;
@@ -267,22 +258,16 @@ MODULE BugsInfo;
 		size := LEN(offsets);
 		name := var.name;
 		IF name.passByreference THEN
-			IF offsets # NIL THEN
-				IF IsConstant(name, offsets) THEN numChains := 1 END;
-				VariableValues(name, offsets, numChains, f)
-			END
+			IF IsConstant(name, offsets) THEN numChains := 1 END;
+			VariableValues(name, offsets, numChains, f)
 		ELSE
 			i := 0;
-			numChains := 1;
 			WHILE i < size DO
-				index := offsets[i];
-				f.WriteString(name.string);
-				name.Indices(index, string);
-				f.WriteString(string);
+				index := offsets[i]; name.Indices(index, string);
+				f.WriteString(name.string); f.WriteString(string);
 				f.WriteTab; f.WriteTab;
 				IF name.IsDefined(index) THEN
-					value := name.Value(index);
-					WriteReal(value, f)
+					value := name.Value(index); WriteReal(value, f)
 				ELSE
 					f.WriteString("NA")
 				END;
@@ -1012,13 +997,14 @@ MODULE BugsInfo;
 		VAR
 			numUpdater, numData, numObs, meanNumChild,
 			medianNumChild, numLogical, numParam, minDepth, maxDepth,
-			maxLevel, numDet, numNames, numStoch, numTotLog: INTEGER;
+			numDet, numNames, numStoch, numTotLog: INTEGER;
 			avDiffs: LONGINT;
 	BEGIN
 		numObs := CountObservations();
 		numData := CountDatum();
 		numLogical := CountLogicals();
-		IF GraphLogical.nodes # NIL THEN numTotLog := LEN(GraphLogical.nodes) ELSE numTotLog := 0 END;
+		numTotLog := 0;
+		IF GraphLogical.nodes # NIL THEN numTotLog := LEN(GraphLogical.nodes) END;
 		numParam := UpdaterActions.NumParameters();
 		numUpdater := UpdaterActions.NumberUpdaters();
 		meanNumChild := UpdaterActions.MeanNumChildren();

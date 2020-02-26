@@ -1798,13 +1798,13 @@ MODULE BugsParser;
 		RETURN statement
 	END Internalize;
 
-	PROCEDURE IsFunctional (IN signiture: ARRAY OF CHAR): BOOLEAN;
+	PROCEDURE IsFunctional (signature: ARRAY OF CHAR): BOOLEAN;
 		VAR
 			i, len: INTEGER;
 	BEGIN
 		i := 0;
-		len := LEN(signiture$);
-		WHILE (i < len) & (signiture[i] # "F") & (signiture[i] # "D") DO INC(i) END;
+		len := LEN(signature$);
+		WHILE (i < len) & (signature[i] # "F") & (signature[i] # "D") DO INC(i) END;
 		RETURN i < len
 	END IsFunctional;
 	
@@ -1814,19 +1814,21 @@ MODULE BugsParser;
 			index, parent: Node;
 			name: BugsNames.Name;
 			i, numParents, numSlots, numVarIndex: INTEGER;
-			signiture: ARRAY 64 OF CHAR;
+			fact: GraphNodes.Factory;
+			signature: ARRAY 64 OF CHAR;
 			isFunctional: BOOLEAN;
 	BEGIN
 		WITH expression: Function DO
 			parents := expression.parents;
 			IF parents # NIL THEN numParents := LEN(parents) ELSE numParents := 0 END;
-			expression.descriptor.fact.Signature(signiture);
-			isFunctional := IsFunctional(signiture);
+			fact := expression.descriptor.fact;
+			fact.Signature(signature);
+			isFunctional := IsFunctional(signature);
 			i := 0;
 			WHILE i < numParents DO
 				parent := parents[i];
 				WITH parent: Variable DO
-					IF isFunctional OR (signiture[i] # "v") THEN parent.name.passByreference := TRUE END;
+					IF isFunctional OR (signature[i] # "v") THEN parent.name.passByreference := TRUE END;
 				ELSE
 				END;
 				INC(i)

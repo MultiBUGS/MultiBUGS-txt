@@ -33,7 +33,7 @@ MODULE BugsCodegen;
 	BEGIN
 		Strings.IntToString(errorNum, numToString);
 		BugsMsg.Lookup("BugsCodegen" + numToString, errorMsg);
-		BugsMsg.StoreError(errorMsg) 
+		BugsMsg.StoreError(errorMsg)
 	END Error;
 
 	PROCEDURE NodeError (error: SET; node: GraphNodes.Node);
@@ -83,15 +83,13 @@ MODULE BugsCodegen;
 	BEGIN
 		Vector(t, vector);
 		IF (vector.components = NIL) & (vector.values = NIL) THEN args.valid := FALSE; RETURN END;
+		start := vector.start; step := vector.step; nElem := vector.nElem;
 		i := 0;
-		start := vector.start;
-		step := vector.step;
-		nElem := vector.nElem;
 		WHILE i < nElem DO
-			IF (vector.components # NIL) & (vector.components[start + i * step] = NIL) THEN 
-				args.valid := FALSE; RETURN 
-			ELSIF (vector.values # NIL) & (vector.values[start + i * step] = INF) THEN 
-				args.valid := FALSE; RETURN 
+			IF (vector.components # NIL) & (vector.components[start + i * step] = NIL) THEN
+				args.valid := FALSE; RETURN
+			ELSIF (vector.values # NIL) & (vector.values[start + i * step] = INF) THEN
+				args.valid := FALSE; RETURN
 			END;
 			INC(i)
 		END;
@@ -321,16 +319,16 @@ MODULE BugsCodegen;
 				IF args.numOps = LEN(args.ops) THEN
 					args.valid := FALSE; Error(tooManyOperators); RETURN
 				END;
-				IF operator.descriptor.key = GraphGrammar.pow THEN 
-					IF operator.parents[0].evaluated THEN 
+				IF operator.descriptor.key = GraphGrammar.pow THEN
+					IF operator.parents[0].evaluated THEN
 						args.ops[args.numOps] := GraphGrammar.pow + GraphGrammar.leftConst
-					ELSIF operator.parents[1].evaluated THEN 
+					ELSIF operator.parents[1].evaluated THEN
 						args.ops[args.numOps] := GraphGrammar.pow + GraphGrammar.rightConst
 					ELSE
 						args.ops[args.numOps] := GraphGrammar.pow
 					END
 				ELSE
-				args.ops[args.numOps] := operator.descriptor.key
+					args.ops[args.numOps] := operator.descriptor.key
 				END;
 				INC(args.numOps)
 			ELSIF t IS BugsParser.Function THEN
@@ -400,13 +398,13 @@ MODULE BugsCodegen;
 					INC(args.numScalars)
 				ELSE
 					scalar := BugsEvaluate.RHScalar(parents[j]);
-					IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
+					IF scalar = NIL THEN args.valid := FALSE; RETURN END;
 					args.scalars[args.numScalars] := scalar;
 					INC(args.numScalars)
 				END
 			ELSE
 				scalar := BugsEvaluate.RHScalar(parents[j]);
-				IF scalar = NIL THEN HALT(0); args.valid := FALSE; RETURN END;
+				IF scalar = NIL THEN args.valid := FALSE; RETURN END;
 				args.scalars[args.numScalars] := scalar;
 				INC(args.numScalars)
 			END;

@@ -260,16 +260,8 @@ MODULE BugsCmds;
 			names: POINTER TO ARRAY OF BugsNames.Name;
 	BEGIN
 		names := BugsIndex.GetNames();
-		IF names # NIL THEN
-			len := LEN(names)
-		ELSE
-			len := 0
-		END;
-		i := 0;
-		WHILE i < len DO
-			infoDialog.node.SetItem(i, names[i].string);
-			INC(i)
-		END;
+		IF names # NIL THEN len := LEN(names) ELSE len := 0 END;
+		i := 0; WHILE i < len DO infoDialog.node.SetItem(i, names[i].string); INC(i) END;
 		infoDialog.node.SetLen(len);
 		infoDialog.node.item := ""
 	END UpdateNames;
@@ -1214,11 +1206,15 @@ MODULE BugsCmds;
 			tabs: POINTER TO ARRAY OF INTEGER;
 			f: TextMappers.Formatter;
 			text, header: TextModels.Model;
+			attr: TextModels.Attributes;
 	BEGIN
 		numChains := specificationDialog.numChains;
 		text := TextModels.dir.New();
 		f.ConnectTo(text);
 		f.SetPos(0);
+		attr := f.rider.attr;
+		attr := TextModels.NewSize(attr, Ports.point * 10);
+		f.rider.SetAttr(attr);
 		BugsInfo.Values(infoDialog.node.item, numChains, f);
 		max := 2 + MIN(numChains, 10);
 		NEW(tabs, max);

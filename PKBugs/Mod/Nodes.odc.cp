@@ -12,7 +12,7 @@ MODULE PKBugsNodes;
 		(* PKBugs Version 1.1 *)
 
 	IMPORT
-		Math, 
+		Math,
 		PKBugsCovts, PKBugsData, PKBugsParse, PKBugsPriors,
 		BugsIndex, BugsNames,
 		GraphConstant, GraphNodes, GraphStochastic;
@@ -33,14 +33,17 @@ MODULE PKBugsNodes;
 
 	PROCEDURE InitData (nData: INTEGER);
 	BEGIN
-		data := BugsNames.New("data", 1); data.SetRange(0, nData); data.AllocateNodes;
-		lower := BugsNames.New("lower", 1); lower.SetRange(0, nData); lower.AllocateNodes;
-		upper := BugsNames.New("upper", 1); upper.SetRange(0, nData); upper.AllocateNodes
+		data := BugsNames.New("data", 1); data.passByreference := TRUE;
+		data.SetRange(0, nData); data.AllocateNodes;
+		lower := BugsNames.New("lower", 1); lower.passByreference := TRUE;
+		lower.SetRange(0, nData); lower.AllocateNodes;
+		upper := BugsNames.New("upper", 1); upper.passByreference := TRUE;
+		upper.SetRange(0, nData); upper.AllocateNodes
 	END InitData;
 
-	PROCEDURE GetBounds (i: INTEGER; log: BOOLEAN; OUT l, u: GraphNodes.Node; 
-				OUT bounds, res: INTEGER);
-		VAR 
+	PROCEDURE GetBounds (i: INTEGER; log: BOOLEAN; OUT l, u: GraphNodes.Node;
+	OUT bounds, res: INTEGER);
+		VAR
 			b: REAL;
 	BEGIN
 		res := 0;
@@ -116,11 +119,8 @@ MODULE PKBugsNodes;
 			undefined: BOOLEAN;
 	BEGIN
 		undefined := TRUE;
-		i := 0;
 		len := LEN(v);
-		WHILE undefined & (i < len) DO
-			undefined := v[i] = NIL; INC(i)
-		END;
+		i := 0; WHILE undefined & (i < len) DO undefined := v[i] = NIL; INC(i) END;
 		RETURN undefined
 	END UndefinedVector;
 
@@ -130,35 +130,34 @@ MODULE PKBugsNodes;
 			i, nData: INTEGER;
 	BEGIN
 		ASSERT(data # NIL, 25); BugsIndex.Store(data);
-		ASSERT(lower # NIL, 25); 
-		big := GraphConstant.New(1.0E+10);
-		small := GraphConstant.New(-1.0E+10);
-		IF ~UndefinedVector(lower.components) THEN 
-			i := 0;
+		big := GraphConstant.New(1.0E+6);
+		small := GraphConstant.New( - 1.0E+6);
+		ASSERT(lower # NIL, 25);
+		IF ~UndefinedVector(lower.components) THEN
 			nData := LEN(lower.components);
-			WHILE i < nData DO
-				IF lower.components[i] = NIL THEN lower.components[i] := small END;
-				INC(i)
-			END;
-			BugsIndex.Store(lower) 
-		END;
-		ASSERT(upper # NIL, 25); 
-		IF ~UndefinedVector(upper.components) THEN 
 			i := 0;
-			nData := LEN(upper.components);
-			WHILE i < nData DO
-				IF upper.components[i] = NIL THEN upper.components[i] := big END;
-				INC(i)
+			WHILE i < nData DO 
+				IF lower.components[i] = NIL THEN lower.components[i] := small END; INC(i)
 			END;
-			BugsIndex.Store(upper) 
-		END	
+			BugsIndex.Store(lower)
+		END;
+		ASSERT(upper # NIL, 25);
+		IF ~UndefinedVector(upper.components) THEN
+			nData := LEN(upper.components);
+			i := 0;
+			WHILE i < nData DO
+				IF upper.components[i] = NIL THEN upper.components[i] := big END; INC(i)
+			END;
+			BugsIndex.Store(upper)
+		END
 	END StoreData;
 
 	PROCEDURE StoreModel (nData: INTEGER);
 		VAR
 			model: BugsNames.Name;
 	BEGIN
-		model := BugsNames.New("model", 1); model.SetRange(0, nData); model.AllocateNodes;
+		model := BugsNames.New("model", 1); model.passByreference := TRUE;
+		model.SetRange(0, nData); model.AllocateNodes;
 		BugsIndex.Store(model)
 	END StoreModel;
 
@@ -166,11 +165,16 @@ MODULE PKBugsNodes;
 		VAR
 			tau, a, b, sigma, sigmaSq: BugsNames.Name;
 	BEGIN
-		tau := BugsNames.New("tau", 0); tau.AllocateNodes;
-		a := BugsNames.New("tau.a", 0); a.AllocateNodes;
-		b := BugsNames.New("tau.b", 0); b.AllocateNodes;
-		sigma := BugsNames.New("sigma", 0); sigma.AllocateNodes;
-		sigmaSq := BugsNames.New("sigma.sq", 0); sigmaSq.AllocateNodes;
+		tau := BugsNames.New("tau", 0); tau.passByreference := TRUE;
+		tau.AllocateNodes;
+		a := BugsNames.New("tau.a", 0); a.passByreference := TRUE;
+		a.AllocateNodes;
+		b := BugsNames.New("tau.b", 0); b.passByreference := TRUE;
+		b.AllocateNodes;
+		sigma := BugsNames.New("sigma", 0); sigma.passByreference := TRUE;
+		sigma.AllocateNodes;
+		sigmaSq := BugsNames.New("sigma.sq", 0); sigmaSq.passByreference := TRUE;
+		sigmaSq.AllocateNodes;
 		BugsIndex.Store(tau); BugsIndex.Store(a); BugsIndex.Store(b);
 		BugsIndex.Store(sigma); BugsIndex.Store(sigmaSq)
 	END StoreTau;
@@ -178,15 +182,16 @@ MODULE PKBugsNodes;
 	PROCEDURE StoreNComp (n: INTEGER);
 		VAR nComp: BugsNames.Name;
 	BEGIN
-		nComp := BugsNames.New("n.comp", 0); nComp.AllocateNodes;
-		nComp.components[0] := GraphConstant.New(n); BugsIndex.Store(nComp)
+		nComp := BugsNames.New("n.comp", 0); nComp.passByreference := TRUE;
+		nComp.AllocateNodes; nComp.components[0] := GraphConstant.New(n);
+		BugsIndex.Store(nComp)
 	END StoreNComp;
 
 	PROCEDURE StoreTheta (nInd, p: INTEGER);
 		VAR
 			theta: BugsNames.Name;
 	BEGIN
-		theta := BugsNames.New("theta", 2);
+		theta := BugsNames.New("theta", 2); theta.passByreference := TRUE;
 		theta.SetRange(0, nInd); theta.SetRange(1, p);
 		theta.AllocateNodes;
 		BugsIndex.Store(theta)
@@ -194,9 +199,9 @@ MODULE PKBugsNodes;
 
 	PROCEDURE StoreThetaMean (nInd, p: INTEGER);
 		VAR
-			thetaMean: BugsNames.Name; 
+			thetaMean: BugsNames.Name;
 	BEGIN
-		thetaMean := BugsNames.New("theta.mean", 2);
+		thetaMean := BugsNames.New("theta.mean", 2); thetaMean.passByreference := TRUE;
 		thetaMean.SetRange(0, nInd); thetaMean.SetRange(1, p);
 		thetaMean.AllocateNodes;
 		BugsIndex.Store(thetaMean)
@@ -206,14 +211,15 @@ MODULE PKBugsNodes;
 		VAR
 			omegaInv, matrix, dof, omega: BugsNames.Name;
 	BEGIN
-		omegaInv := BugsNames.New("omega.inv", 2);
+		omegaInv := BugsNames.New("omega.inv", 2); omegaInv.passByreference := TRUE;
 		omegaInv.SetRange(0, p); omegaInv.SetRange(1, p);
 		omegaInv.AllocateNodes;
-		matrix := BugsNames.New("omega.inv.matrix", 2);
+		matrix := BugsNames.New("omega.inv.matrix", 2); matrix.passByreference := TRUE;
 		matrix.SetRange(0, p); matrix.SetRange(1, p);
 		matrix.AllocateNodes;
-		dof := BugsNames.New("omega.inv.dof", 0); dof.AllocateNodes;
-		omega := BugsNames.New("omega", 2);
+		dof := BugsNames.New("omega.inv.dof", 0); dof.passByreference := TRUE;
+		dof.AllocateNodes;
+		omega := BugsNames.New("omega", 2); omega.passByreference := TRUE;
 		omega.SetRange(0, p); omega.SetRange(1, p);
 		omega.AllocateNodes;
 		BugsIndex.Store(omegaInv); BugsIndex.Store(matrix); BugsIndex.Store(dof); BugsIndex.Store(omega)
@@ -223,9 +229,11 @@ MODULE PKBugsNodes;
 		VAR
 			mu, mean, prec: BugsNames.Name;
 	BEGIN
-		mu := BugsNames.New("mu", 1); mu.SetRange(0, q); mu.AllocateNodes;
-		mean := BugsNames.New("mu.prior.mean", 1); mean.SetRange(0, q); mean.AllocateNodes;
-		prec := BugsNames.New("mu.prior.precision", 2);
+		mu := BugsNames.New("mu", 1); mu.passByreference := TRUE;
+		mu.SetRange(0, q); mu.AllocateNodes;
+		mean := BugsNames.New("mu.prior.mean", 1); mean.passByreference := TRUE;
+		mean.SetRange(0, q); mean.AllocateNodes;
+		prec := BugsNames.New("mu.prior.precision", 2); prec.passByreference := TRUE;
 		prec.SetRange(0, q); prec.SetRange(1, q);
 		prec.AllocateNodes;
 		BugsIndex.Store(mu); BugsIndex.Store(mean); BugsIndex.Store(prec)
@@ -263,26 +271,28 @@ MODULE PKBugsNodes;
 		p := omegaInv.slotSizes[0];
 		mu := BugsIndex.Find("mu");
 		q := mu.slotSizes[0];
-		name := BugsNames.New("n.col", 0); name.AllocateNodes;
-		name.components[0] := GraphConstant.New(12);
+		name := BugsNames.New("n.col", 0); name.passByreference := TRUE;
+		name.AllocateNodes; name.components[0] := GraphConstant.New(12);
 		nInd := PKBugsParse.NumInd();
 		BugsIndex.Store(name);
-		name := BugsNames.New("n.ind", 0); name.AllocateNodes;
-		name.components[0] := GraphConstant.New(nInd);
+		name := BugsNames.New("n.ind", 0); name.passByreference := TRUE;
+		name.AllocateNodes; name.components[0] := GraphConstant.New(nInd);
 		BugsIndex.Store(name);
-		name := BugsNames.New("p", 0); name.AllocateNodes;
-		name.components[0] := GraphConstant.New(p);
+		name := BugsNames.New("p", 0); name.passByreference := TRUE;
+		name.AllocateNodes; name.components[0] := GraphConstant.New(p);
 		BugsIndex.Store(name);
-		name := BugsNames.New("q", 0); name.AllocateNodes;
-		name.components[0] := GraphConstant.New(q);
+		name := BugsNames.New("q", 0); name.passByreference := TRUE;
+		name.AllocateNodes; name.components[0] := GraphConstant.New(q);
 		BugsIndex.Store(name);
-		name := BugsNames.New("off.hist", 1); name.SetRange(0, nInd + 1); name.AllocateNodes;
+		name := BugsNames.New("off.hist", 1); name.passByreference := TRUE;
+		name.SetRange(0, nInd + 1); name.AllocateNodes;
 		i := 0;
 		WHILE i < nInd + 1 DO
 			name.components[i] := GraphConstant.New(PKBugsParse.offHist[i]); INC(i)
 		END;
 		BugsIndex.Store(name);
-		name := BugsNames.New("off.data", 1); name.SetRange(0, nInd + 1); name.AllocateNodes;
+		name := BugsNames.New("off.data", 1); name.passByreference := TRUE;
+		name.SetRange(0, nInd + 1); name.AllocateNodes;
 		i := 0;
 		WHILE i < nInd + 1 DO
 			name.components[i] := GraphConstant.New(PKBugsParse.offData[i]); INC(i)
@@ -303,7 +313,8 @@ MODULE PKBugsNodes;
 		END;
 		index := i;
 		nInd := LEN(PKBugsCovts.data, 0);
-		name := BugsNames.New(cov, 1); name.SetRange(0, nInd); name.AllocateNodes;
+		name := BugsNames.New(cov, 1); name.passByreference := TRUE;
+		name.SetRange(0, nInd); name.AllocateNodes;
 		i := 0;
 		WHILE i < nInd DO
 			name.components[i] := GraphConstant.New(PKBugsCovts.data[i, index]);
@@ -368,7 +379,7 @@ MODULE PKBugsNodes;
 		offset := 0;
 		WHILE i < nPar DO
 			PKBugsPriors.GetSummary(i, mean, cv);
-			value := Math.Ln(mean);
+			value := Math.Ln(mean); 	(*	why log here?	*)
 			name.components[offset] := GraphConstant.New(value);
 			len := LenSet(PKBugsCovts.covariates[i]);
 			j := 0;
