@@ -628,6 +628,15 @@ MODULE MathFunc;
 		RETURN round
 	END Round;
 
+	PROCEDURE Softplus* (x: REAL): REAL;
+	BEGIN
+		IF x > 2 THEN
+			RETURN x + Math.Ln(1 + Math.Exp( - x))
+		ELSE
+			RETURN Math.Ln(1 + Math.Exp(x))
+		END
+	END Softplus;
+
 	PROCEDURE Step* (x: REAL): REAL;
 	BEGIN
 		IF x >= 0.0 THEN
@@ -836,10 +845,10 @@ MODULE MathFunc;
 			x: REAL;
 	BEGIN
 		(* x = 430.6333385284565	*)
-		 x := 100 * Math.Power(20, 1.1) * (HurwitzZeta(1.1, 21) - HurwitzZeta(1.1, 26));
+		x := 100 * Math.Power(20, 1.1) * (HurwitzZeta(1.1, 21) - HurwitzZeta(1.1, 26));
 		HALT(0)
 	END Test;
-	
+
 	PROCEDURE Maintainer;
 	BEGIN
 		version := 323;

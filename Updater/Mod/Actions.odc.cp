@@ -635,7 +635,7 @@ MODULE UpdaterActions;
 			numUpdaters: INTEGER;
 	BEGIN
 		numUpdaters := NumberUpdaters();
-		IF numUpdaters = 0 THEN  min := 0; max := 0; RETURN END;
+		IF numUpdaters = 0 THEN min := 0; max := 0; RETURN END;
 		max := updaters[0, 0].Depth();
 		min := updaters[0, numUpdaters - 1].Depth()
 	END MinMaxDepth;
@@ -742,7 +742,7 @@ MODULE UpdaterActions;
 		i := 0;
 		WHILE (i < numUpdaters) & (res = {}) DO
 			u := updaters[chain, i];
-			ASSERT(u#  NIL, 33);
+			ASSERT(u # NIL, 33);
 			u.Sample(overRelax, res);
 			IF res # {} THEN updater := i END;
 			INC(i)
@@ -830,27 +830,16 @@ MODULE UpdaterActions;
 			stochastics: GraphStochastic.Vector;
 	BEGIN
 		num := 0;
-		i := 0;
 		numUpdaters := NumberUpdaters();
 		numChains := NumberChains();
-		WHILE i < numUpdaters DO
-			u := updaters[0, i];
-			size := u.Size();
-			INC(num, size);
-			INC(i)
-		END;
+		i := 0; WHILE i < numUpdaters DO u := updaters[0, i]; size := u.Size(); INC(num, size); INC(i) END;
 		IF num > 0 THEN NEW(stochastics, num) ELSE stochastics := NIL END;
 		i := 0;
 		num := 0;
 		WHILE i < numUpdaters DO
 			u := updaters[0, i];
 			size := u.Size();
-			j := 0;
-			WHILE j < size DO
-				stochastics[num] := u.Node(j);
-				INC(num);
-				INC(j)
-			END;
+			j := 0; WHILE j < size DO stochastics[num] := u.Node(j); INC(num); INC(j) END;
 			INC(i)
 		END;
 		GraphStochastic.SetStochastics(stochastics, numChains)
@@ -868,10 +857,8 @@ MODULE UpdaterActions;
 			updater := updaters[0, i];
 			j := 0;
 			size := updater.Size();
-			WHILE j < size DO
-				prior := updater.Prior(j);
-				EXCL(prior.props, GraphStochastic.distributed);
-				INC(j)
+			WHILE j < size DO 
+				prior := updater.Prior(j); EXCL(prior.props, GraphStochastic.distributed); INC(j)
 			END;
 			INC(i)
 		END

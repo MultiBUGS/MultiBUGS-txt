@@ -33,8 +33,10 @@ model
 
   for (i in 1:ngrid)
   {
-    obs_x[i] ~ dnorm(solution[i, 1], tau.x) 
-    obs_y[i] ~ dnorm(solution[i, 2], tau.y)
+		fit_x[i] <- solution[i, 1]
+    obs_x[i] ~ dnorm(fit_x[i], tau.x) 
+		fit_y[i] <- solution[i, 2]
+    obs_y[i] ~ dnorm(fit_y[i], tau.y)
   } 
   tau.x ~ dgamma(a, b)
   tau.y ~ dgamma(a, b)
@@ -85,14 +87,7 @@ list(
   log.param = c(0.0, 0.0, 0.0, 0.0),
   log.init = c(-0.5, -0.5),   
   tau.x = 0.01,
-  tau.y = 0.01, 
-  tau.1 = 0.01, 
-  tau.2 = 0.01,
-  tau.3 = 0.01, 
-  tau.4 = 0.01,
-  tauI.1 = 0.01, 
-  tauI.2 = 0.01
-)
+  tau.y = 0.01)
 
 
 

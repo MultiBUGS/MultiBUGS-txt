@@ -14,8 +14,8 @@ MODULE PharmacoSum;
 	IMPORT
 		Math, Meta, Stores := Stores64, Strings,
 		BugsMsg,
-		GraphConstant, GraphNodes,
-		GraphRules, GraphScalar, GraphStochastic, PharmacoInputs;
+		GraphConstant, GraphLogical, GraphNodes, GraphRules, GraphScalar, GraphStochastic, 
+		PharmacoInputs;
 
 	CONST
 		trap = 77;
@@ -103,6 +103,7 @@ MODULE PharmacoSum;
 
 	PROCEDURE (node: Node) InitLogical;
 	BEGIN
+		INCL(node.props, GraphLogical.noDiffs);
 		node.model := NIL; node.bio := NIL;
 		node.baseIV := TRUE
 	END InitLogical;
@@ -399,7 +400,6 @@ MODULE PharmacoSum;
 
 	PROCEDURE (node: Node) EvaluateDiffs ;
 	BEGIN
-		HALT(126)
 	END EvaluateDiffs;
 
 	PROCEDURE (node: SumNode) Install (OUT install: ARRAY OF CHAR);

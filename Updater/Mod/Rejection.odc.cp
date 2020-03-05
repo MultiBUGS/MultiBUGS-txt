@@ -108,22 +108,12 @@ MODULE UpdaterRejection;
 			deriv, interval, deriv2, step: REAL;
 			fact: UpdaterUpdaters.Factory;
 	BEGIN
-		IF updater IS UpdaterLogit THEN
-			fact := factLogit
-		ELSE
-			fact := factLoglin
-		END;
+		IF updater IS UpdaterLogit THEN fact := factLogit ELSE fact := factLoglin END;
 		updater.Derivatives(mode, deriv, deriv2);
 		IF deriv > 0 THEN
-			step := 2 * updater.sigma;
-			left := mode;
-			leftB := TRUE;
-			rightB := FALSE
+			step := 2 * updater.sigma; left := mode; leftB := TRUE; rightB := FALSE
 		ELSE
-			step := - 2 * updater.sigma;
-			right := mode;
-			leftB := FALSE;
-			rightB := TRUE
+			step := - 2 * updater.sigma; right := mode; leftB := FALSE; rightB := TRUE
 		END;
 		mode := mode + step;
 		iter := fact.iterations;
@@ -147,17 +137,11 @@ MODULE UpdaterRejection;
 		mode := 0.5 * (left + right);
 		LOOP
 			updater.Derivatives(mode, deriv, deriv2);
-			IF deriv > 0 THEN
-				left := mode
-			ELSE
-				right := mode
-			END;
+			IF deriv > 0 THEN left := mode ELSE right := mode END;
 			interval := right - left;
 			IF (ABS(deriv) < eps) OR (interval < eps1) THEN EXIT END;
 			DEC(iter);
-			IF iter = 0 THEN
-				res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT
-			END;
+			IF iter = 0 THEN res := {GraphNodes.lhs, GraphNodes.tooManyIts}; EXIT END;
 			step := - deriv / deriv2;
 			mode := mode + step;
 			step := ABS(step);
@@ -206,15 +190,11 @@ MODULE UpdaterRejection;
 			REPEAT
 				u := MathRandnum.Rand();
 				IF u <= pM THEN
-					y := MathRandnum.Rand();
-					x := mode - leftStar + y * (leftStar + rightStar);
-					e := 0
+					y := MathRandnum.Rand(); x := mode - leftStar + y * (leftStar + rightStar); e := 0
 				ELSIF u <= pM + pR THEN
-					e := - Math.Ln(MathRandnum.Rand());
-					x := mode + rightStar + lambdaR * e
+					e := - Math.Ln(MathRandnum.Rand()); x := mode + rightStar + lambdaR * e
 				ELSE
-					e := - Math.Ln(MathRandnum.Rand());
-					x := mode - leftStar - lambdaL * e
+					e := - Math.Ln(MathRandnum.Rand()); x := mode - leftStar - lambdaL * e
 				END;
 				v := Math.Ln(MathRandnum.Rand()) + logFmode - e - updater.LogConditionalF(x)
 			UNTIL v <= 0.0;
@@ -222,11 +202,7 @@ MODULE UpdaterRejection;
 		END Sample;
 
 	BEGIN
-		IF updater IS UpdaterLogit THEN
-			fact := factLogit
-		ELSE
-			fact := factLoglin
-		END;
+		IF updater IS UpdaterLogit THEN fact := factLogit ELSE fact := factLoglin END;
 		prior := updater.prior;
 		oldValue := prior.value;
 		IF GraphStochastic.optimizeDiffs IN prior.props THEN
@@ -246,26 +222,36 @@ MODULE UpdaterRejection;
 		ASSERT(lambdaR > 0, 65);
 		logFright := updater.LogConditionalF(right);
 		rightStar := sigma + lambdaR * (logFright - logFmode);
-		ASSERT(rightStar > 0, 66);
+		(*ASSERT(rightStar > 0, 66);*)
 		left := mode - sigma;
 		updater.Derivatives(left, derivL, deriv2);
 		lambdaL := 1.0 / derivL;
 		ASSERT(lambdaL > 0, 67);
 		logFleft := updater.LogConditionalF(left);
 		leftStar := sigma + lambdaL * (logFleft - logFmode);
-		ASSERT(leftStar > 0, 68);
+		(*ASSERT(leftStar > 0, 68);*)
+		IF (leftStar < 0) OR (rightStar < 0) THEN
+			sigma := 2 * sigma;
+			right := mode + sigma;
+			updater.Derivatives(right, derivR, deriv2);
+			lambdaR := - 1.0 / derivR;
+			logFright := updater.LogConditionalF(right);
+			rightStar := sigma + lambdaR * (logFright - logFmode);
+			left := mode - sigma;
+			updater.Derivatives(left, derivL, deriv2);
+			lambdaL := 1.0 / derivL;
+			logFleft := updater.LogConditionalF(left);
+			leftStar := sigma + lambdaL * (logFleft - logFmode);
+			ASSERT(rightStar > 0, 66);
+			ASSERT(leftStar > 0, 68)
+		END;
 		s := lambdaR + lambdaL + rightStar + leftStar;
 		pR := lambdaR / s;
 		pM := (leftStar + rightStar) / s;
 		IF overRelax THEN
 			k := fact.overRelaxation;
 			IF k > LEN(values) THEN NEW(values, k) END;
-			i := 0;
-			WHILE i < k - 1 DO
-				rand := Sample();
-				values[i] := rand;
-				INC(i)
-			END;
+			i := 0; WHILE i < k - 1 DO rand := Sample(); values[i] := rand; INC(i) END;
 			rand := MathRandnum.OverRelax(values, oldValue, k)
 		ELSE
 			rand := Sample()
@@ -275,8 +261,7 @@ MODULE UpdaterRejection;
 		updater.meanSigma := updater.meanSigma + sigma;
 		INC(updater.iteration);
 		IF updater.iteration MOD batch = 0 THEN
-			updater.sigma := updater.meanSigma / batch;
-			updater.meanSigma := 0.0
+			updater.sigma := updater.meanSigma / batch; updater.meanSigma := 0.0
 		END
 	END Sample;
 
@@ -303,27 +288,20 @@ MODULE UpdaterRejection;
 		deriv := prior.DiffLogPrior();
 		deriv2 := deriv2 - deriv;
 		children := prior.children;
+		param[0] := 0.0; param[1] := 0.0;
 		IF children # NIL THEN
 			num := LEN(children);
-			param[0] := 0.0;
-			param[1] := 0.0;
 			i := 0;
 			WHILE i < num DO
-				c := const[i];
-				s := slope[i];
-				a := param0[i];
-				b := param1[i];
+				c := const[i]; s := slope[i]; a := param0[i]; b := param1[i];
 				p := 1 / (1 + Math.Exp( - c - s * x));
 				param[0] := param[0] + s * a - b * p * s;
 				param[1] := param[1] - b * p * (1 - p) * s * s;
 				INC(i)
 			END
 		END;
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(param);
-		END;
-		deriv := deriv + param[0];
-		deriv2 := deriv2 + param[1]
+		IF GraphStochastic.distributed IN prior.props THEN MPIworker.SumReals(param) END;
+		deriv := deriv + param[0]; deriv2 := deriv2 + param[1]
 	END Derivatives;
 
 	PROCEDURE (updater: UpdaterLogit) Install (OUT install: ARRAY OF CHAR);
@@ -342,20 +320,17 @@ MODULE UpdaterRejection;
 		prior.value := x;
 		cond := 0.0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			c := const[i];
-			s := slope[i];
-			a := param0[i];
-			b := param1[i];
-			qInv := 1 + Math.Exp(c + s * x);
-			cond := cond + a * (c + s * x) - b * Math.Ln(qInv);
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				c := const[i]; s := slope[i]; a := param0[i]; b := param1[i];
+				qInv := 1 + Math.Exp(c + s * x);
+				cond := cond + a * (c + s * x) - b * Math.Ln(qInv);
+				INC(i)
+			END
 		END;
-		IF GraphStochastic.distributed IN prior.props THEN
-			cond := MPIworker.SumReal(cond)
-		END;
+		IF GraphStochastic.distributed IN prior.props THEN cond := MPIworker.SumReal(cond) END;
 		cond := cond + prior.LogPrior();
 		RETURN cond
 	END LogConditionalF;
@@ -371,22 +346,19 @@ MODULE UpdaterRejection;
 	BEGIN
 		prior := updater.prior;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		as := GraphRules.beta;
-		i := 0;
-		WHILE i < num DO
-			beta := children[i](GraphConjugateUV.Node);
-			beta.LikelihoodForm(as, par, a, b);
-			predictor := par(GraphLinkfunc.Node).predictor;
-			b := b + a;
-			c := predictor.value;
-			s := predictor.Diff(prior);
-			c := c - s * prior.value;
-			param0[i] := a;
-			param1[i] := b;
-			const[i] := c;
-			slope[i] := s;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			as := GraphRules.beta;
+			i := 0;
+			WHILE i < num DO
+				beta := children[i](GraphConjugateUV.Node);
+				beta.LikelihoodForm(as, par, a, b);
+				predictor := par(GraphLinkfunc.Node).predictor;
+				b := b + a; c := predictor.value; s := predictor.Diff(prior);
+				c := c - s * prior.value;
+				param0[i] := a; param1[i] := b; const[i] := c; slope[i] := s;
+				INC(i)
+			END
 		END
 	END Parameters;
 
@@ -413,27 +385,20 @@ MODULE UpdaterRejection;
 		deriv := prior.DiffLogPrior();
 		deriv2 := deriv2 - deriv;
 		children := prior.children;
+		param[0] := 0.0; param[1] := 0.0;
 		IF children # NIL THEN
 			num := LEN(children);
-			param[0] := 0.0;
-			param[1] := 0.0;
 			i := 0;
 			WHILE i < num DO
-				c := const[i];
-				s := slope[i];
-				r := param0[i];
-				lambda := param1[i];
+				c := const[i]; s := slope[i]; r := param0[i]; lambda := param1[i];
 				exp := Math.Exp(c + s * x);
 				param[0] := param[0] + s * r - s * lambda * exp;
 				param[1] := param[1] - s * s * lambda * exp;
 				INC(i)
 			END
 		END;
-		IF GraphStochastic.distributed IN prior.props THEN
-			MPIworker.SumReals(param);
-		END;
-		deriv := deriv + param[0];
-		deriv2 := deriv2 + param[1]
+		IF GraphStochastic.distributed IN prior.props THEN MPIworker.SumReals(param) END;
+		deriv := deriv + param[0]; deriv2 := deriv2 + param[1]
 	END Derivatives;
 
 	PROCEDURE (updater: UpdaterLoglin) Install (OUT install: ARRAY OF CHAR);
@@ -452,19 +417,16 @@ MODULE UpdaterRejection;
 		prior.value := x;
 		cond := 0.0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		i := 0;
-		WHILE i < num DO
-			c := const[i];
-			s := slope[i];
-			r := param0[i];
-			lambda := param1[i];
-			cond := cond + r * (c + s * x) - lambda * Math.Exp(c + s * x);
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				c := const[i]; s := slope[i]; r := param0[i]; lambda := param1[i];
+				cond := cond + r * (c + s * x) - lambda * Math.Exp(c + s * x);
+				INC(i)
+			END
 		END;
-		IF GraphStochastic.distributed IN prior.props THEN
-			cond := MPIworker.SumReal(cond)
-		END;
+		IF GraphStochastic.distributed IN prior.props THEN cond := MPIworker.SumReal(cond) END;
 		cond := cond + prior.LogPrior();
 		RETURN cond
 	END LogConditionalF;
@@ -480,21 +442,19 @@ MODULE UpdaterRejection;
 	BEGIN
 		prior := updater.prior;
 		as := GraphRules.gamma;
-		i := 0;
 		children := prior.children;
-		IF children # NIL THEN num := LEN(children) ELSE num := 0 END;
-		WHILE i < num DO
-			gamma := children[i](GraphConjugateUV.Node);
-			gamma.LikelihoodForm(as, par, r, lambda);
-			predictor := par(GraphLinkfunc.Node).predictor;
-			c := predictor.value;
-			s := predictor.Diff(prior);
-			c := c - s * prior.value;
-			param0[i] := r;
-			param1[i] := lambda;
-			const[i] := c;
-			slope[i] := s;
-			INC(i)
+		IF children # NIL THEN
+			num := LEN(children);
+			i := 0;
+			WHILE i < num DO
+				gamma := children[i](GraphConjugateUV.Node);
+				gamma.LikelihoodForm(as, par, r, lambda);
+				predictor := par(GraphLinkfunc.Node).predictor;
+				c := predictor.value; s := predictor.Diff(prior);
+				c := c - s * prior.value;
+				param0[i] := r; param1[i] := lambda; const[i] := c; slope[i] := s;
+				INC(i)
+			END
 		END
 	END Parameters;
 

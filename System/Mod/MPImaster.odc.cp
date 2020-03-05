@@ -16,7 +16,6 @@ MODULE MPImaster;
 		MPI, SYSTEM;
 
 	VAR
-		mpi: MPI.Hook;
 		intercomm: MPI.Comm;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
@@ -24,7 +23,7 @@ MODULE MPImaster;
 	PROCEDURE CommDisconnect*;
 	BEGIN
 		IF intercomm # MPI.COMM_NULL THEN
-			mpi.Comm_disconnect(intercomm)
+			MPI.Comm_disconnect(intercomm)
 		END
 	END CommDisconnect;
 
@@ -32,7 +31,7 @@ MODULE MPImaster;
 		VAR
 			size: INTEGER;
 	BEGIN
-		mpi.Comm_remote_size(intercomm, size);
+		MPI.Comm_remote_size(intercomm, size);
 		RETURN size;
 	END CommRemoteSize;
 
@@ -40,11 +39,10 @@ MODULE MPImaster;
 		VAR
 			nargs: INTEGER;
 			args: POINTER TO ARRAY[untagged] OF SHORTCHAR;	
+			mpi: MPI.Hook;
 	BEGIN
-		mpi := MPI.hook;
-		ASSERT(mpi # NIL, 77);
 		nargs := 0;  (*	why is this needed on linux	*)
-		mpi.Init(nargs, args);
+		MPI.Init(nargs, args);
 		intercomm := MPI.COMM_NULL
 	END Install;
 
@@ -55,7 +53,7 @@ MODULE MPImaster;
 			tag = 4;
 	BEGIN
 		len := LEN(x);
-		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.BYTE, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x[0]), len, MPI.BYTE, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvBytes;
 
 	PROCEDURE RecvInteger* (source: INTEGER): INTEGER;
@@ -64,7 +62,7 @@ MODULE MPImaster;
 		CONST
 			tag = 0;
 	BEGIN
-		mpi.Recv(SYSTEM.ADR(x), 1, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x), 1, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
 		RETURN x
 	END RecvInteger;
 
@@ -75,7 +73,7 @@ MODULE MPImaster;
 			tag = 1;
 	BEGIN
 		len := LEN(x);
-		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x[0]), len, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvIntegers;
 
 	PROCEDURE RecvReal* (source: INTEGER): REAL;
@@ -84,7 +82,7 @@ MODULE MPImaster;
 		CONST
 			tag = 2;
 	BEGIN
-		mpi.Recv(SYSTEM.ADR(x), 1, MPI.DOUBLE, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x), 1, MPI.DOUBLE, source, tag, intercomm, MPI.STATUS_IGNORE);
 		RETURN x
 	END RecvReal;
 
@@ -95,7 +93,7 @@ MODULE MPImaster;
 			tag = 3;
 	BEGIN
 		len := LEN(x);
-		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.DOUBLE, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x[0]), len, MPI.DOUBLE, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvReals;
 
 	PROCEDURE SendBytes* (IN x: ARRAY OF BYTE; dest: INTEGER);
@@ -105,14 +103,14 @@ MODULE MPImaster;
 			tag = 4;
 	BEGIN
 		len := LEN(x);
-		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.BYTE, dest, tag, intercomm)
+		MPI.Send(SYSTEM.ADR(x[0]), len, MPI.BYTE, dest, tag, intercomm)
 	END SendBytes;
 
 	PROCEDURE SendInteger* (x: INTEGER; dest: INTEGER);
 		CONST
 			tag = 0;
 	BEGIN
-		mpi.Send(SYSTEM.ADR(x), 1, MPI.INT, dest, tag, intercomm)
+		MPI.Send(SYSTEM.ADR(x), 1, MPI.INT, dest, tag, intercomm)
 	END SendInteger;
 
 	PROCEDURE SendIntegers* (IN x: ARRAY OF INTEGER; dest: INTEGER);
@@ -122,13 +120,13 @@ MODULE MPImaster;
 			tag = 2;
 	BEGIN
 		len := LEN(x);
-		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.INT, dest, tag, intercomm)
+		MPI.Send(SYSTEM.ADR(x[0]), len, MPI.INT, dest, tag, intercomm)
 	END SendIntegers;
 
 	PROCEDURE Spawn* (IN worker: ARRAY OF SHORTCHAR; numWorker: INTEGER);
 
 	BEGIN
-		mpi.Comm_spawn(SYSTEM.ADR(worker[0]), MPI.ARGV_NULL, numWorker, MPI.INFO_NULL,
+		MPI.Comm_spawn(SYSTEM.ADR(worker[0]), MPI.ARGV_NULL, numWorker, MPI.INFO_NULL,
 		0, MPI.COMM_WORLD, intercomm, MPI.ERRCODES_IGNORE)
 	END Spawn;
 
@@ -141,6 +139,6 @@ MODULE MPImaster;
 BEGIN
 	Maintainer
 CLOSE
-	mpi.Finalize
+	MPI.Finalize
 END MPImaster.
 

@@ -281,7 +281,7 @@ MODULE BugsCPWrite;
 			|GraphGrammar.uminus: WriteUminus
 			|GraphGrammar.exp: WriteExp
 			|GraphGrammar.icloglog, GraphGrammar.ilogit, GraphGrammar.phi: WriteLink
-			|GraphGrammar.abs, GraphGrammar.step: WriteNonDiff1
+			|GraphGrammar.abs, GraphGrammar.step, GraphGrammar.softplus: WriteNonDiff1
 			ELSE WriteOther
 			END;
 			Ln;
@@ -513,6 +513,7 @@ MODULE BugsCPWrite;
 			|GraphGrammar.arcsinh: Out("Math.ArcSinh("); Write(t.left); Out(")")
 			|GraphGrammar.arccosh: Out("Math.ArcCosh("); Write(t.left); Out(")")
 			|GraphGrammar.arctanh: Out("Math.ArcTanh("); Write(t.left); Out(")")
+			|GraphGrammar.softplus: Out("MathFunc.Softplus("); Write(t.left); Out(")")
 			END;
 		END Write;
 
@@ -606,9 +607,9 @@ MODULE BugsCPWrite;
 			Out("ELSE"); Ln;
 			Out("i := 0; j := 0;"); Ln;
 			Out("WHILE j < N1 DO"); Ln;
-			Out("WHILE node.parents[i] # node.l"); Int(j); Out(".parents[j] DO "); 
-			Diff; Out(" := 0.0; "); 
-			Out("INC(i) "); 
+			Out("WHILE node.parents[i] # node.l"); Int(j); Out(".parents[j] DO ");
+			Diff; Out(" := 0.0; ");
+			Out("INC(i) ");
 			Out("END;"); Ln;
 			Diff; Out(" := node.l"); Int(j); Out(".work[j]; INC(i);"); Ln;
 			Out("INC(j)"); Ln;
@@ -926,6 +927,13 @@ MODULE BugsCPWrite;
 			Val; Out(" := Math.ArcTanh("); Val; Out(");"); Ln
 		END WriteArcTanh;
 
+		PROCEDURE WriteSoftplus;
+		BEGIN
+			Comment("softplus");
+			For; Diff; Out(" := "); Diff; Out(" / ( 1.0 - Math.Exp(-"); Val; Out("));"); End; Ln;
+			Val; Out(" := MathFunc.Softplus("); Val; Out(");"); Ln
+		END WriteSoftplus;
+
 	BEGIN
 		stackSize := StackSize(args);
 		Out("PROCEDURE (node: Node) EvaluateDiffs;"); Ln;
@@ -979,6 +987,7 @@ MODULE BugsCPWrite;
 			|GraphGrammar.arcsinh: WriteArcSinh
 			|GraphGrammar.arccosh: WriteArcCosh
 			|GraphGrammar.arctanh: WriteArcTanh
+			|GraphGrammar.softplus: WriteSoftplus
 			END;
 			INC(i);
 		END;

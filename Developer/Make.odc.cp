@@ -10,7 +10,12 @@ DevCompiler.CompileThis
 
 HostMenus
 
-Environment("OS":"Windows") MPI MPIlib MPIlibmpiso12 MPIlibmpichso12 MPIlibmpichso0 MPIlibmpichso10 MPIimp MPIimplibmpiso12 MPIimplibmpichso12 MPIimplibmpichso0 MPIimplibmpichso10 MPImaster MPIworker
+Environment("OS":"Windows") MPI  MPImaster MPIworker
+MPImslib MPImsimp 
+MPIlibmpiso12 MPIimplibmpiso12
+MPIlibmpichso12 MPIimplibmpichso12 
+MPIlibmpichso0 MPIimplibmpichso0
+MPIlibmpichso10 MPIimplibmpichso10
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi
@@ -34,11 +39,11 @@ GraphConstant GraphMixture GraphMAP
 
 DeviancePlugin
 
-BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize
+BugsVersion BugsNames BugsIndex BugsVariables BugsParser BugsEvaluate BugsCodegen BugsOptimize BugsCPWrite BugsCPCompiler BugsNodes BugsData BugsGraph BugsPrettyprinter BugsLatexprinter BugsSerialize 
 
 UpdaterHMC
 
-BugsInterface BugsRobjects BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo
+BugsInterface BugsRobjects BugsTraphandler1 BugsExternal BugsMAP BugsMessages BugsResources  BugsPartition BugsParallel  BugsComponents BugsInfo 
 
 BugsRectData BugsSplusData
 
@@ -86,7 +91,7 @@ UpdaterForward
 
 UpdaterCatagorical UpdaterDescreteSlice UpdaterMetbinomial 
 
-UpdaterICM
+UpdaterICM 
 
 UpdaterBeta UpdaterGamma  UpdaterGriddy UpdaterMetover UpdaterMetnormal UpdaterNaivemet UpdaterNormal UpdaterPareto UpdaterPoisson UpdaterRandEffect UpdaterRejection UpdaterSCAAR UpdaterSCDE UpdaterSDScale UpdaterSlice UpdaterSlicegamma UpdaterStage1 UpdaterStage1P UpdaterVD 
 
@@ -126,7 +131,7 @@ UpdaterSettings
 
 DevDebug
 
-BugsCmds BugsBatch BugsConfig("OS":"Windows")
+BugsCmds BugsBatch BugsConfig("OS":"Windows") 
 
 DoodleNodes DoodlePlates DoodleModels DoodleMenus DoodleDialog DoodleViews DoodleParser DoodleCmds DoodleMessages DoodleResources
 

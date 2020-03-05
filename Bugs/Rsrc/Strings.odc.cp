@@ -35,12 +35,11 @@ RNSeed	seed
 ValueForSeed	value for seed 
 InitToPresetState	init to preset state
 
-MPIWindows	MPIimp
+MPIWindows	MPImsimp
 MPIABICI	MPIimplibmpiso12
 MPIDebian	MPIimplibmpichso12
 MPIUbuntu1804	MPIimplibmpichso0
 MPIUbunutu1404	MPIimplibmpichso10
-
 
 
 

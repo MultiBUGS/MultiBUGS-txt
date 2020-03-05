@@ -74,16 +74,13 @@ MODULE BugsComponents;
 			AddModule("HostFiles", modList)
 		ELSIF name = "Files64" THEN
 			AddModule("HostFiles64", modList)
-		ELSIF name = "MathSparsematrix" THEN
+		ELSIF name = "UpdaterGMRF" THEN
 			(*	add in sparse matrix library if found on this computer and used	*)
-			IF Kernel.ThisLoadedMod("MathTaucsImp") # NIL THEN
-				IF ~IsNew("UpdaterGMRF", modList) THEN AddModule("MathTaucsImp", modList) END
-			END
+			IF IsNew("MathTaucsImp", modList) THEN AddModule("MathTaucsImp", modList) END
 		ELSIF name = "MPI" THEN
 			(*	add implementation of MPI map name in string resource file	*)
 			Dialog.MapString("#Bugs:MPI" + platform, mpiImp); 
 			AddModule(mpiImp$, modList);
-			(*AddModule("MPIimp", modList)*)
 		END
 	END AddModule;
 
@@ -153,8 +150,7 @@ MODULE BugsComponents;
 			RNum(num);
 			NEW(imports, num);
 			RName(name);
-			i := 0;
-			WHILE i < num DO RName(imports[i]); INC(i) END;
+			i := 0; WHILE i < num DO RName(imports[i]); INC(i) END;
 		END;
 		file.Close;
 		RETURN imports
@@ -209,9 +205,7 @@ MODULE BugsComponents;
 		WHILE name # "" DO
 			Strings.Find(name, ".", 0, dot);
 			name[dot] := 0X;
-			IF IsNew(name, updaterModules) THEN
-				AddModule(name, updaterModules)
-			END;
+			IF IsNew(name, updaterModules) THEN AddModule(name, updaterModules) END;
 			INC(index);
 			UpdaterUpdaters.GetInstallProc(index, name);
 		END

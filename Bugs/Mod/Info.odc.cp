@@ -235,7 +235,7 @@ MODULE BugsInfo;
 		WHILE isConstant & (i < size) DO
 			index := offsets[i];
 			node := components[index];
-			isConstant := (node # NIL) & (GraphNodes.data IN node.props);
+			isConstant := (node = NIL) OR (GraphNodes.data IN node.props);
 			INC(i)
 		END;
 		RETURN isConstant

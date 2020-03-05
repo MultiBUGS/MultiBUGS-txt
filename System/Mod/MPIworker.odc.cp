@@ -16,7 +16,6 @@ MODULE MPIworker;
 		MPI, SYSTEM;
 
 	VAR
-		mpi: MPI.Hook;
 		comm, intercomm: MPI.Comm;
 		buffer: POINTER TO ARRAY OF REAL;
 		chain-, commSize-, rank-, worldRank-, worldSize-: INTEGER;
@@ -35,32 +34,32 @@ MODULE MPIworker;
 		CONST
 			error = 0;
 	BEGIN
-		mpi.Abort(comm, error)
+		MPI.Abort(comm, error)
 	END Abort;
 
 	PROCEDURE AllGather* (IN x: ARRAY OF REAL; nElem: INTEGER; OUT y: ARRAY OF REAL);
 	BEGIN
-		mpi.Allgather(SYSTEM.ADR(x[0]), nElem, MPI.DOUBLE,
+		MPI.Allgather(SYSTEM.ADR(x[0]), nElem, MPI.DOUBLE,
 		SYSTEM.ADR(y[0]), nElem, MPI.DOUBLE, comm);
 	END AllGather;
 
 	PROCEDURE Barrier*;
 	BEGIN
-		IF commSize > 1 THEN mpi.Barrier(comm) END;
+		IF commSize > 1 THEN MPI.Barrier(comm) END;
 	END Barrier;
 
 	PROCEDURE FinalizeMPI*;
 	BEGIN
-		mpi.Comm_disconnect(intercomm);
+		MPI.Comm_disconnect(intercomm);
 		ASSERT(intercomm = MPI.COMM_NULL, 21);
-		mpi.Finalize
+		MPI.Finalize
 	END FinalizeMPI;
 
 	PROCEDURE CommRemoteSize* (): INTEGER;
 		VAR
 			size: INTEGER;
 	BEGIN
-		mpi.Comm_remote_size(intercomm, size);
+		MPI.Comm_remote_size(intercomm, size);
 		RETURN size;
 	END CommRemoteSize;
 
@@ -71,19 +70,19 @@ MODULE MPIworker;
 			size: INTEGER;
 	BEGIN
 		nargs := 0;  (*	why is this needed on linux	*)
-		mpi.Init(nargs, args);
-		mpi.Comm_rank(MPI.COMM_WORLD, worldRank);
-		mpi.Comm_size(MPI.COMM_WORLD, worldSize);
+		MPI.Init(nargs, args);
+		MPI.Comm_rank(MPI.COMM_WORLD, worldRank);
+		MPI.Comm_size(MPI.COMM_WORLD, worldSize);
 		chain := RankToChain(worldRank, numChains, worldSize);
 		IF numChains > 1 THEN
-			mpi.Comm_split(MPI.COMM_WORLD, 1 + chain, worldRank, comm)
+			MPI.Comm_split(MPI.COMM_WORLD, 1 + chain, worldRank, comm)
 		ELSE
 			comm := MPI.COMM_WORLD;
 		END;
-		mpi.Comm_size(comm, commSize);
-		mpi.Comm_rank(comm, rank);
-		mpi.Comm_get_parent(intercomm);
-		mpi.Comm_remote_size(intercomm, size);
+		MPI.Comm_size(comm, commSize);
+		MPI.Comm_rank(comm, rank);
+		MPI.Comm_get_parent(intercomm);
+		MPI.Comm_remote_size(intercomm, size);
 		ASSERT(size = 1, 60);
 	END InitMPI;
 
@@ -91,7 +90,7 @@ MODULE MPIworker;
 		VAR
 			temp: REAL;
 	BEGIN
-		mpi.Allreduce(SYSTEM.ADR(x), SYSTEM.ADR(temp), 1, MPI.DOUBLE, MPI.MAX, comm);
+		MPI.Allreduce(SYSTEM.ADR(x), SYSTEM.ADR(temp), 1, MPI.DOUBLE, MPI.MAX, comm);
 		RETURN temp
 	END MaxReal;
 
@@ -102,7 +101,7 @@ MODULE MPIworker;
 			source = 0; tag = 4;
 	BEGIN
 		len := LEN(x);
-		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.BYTE, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x[0]), len, MPI.BYTE, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvBytes;
 
 	PROCEDURE RecvInteger* (): INTEGER;
@@ -111,7 +110,7 @@ MODULE MPIworker;
 		CONST
 			source = 0; tag = 2;
 	BEGIN
-		mpi.Recv(SYSTEM.ADR(x), 1, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x), 1, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
 		RETURN x
 	END RecvInteger;
 
@@ -122,7 +121,7 @@ MODULE MPIworker;
 			source = 0; tag = 2;
 	BEGIN
 		len := LEN(x);
-		mpi.Recv(SYSTEM.ADR(x[0]), len, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
+		MPI.Recv(SYSTEM.ADR(x[0]), len, MPI.INT, source, tag, intercomm, MPI.STATUS_IGNORE);
 	END RecvIntegers;
 
 	PROCEDURE SendBytes* (IN x: ARRAY OF BYTE);
@@ -132,14 +131,14 @@ MODULE MPIworker;
 			dest = 0; tag = 4;
 	BEGIN
 		len := LEN(x);
-		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.BYTE, dest, tag, intercomm);
+		MPI.Send(SYSTEM.ADR(x[0]), len, MPI.BYTE, dest, tag, intercomm);
 	END SendBytes;
 
 	PROCEDURE SendInteger* (x: INTEGER);
 		CONST
 			dest = 0; tag = 0;
 	BEGIN
-		mpi.Send(SYSTEM.ADR(x), 1, MPI.INT, dest, tag, intercomm);
+		MPI.Send(SYSTEM.ADR(x), 1, MPI.INT, dest, tag, intercomm);
 	END SendInteger;
 
 	PROCEDURE SendIntegers* (IN x: ARRAY OF INTEGER);
@@ -149,14 +148,14 @@ MODULE MPIworker;
 			dest = 0; tag = 1;
 	BEGIN
 		len := LEN(x);
-		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.INT, dest, tag, intercomm);
+		MPI.Send(SYSTEM.ADR(x[0]), len, MPI.INT, dest, tag, intercomm);
 	END SendIntegers;
 
 	PROCEDURE SendReal* (x: REAL);
 		CONST
 			dest = 0; tag = 2;
 	BEGIN
-		mpi.Send(SYSTEM.ADR(x), 1, MPI.DOUBLE, dest, tag, intercomm)
+		MPI.Send(SYSTEM.ADR(x), 1, MPI.DOUBLE, dest, tag, intercomm)
 	END SendReal;
 
 	PROCEDURE SendReals* (IN x: ARRAY OF REAL);
@@ -166,14 +165,14 @@ MODULE MPIworker;
 			dest = 0; tag = 3;
 	BEGIN
 		len := LEN(x);
-		mpi.Send(SYSTEM.ADR(x[0]), len, MPI.DOUBLE, dest, tag, intercomm);
+		MPI.Send(SYSTEM.ADR(x[0]), len, MPI.DOUBLE, dest, tag, intercomm);
 	END SendReals;
 
 	PROCEDURE SumReal* (x: REAL): REAL;
 		VAR
 			temp: REAL;
 	BEGIN
-		mpi.Allreduce(SYSTEM.ADR(x), SYSTEM.ADR(temp), 1, MPI.DOUBLE, MPI.SUM, comm);
+		MPI.Allreduce(SYSTEM.ADR(x), SYSTEM.ADR(temp), 1, MPI.DOUBLE, MPI.SUM, comm);
 		RETURN temp
 	END SumReal;
 
@@ -183,7 +182,7 @@ MODULE MPIworker;
 	BEGIN
 		len := LEN(x);
 		IF len > LEN(buffer) THEN NEW(buffer, len) END;
-		mpi.Allreduce(SYSTEM.ADR(x[0]), SYSTEM.ADR(buffer[0]), len, MPI.DOUBLE, MPI.SUM, comm);
+		MPI.Allreduce(SYSTEM.ADR(x[0]), SYSTEM.ADR(buffer[0]), len, MPI.DOUBLE, MPI.SUM, comm);
 		i := 0; WHILE i < len DO x[i] := buffer[i]; INC(i) END
 	END SumReals;
 
@@ -198,7 +197,6 @@ MODULE MPIworker;
 			len = 100;
 	BEGIN
 		Maintainer;
-		mpi := MPI.hook;
 		rank := - 1;
 		commSize := - 1;
 		worldRank := - 1;

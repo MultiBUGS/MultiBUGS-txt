@@ -256,57 +256,59 @@ MODULE GraphODEBlockL;
 			incBlock, incGrid: BOOLEAN;
 			theta: ARRAY 1 OF REAL;
 	BEGIN
-		IF node.index # 0 THEN RETURN END;
-		numEq := LEN(node.x0);
-		i := 0; WHILE i < numEq DO node.x0[i] := node.inits[0, i].value; INC(i) END;
-		numBlocks := LEN(node.origins); gridSize := LEN(node.grid);
-		node.block.value := 0;
-		GraphLogical.Evaluate(node.initsDependents[0]);
-		start := node.origins[0].value;
-		gridIndex := 0; block := 0;
-		WHILE gridIndex < gridSize DO
-			IF block < numBlocks - 1 THEN
-				nextOrigin := node.origins[block + 1].value;
-				nextGP := node.grid[gridIndex].value;
-				IF ABS(nextGP - nextOrigin) < eps THEN
-					end := nextGP;
-					incBlock := TRUE;
-					incGrid := TRUE
-				ELSIF nextGP < nextOrigin THEN
-					end := nextGP;
+		IF node.index = 0 THEN
+			numEq := LEN(node.x0);
+			i := 0; WHILE i < numEq DO node.x0[i] := node.inits[0, i].value; INC(i) END;
+			numBlocks := LEN(node.origins); gridSize := LEN(node.grid);
+			node.block.value := 0;
+			GraphLogical.Evaluate(node.initsDependents[0]);
+			start := node.origins[0].value;
+			gridIndex := 0; block := 0;
+			WHILE gridIndex < gridSize DO
+				IF block < numBlocks - 1 THEN
+					nextOrigin := node.origins[block + 1].value;
+					nextGP := node.grid[gridIndex].value;
+					IF ABS(nextGP - nextOrigin) < eps THEN
+						end := nextGP;
+						incBlock := TRUE;
+						incGrid := TRUE
+					ELSIF nextGP < nextOrigin THEN
+						end := nextGP;
+						incBlock := FALSE;
+						incGrid := TRUE
+					ELSE
+						end := nextOrigin;
+						incBlock := TRUE;
+						incGrid := FALSE
+					END
+				ELSE
+					end := node.grid[gridIndex].value;
 					incBlock := FALSE;
 					incGrid := TRUE
-				ELSE
-					end := nextOrigin;
-					incBlock := TRUE;
-					incGrid := FALSE
-				END
-			ELSE
-				end := node.grid[gridIndex].value;
-				incBlock := FALSE;
-				incGrid := TRUE
-			END;
-			ASSERT(end > start, trap);
-			step := end - start;
-			node.solver.AccurateStep(theta, node.x0, numEq, start, step, node.tol, node.x1);
-			IF incBlock THEN
-				INC(block);
-				node.t.value := end;
-				i := 0; WHILE i < numEq DO node.x[i].value := node.x1[i]; INC(i) END;
-				GraphLogical.Evaluate(node.initsDependents[block]);
-				i := 0;
-				WHILE i < numEq DO
-					IF node.inits[block, i] # NIL THEN node.x1[i] := node.x1[i] + node.inits[block, i].value; END;
-					INC(i)
 				END;
-				node.block.value := block
-			END; 
-			i := 0; WHILE i < numEq DO node.x0[i] := node.x1[i]; INC(i) END;
-			IF incGrid THEN
-				i := 0; WHILE i < numEq DO node.components[gridIndex * numEq + i].value := node.x1[i]; INC(i) END;
-				INC(gridIndex)
-			END;
-			start := end
+				ASSERT(end > start, trap);
+				step := end - start;
+				node.solver.AccurateStep(theta, node.x0, numEq, start, step, node.tol, node.x1);
+				IF incBlock THEN
+					INC(block);
+					node.t.value := end;
+					i := 0; WHILE i < numEq DO node.x[i].value := node.x1[i]; INC(i) END;
+					GraphLogical.Evaluate(node.initsDependents[block]);
+					i := 0;
+					WHILE i < numEq DO
+						IF node.inits[block, i] # NIL THEN node.x1[i] := node.x1[i] + node.inits[block, i].value; END;
+						INC(i)
+					END;
+					node.block.value := block
+				END;
+				i := 0; WHILE i < numEq DO node.x0[i] := node.x1[i]; INC(i) END;
+				IF incGrid THEN
+					i := 0; 
+					WHILE i < numEq DO node.components[gridIndex * numEq + i].value := node.x1[i]; INC(i) END;
+					INC(gridIndex)
+				END;
+				start := end
+			END
 		END
 	END Evaluate;
 
@@ -332,9 +334,11 @@ MODULE GraphODEBlockL;
 
 	PROCEDURE (node: Node) Link;
 		VAR
-			i, numBlocks, numEq: INTEGER;
+			i, j, nElem, numBlocks, numEq, numParents: INTEGER;
+			parents: GraphNodes.Vector;
 			list: GraphNodes.List;
 			deriv, p: GraphNodes.Node;
+			q: Node;
 		CONST
 			all = TRUE;
 	BEGIN
@@ -355,9 +359,35 @@ MODULE GraphODEBlockL;
 			NEW(node.initsDependents, numBlocks);
 			i := 0;
 			WHILE i < numBlocks DO
-				node.initsDependents[i] := GraphLogical.Ancestors(node.inits[i]);
+				node.initsDependents[i] := GraphLogical.Ancestors(node.inits[i]); INC(i)
+			END;
+			numParents := LEN(node.parents); 
+			nElem := 0;
+			i := 0;
+			WHILE i < numParents DO
+				IF ~(GraphStochastic.hidden IN node.parents[i].props) THEN INC(nElem) END;
 				INC(i)
 			END;
+			IF nElem > 0 THEN NEW(parents, nElem) ELSE parents := NIL END;
+			i := 0;
+			nElem := 0;
+			WHILE i < numParents DO
+				IF ~(GraphStochastic.hidden IN node.parents[i].props) THEN
+					parents[nElem] := node.parents[i]; INC(nElem)
+				END;
+				INC(i)
+			END;
+			node.SetParents(parents);
+			j := 1;
+			nElem := node.Size();
+			WHILE j < nElem DO
+				q := node.components[j](Node);
+				q.derivDependents := node.derivDependents;
+				q.SetParents(node.parents);
+				NEW(q.initsDependents, numBlocks);
+				i := 0; WHILE i < numBlocks DO q.initsDependents[i] := node.initsDependents[i]; INC(i) END;
+				INC(j)
+			END
 		END
 	END Link;
 
@@ -369,12 +399,9 @@ MODULE GraphODEBlockL;
 	BEGIN
 		numEq := LEN(node.x0); numBlocks := LEN(node.origins); gridSize := LEN(node.grid);
 		list := NIL;
-		i := 0;
-		WHILE i < numBlocks DO p := node.origins[i]; p.AddParent(list); INC(i) END;
-		i := 0;
-		WHILE i < gridSize DO p := node.grid[i]; p.AddParent(list); INC(i) END;
-		i := 0;
-		WHILE i < numEq DO p := node.deriv[i]; p.AddParent(list); INC(i) END;
+		i := 0; WHILE i < numBlocks DO p := node.origins[i]; p.AddParent(list); INC(i) END;
+		i := 0; WHILE i < gridSize DO p := node.grid[i]; p.AddParent(list); INC(i) END;
+		i := 0; WHILE i < numEq DO p := node.deriv[i]; p.AddParent(list); INC(i) END;
 		i := 0;
 		WHILE i < numBlocks DO
 			j := 0; WHILE j < numEq DO p := node.inits[i, j]; IF p # NIL THEN p.AddParent(list); END; INC(j) END;

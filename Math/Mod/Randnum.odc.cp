@@ -2446,10 +2446,7 @@ MODULE MathRandnum;
 	BEGIN
 		values[len - 1] := oldValue;
 		MathSort.HeapSort(values, len);
-		i := 0;
-		WHILE ABS(values[i] - oldValue) > eps DO
-			INC(i)
-		END;
+		i := 0; WHILE ABS(values[i] - oldValue) > eps DO INC(i) END;
 		RETURN values[len - 1 - i]
 	END OverRelax;
 

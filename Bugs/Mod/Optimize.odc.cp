@@ -288,6 +288,14 @@ MODULE BugsOptimize;
 		tree.value := Math.Sin(tree.parents[0].value)
 	END Sin;
 
+	PROCEDURE Softplus (tree: BugsParser.Internal);
+	BEGIN
+		FoldConstants(tree.parents[0]);
+		IF ~tree.parents[0].evaluated THEN RETURN END;
+		tree.evaluated := TRUE;
+		tree.value := MathFunc.Softplus(tree.parents[0].value)
+	END Softplus;
+
 	PROCEDURE Phi (tree: BugsParser.Internal);
 	BEGIN
 		FoldConstants(tree.parents[0]);
@@ -410,7 +418,7 @@ MODULE BugsOptimize;
 				|GraphGrammar.arcsinh: ArcSinh(t)
 				|GraphGrammar.arccosh: ArcCosh(t)
 				|GraphGrammar.arctanh: ArcTanh(t)
-
+				|GraphGrammar.softplus: Softplus(t)
 				END
 			|t: BugsParser.Function DO
 				funcDescriptor := t.descriptor;

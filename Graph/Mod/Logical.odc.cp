@@ -25,6 +25,7 @@ MODULE GraphLogical;
 		prediction* = 6; 	(*	node is only used for prediction	*)
 		linked* = 7; 	(*	node has been linked into its stochastic parents dependant list	*)
 		descreteParent* = 8; 	(*	node has a descrete parent	*)
+		noDiffs* = 9;
 		undefined* = MAX(INTEGER); 	(*	recursive level of node is undefined	*)
 
 	TYPE
@@ -351,7 +352,7 @@ MODULE GraphLogical;
 			i := 0;
 			WHILE i < num DO
 				p := dependents[i];
-				IF ({constDiffs, prediction} * p.props = {}) & (p.parents # NIL) THEN
+				IF ({constDiffs, prediction, noDiffs} * p.props = {}) & (p.parents # NIL) THEN
 					p.EvaluateDiffs; INCL(p.props, diff);
 				ELSE
 					p.Evaluate
@@ -502,7 +503,7 @@ MODULE GraphLogical;
 			ELSE
 			END
 		END;
-		list1 := list; 
+		list1 := list;
 		WHILE list1 # NIL DO p := list1.node; EXCL(p.props, GraphNodes.mark); list1 := list1.next END;
 		RETURN list
 	END Parents;

@@ -241,9 +241,7 @@ MODULE BugsGraph;
 				j := 0;
 				WHILE j < size DO
 					stoch := parents[j](GraphStochastic.Node);
-					IF (stoch.classConditional = GraphRules.general) OR (stoch.children = NIL) THEN 
-						DEC(newSize) 
-					END;
+					IF stoch.classConditional = GraphRules.general THEN DEC(newSize) END;
 					INC(j)
 				END;
 				IF newSize # size THEN
@@ -1018,7 +1016,7 @@ MODULE BugsGraph;
 			kernels: GraphKernel.Vector;
 	BEGIN
 		BugsRandnum.CreateGenerators(numChains);
-		WriteGraph(ok); IF ~ok THEN (*BugsParser.Clear; UpdaterActions.Clear;*) RETURN END;
+		WriteGraph(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
 		AllocateCaches(nodes); 
 		BuildFullConditionals;
 		BuildDependantLists;
@@ -1033,11 +1031,7 @@ MODULE BugsGraph;
 		GraphLogical.LinkAll;
 		CalculateHints;
 		OptimizeDifferentiation;
-		IF updaterByMethod THEN
-			CreateUpdatersByMethod
-		ELSE
-			CreateUpdatersByNode
-		END;
+		IF updaterByMethod THEN CreateUpdatersByMethod ELSE CreateUpdatersByNode END;
 		MissingUpdaters(ok); IF ~ok THEN BugsParser.Clear; UpdaterActions.Clear; RETURN END;
 		UpdaterActions.CreateUpdaters(numChains);
 		IF IsAdapting(numChains) THEN

@@ -89,14 +89,12 @@ MODULE UpdaterMetropolisUV;
 		dependents := prior.dependents;
 		i := 0; 
 		IF dependents # NIL THEN
-			num := LEN(dependents);
-			WHILE i < num DO dependents[i].value := cache[i]; INC(i) END;
+			num := LEN(dependents); WHILE i < num DO dependents[i].value := cache[i]; INC(i) END;
 		END;
 		prior.value := cache[i];
 		kernels := updater.kernels;
-		IF kernels # NIL THEN
-			num := LEN(kernels);
-			i := 0; WHILE i < num DO kernels[i].LoadState; INC(i) END
+		IF kernels # NIL THEN 
+			num := LEN(kernels); i := 0; WHILE i < num DO kernels[i].LoadState; INC(i) END
 		END
 	END Restore;
 
@@ -111,14 +109,12 @@ MODULE UpdaterMetropolisUV;
 		dependents := prior.dependents;
 		i := 0; 
 		IF dependents # NIL THEN
-			num := LEN(dependents);
-			WHILE i < num DO cache[i] := dependents[i].value; INC(i) END;
+			num := LEN(dependents); WHILE i < num DO cache[i] := dependents[i].value; INC(i) END;
 		END;
 		cache[i] :=prior.value;
 		kernels := updater.kernels;
 		IF kernels # NIL THEN
-			num := LEN(kernels);
-			i := 0; WHILE i < num DO kernels[i].StoreState; INC(i) END
+			num := LEN(kernels); i := 0; WHILE i < num DO kernels[i].StoreState; INC(i) END
 		END
 	END Store;
 

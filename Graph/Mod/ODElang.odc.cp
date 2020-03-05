@@ -270,13 +270,13 @@ MODULE GraphODElang;
 			node.dependents := GraphLogical.Ancestors(node.deriv);
 			numParents := LEN(node.parents);
 			numDeriv := LEN(node.deriv);
+			(*	remove hidden nodes from parents at this point	*)
 			i := 0;
 			nElem := 0;
 			WHILE i < numParents DO
 				IF ~(GraphStochastic.hidden IN node.parents[i].props) THEN INC(nElem) END;
 				INC(i)
 			END;
-			(*	remove hidden nodes from parents at this point?? seperate procedure???	*)
 			IF nElem > 0 THEN NEW(parents, nElem) ELSE parents := NIL END;
 			i := 0;
 			nElem := 0;

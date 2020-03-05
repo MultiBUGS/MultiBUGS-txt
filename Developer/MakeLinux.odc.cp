@@ -14,7 +14,12 @@ DevCompiler.CompileThis
 
 HostMenusLinux
 
-Environment("OS":"Linux") MPI MPIlib MPIlibmpiso12 MPIlibmpichso12 MPIlibmpichso0 MPIlibmpichso10 MPIimp MPIimplibmpiso12 MPIimplibmpichso12 MPIimplibmpichso0 MPIimplibmpichso10 MPImaster MPIworker
+Environment("OS":"Linux") MPI  MPImaster MPIworker
+MPImslib MPImsimp 
+MPIlibmpiso12 MPIimplibmpiso12
+MPIlibmpichso12 MPIimplibmpichso12 
+MPIlibmpichso0 MPIimplibmpichso0
+MPIlibmpichso10 MPIimplibmpichso10
 
 MathSort MathFunc MathMatrix MathSparsematrix MathTaucsLib MathTaucsImp
 MathCumulative MathRandnum MathODE MathFunctional MathRungeKutta45 MathAESolver MathIntegrate MathTT800 MathDiagmatrix MathBGR MathSmooth MathJacobi

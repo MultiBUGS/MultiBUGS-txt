@@ -29,9 +29,9 @@ MODULE GraphGrammar;
 		loggam* = 17; max* = 18; min* = 19; phi* = 20; pow* = 21; sin* = 22; sqrt* = 23;
 		step* = 24; abs* = 25; round* = 26; trunc* = 27; tan* = 28; arcsin* = 29; arccos* = 30;
 		arctan* = 31; sinh* = 32; cosh* = 33; tanh* = 34; arcsinh* = 35; arccosh* = 36;
-		arctanh* = 37; ilogit* = 38; icloglog* = 39;
+		arctanh* = 37; ilogit* = 38; icloglog* = 39; softplus* = 40;
 
-		modifier* = 40; leftConst* = modifier; rightConst* = 2 * modifier;
+		modifier* = 41; leftConst* = modifier; rightConst* = 2 * modifier;
 
 		(*	external functions and distributions	*)
 	TYPE
@@ -71,15 +71,15 @@ MODULE GraphGrammar;
 
 	PROCEDURE Clear*;
 		VAR
-			descriptor: External;	
+			descriptor: External;
 	BEGIN
 		descriptor := externalsList;
 		WHILE descriptor # NIL DO
-			IF descriptor.fact #  NIL THEN descriptor.fact.Clear END;
+			IF descriptor.fact # NIL THEN descriptor.fact.Clear END;
 			descriptor := descriptor.next
 		END;
 	END Clear;
-	
+
 	PROCEDURE FindDensity* (IN name: ARRAY OF CHAR): External;
 		CONST
 			density = TRUE;
@@ -195,6 +195,7 @@ MODULE GraphGrammar;
 		Insert("arctanh", 1, arctanh);
 		Insert("ilogit", 1, ilogit);
 		Insert("icloglog", 1, icloglog);
+		Insert("softplus", 1, softplus)
 	END Init;
 
 BEGIN

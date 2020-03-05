@@ -17,7 +17,7 @@ MODULE Init;
 
 **)
 
-	IMPORT Kernel, Dialog, Converters, HostMenus, Environment, HostFiles;
+	IMPORT Kernel, Dialog, Converters, HostFiles, HostMenus, Environment;
 
 	PROCEDURE Init;
 		VAR res: INTEGER; m: Kernel.Module;

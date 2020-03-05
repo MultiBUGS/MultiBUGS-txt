@@ -25,6 +25,7 @@ END
 
 MENU "Model" 
 	"Specification..."	""	"BugsCmds.OpenSpecificationDialog"	""
+	SEPARATOR
 	"Update..."	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/UpdateDialog', 'Update Tool')"		"BugsCmds.UpdateGuard"
 	"Script"	""	"BugsCmds.Script('')"	""
 	SEPARATOR

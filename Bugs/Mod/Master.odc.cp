@@ -11,15 +11,15 @@ MODULE BugsMaster;
 
 	IMPORT
 		MPI,
-		SYSTEM, Files := Files64, BugsComponents, BugsGraph, BugsIndex, BugsInterface, BugsMsg, Stores := Stores64, BugsNames,
-		BugsParallel,
+		SYSTEM, Files := Files64, Dialog, Kernel, MPImaster, Meta, Services, Stores := Stores64, Strings,
+		HostFiles,
+		StdLog,
+		TextModels,
+		BugsComponents, BugsGraph, BugsIndex, BugsInterface, BugsMsg, BugsNames, BugsParallel,
 		DevCommanders,
 		DevianceInterface,
-		Dialog, GraphLogical, GraphNodes, GraphStochastic, HostFiles, Kernel, MPImaster,
-		Meta,
-		MonitorMonitors,
-		Services, StdLog, Strings,
-		TextModels;
+		GraphLogical, GraphNodes, GraphStochastic,
+		MonitorMonitors;
 
 	TYPE
 		Hook = POINTER TO RECORD(BugsInterface.DistributeHook)
@@ -109,10 +109,10 @@ MODULE BugsMaster;
 		monitorValues := NIL;
 		logicals := NIL;
 		command[0] := BugsInterface.terminate;
-		command[1] :=  - 1;
-		command[2] :=  - 1;
-		command[3] :=  - 1;
-		command[4] :=  - 1;
+		command[1] := - 1;
+		command[2] := - 1;
+		command[3] := - 1;
+		command[4] := - 1;
 		BugsInterface.SendCommand(command);
 		MPImaster.CommDisconnect;
 	END Clear;
@@ -169,7 +169,7 @@ MODULE BugsMaster;
 		StdLog.text.Delete(len0, len1);
 		endTime := Services.Ticks();
 		h.linkTime := SHORT(endTime - startTime);
-		Strings.IntToString(numWorkers, string);
+		Strings.IntToString(numWorkers, string); 
 		fileList := Files.dir.FileList(loc);
 		IF Dialog.platform # Dialog.linux THEN executable := executable + ".exe" END;
 		(*	check that executable does not get deleted by anti virus software	*)
@@ -189,8 +189,7 @@ MODULE BugsMaster;
 		MPImaster.Spawn(SHORT(worker), numWorkers);
 		size := MPImaster.CommRemoteSize();
 		ASSERT(size = numWorkers, 66);
-		rank := 0;
-		chain := 0;
+		rank := 0; chain := 0;
 		WHILE rank < numWorkers DO
 			MPImaster.RecvIntegers(resultParams, rank);
 			IF resultParams[2] = 0 THEN leader[chain] := rank; INC(chain) END;
@@ -203,8 +202,7 @@ MODULE BugsMaster;
 		h.masterMemory := Kernel.Allocated();
 		h.monitorChanged := TRUE;
 		IF DevianceInterface.state = DevianceInterface.set THEN
-			DevianceInterface.Clear;
-			DevianceInterface.Set
+			DevianceInterface.Clear; DevianceInterface.Set
 		END
 	END Distribute;
 
@@ -299,7 +297,7 @@ MODULE BugsMaster;
 			status: ARRAY 3 OF INTEGER;
 			end, i, numChains, numWorkers, workersPerChain: INTEGER;
 	BEGIN
-		updater :=  - 1;
+		updater := - 1;
 		workersPerChain := h.workersPerChain;
 		numChains := h.numChains;
 		numWorkers := workersPerChain * numChains;
@@ -339,7 +337,7 @@ MODULE BugsMaster;
 			MPImaster.RecvIntegers(status, i);
 			end := status[0];
 			res := BITS(status[1]);
-			IF (res # {}) & (updater =  - 1) THEN
+			IF (res # {}) & (updater = - 1) THEN
 				updater := status[2]; worker := i; updater := BugsParallel.MapUpdater(worker, updater);
 			END;
 			endOfAdapting := MAX(endOfAdapting, end);
@@ -369,7 +367,7 @@ MODULE BugsMaster;
 	BEGIN
 		Maintainer;
 		globalValues := NIL;
-		(* Meta.Lookup("MPIimp", item); *)
+		Meta.Lookup("MPIimp", item);
 		platform := "Windows";
 		Dialog.MapString("#Bugs:MPI" + platform, mpiImp);
 		Meta.Lookup(mpiImp, item);

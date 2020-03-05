@@ -4,15 +4,13 @@ license:	"Docu/OpenBUGS-License"
 copyright:	"Rsrc/About"
 *)
 
-MODULE MPIlib["msmpi"];
-
-	
+MODULE MPImslib["msmpi"];
 
 	IMPORT
-		MPI, SYSTEM;
-
+		MPI;
+			
 	PROCEDURE Abort*["MPI_Abort"] (comm: MPI.Comm; error: INTEGER);
-
+			
 	PROCEDURE Allgather*["MPI_Allgather"] (
 	sendbuf: MPI.Address;
 	sendCount: INTEGER;
@@ -101,8 +99,7 @@ MODULE MPIlib["msmpi"];
 	recType: MPI.Datatype;
 	root: INTEGER;
 	comm: MPI.Comm);
-	
-	
+
 	PROCEDURE Init*["MPI_Init"] (
 	VAR nargs: INTEGER;
 	VAR args: POINTER TO ARRAY[untagged] OF SHORTCHAR);
@@ -126,7 +123,7 @@ MODULE MPIlib["msmpi"];
 	dest: INTEGER;
 	tag: INTEGER;
 	comm: MPI.Comm);
-
+	
 	PROCEDURE Wtime*["MPI_Wtime"] (): REAL;
 
-END MPIlib.
+END MPImslib.

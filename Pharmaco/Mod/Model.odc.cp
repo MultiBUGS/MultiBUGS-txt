@@ -137,7 +137,6 @@ MODULE PharmacoModel;
 
 	PROCEDURE (node: Node) EvaluateDiffs-;
 	BEGIN
-		HALT(126)
 	END EvaluateDiffs;
 
 	PROCEDURE (node: Node) ExternalizeScalar- (VAR wr: Stores.Writer);
@@ -155,6 +154,7 @@ MODULE PharmacoModel;
 
 	PROCEDURE (node: Node) InitLogical-;
 	BEGIN
+		INCL(node.props, GraphLogical.noDiffs);
 		node.params := NIL; node.scalars := NIL
 	END InitLogical;
 
