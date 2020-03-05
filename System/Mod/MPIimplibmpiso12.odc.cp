@@ -9,7 +9,7 @@ MODULE MPIimplibmpiso12;
 	
 
 	IMPORT
-		MPI, MPIlib := MPIlibmpiso12, SYSTEM;
+		MPI, MPIlibmpiso12, SYSTEM;
 
 	TYPE
 		Hook = POINTER TO RECORD (MPI.Hook) END;
@@ -18,12 +18,12 @@ MODULE MPIimplibmpiso12;
 		version-: INTEGER; 	(*	version number	*)
 		maintainer-: ARRAY 40 OF CHAR; 	(*	person maintaining module	*)
 
-	PROCEDURE (hook: Hook) Abort (comm: MPI.Comm; error: INTEGER);
+	PROCEDURE (hook: Hook) Abort* (comm: MPI.Comm; error: INTEGER);
 	BEGIN
-		MPIlib.Abort(comm, error)
+		MPIlibmpiso12.Abort(comm, error)
 	END Abort;
 
-	PROCEDURE (hook: Hook) Allgather (
+	PROCEDURE (hook: Hook) Allgather* (
 	sendbuf: MPI.Address;
 	sendCount: INTEGER;
 	sendType: MPI.Datatype;
@@ -32,10 +32,10 @@ MODULE MPIimplibmpiso12;
 	recvType: MPI.Datatype;
 	comm: MPI.Comm);
 	BEGIN
-		MPIlib.Allgather(sendbuf, sendCount, sendType, recvbuf, recvCount, recvType, comm);
+		MPIlibmpiso12.Allgather(sendbuf, sendCount, sendType, recvbuf, recvCount, recvType, comm);
 	END Allgather;
 
-	PROCEDURE (hook: Hook) Allreduce (
+	PROCEDURE (hook: Hook) Allreduce* (
 	operand: MPI.Address;
 	result: MPI.Address;
 	count: INTEGER;
@@ -43,95 +43,95 @@ MODULE MPIimplibmpiso12;
 	operator: MPI.Op;
 	comm: MPI.Comm);
 	BEGIN
-		MPIlib.Allreduce(operand, result, count, dataType, operator, comm);
+		MPIlibmpiso12.Allreduce(operand, result, count, dataType, operator, comm);
 	END Allreduce;
 
-	PROCEDURE (hook: Hook) Barrier (comm: MPI.Comm);
+	PROCEDURE (hook: Hook) Barrier* (comm: MPI.Comm);
 	BEGIN
 
 	END Barrier;
 
-	PROCEDURE (hook: Hook) Bcast (
+	PROCEDURE (hook: Hook) Bcast* (
 	buf: MPI.Address;
 	count: INTEGER;
 	dataType: MPI.Datatype;
 	root: INTEGER;
 	comm: MPI.Comm);
 	BEGIN
-		MPIlib.Bcast(buf, count, dataType, root, comm);
+		MPIlibmpiso12.Bcast(buf, count, dataType, root, comm);
 	END Bcast;
 
-	PROCEDURE (hook: Hook) Close_port (port: MPI.Address);
+	PROCEDURE (hook: Hook) Close_port* (port: MPI.Address);
 	BEGIN
-		MPIlib.Close_port(port);
+		MPIlibmpiso12.Close_port(port);
 	END Close_port;
 
-	PROCEDURE (hook: Hook) Comm_accept (
+	PROCEDURE (hook: Hook) Comm_accept* (
 	port: MPI.Address;
 	info: MPI.Info;
 	root: INTEGER;
 	comm: MPI.Comm;
 	VAR intercom: MPI.Comm);
 	BEGIN
-		MPIlib.Comm_accept(port, info, root, comm, intercom);
+		MPIlibmpiso12.Comm_accept(port, info, root, comm, intercom);
 	END Comm_accept;
 
-	PROCEDURE (hook: Hook) Comm_connect (
+	PROCEDURE (hook: Hook) Comm_connect* (
 	port: MPI.Address;
 	info: MPI.Info;
 	root: INTEGER;
 	comm: MPI.Comm;
 	VAR intercom: MPI.Comm);
 	BEGIN
-		MPIlib.Comm_connect(port, info, root, comm, intercom);
+		MPIlibmpiso12.Comm_connect(port, info, root, comm, intercom);
 	END Comm_connect;
 
-	PROCEDURE (hook: Hook) Comm_disconnect (
+	PROCEDURE (hook: Hook) Comm_disconnect* (
 	VAR intercom: MPI.Comm);
 	BEGIN
-		MPIlib.Comm_disconnect(intercom);
+		MPIlibmpiso12.Comm_disconnect(intercom);
 	END Comm_disconnect;
 
-	PROCEDURE (hook: Hook) Comm_free (
+	PROCEDURE (hook: Hook) Comm_free* (
 	VAR intercom: MPI.Comm);
 	BEGIN
-		MPIlib.Comm_free(intercom);
+		MPIlibmpiso12.Comm_free(intercom);
 	END Comm_free;
 
-	PROCEDURE (hook: Hook) Comm_get_parent (
+	PROCEDURE (hook: Hook) Comm_get_parent* (
 	VAR parent: MPI.Comm);
 	BEGIN
-		MPIlib.Comm_get_parent(parent);
+		MPIlibmpiso12.Comm_get_parent(parent);
 	END Comm_get_parent;
 
-	PROCEDURE (hook: Hook) Comm_rank (
+	PROCEDURE (hook: Hook) Comm_rank* (
 	comm: MPI.Comm; VAR rank: INTEGER);
 	BEGIN
-		MPIlib.Comm_rank(comm, rank);
+		MPIlibmpiso12.Comm_rank(comm, rank);
 	END Comm_rank;
 
-	PROCEDURE (hook: Hook) Comm_remote_size (
+	PROCEDURE (hook: Hook) Comm_remote_size* (
 	parent: MPI.Comm; VAR size: INTEGER);
 	BEGIN
-		MPIlib.Comm_remote_size(parent, size);
+		MPIlibmpiso12.Comm_remote_size(parent, size);
 	END Comm_remote_size;
 
-	PROCEDURE (hook: Hook) Comm_size (
+	PROCEDURE (hook: Hook) Comm_size* (
 	comm: MPI.Comm; VAR numProc: INTEGER);
 	BEGIN
-		MPIlib.Comm_size(comm, numProc);
+		MPIlibmpiso12.Comm_size(comm, numProc);
 	END Comm_size;
 
-	PROCEDURE (hook: Hook) Comm_split (
+	PROCEDURE (hook: Hook) Comm_split* (
 	oldCom: MPI.Comm;
 	colour: INTEGER;
 	rankKey: INTEGER;
 	VAR newCom: MPI.Comm);
 	BEGIN
-		MPIlib.Comm_split(oldCom, colour, rankKey, newCom);
+		MPIlibmpiso12.Comm_split(oldCom, colour, rankKey, newCom);
 	END Comm_split;
 
-	PROCEDURE (hook: Hook) Comm_spawn (
+	PROCEDURE (hook: Hook) Comm_spawn* (
 	worker: MPI.Address;
 	argv: MPI.Address;
 	maxproc: INTEGER;
@@ -142,15 +142,15 @@ MODULE MPIimplibmpiso12;
 	errors: MPI.Address
 	);
 	BEGIN
-		MPIlib.Comm_spawn(worker, argv, maxproc, info, root, comm, intercomm, errors)
+		MPIlibmpiso12.Comm_spawn(worker, argv, maxproc, info, root, comm, intercomm, errors)
 	END Comm_spawn;
 
-	PROCEDURE (hook: Hook) Finalize;
+	PROCEDURE (hook: Hook) Finalize*;
 	BEGIN
-		MPIlib.Finalize
+		MPIlibmpiso12.Finalize
 	END Finalize;
 
-	PROCEDURE (hook: Hook) Gather (
+	PROCEDURE (hook: Hook) Gather* (
 	sendBuf: MPI.Address;
 	sendCount: INTEGER;
 	sendType: MPI.Datatype;
@@ -160,23 +160,23 @@ MODULE MPIimplibmpiso12;
 	root: INTEGER;
 	comm: MPI.Comm);
 	BEGIN
-		MPIlib.Gather(sendBuf, sendCount, sendType, recBuf, recCount, recType, root, comm);
+		MPIlibmpiso12.Gather(sendBuf, sendCount, sendType, recBuf, recCount, recType, root, comm);
 	END Gather;
 
-	PROCEDURE (hook: Hook) Init (
+	PROCEDURE (hook: Hook) Init* (
 	VAR nargs: INTEGER;
 	VAR args: POINTER TO ARRAY[untagged] OF SHORTCHAR);
 	BEGIN
-		MPIlib.Init(nargs, args)
+		MPIlibmpiso12.Init(nargs, args)
 	END Init;
 
-	PROCEDURE (hook: Hook) Open_port (
+	PROCEDURE (hook: Hook) Open_port* (
 	info: MPI.Info; port: MPI.Address);
 	BEGIN
-		MPIlib.Open_port(info, port);
+		MPIlibmpiso12.Open_port(info, port);
 	END Open_port;
 
-	PROCEDURE (hook: Hook) Recv (
+	PROCEDURE (hook: Hook) Recv* (
 	buff: MPI.Address;
 	count: INTEGER;
 	datatype: MPI.Datatype;
@@ -185,10 +185,10 @@ MODULE MPIimplibmpiso12;
 	comm: MPI.Comm;
 	status: MPI.Status);
 	BEGIN
-		MPIlib.Recv(buff, count, datatype, source, tag, comm, status);
+		MPIlibmpiso12.Recv(buff, count, datatype, source, tag, comm, status);
 	END Recv;
 
-	PROCEDURE (hook: Hook) Send (
+	PROCEDURE (hook: Hook) Send* (
 	buff: MPI.Address;
 	count: INTEGER;
 	datatype: MPI.Datatype;
@@ -196,12 +196,12 @@ MODULE MPIimplibmpiso12;
 	tag: INTEGER;
 	comm: MPI.Comm);
 	BEGIN
-		MPIlib.Send(buff, count, datatype, dest, tag, comm);
+		MPIlibmpiso12.Send(buff, count, datatype, dest, tag, comm);
 	END Send;
 
-	PROCEDURE (hook: Hook) Wtime (): REAL;
+	PROCEDURE (hook: Hook) Wtime* (): REAL;
 	BEGIN
-		RETURN MPIlib.Wtime()
+		RETURN MPIlibmpiso12.Wtime()
 	END Wtime;
 
 	PROCEDURE Maintainer;
