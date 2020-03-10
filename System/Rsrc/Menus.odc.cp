@@ -112,7 +112,7 @@ MENU "Examples"
 	"Examples Vol IV"	""	"StdCmds1.OpenBrowser('Examples/VolumeIV', 'Examples Volume IV')"	""	
 	SEPARATOR
 	"Ecology Examples"	""	"StdCmds1.OpenBrowser('Examples/VolumeEco', 'Ecology Examples')"	""	
-	"GeoBUGS Examples"	""	"StdCmds1.OpenBrowser('GeoBugs/Examples/Examples', 'PK Examples')"	""	
+	"GeoBUGS Examples"	""	"StdCmds1.OpenBrowser('GeoBugs/Examples/Examples', 'GeoBUGS Examples')"	""	
 	"ReliaBUGS Examples"	""	"StdCmds1.OpenBrowser('Reliability/Examples/Vol', 'ReliaBUGS Examples')"	""	
 	SEPARATOR
 	"Print Examples Vol I"	""	"BugsDocu.PrintExamplesVolI"	""
@@ -127,17 +127,17 @@ MENU "Manuals"
 	SEPARATOR
 	"MultiBUGS User Manual"	"F1"	"StdCmds1.OpenBrowser('Manuals/Contents', 'MultiBUGS User Manual Contents')"	""
 	"DoodleBUGS User Manual"	""	"StdCmds1.OpenBrowser('Manuals/DoodleBUGS', 'DoodleBUGS User Manual')"	""	
-	"GeoBUGS User Manual"	""	"StdCmds1.OpenBrowser('GeoBugs/Manuals/Manual', 'PKBUGS User Manual')"	""	
+	"GeoBUGS User Manual"	""	"StdCmds1.OpenBrowser('GeoBugs/Manuals/Manual', 'GeoBUGS User Manual')"	""	
 	"ReliaBUGS User Manual"	""	"StdCmds1.OpenBrowser('Reliability/Manuals/Contents', 'ReliaBUGS User Manual')"	""	
-	"OpenBUGS Developer Manual"	""	"StdCmds1.OpenBrowser('Developer/Manual','OpenBUGS Developer Manual')" ""
+	"OpenBUGS Developer Manual"	""	"StdCmds1.OpenBrowser('Developer/Manual','Developer Manual')" ""
 	SEPARATOR
 	"Print MultiBUGS User Manual"	""	"BugsDocu.PrintUserManual"	""
 	"Print MultiBUGS Developer Manual"	""	"BugsDocu.PrintDeveloperManual"	""
 END
 
 MENU "Help"
-	"Distributions"	""	"StdCmds.OpenBrowser('Manuals/ModelSpecification', 'OpenBUGS User Manual');StdLinks.ShowTarget('ContentsAI')"	""
-	"Functions"	""	"StdCmds.OpenBrowser('Manuals/ModelSpecification', 'OpenBUGS User Manual');StdLinks.ShowTarget('ContentsAII')"	""
+	"Distributions"	""	"StdCmds.OpenBrowser('Manuals/Distributions', 'Distributions')"	""
+	"Functions"	""	"StdCmds.OpenBrowser('Manuals/Functions.odc', 'Functions and functionals')"	""
 	SEPARATOR	
 	"Search"	""	"StdCmds.OpenToolDialog('Bugs/Rsrc/Search', 'Search Tool')"		""
 	SEPARATOR	
