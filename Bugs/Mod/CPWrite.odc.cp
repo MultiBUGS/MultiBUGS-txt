@@ -600,7 +600,7 @@ MODULE BugsCPWrite;
 			Comment("logical");
 			INC(top);
 			Val; Out(" := node.l"); Int(j); Out(".value; "); Ln;
-			Out("IF GraphLogical.diff IN node.l"); Int(j); Out(".props THEN "); Ln;
+			Out("IF {GraphLogical.diff, GraphLogical.constDiffs} *  node.l"); Int(j); Out(".props # {} THEN "); Ln;
 			Out("N1 := LEN(node.l"); Int(j); Out(".parents);"); Ln;
 			Out("IF N = N1 THEN"); Ln;
 			For; Diff; Out(" := node.l"); Int(j); Out(".work[i];"); End; Ln;
