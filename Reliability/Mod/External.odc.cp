@@ -96,8 +96,8 @@ MODULE ReliabilityExternal;
         Function("pdf.exp.ext", "GraphDensity.DensityUVInstall(dexp.ext)");
 
 		(*	corresponding reliability functions where available	*)
-		Function("rrel.l.bs", "GraphDensity.ReliabilityInstall(dbs)");
-		Function("RburrXII", "GraphDensity.ReliabilityInstall(dburrXII)");
+		Function("rel.l.bs", "GraphDensity.ReliabilityInstall(dbs)");
+		Function("rel.burrXII", "GraphDensity.ReliabilityInstall(dburrXII)");
 		Function("rel.burrX", "GraphDensity.ReliabilityInstall(dburrX)");
 		Function("rel.exp.power", "GraphDensity.ReliabilityInstall(dexp.power)");
 		Function("rel.exp.weib", "GraphDensity.ReliabilityInstall(dexp.weib)");
