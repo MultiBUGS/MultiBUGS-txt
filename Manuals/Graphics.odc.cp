@@ -1,5 +1,5 @@
-	BUGS Graphics
-
+	BUGS Graphics
+
 Contents
 
 	General properties
@@ -15,11 +15,11 @@ Contents
 	Density strips
 	Model fit plot
 	Scatterplot
-
-
+	
+	
 General properties        [top]
 
-All BUGS graphics have a set of basic properties that can be modified using the Plot Properties dialog box. This is opened as follows: first, focus the relevant plot by left-clicking on it; then select Object Properties... from the Edit menu. Alternatively, right-clicking on a focused plot will reveal a pop-up menu from which Properties... may equivalently be selected. The Plot Properties dialogue box comprises a "tab-view" and two command buttons, namely Apply and Data.... The tab-view contains five tabs that allow the user to make different types of modification - these are discussed below. The Apply command button applies the properties displayed in the currently selected tab to the focused plot. And Data... opens a separate window  with the raw data values used to plot the figure in the chosen plot. The other properties of the plot that user can edit are discussed below.
+All BUGS graphics have a set of basic properties that can be modified using the Plot Properties window. This is opened as follows: first, focus the relevant plot by left-clicking on it; then select Object Properties... from the Edit menu. Alternatively, right-clicking on a focused plot will reveal a pop-up menu from which Properties... may equivalently be selected. The Plot Properties window comprises a "tab-view" and two command buttons, namely Apply and Data.... The tab-view contains five tabs that allow the user to make different types of modification - these are discussed below. The Apply command button applies the properties displayed in the currently selected tab to the focused plot. And Data... opens a separate window  with the raw data values used to plot the figure in the chosen plot. The other properties of the plot that user can edit are discussed below.
 
 
 Margins        [top]
@@ -71,6 +71,7 @@ The Fonts tab allows the user to change the font of the plot's title, its axes, 
 			
 
 
+
 First select the font to be modified and click on Modify.... (Note that it will only be possible to select other if the focused plot has a third font, i.e. if text other than the title and axes is present on the plot, e.g. the labels on a box plot - see Compare...) The self-explanatory Font dialogue box should appear - select the required font and click on OK (or Cancel).
 
 In order to apply the same font to an arbitrarily large group of plots (not necessarily of the same type), rather than using the All Plots tab, BUGS uses a "drag-and-pick" facility. First focus a single plot and select which font is to be modified for the whole group: title, axes, or other (if available). Now highlight the group of plots using the mouse. Hold down the ALT key and then the left-hand mouse button and drag the mouse over an area of text with the desired font; then release the mouse button and the ALT key in turn, and the required changes should be made. As an alternative to dragging the mouse over a piece of text with the desired font, the user may instead drag over another plot (even one in the group to be modified) - the group will adopt that plot's properties for the selected font on the Fonts tab.
@@ -83,7 +84,7 @@ Below we describe the special property editors that are available for certain ty
 
 Density plot        [top]
 
-When the density button on the Sample Monitor Tool is pressed, the output depends on whether the specified variable is discrete or continuous - if the variable is discrete then a histogram is produced whereas if it is continuous a kernel density estimate is produced instead. The specialized property editor that appears when Special tab on the Plot Properties dialogue box is selected also differs slightly depending on the nature of the specified variable. In both cases the editor comprises a numeric field and two command buttons (apply and apply all) but in the case of a histogram the numeric field corresponds to the "bin-size" whereas for kernel density estimates it is the smoothing parameter* (see below):
+When the density button on the Sample Monitor Tool window is pressed, the output depends on whether the specified variable is discrete or continuous - if the variable is discrete then a histogram is produced whereas if it is continuous a kernel density estimate is produced instead. The specialized property editor that appears when Special tab on the Plot Properties dialogue box is selected also differs slightly depending on the nature of the specified variable. In both cases the editor comprises a numeric field and two command buttons (apply and apply all) but in the case of a histogram the numeric field corresponds to the "bin-size" whereas for kernel density estimates it is the smoothing parameter* (see below):
 
 	
 			
@@ -96,7 +97,7 @@ Property editor for kernel density estimate
 
 In either case, the apply button sets the bin-size or smoothing parameter of the focused plot to the value currently displayed in the numeric field. The apply all button, on the other hand, applies the value currently displayed in the numeric field to all plots of the same type (as the focused plot) in the same window (as the focused plot).
 
-Note*: We define the smoothing parameter for kernel density estimates, s, via the definition of band-width. Suppose our posterior sample comprises m realisations of variable z - denote these by zi, i = 1,..., m:
+Note*: We define the smoothing parameter for kernel density estimates, s, via the definition of bandwidth. Suppose our posterior sample comprises m realisations of variable z - denote these by zi, i = 1,..., m:
 
 band-width = V1/2 / ms ;     V = m-1Sizi2 - (m-1Sizi)2
 
@@ -130,9 +131,10 @@ Caterpillar plot        [top]
 The Special  tab of the caterpillar plot property editor is virtually identical to that of the box plot property editor except that there is no fill-colour field on the former:
 
 			
-
+
 
 Density strips        [top]
+
 The Special tab for density strips reveals several ways to customise these plots. 
 
 			
@@ -155,7 +157,7 @@ show 95% interval: select to display the 2.5% and 97.5% sample quantiles as tick
 
 gamma: "gamma correction" g for the variation in shading. g is a real number greater than 0. The shading at a point xi with density di is defined as a mixture of the colour at the maximum density (black by default) and white, in proportions p = (di  / maxi( di ))g  and 1 - p respectively. By default, g = 1, so that the perceived darkness is proportional to the density.
 
-smooth: the smoothing parameter s for the density estimate, as described under Density plot. This is a value between 0 and 1, with smaller values producing smoother estimates. 
+smooth: the smoothing parameter s for the density estimate, as described under Density plot. This is a value between 0 and 1, with smaller values producing smoother estimates. 
 
 If the data are discrete, then the bin size for the histogram is defined by the closest integer to the band-width implied by the supplied value of s, or 1 if this is greater. Smaller s  give greater bin sizes, up to a maximum bin size equal to the closest integer to the standard deviation of the sample. Values of s closer to 1 give smaller bin sizes, up to a minimum bin size of 1, or of the closest integer to the standard deviation divided by the sample size if this is greater. 
 

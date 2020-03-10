@@ -1,4 +1,4 @@
-	Advanced Use of the BUGS
+	Advanced use of the BUGS
 							 Language
 
 Contents
@@ -16,19 +16,21 @@ Contents
 
 Generic sampling distribution        [top]
 
-Suppose we wish to use a sampling distribution that is not included in the standard distributions (see Appendix I Distributions), in which an observation x[i] contributes a likelihood term L[i] (a function of x[i]). We may use the  'loglik' distribution dloglik, for a dummy observed variable:
+Suppose we wish to use a sampling distribution that is not included in the standard distributions (see the list of Distributions), in which an observation x[i] contributes a likelihood term L[i] (a function of x[i]). We may use the  'loglik' distribution dloglik, for a dummy observed variable:
 
 	dummy[i] <- 0
-	dummy[i] ~dloglik(logLike[i])
+	dummy[i] ~ dloglik(logLike[i])
 	
 where logLike[i] is the contribution to the log-likelihood for the ith observation.  The dloglik function implements the 'zero poisson' method utilized in WinBUGS.
 	
 This is illustrated  in the example below in which a normal likelihood is constructed and the results are compared to the standard formulation.
 
+
 	model {
 		for (i in 1:7) {
 			dummy[i] <- 0
-			dummy[i] ~ dloglik(logLike[i])			# likelihood is exp(logLike[i])
+			# likelihood is exp(logLike[i])
+			dummy[i] ~ dloglik(logLike[i])
 			# log(likelihood)
 			logLike[i] <- -log(sigma) - 0.5 * pow((x[i] - mu) / sigma, 2)			
 		}
@@ -70,44 +72,44 @@ or
 
 Specifying a new prior distribution        [top]
 
-For a parameter theta, if we want to use a prior distribution not included in the standard distributions (see Appendix I Distributions) , then we can use the 'dloglik' distribution (see above) for the prior specification.  A single dummy observation contributes the appropriate term to the likelihood for theta; and when it is combined with a 'flat' prior for theta, the correct  distribution results:
+For a parameter theta, if we want to use a prior distribution not included in the standard distributions (see the list of Distributions), then we can use the 'dloglik' distribution (see above) for the prior specification.  A single dummy observation contributes the appropriate term to the likelihood for theta; and when it is combined with a 'flat' prior for theta, the correct  distribution results:
 
 			theta ~ dflat()
-			dummy ~dloglik(logLike)
+			dummy ~ dloglik(logLike)
 			logLike <- log(desired prior for theta)
 
-This is illustrated  by the below example in which a normal prior is constructed and the results are compared to the standard formulation. It is important to note that this method will cause the theta variable to be sampled using the metropolis algorithm and may lead to poor convergence and a high Monte Carlo error.
+This is illustrated  by the below example in which a normal prior is constructed and the results are compared to the standard formulation. It is important to note that this method will cause the theta variable to be sampled using the metropolis algorithm and may lead to poor convergence and a high Monte Carlo error
 
-	model {
-			for (i in 1:7) {
-				x[i] ~ dnorm(mu, prec)
-			}
-			dummy <- 0
-			dummy ~ dloglik(phi)			# likelihood is exp(phi)
-			phi <- -0.5 * pow(mu, 2)			# log(N(0, 1))
-			mu ~ dflat()			# 'flat' prior
-			prec <- 1 / (sigma * sigma)
-			sigma ~ dunif(0, 10)
-		}
+model {
+   for (i in 1:7) {
+      x[i] ~ dnorm(mu, prec)
+   }
+   dummy <- 0
+   dummy ~ dloglik(phi)         # likelihood is exp(phi)
+   phi <- -0.5 * pow(mu, 2)         # log(N(0, 1))
+   mu ~ dflat()         # 'flat' prior
+   prec <- 1 / (sigma * sigma)
+   sigma ~ dunif(0, 10)
+}
 
 or
 
-	model {
-			for (i in 1:7) {
-				x[i] ~ dnorm(mu, prec)
-			}
-			mu ~ dnorm(0, 1)			# 'known' normal prior
-			prec <- 1 / (sigma * sigma)
-			sigma ~ dunif(0, 10)
-		}
+model {
+   for (i in 1:7) {
+      x[i] ~ dnorm(mu, prec)
+   }
+   mu ~ dnorm(0, 1)         # 'known' normal prior
+   prec <- 1 / (sigma * sigma)
+   sigma ~ dunif(0, 10)
+}
 
 
 Data:
-	list(x = c(-1, -0.3, 0.1, 0.2, 0.7, 1.2, 1.7))
-
-Initial values:
-	list(sigma =  1, mu = 0)
+list(x = c(-1, -0.3, 0.1, 0.2, 0.7, 1.2, 1.7))
 	
+Initial values:
+list(sigma =  1, mu = 0)
+
 Results:
 		mean	sd	MC_error	val2.5pc	median	val97.5pc	start	sample
 	mu	0.2859	0.4108	0.008778	-0.5574	0.3002	1.08	1001	9000
@@ -122,13 +124,16 @@ Results:
 
 Using pD and DIC        [top]
 
-Here we make a number of observations regarding the use of DIC and pD - for a full discussion see Spiegelhalter et al. (2002):
+Here we make a number of observations regarding the use of DIC and pD - for a full discussion see Spiegelhalter et al (2002):
 
-1) DIC is intended as a generalisation of Akaike's Information Criterion (AIC). For non-hierarchical models, pD should be approximately the true number of parameters.
+1) DIC is intended as a generalisation of Akaike's Information Criterion (AIC). For non-hierarchical models, pD should be approximately the true number of parameters.
 
 2) Slightly different values of Dhat (and hence pD and DIC) can be obtained depending on the parameterisation used for the prior distribution. For example, consider the precision tau (1 / variance) of a normal distribution. The two priors
 
-		tau ~ dgamma(0.001, 0.001) and
+		tau ~ dgamma(0.001, 0.001)
+
+and
+
 		log.tau ~ dunif(-10, 10); log(tau) <- log.tau
 
 are essentially identical but will give slightly different results for Dhat.  The first prior distribution has stochastic parent  tau and hence the posterior mean of tau is substituted in Dhat, while in the second parameterisation the stochastic parent is log.tau and hence the posterior mean of log(tau) is substituted in Dhat.
@@ -148,7 +153,7 @@ ii) when the posterior distribution for a parameter is symmetric and bimodal, an
 
 8) Caution is advisable in the use of DIC until more experience has been gained. It is important to note that the calculation of DIC will be disallowed for certain models. 
 
-
+
 Mixtures of models of different complexity        [top]
 
 Suppose we assume that each observation, or group of observations, is from one of a set of distributions, where the members of the set have different complexity. For example, we may think data for each person's growth curve comes from either a linear or quadratic line. We might think we would require 'reversible jump' techniques, but this is not the case as we are really only considering a single mixture model as a sampling distribution. Thus standard methods for setting up mixture distributions can be adopted, but with components having different numbers of parameters.
@@ -157,35 +162,36 @@ The below example illustrates how this is handled in BUGS, using a set of simula
 
 Suppose that for each i: x[i] ~ N(mu, 1) with probability p; and x[i] ~ N(0, 1) otherwise (i.e. with probability 1 - p). We generate 100 observations with p = 0.4 and mu = 3 as follows. We forward sample once from the model below by compiling the code and then using the 'gen inits' facility. The simulated data can then be obtained by selecting Save State from the Model menu.
 
-		model {
-			mu <- 3
-			p <- 0.4
-			m[1] <- 0
-			m[2] <- mu
-			for (i in 1 : 100) {
-				group[i] ~ dbern(p)
-				index[i] <- group[i] + 1
-				y[i] ~ dnorm(m[index[i]], 1)
-			}
-		}
+model {
+   mu <- 3
+   p <- 0.4
+   m[1] <- 0
+   m[2] <- mu
+   for (i in 1 : 100) {
+      group[i] ~ dbern(p)
+      index[i] <- group[i] + 1
+      y[i] ~ dnorm(m[index[i]], 1)
+   }
+}
 
 We may observe the underlying mixture distribution by monitoring any one of the y[i]'s over a number of additional sampling cycles. For example, the following kernel density plot was obtained after monitoring y[1] for 1000 iterations:
 
 
 			
+
 To analyse the simulated data we use the following code:
 
-	model {
-		mu ~ dunif(-5, 5)
-		p ~ dunif(0, 1)
-		m[1] <- 0
-		m[2] <- mu
-		for (i in 1:100) {
-			group[i] ~ dbern(p)
-			index[i] <- group[i] + 1
-			y[i] ~ dnorm(m[index[i]], 1)
-		}
-	}
+model {
+   mu ~ dunif(-5, 5)
+   p ~ dunif(0, 1)
+   m[1] <- 0
+   m[2] <- mu
+   for (i in 1:100) {
+      group[i] ~ dbern(p)
+      index[i] <- group[i] + 1
+      y[i] ~ dnorm(m[index[i]], 1)
+   }
+}
 
 After 101000 iterations (with a burn-in of 1000) we have good agreement with the 'true' values:
 
@@ -193,9 +199,10 @@ After 101000 iterations (with a burn-in of 1000) we have good agreement with the
 	mu	3.058	0.2071	0.001288	2.655	3.056	3.472	1001	100000
 	p	0.4243	0.05985	3.718E-4	0.3098	0.4232	0.5438	1001	100000
 
+
 Initial values:
 
-	list(mu = 0, p = 0.5)
+list(mu = 0, p = 0.5)
 
 Simulated data:
 
@@ -229,38 +236,38 @@ Where the size of a set is a random quantity        [top]
 
 Suppose the size of a set is a random quantity: this naturally occurs in 'changepoint' problems where observations up to an unknown changepoint K come from one model, and after K come from another. Note that we cannot use the construction
 
-			for (i in 1:K) {
-					y[i] ~ model 1
-			}
-			for (i in (K + 1):N) {
-					y[i] ~ model 2
-			}
+for (i in 1:K) {
+   y[i] ~ model 1
+}
+for (i in (K + 1):N) {
+   y[i] ~ model 2
+}
 
 since the index for a loop cannot be a random quantity. Instead we can use the step function to set up an indicator as to which set each observation belongs to:
 
-			for (i in 1:N) {
-					ind[i] <- 1 + step(i - K - 0.01)		# will be 1 for all i <= K, 2 otherwise
-					y[i] ~ model  ind[i]
-			}
+for (i in 1:N) {
+   # will be 1 for all i <= K, 2 otherwise
+   ind[i] <- 1 + step(i - K - 0.01)      
+   y[i] ~ model  ind[i]
+}
 
 This is illustrated by the problem of adding up terms in a series of unknown length.
 
 Suppose we want to find the distribution of the sum of the first K integers, where K is a random quantity. We shall assume K has a uniform distribution on 1 to 10. 
-
-		model 
-		{
-			for (i in 1:10) {
-				p[i] <- 1 / 10			# set up prior for K
-				x[i] <- i			         # set up array of integers
-			}
-			K ~ dcat(p[])		   	# sample K from its prior
-			for (i in 1:10) {
-		        # determine which of the x[i]'s are to be summed
-				xtosum[i] <- x[i] * step(K - i + 0.01)			
-			}
-			s <- sum(xtosum[])
-		}
-
+
+model {
+   for (i in 1:10) {
+      p[i] <- 1 / 10      # set up prior for K
+      x[i] <- i           # set up array of integers
+   }
+   K ~ dcat(p[])          # sample K from its prior
+   for (i in 1:10) {
+      # determine which of the x[i]'s are to be summed
+      xtosum[i] <- x[i] * step(K - i + 0.01)
+   }
+   s <- sum(xtosum[])
+}
+
 
 		
 
@@ -269,10 +276,12 @@ Assessing sensitivity to prior assumptions        [top]
 
 One way to do this is to repeat the analysis under different prior assumptions, but within the same simulation in order to aid direct comparison of results. Assuming the consequences of K prior distributions are to be compared:
 
-a) replicate the dataset K times within the model code;
+a) replicate the dataset K times within the model code;
+
 b) set up a loop to repeat the analysis for each prior, holding results in arrays;
+
 c) compare results using the 'compare' facility.
-
+
 The example prior-sensitivity explores six different suggestions for priors on the random-effects variance in a meta-analysis.
 
 
@@ -280,18 +289,20 @@ Modelling unknown denominators        [top]
 
 Suppose we have an unknown Binomial denominator for which we wish to express a prior distribution. It can be given a Poisson prior but this makes it difficult to express a reasonably uniform distribution. Alternatively a continuous distribution could be specified and then the 'round' function used. For example, suppose we are told that a fair coin has come up heads 10 times - how many times has it been tossed?
 
-			model {
-					r <- 10
-					p <- 0.5
-					r ~ dbin(p, n)
-					n.cont ~ dunif(1, 100)
-					n <- round(n.cont)
-			}
+model {
+      r <- 10
+      p <- 0.5
+      r ~ dbin(p, n)
+      n.cont ~ dunif(1, 100)
+      n <- round(n.cont)
+}
 
-	node	mean	sd	MC error	2.5%	median	97.5%	start	sample
+
+	node	mean	sd	MC error	2.5%	median	97.5%	start	sample
 	n	21.08	4.794	0.07906	13.0	21.0	32.0	1001	5000
 	n.cont	21.08	4.804	0.07932	13.31	20.6	32.0	1001	5000
-	
+
+
 Assuming a uniform prior for the number of tosses, we can be 95% sure that the coin has been tossed between 13 and 32 times. A discrete prior on the integers could also have been used in this context.
 
 
@@ -312,9 +323,8 @@ There are three different ways of entering such 'ragged' data into WinBUGS:
 		12.3	14.1	NA	NA
 		11.0	9.7	10.3	9.6
       		END
-
-or list(y = structure(.Data = c(13.2, NA, NA, NA, 12.3, 14.1, NA, NA, 11.0, 9.7, 10.3, 9.6), .
-Dim = c(3, 4)).
+
+or list(y = structure(.Data = c(13.2, NA, NA, NA, 12.3, 14.1, NA, NA, 11.0, 9.7, 10.3, 9.6), .Dim = c(3, 4)).
 
 A model such as y[i, j] ~ dnorm(mu[i], 1) can then be fitted. This approach is inefficient unless one explicitly wishes to estimate the missing data.
 
@@ -329,7 +339,7 @@ A model such as y[i, j] ~ dnorm(mu[i], 1) can then be fitted. This approach is i
 		10.3	3
 		9.6	3
        		END
-
+
 or list(y = c(13.2, 12.3, 14.1, 11.0, 9.7, 10.3, 9.6), person = c(1, 2, 2, 3, 3, 3, 3)).
 
 A model such as y[k] ~ dnorm(mu[person[k]], 1) can then be fitted. This seems an efficient and clear way to handle the problem.

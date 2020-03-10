@@ -3,26 +3,23 @@
 		Version 2.0, January 2014
 
 
-		Vijay Kumar1   Andrew Thomas2	   
+		Vijay Kumar1   Andrew Thomas2	
  
-		1  Department of Mathematics & Statistics
-		    DDU Gorakhpur University 
+		1  Department of Mathematics & Statistics, DDU Gorakhpur University 
 		    GORAKHPUR- 273009 (INDIA)
-
 		2  MRC Biostatistics Unit
 
-		
-			e-mail:	bugs@mrc-bsu.cam.ac.uk	[general]
-			vkgkp@rediffmail.com	[technical]
+e-mail: bugs@mrc-bsu.cam.ac.uk	[general]
+vkgkp@rediffmail.com	[technical]
 
 
 Contents
-  
+	
 	Introduction
 	Reliability Analysis
-	
+
 Reliability distributions
-	
+
 	Birnbaum-Saunders 
 	Burr X
 	Burr XII
@@ -44,11 +41,11 @@ Reliability distributions
 	Modified Weibull
 	
 Useful functions
-	
+
 	Hazard rate function
 	Reliability function
-	
-References	
+
+References
   References
 
 

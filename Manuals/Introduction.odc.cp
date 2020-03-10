@@ -1,19 +1,19 @@
-	Introduction
-
+	Introduction
+
 Contents
 
 	Introduction to BUGS
 	Advice for new users
 	MCMC methods
-		
-
+	
+	
 Introduction to BUGS        [top]
 
-This manual describes the BUGS software - a program for Bayesian analysis of complex statistical models using Markov chain Monte Carlo (MCMC) techniques. BUGS allows models to be described using the BUGS language, or as Doodles (graphical representations of models) which can, if desired, be translated to a text-based description. The BUGS language is more flexible than the Doodles graphical representation.
+This manual describes the BUGS software - a program for Bayesian analysis of complex statistical models using Markov chain Monte Carlo (MCMC) techniques. BUGS allows models to be described using the BUGS language, or as Doodles (graphical representations of models) which can, if desired, be translated to a text-based description. The BUGS language is more flexible than the Doodles graphical representatio
 
 Users are advised that this manual only concerns the syntax and functionality of BUGS, and does not deal with issues of Bayesian reasoning, prior distributions, statistical modelling, monitoring convergence, and so on. If you are new to MCMC, you are strongly advised to use this software in conjunction with a course in which the strengths and weaknesses of this procedure are described. Please note the disclaimer at the beginning of this manual.
 
-There is a large literature on Bayesian analysis and MCMC methods. For further reading, see, for example, Carlin and Louis (1996), Gelman et al (1995), Gilks, Richardson and Spiegelhalter (1996): Brooks (1998) provides an excellent introduction to MCMC. Chapter 9 of the Classic BUGS manual, 'Topics in Modelling', discusses 'non-informative' priors, model criticism, ranking, measurement error, conditional likelihoods, parameterisation, spatial models and so on, while the CODA documentation considers convergence diagnostics. Congdon (2001) shows how to analyse a very wide range of models using BUGS. The BUGS website provides additional links to sites of interest, some of which provide extensive examples and tutorial material.
+There is a large literature on Bayesian analysis and MCMC methods. For further reading, see, for example, Carlin and Louis (1996), Gelman et al (1995), Gilks, Richardson and Spiegelhalter (1996). Brooks (1998) provides an excellent introduction to MCMC. Chapter 9 of the Classic BUGS manual, 'Topics in Modelling', discusses 'non-informative' priors, model criticism, ranking, measurement error, conditional likelihoods, parameterisation, spatial models and so on, while the CODA documentation considers convergence diagnostics. Congdon (2001) shows how to analyse a very wide range of models using BUGS. The BUGS website provides additional links to sites of interest, some of which provide extensive examples and tutorial material.
 
 
 Advice for new users        [top]
@@ -22,8 +22,7 @@ If you are using BUGS for the first time, the following stages might be reasonab
 
 1. Step through the simple worked example in the tutorial.
 
-2. Try other examples provided with this release (see Examples Volume 1,
- Examples Volume 2 and Examples Volume 3)
+2. Try other examples provided with this release (see Volume 1, Volume 2, Volume 3 and Volume 4)
 
 3. Edit the BUGS language of an example model to fit an example of your own.
 

@@ -1,5 +1,5 @@
-	The Inference Menu
-
+	Inference Menu
+
 Contents
 
 	General properties
@@ -8,9 +8,9 @@ Contents
 	Correlations...
 	Summary...
 	Rank...
-	DIC...
-
-
+	Information Criterion...
+	
+	
 General properties        [top]
 
 These menu items open dialog boxes for making inferences about parameters of the model. The commands are divided into three sections: the first three commands concern an entire set of monitored values for a variable; the next two commands are space-saving short-cuts that monitor running statistics; and the final command, Information Criterion..., concerns evaluation of the Deviance Information Criterion proposed by Spiegelhalter et al. (2002). and Widely Applicable Information Criterion Users should ensure their simulation has converged before using Summary..., Rank... or Information Criterion... Note that if the MCMC simulation has an adaptive phase it will not be possible to make inference using values sampled before the end of this phase.
@@ -28,7 +28,7 @@ The dialog fields are:
 
 node: The variable of interest must be typed in this text field. If the variable of interest is an array, slices of the array can be selected using the notation variable[lower0:upper0, lower1:upper1, ...]. The buttons at the bottom of the dialog act on this variable. A star '*' can be entered in the node text field as shorthand for all the stored samples. These buttons are arranged in two groups: the first group is associated with quantities of substantive interest while the second group gives information about how well the simulation is performing.
 
-BUGS  automatically sets up a logical node to measure a quantity known as deviance; this may be accessed, in the same way as any other variable of interest, by typing its name, i.e. "deviance", in the node field of the Sample Monitor Tool. The definition of deviance is -2 * log(likelihood): 'likelihood' is defined as p( y | theta ), where y comprises all stochastic nodes given values (i.e. data), and theta comprises the stochastic parents of y - 'stochastic parents' are the stochastic nodes upon which the distribution of y depends, when collapsing over all logical relationships.
+BUGS  automatically sets up a logical node to measure a quantity known as deviance; this may be accessed, in the same way as any other variable of interest, by typing its name, i.e. "deviance", in the node field of the Sample Monitor Tool. The definition of deviance is -2 * log(likelihood): 'likelihood' is defined as p( y | theta ), where y comprises all stochastic nodes given values (i.e. data), and theta comprises the stochastic parents of y - 'stochastic parents' are the stochastic nodes upon which the distribution of y depends, when collapsing over all logical relationship
 
 beg and end: numerical fields used to select a subset of the stored sample for analysis.
 
@@ -57,7 +57,7 @@ Rather than calculating a single value of R, we can examine the behaviour of R o
 
 BUGS automatically chooses the number of iterations between the ends of successive ranges: max(100, 2T / 100). It then plots R in red, B (pooled) in green and W (average) in blue. Note that B and W are normalised so that the maximum estimated interval width is one - this is simply so that they can be seen clearly on the same scale as R. Brooks and Gelman (1998) stress the importance of ensuring not only that R has converged to 1 but also that B and W have converged to stability.  This strategy works because both the length of the chains used in the calculation and the start-iteration are always increasing. Hence we are guaranteed to eventually (with an increasing sample size) discard any burn-in iterations and include a sufficient number of stationary samples to conclude convergence.
 
-In the above plot convergence can be seen to occur at around iteration 250. Note that the values underlying the plot can be listed to a window by right-clicking on the plot, selecting Properties, and then clicking on Data (see   BUGS Graphics  ).
+In the above plot convergence can be seen to occur at around iteration 250. Note that the values underlying the plot can be listed to a window by right-clicking on the plot, selecting Properties, and then clicking on Data (see BUGS Graphics).
 
 
 history: plots out a complete trace for the variable.
@@ -68,7 +68,7 @@ quantiles: plots out the running mean with running 95% confidence intervals agai
 
 auto cor: plots the autocorrelation function of the variable out to lag 100. 
 
- See  BUGS Graphics for details of how to customize these plots.
+ See BUGS Graphics for details of how to customize these plots.
 
 
 Compare...        [top]
@@ -169,10 +169,8 @@ histogram: displays the empirical distribution of the simulated rank of each com
 clear: removes the running histograms for node.
 
 
-DIC....        [top]
-
-
-			
+Information Criterion....        [top]
+			
 
 
 The Information Criterion Tool dialog box is used to evaluate the Deviance Information Criterion (DIC; Spiegelhalter et al., 2002) and Widely Applicable Information Criterion (WAIC) - these can be used to assess model complexity and compare different models. Most of the examples packaged with BUGS contain an example of their usage.
@@ -191,8 +189,7 @@ Dbar: this is the posterior mean of the deviance, which is exactly the same as i
 
 Dhat: this is a point estimate of the deviance (-2 * log(likelihood)) obtained by substituting in the posterior means theta.bar of theta: thus Dhat = -2 * log(p(y |theta.bar)).
 
-DIC: this is the 'Deviance Information Criterion', and is given by DIC = Dbar + pD or
-DIC = Dhat + 2 * pD. The model with the smallest DIC is estimated to be the model that would best predict a replicate dataset of the same structure as that currently observed.
+DIC: this is the 'Deviance Information Criterion', and is given by DIC = Dbar + pD or DIC = Dhat + 2 * pD. The model with the smallest DIC is estimated to be the model that would best predict a replicate dataset of the same structure as that currently observed.
 
 WAIC: this is the 'Widely Applicable Information Criterion'. It is a model of model fit penalized by model complexity. It is connected with leave one out cross validation (LOOCV).
 

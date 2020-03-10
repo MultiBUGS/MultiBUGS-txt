@@ -1,4 +1,4 @@
-	The Tools Menu
+	Tools Menu
 
 Contents
 
@@ -25,7 +25,7 @@ General properties        [top]
 The commands in this menu provide various miscelaneous tools.
 
 
-Document Size...        [top]
+Document Size        [top]
 
 			
 			
@@ -42,7 +42,7 @@ Insert Header        [top]
 This command inserts a header into the document which becomes visible when the document is printed.
 
 
-Create Link        [top]
+Insert Create Link        [top]
 
 This command turns the highlighted text into a hyper text link if possible. The highlighted text must have a form like <Dialog.Bleep>Bleep<> which gives the following link . 
 
@@ -65,12 +65,12 @@ Create Fold        [top]
 
 This command turns the highlighted text into a fold enclosed between two arrows containg a minus signs. Clicking on either of the arrows will close the fold (the arrows now contain a plus sign), the caret is then placed between the arrows and text can be typed into the closed fold. Clicking on an arrow will open the fold again.
 
-Expand All        [top]
+Expand All        [top]
 
 This command opens all the closed folds in the document.
 
 
-Collapse All        [top]
+Collapse All        [top]
 
 This command closes all the open folds in the document.
 
@@ -95,7 +95,7 @@ Encode File...        [top]
 This command encodes a file into ascii characters. The encoded version of the file is opened in a new window. A standard file open dialig pops up for choosing which file to encode
 
 
-Encode File List        [top]
+Encode File List        [top]
 
 This command encodes a list of files into a document containg only ascii charcters. The document is opened in a new window. The list of files to be enco´ded must be highlighted in the document in the top window.
 
@@ -104,7 +104,7 @@ Decode        [top]
 
 This command decodes an encoded document, file or list of files.
 
-About Encoded Material        [top]
+About Encoded Material        [top]
 
 This command gives information about what is encoded.
 

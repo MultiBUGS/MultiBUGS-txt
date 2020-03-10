@@ -1,4 +1,6 @@
-References  [top]
+	References
+
+
 Bain, L.J. (1974). Analysis for the Linear Failure-Rate Life-Testing Distribution. Technometrics, 16(4), 551 - 559.
 
 Bebbington, M., Lai, C.D. and Zitikis, R. (2007). A flexible Weibull extension. Reliability Engineering and System Safety, 92, 719-726.

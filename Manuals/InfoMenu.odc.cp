@@ -1,4 +1,4 @@
-	The Info Menu
+	Info Menu
 
 Contents
 
@@ -12,13 +12,14 @@ Contents
 	Latex
 	Data
 	State
+	Metrics
+	Node info...
 	Show Distribution
 	Show Deviance Dist
-	Node info...
-	Metrics
+	Distributed graph...
+	Distribution Info
 	Modules
 	Memory
-	Distribution Info
 
 
 General properties        [top]
@@ -26,11 +27,13 @@ This menu allows the user to obtain more information about how the software is w
 
 
 Open Log        [top]
+
 This option opens a log window to which error and status information is written.
 
 
 Clear Log        [top]
-This option clears all the information displayed in the log window.
+
+This option option clears all the information displayed in the log window.
 
 
 Uninitialized nodes        [top]
@@ -125,23 +128,15 @@ This option opens a window for each chain in the MCMC simulation showing the cur
 
 			
 			
-			
-Show Distribution        [top]
 
-This option shows how the simulation would be split between multiple core for a given number of MCMC chains and a given number of cores. The number of chains and cores is specified in the model specification dialog and the model must be compiled. For the Seeds example with a single chain and two cores the following output is produced
+Metrics        [top]
 
-			
- 
-Show Deviance Dist        [top]
-
-This option shows how the calculation of deviance is split between cores when multiple cores are used in the simulation. Deviance consists of a sum of terms for each data node in the graphical model. The terms which are calculated on each core are listed. For the Seeds example the following output is produced
+This option opens a window which gives some information about the size and complexity of the compiled graphical model. For the Seeds example the following output is produced
 
 			
+			
 
-Note if the graphical model is large with lots of data this option can produce a huge amount of out put.
-
-
-Node info...        [top]
+Node info        [top]
 
 			
 
@@ -175,12 +170,33 @@ Clicking on the type button opens a window displaying
 			
 The alpha12 variable in the model is represented by a node of type dnorm. More detailed information about the node can be gained by clicking on the blue diamond (see the blue diamond section in the developer manual).
 
-Metrics        [top]
 
-This option opens a window which gives some information about the size and complexity of the compiled graphical model. For the Seeds example the following output is produced
+Show Distribution        [top]
+
+This option shows how the simulation would be split between multiple core for a given number of MCMC chains and a given number of cores. The number of chains and cores is specified in the model specification dialog and the model must be compiled. For the Seeds example with a single chain and two cores the following output is produced
 
 			
+ 
+Show Deviance Dist        [top]
+
+This option shows how the calculation of deviance is split between cores when multiple cores are used in the simulation. Deviance consists of a sum of terms for each data node in the graphical model. The terms which are calculated on each core are listed. For the Seeds example the following output is produced
+
 			
+
+Note if the graphical model is large with lots of data this option can produce a huge amount of out put.
+
+
+Distributed graph...        [top]
+
+This option shows how the nodes are distributed across cores, and provides links that help with debugging.
+
+
+Distribution Info        [top]
+
+This option provides information about the worker program created to run MCMC simulation for a particular graphical model on multiple cores. For the Inhaler example running two chains on four cores produces the following output
+
+			
+
 
 Modules        [top]
 
@@ -193,10 +209,3 @@ The modules are arranged in a directed acyclic graph where Clients gives the num
 Memory        [top]
 			
 This option displays how much memory the software is using. It is displayed at the bottom left of the screen.
-
-Distribution Info        [top]
-
-This option provides information about the worker program created to run MCMC simulation for a particular graphical model on multiple cores. For the Inhaler example running two chains on four cores produces the following output
-
-			
-

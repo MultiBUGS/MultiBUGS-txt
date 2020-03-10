@@ -1,30 +1,40 @@
 	Reliability functions
-			
-Hazard rate function [top][example]
 
-The hazard rate function hrf is defined in terms of the distribution's pdf and cdf as
+Contents
+
+	Hazard rate function
+	Reliability function
+	
+	
+Hazard rate function        [top]
+
+The hazard rate function is defined in terms of the distribution's pdf and cdf as
 
 			hrf(x, q) = pdf(x, q) / (1 - cdf(x, q))
 			
-In the BUGS language the notation is as follows
+In the BUGS language the hazard function can be calculated using the haz family of functions. The first argument of each function is the value at which to evaluate the hazard rate function. The other arguments are the parameters of the distribution itself.
 
-			h <- hrf(x0, x1)
-			
-Where the first argument must be a variable in the model defined by a univariate distribution and the second argument is a scalar. The first argument provides two kinds of information: which
-distribution to calculate the hazard rate function for and the values of its parameters q (the values
-associated with the relation for x0). The second argument is the value of x at which the hazard rate function should be calculated. The two arguments x0 and x1 can be identical.
+For example, for a Logistic Exponential follows
 
-Reliability function [top][example]
+			h <- haz.logistic.exp(x, alpha, lambda)
 
-The reliability function R is defined in terms of the distribution's cdf as
+The argument x is the value of at which the reliability function should be calculated, while alpha and lambda are the parameters of the desired distribution.
+
+The following hazard rate functions are available: haz.bs, haz.burrXII, haz.burrX, haz.exp.power, haz.exp.weib, haz.ext.exp, haz.ext.weib, haz.flex.weib, haz.gen.exp, haz.gp.weib, haz.gpz, haz.gumbel, haz.inv.gauss, haz.inv.weib, haz.lin.fr, haz.logistic.exp, haz.log.logis, haz.log.weib, haz.weib.modified, haz.exp.ext.
+
+
+Reliability function        [top]
+
+The reliability function is defined in terms of the distribution's cdf as
 
 			R(x, q) = (1 - cdf(x, q))
 			
-In the BUGS language the notation is as follows
+In the BUGS language the hazard function can be calculated using the rel family of functions. The first argument of each function is the value at which to evaluate the reliability function. The other arguments are the parameters of the distribution itself.
 
-			r <- R(x0, x1)
-			
-Where the first argument must be a variable in the model defined by a univariate distribution and the second argument is a scalar. The first argument provides two kinds of information: which
-distribution to calculate the reliability function for and the values of its parameters q (the values
-associated with the relation for x0). The second argument is the value of x at which the reliability function should be calculated. The two arguments x0 and x1 can be identical.
+For example, for a Logistic Exponential follows
 
+			r <- rel.logistic.exp(x, alpha, lambda)
+
+The argument x is the value of at which the reliability function should be calculated, while alpha and lambda are the parameters of the desired distribution.
+
+The following reliability functions are available: rel.l.bs, rel.burrXII, rel.burrX, rel.exp.power, rel.exp.weib, rel.ext.exp, rel.ext.weib, rel.flex.weib, rel.gen.exp, rel.gp.weib, rel.gpz, rel.gumbel, rel.inv.gauss, rel.inv.weib, rel.lin.fr, rel.logistic.exp, rel.log.logis, rel.log.weib, rel.weib.modified, rel.exp.ext.

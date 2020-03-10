@@ -1,9 +1,17 @@
+	Introduction
+
+Contents
+
+	Introduction
+	Reliability analysis
+	Censoring
 	
- Introduction [top]
+	
+Introduction        [top]
 
 ReliaBUGS is an add-on to the OpenBUGS software that makes it easy to do reliability analysis in OpenBUGS. ReliaBUGS consists of many probability distribution useful for reliability analysis plus a small number of helpful logical functions.
 
-Reliability Analysis [top]
+Reliability analysis        [top]
 
 Reliability analysis evaluates the performance of an equipment/system under consideration. In particular, we use the term reliability to mean the probability that a piece of equipment (component, subsystem or system) successfully performs its intended function for a given period of time under specified (design) conditions.  The International Organization for Standardization (ISO) defines reliability as “the ability of an item to perform a required function, under given environmental and operating conditions and for a stated period of time”.
 
@@ -19,7 +27,8 @@ R(x) = P(X> x) = 1 - F(x) ,         x ≥ 0,
 
 where X is a random variable denoting the time-to failure or failure time. 
 
-Censoring [top][example]
+Censoring        [top]
+
 In reliability context, the following types of censored data are of particular interest. Censoring occurs frequently because of time limits and other restrictions during the process of data collection. In a life test experiment of manufactured items, for example, it may not be feasible to continue experimentation until all items under study have failed. If the study is terminated before all have failed, then for items that have not failed at the time of termination only a lower bound on lifetime is available.
  
 Let X1, X2; . . . , Xn denote a sample of n-independent random variables from a distribution function F(x, q), where q is a k-dimensional parameter. These correspond to the life times for n different items in the reliability context.. Let  x1, x2; . . . , xn denote the actual realized values of the Xi’s.

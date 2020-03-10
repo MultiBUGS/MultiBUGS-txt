@@ -1,18 +1,18 @@
-	The Model Menu
-
+	Model Menu
+
 Contents
 
 	General properties
 	Specification...
 	Update...
-	Random number generator...
 	Script
 	Output options...
 	Compile options...
 	Updater options...
-	Externalize
-	Internalize
-
+	Random number generator...
+	Externalize...
+	Internalize...
+	
 	
 General properties        [top]
 
@@ -38,7 +38,7 @@ Data can be identified in two ways:
 1) if the data are in a separate document, the window containing that document needs to be the focus view when the load data command is used;
 2) if the data are specified as part of a document, the first character of the data (either the word list if in S-Plus format, or the first array name if in rectangular format) must be highlighted and the data will be read starting with the first highlighted character.
 
-See  Formatting of data for details of how the data should be formatted.
+See  Formatting of data for details of how the data should be formatte
 
 Any syntax errors or data inconsistencies are displayed in the status line. Corrections can be made to the data without returning to the check model stage. When the data have been loaded successfully, "Data Loaded" should appear in the status line.
 
@@ -73,19 +73,20 @@ gen inits: The gen inits button attempts to generate initial values by sampling 
 
 The gen inits button becomes active once the model has been successfully compiled, and will cease to be active once the model has been initialized.
 
-The distribute button will distribute the MCMC simulation over multiple processing cores where the number of cores is set in the num cores field. Note the number of cores used should be a multiple of the number of chains (if it is not it will be rounded down so that it is). If the number of cores is equal to the number of chains then each chain is simulated on a seperate core. If the number of cores is greater than the number of chains then each MCMC chain will be simulated using several cores. The distributed version of the software uses MPI for communication between cores and with the user interface. Microsoft MPI must be installed for the distribute option to work. When the number of cores used is equal to the number of MCMC chains the distributed and non distributed version of the simulation should produce indentical results.
+The distribute button will distribute the MCMC simulation over multiple processing cores where the number of cores is set in the num cores field. Note the number of cores used should be a multiple of the number of chains (if it is not it will be rounded down so that it is). If the number of cores is equal to the number of chains then each chain is simulated on a seperate core. If the number of cores is greater than the number of chains then each MCMC chain will be simulated using several cores. The distributed version of the software uses MPI for communication between cores and with the user interface. Microsoft MPI must be installed for the distribute option to work. When the number of cores used is equal to the number of MCMC chains the distributed and non distributed version of the simulation should produce indentical result
 
-Update....        [top]
+
+Update...        [top]
 
 				
 
 This menu will become active after the model has been compiled and initialized.  It has the following fields that accept user input:
 
-updates: The number of MCMC samples to save.  Thus, updates * thin  MCMC updates will be carried out.
+updates: The number of MCMC samples to save.  Thus, updates * thin  MCMC updates will be carried ou
 
 refresh: The number of updates divided by thin between redrawing the screen.
 
-thin: The samples from every kth iteration will be used for inference, where k is the value of thin. Setting k > 1 can help to reduce the autocorrelation in the sample, but there is no real advantage in thinning except to reduce storage requirements.
+thin: The samples from every kth iteration will be used for inference, where k is the value of thin. Setting k > 1 can help to reduce the autocorrelation in the sample, but there is no real advantage in thinning except to reduce storage requirement
 
 over relax: Click on this box (a tick will then appear) to select an over-relaxed form of MCMC (Neal, 1998) which will be executed where possible. This generates multiple samples at each iteration and then selects one that is negatively correlated with the current value. The time per iteration will be increased, but the within-chain correlations should be reduced and hence fewer iterations may be necessary. However, this method is not always effective and should be used with caution. The auto-correlation function may be used to check whether the mixing of the chain is improved.
 
@@ -95,23 +96,13 @@ The iteration field displays the total number of MCMC updates divided by thin th
 
 The adapting box will be ticked while the Metropolis or slice-sampling MCMC algorithm is in its initial tuning phase where some optimization parameters are tuned. The Metropolis and slice-sampling algorithms have adaptive phases of 4000 and 500 iterations respectively which will be discarded from all statistics. For details on how to change these default settings please see the Updater Options section.
 
-When there are multiple chains, a single update is generated for each chain and then the cycle is repeated for the requested number of updates.  Random numbers are currently generated from a single random number sequence shared across the chains.  When thin>1,  thinned updates are drawn from the first chain, then thinned updates are generated from the second chain, and so on. However if thin=1, and the monitored samples are thinned via Inference > Samples, the output
-will be different, since we are then looping over chains within each iteration. 
-
-
-
-Random number generator....        [top]
-
-			
-
-Opens a non-modal dialog box, which is available only after compilation is completed and before any updates have been performed.  The state can be changed after initial values are generated but before updates have been performed, however,  this is not recommended.
-
-The internal state of the random number generator can be set to one of 14 predefined states using the up down arrows. Each predefined state is 1012 draws apart to avoid overlap in random number sequences.
+When there are multiple chains, a single update is generated for each chain and then the cycle is repeated for the requested number of updates.  Random numbers are currently generated from a single random number sequence shared across the chains.  When thin>1,  thinned updates are drawn from the first chain, then thinned updates are generated from the second chain, and so on. However if thin=1, and the monitored samples are thinned via Inference > Samples, the output will be different, since we are then looping over chains within each iteration. 
 
 
 Script        [top]
 
 The Script menu item is used to execute "batch scripts" from the GUI-mode.  If the focus-view contains a series of OpenBUGS batch-mode commands, then selecting the script menu item from the Model menu will cause the script to be executed.  A subset of the script commands can be executed by highlighting them.  Highlighting part of a batch command will likely produce an  error.  The script menu item allows batch mode execution to be mixed with GUI execution so batch scripts can be created incrementally and some repetitive tasks under the GUI (e.g., specifying variables to be monitored) can be automated during the model building/testing analysis phase. See Scripts and Batch-mode for more details. 
+
 
 Output options...        [top]
 
@@ -132,7 +123,7 @@ updater by method: OpenBUGS chooses update algorithms for the model in a "by met
 trap on error: Causes OpenBUGS to display a "trap" window when an unidentified error occurs, instead of displaying a short message "Sorry, something went wrong..." in the status bar. Trap windows contain information intended to help programmers fix the source code of OpenBUGS. Therefore some experts may find them useful for identifying difficult errors, but most users will find them more confusing than the default message. 
 
 
-Updater options        [top]
+Updater options...        [top]
 
 Tabbed dialog box for controlling how OpenBUGS updates the model.
 
@@ -153,14 +144,23 @@ The parameters tab of the dialog lists the actual updater algorithms used in sam
 			
 
 
-Externalize        [top]
+Random number generator....        [top]
+
+			
+
+Opens a non-modal dialog box, which is available only after compilation is completed and before any updates have been performed.  The state can be changed after initial values are generated but before updates have been performed, however,  this is not recommended.
+
+The internal state of the random number generator can be set to one of 14 predefined states using the up down arrows. Each predefined state is 1012 draws apart to avoid overlap in random number sequences.
+
+
+Externalize...        [top]
 
 This option writes out all the internal data structures that OpenBUGS has created for a compiled model .  It provides a way of "saving" the model for future use.  The user is prompted to enter a filestem name in a dialog box and a file called 'filestem.bug' is created in a folder called "Restart" in the OpenBUGSxxx program folder.  If there were no errors when saving the compiled model, the message "model externalized to file ok" is displayed in the status bar.
 
 The output files can be very large;  users should remove these files when they are no longer needed.  Script commands (see Scripts and Batch-mode) are a better method for creating re-producible results, especially if these results need to be sent to other users.
 
 
-Internalize        [top]
+Internalize...        [top]
 
 This option reads in all the internal data structures that OpenBUGS needs to re-create an executing model from a file created by  Externalize. It provides a way of "restarting" the model for further use. This option will open a window containing a BUGS language description of the restarted model and all the tool dialogs will be restored to the state when the model was last executed.  If there were no errors when internalizing the saved model, the message "model internalized from file ok" is displayed in the status bar.
 

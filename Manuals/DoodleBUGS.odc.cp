@@ -1,5 +1,5 @@
-	DoodleBUGS: The Doodle Editor
-
+	DoodleBUGS: The doodle editor
+
 Contents
 
 	General properties
@@ -16,8 +16,8 @@ Contents
 	Deleting an edge
 	Moving a Doodle
 	Resizing a Doodle
-
-
+	
+	
 General properties        [top]
 
 Doodles consist of three elements: nodes, plates and edges. The graph is built up out of these elements using the mouse and keyboard. The Doodle menu contains options that apply to the whole Doodle. These menu options are described below.
@@ -45,13 +45,13 @@ The type of the node can be changed by clicking on the blue word type at the top
 
 The name of a node starts with a letter and can also contain digits and the period character "." The name must not contain two successive periods and must not end with a period. Vectors are denoted using a square bracket notation, with indices separated by commas. A colon-separated pair of integers is used to denote an index range of a multivariate node or plate.
 
-Stochastic: Associated with stochastic nodes is a density. Click on the blue word density to see the choice of densities available (this will not necessarily include all those available in the BUGS language and described in Appendix II Functions and functionals). For each density the appropriate name(s) of the parameters are displayed in blue. For some densities default values of the parameters will be displayed in black next to the parameter name. When edges are created pointing into a stochastic node these edges are associated with the parameters in a left to right order. To change the association of edges with parameters click on one of the blue parameter names, a menu will drop down from which the required edge can be selected. This drop down menu will also give the option of editing the parameter's default value.
+Stochastic: Associated with stochastic nodes is a density. Click on the blue word density to see the choice of densities available (this will not necessarily include all those available in the BUGS language and described in Functions and functionals). For each density the appropriate name(s) of the parameters are displayed in blue. For some densities default values of the parameters will be displayed in black next to the parameter name. When edges are created pointing into a stochastic node these edges are associated with the parameters in a left to right order. To change the association of edges with parameters click on one of the blue parameter names, a menu will drop down from which the required edge can be selected. This drop down menu will also give the option of editing the parameter's default valu
 
 Logical: Associated with logical nodes is a link, which can be selected by clicking on the blue word link. Logical nodes also require a value to be evaluated (modified by the chosen link) each time the value of the node is required. To type input in the value field click the mouse on the blue word value. The value field of a logical node corresponds to the right hand side of a logical relation in the BUGS language and can contain the same functions. The value field must be completed for all logical nodes.
 
 We emphasise that the value determines the value of the node and the logical links in the Doodle are for cosmetic purposes only.
 
-It is possible to define two nodes in the same Doodle with the same name - one as logical and one as stochastic - in order to use the data transformation facility described in Data transformations
+It is possible to define two nodes in the same Doodle with the same name - one as logical and one as stochastic - in order to use the data transformation facility described in Data transformations.
 
 Constants: Constant nodes can be given a name or a numerical value.
 

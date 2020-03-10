@@ -1,4 +1,4 @@
-	The Attributes Menu
+	Attributes Menu
 
 Contents
 
@@ -60,6 +60,6 @@ This command opens a modal dialog box which allows the user to choose the font f
 			
 			
 			
-Typeface...        [top]
+Typeface        [top]
 
 This command is a simplified version of the Font... command without the ability to change the color of the text.

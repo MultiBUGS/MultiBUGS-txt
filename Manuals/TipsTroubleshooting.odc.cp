@@ -1,5 +1,5 @@
-	Tips and Troubleshooting
-
+	Tips and troubleshooting
+
 Contents
 
 	Restrictions when modelling
@@ -8,12 +8,11 @@ Contents
 	The program hangs
 	Speeding up sampling
 	Improving convergence
-
-
+	
+	
 Restrictions when modelling        [top]
 
 Restrictions have been stated throughout this manual. A summary list is as follows:
-
 
 a) Each stochastic and logical node must appear once and only once on the left-hand-side of an expression. The only exception is when carrying out a data transformation (see Data transformations). This means, for example, that it is generally not possible to give a distribution to a quantity that is specified as a logical function of an unknown parameter.
 
@@ -48,6 +47,7 @@ f) 'undefined variable' - undefined variables are allowed in the model so long a
 g) 'index out of range' - usually indicates that a loop-index goes beyond the size of a vector (or matrix dimension).
 
 In rare cases BUGS is unable to find a suitable sampling algorithm for a node in the model. The error message  'Unable to choose update method for node x' will be displayed where x is the node for which BUGS can not find an update method.
+
 
 Trap windows        [top]
 
@@ -90,27 +90,26 @@ d) 'NIL dereference (read)' can occur at compilation in some circumstances when 
 
 e) argument of sqrt must not be negative the square root of a negative number has been taken, this occurs if the precision matrix of a multivariate normal is not positive definite.
 
-
 The program hangs        [top]
 
 This could be due to:
 
-a) a problem that seems to happen with NT - rebooting is a crude way out;
+a) a problem that seems to happen with Windows NT - rebooting is a crude way out;
 b) interference with other programs running - try to run WinBUGS on its own;
 c) a particularly ill-posed model - try the approaches listed above under Trap messages.
-
 
 Speeding up sampling        [top]
 
 The key is to reduce function evaluations by expressing the model in as concise a form as possible. For example, take advantage of the functions provided and use nested indexing wherever possible. Look at the packaged examples and others provided on users' web sites.
 
-
 Improving convergence        [top]
 
 Possible solutions include:
 
-a) better parameterisation to improve orthogonality of joint posterior;
-b) standardisation of covariates to have mean 0 and standard deviation 1;
+a) better parameterisation to improve orthogonality of joint posterior
+
+b) standardisation of covariates to have mean 0 and standard deviation 1
+
 c) use of ordered over-relaxation.
 
 For other problems, try the FAQ pages of the web site (http://openbugs.info). 
