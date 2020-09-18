@@ -284,7 +284,7 @@ MODULE GraphBinomial;
 		REPEAT
 			r := MathRandnum.Binomial(p, n);
 			DEC(iter)
-		UNTIL ((r > l) & (r < u)) OR (iter = 0);
+		UNTIL ((r >= l) & (r <= u)) OR (iter = 0);
 		IF iter # 0 THEN
 			node.value := r
 		ELSE
