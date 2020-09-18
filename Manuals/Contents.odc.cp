@@ -1,6 +1,6 @@
 	BUGS User Manual
 
-MultiBUGS v2.0 (March 2020)
+MultiBUGS v2.0 (September 2020)
 
       Andrew Thomas   &   Robert JB Goudie
       MRC Biostatistics Unit, University of Cambridge
@@ -41,4 +41,4 @@ Help menu
 
 References
 
-Licence: GPL v2.0 Licence text
+Licence: LGPL v3.0 Licence text
