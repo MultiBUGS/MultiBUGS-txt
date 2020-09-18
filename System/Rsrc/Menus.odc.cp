@@ -123,8 +123,6 @@ MENU "Examples"
 END
 
 MENU "Manuals"
-	"Getting started"	""	"StdCmds1.OpenBrowser('Manuals/Manual', 'Getting started')"	""
-	SEPARATOR
 	"MultiBUGS User Manual"	"F1"	"StdCmds1.OpenBrowser('Manuals/Contents', 'MultiBUGS User Manual Contents')"	""
 	"DoodleBUGS User Manual"	""	"StdCmds1.OpenBrowser('Manuals/DoodleBUGS', 'DoodleBUGS User Manual')"	""	
 	"GeoBUGS User Manual"	""	"StdCmds1.OpenBrowser('GeoBugs/Manuals/Manual', 'GeoBUGS User Manual')"	""	
