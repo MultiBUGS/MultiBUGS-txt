@@ -666,7 +666,7 @@ MODULE BugsPackage;
 		Maintainer;
 		dest := "C:/MultiBUGS";
 		copyBinary := TRUE;
-		copyDocu := FALSE;
+		copyDocu := TRUE;
 		copySource := FALSE;
 		copyExamples := TRUE;
 		produceHTML := TRUE
