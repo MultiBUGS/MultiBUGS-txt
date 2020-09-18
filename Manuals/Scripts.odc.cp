@@ -261,9 +261,12 @@ Info menu commands
 	infoUpdatersByDepth()		Info > Updaters(by depth)
 	List the nodes with their associated updater algorithm in the reverse topological order to 
 	which they occur in the graphical model.
-	
+
 	infoModules()		Info > Modules
 	Displays all the modules (dynamic link libraries) in use. 
+	
+	infoVersion()		
+	Displays the version of BUGS
 
 
 Example script        [top]
