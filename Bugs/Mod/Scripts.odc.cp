@@ -408,7 +408,10 @@ MODULE BugsScripts;
 		StoreKey("infoMemory()", "BugsCmds.AllocatedMemory");
 
 		(*	info on distribution	*)
-		StoreKey("infoDistribution()", "BugsCmds.DistributeInfo")
+		StoreKey("infoDistribution()", "BugsCmds.DistributeInfo");
+		
+		(*	info on version	*)
+		StoreKey("infoVersion()", "BugsCmds.Version")
 		
 	END Load;
 

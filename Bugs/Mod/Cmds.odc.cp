@@ -374,6 +374,35 @@ MODULE BugsCmds;
 		END;
 		StdCmds.OpenToolDialog(aboutDialog, title)
 	END About;
+	
+	PROCEDURE Version*;
+		VAR
+			f: TextMappers.Formatter;
+			text: TextModels.Model;
+			string, appName, version, release: ARRAY 128 OF CHAR;
+	BEGIN
+		text := TextModels.dir.New();
+		f.ConnectTo(text);
+		f.SetPos(0);
+		IF Environment.RunningUnderMPI() THEN
+			Dialog.MapString("#System:title2", appName);
+		ELSE
+			Dialog.MapString("#System:title1", appName);
+		END;
+		Dialog.MapString("#System:version", version);
+		Dialog.MapString("#System:release", release);
+		f.WriteString("AppName: ");
+		f.WriteString(appName);
+		f.WriteLn;
+		f.WriteString("Version: ");
+		f.WriteString(version);
+		f.WriteLn;
+		f.WriteString("Release: ");
+		f.WriteString(release);
+		f.WriteLn;
+		string := "Version";
+		BugsFiles.Open(string, text)
+	END Version;
 
 	PROCEDURE AllocatedMemory*;
 		VAR
